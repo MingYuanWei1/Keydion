@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Search Papers · PaperQuery') }}{% endblock %}
+{% block content %}
+<div class="page-title">
+  <h1>{{ _('Search the Research Library') }}</h1>
+  <p class="text-muted">{{ _('Enter keywords to find matching papers by title or content.') }}</p>
+</div>
+
+<div class="mb-3">
+  <a class="btn btn-outline-secondary back-link" href="{{ url_for('dashboard') }}">
+    &larr; {{ _('Back to Dashboard') }}
+  </a>
+</div>
+
+<form method="post" class="row gy-2 gx-3 align-items-center mb-4">
+  <div class="col-sm-9">
+    <label class="visually-hidden" for="query">{{ _('Keyword') }}</label>
+    <input type="text" class="form-control form-control-lg" id="query" name="query" placeholder="{{ _('climate change') }}" value="{{ query }}">
+  </div>
+  <div class="col-sm-3 d-grid">
+    <button type="submit" class="btn btn-primary btn-lg">{{ _('Search') }}</button>
+  </div>
+</form>
+
+{% if results %}
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h2 class="h5 mb-3">
+        {{ ngettext('%(count)s paper found', '%(count)s papers found', results|length) % {'count': results|length} }}
+      </h2>
+      <div class="list-group list-group-flush">
+        {% for paper in results %}
+          <div class="list-group-item d-flex flex-column flex-lg-row align-items-lg-center justify-content-between">
+            <div>
+              <div class="h5 mb-1">{{ paper.title }}</div>
+              <div class="small text-muted">{{ paper.filename }}</div>
+            </div>
+            <a href="{{ url_for('download', filename=paper.filename) }}" class="btn btn-outline-primary mt-3 mt-lg-0">{{ _('Download PDF') }}</a>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+{% elif query %}
+  <div class="alert alert-info">{{ _('No papers matched "%(query)s". Try refining your terms.', query=query) }}</div>
+{% endif %}
+{% endblock %}

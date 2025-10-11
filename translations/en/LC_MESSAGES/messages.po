@@ -1,0 +1,249 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PaperQuery 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-10-11 00:00+0000\n"
+"PO-Revision-Date: 2025-10-11 00:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: English\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Reader - View & Download"
+msgstr "Reader - View & Download"
+
+msgid "Contributor - Upload Enabled"
+msgstr "Contributor - Upload Enabled"
+
+msgid "Curator - Full Access"
+msgstr "Curator - Full Access"
+
+msgid "English"
+msgstr "English"
+
+msgid "Chinese"
+msgstr "Chinese"
+
+msgid "Language not supported."
+msgstr "Language not supported."
+
+msgid "Language switched to %(language)s."
+msgstr "Language switched to %(language)s."
+
+msgid "Welcome back, %(username)s!"
+msgstr "Welcome back, %(username)s!"
+
+msgid "Invalid credentials or access expired."
+msgstr "Invalid credentials or access expired."
+
+msgid "Signed out successfully."
+msgstr "Signed out successfully."
+
+msgid "Enter a keyword to search."
+msgstr "Enter a keyword to search."
+
+msgid "No matching papers found."
+msgstr "No matching papers found."
+
+msgid "Select a PDF file to upload."
+msgstr "Select a PDF file to upload."
+
+msgid "Only PDF files are accepted."
+msgstr "Only PDF files are accepted."
+
+msgid "A paper with this filename already exists. Rename your file and try again."
+msgstr "A paper with this filename already exists. Rename your file and try again."
+
+msgid "Uploaded %(filename)s."
+msgstr "Uploaded %(filename)s."
+
+msgid "Select a valid paper to delete."
+msgstr "Select a valid paper to delete."
+
+msgid "Type the filename exactly to confirm deletion."
+msgstr "Type the filename exactly to confirm deletion."
+
+msgid "Deleted %(filename)s."
+msgstr "Deleted %(filename)s."
+
+msgid "Please sign in first."
+msgstr "Please sign in first."
+
+msgid "You do not have access to that action."
+msgstr "You do not have access to that action."
+
+msgid "PaperQuery"
+msgstr "PaperQuery"
+
+msgid "Search"
+msgstr "Search"
+
+msgid "Upload"
+msgstr "Upload"
+
+msgid "Delete"
+msgstr "Delete"
+
+msgid "Sign out"
+msgstr "Sign out"
+
+msgid "Language"
+msgstr "Language"
+
+msgid "PaperQuery · International Academy Research Hub"
+msgstr "PaperQuery · International Academy Research Hub"
+
+msgid "Sign in · PaperQuery"
+msgstr "Sign in · PaperQuery"
+
+msgid "PaperQuery Portal"
+msgstr "PaperQuery Portal"
+
+msgid "Sign in with your academy credentials to explore the research library."
+msgstr "Sign in with your academy credentials to explore the research library."
+
+msgid "Username"
+msgstr "Username"
+
+msgid "e.g. j.smith"
+msgstr "e.g. j.smith"
+
+msgid "Password"
+msgstr "Password"
+
+msgid "Sign in"
+msgstr "Sign in"
+
+msgid "Need help? Contact the Library Services Team."
+msgstr "Need help? Contact the Library Services Team."
+
+msgid "Dashboard · PaperQuery"
+msgstr "Dashboard · PaperQuery"
+
+msgid "Hello, %(username)s!"
+msgstr "Hello, %(username)s!"
+
+msgid "Welcome to the PaperQuery research portal. Use the navigation to search, upload, or curate papers based on your access level."
+msgstr "Welcome to the PaperQuery research portal. Use the navigation to search, upload, or curate papers based on your access level."
+
+msgid "Access valid through %(date)s"
+msgstr "Access valid through %(date)s"
+
+msgid "Search Library"
+msgstr "Search Library"
+
+msgid "Find relevant publications across the academy's curated collection with quick keyword matching."
+msgstr "Find relevant publications across the academy's curated collection with quick keyword matching."
+
+msgid "Go to Search"
+msgstr "Go to Search"
+
+msgid "Upload Research"
+msgstr "Upload Research"
+
+msgid "Support community scholarship by sharing new papers in PDF format for peers to explore."
+msgstr "Support community scholarship by sharing new papers in PDF format for peers to explore."
+
+msgid "Upload a Paper"
+msgstr "Upload a Paper"
+
+msgid "Upload unavailable"
+msgstr "Upload unavailable"
+
+msgid "Manage Collection"
+msgstr "Manage Collection"
+
+msgid "Keep the repository tidy by removing outdated or duplicate papers. Confirmation keeps actions safe."
+msgstr "Keep the repository tidy by removing outdated or duplicate papers. Confirmation keeps actions safe."
+
+msgid "Manage Papers"
+msgstr "Manage Papers"
+
+msgid "Admin only"
+msgstr "Admin only"
+
+msgid "Search Papers · PaperQuery"
+msgstr "Search Papers · PaperQuery"
+
+msgid "Search the Research Library"
+msgstr "Search the Research Library"
+
+msgid "Enter keywords to find matching papers by title or content."
+msgstr "Enter keywords to find matching papers by title or content."
+
+msgid "Keyword"
+msgstr "Keyword"
+
+msgid "climate change"
+msgstr "climate change"
+
+msgid "%(count)s paper found"
+msgstr "%(count)s paper found"
+
+msgid "%(count)s papers found"
+msgstr "%(count)s papers found"
+
+msgid "Download PDF"
+msgstr "Download PDF"
+
+msgid "No papers matched \"%(query)s\". Try refining your terms."
+msgstr "No papers matched \"%(query)s\". Try refining your terms."
+
+msgid "Upload Paper · PaperQuery"
+msgstr "Upload Paper · PaperQuery"
+
+msgid "Upload a New Paper"
+msgstr "Upload a New Paper"
+
+msgid "Share PDF files with the school community. Files are instantly available for search."
+msgstr "Share PDF files with the school community. Files are instantly available for search."
+
+msgid "Select PDF file"
+msgstr "Select PDF file"
+
+msgid "Delete Papers · PaperQuery"
+msgstr "Delete Papers · PaperQuery"
+
+msgid "Manage Paper Collection"
+msgstr "Manage Paper Collection"
+
+msgid "Remove outdated or duplicate papers. Confirm the filename to complete deletion."
+msgstr "Remove outdated or duplicate papers. Confirm the filename to complete deletion."
+
+msgid "Available Papers"
+msgstr "Available Papers"
+
+msgid "Select filename"
+msgstr "Select filename"
+
+msgid "Choose a paper"
+msgstr "Choose a paper"
+
+msgid "Confirm filename"
+msgstr "Confirm filename"
+
+msgid "Type the exact filename to confirm"
+msgstr "Type the exact filename to confirm"
+
+msgid "This extra step prevents accidental deletions."
+msgstr "This extra step prevents accidental deletions."
+
+msgid "Delete Paper"
+msgstr "Delete Paper"
+
+msgid "No papers available to delete. Upload new papers in the Upload section."
+msgstr "No papers available to delete. Upload new papers in the Upload section."
+
+msgid "Session expired. Please sign in again."
+msgstr "Session expired. Please sign in again."
+
+msgid "Session timed out. Please sign in again."
+msgstr "Session timed out. Please sign in again."
+
+msgid "This account is already signed in. Please sign out from the other session or wait %(minutes)d minutes."
+msgstr "This account is already signed in. Please sign out from the other session or wait %(minutes)d minutes."
+
+msgid "Back to Dashboard"
+msgstr "Back to Dashboard"

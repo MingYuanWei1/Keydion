@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+.env
+instance/
+.DS_Store
+Thumbs.db
+papers/*
+!papers/.gitkeep
+data/active_sessions.json

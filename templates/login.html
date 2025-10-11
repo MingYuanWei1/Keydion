@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Sign in · PaperQuery') }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-4">
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4">
+        <h1 class="h4 text-center mb-3">{{ _('PaperQuery Portal') }}</h1>
+        <p class="text-muted text-center mb-4">
+          {{ _('Sign in with your academy credentials to explore the research library.') }}
+        </p>
+        <form method="post">
+          <div class="mb-3">
+            <label for="username" class="form-label">{{ _('Username') }}</label>
+            <input type="text" class="form-control" id="username" name="username" placeholder="{{ _('e.g. j.smith') }}" required autofocus>
+          </div>
+          <div class="mb-3">
+            <label for="password" class="form-label">{{ _('Password') }}</label>
+            <input type="password" class="form-control" id="password" name="password" required>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">{{ _('Sign in') }}</button>
+        </form>
+        <div class="text-center mt-3 small text-muted">
+          {{ _('Need help? Contact the Library Services Team.') }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

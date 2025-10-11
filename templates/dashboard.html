@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Dashboard · PaperQuery') }}{% endblock %}
+{% block content %}
+<div class="row align-items-center mb-4">
+  <div class="col-md-8">
+    <h1 class="display-6 fw-semibold text-primary">{{ _('Hello, %(username)s!', username=user.username) }}</h1>
+    <p class="lead text-muted">{{ _('Welcome to the PaperQuery research portal. Use the navigation to search, upload, or curate papers based on your access level.') }}</p>
+  </div>
+  <div class="col-md-4 text-md-end text-center">
+    <div class="d-flex flex-column align-items-md-end align-items-center gap-2">
+      <div class="badge bg-info text-dark fs-6">{{ role_label(user.role|int) }}</div>
+      {% if user.expiry_date %}
+        <div class="small text-muted">{{ _('Access valid through %(date)s', date=user.expiry_date) }}</div>
+      {% endif %}
+      <a class="btn btn-outline-primary" href="{{ url_for('logout') }}">{{ _('Sign out') }}</a>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="feature-card feature-card--pink h-100">
+      <h2>{{ _('Search Library') }}</h2>
+      <p>{{ _('Find relevant publications across the academy\'s curated collection with quick keyword matching.') }}</p>
+      <a class="btn btn-outline-primary" href="{{ url_for('search') }}">{{ _('Go to Search') }}</a>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="feature-card feature-card--teal h-100">
+      <h2>{{ _('Upload Research') }}</h2>
+      <p>{{ _('Support community scholarship by sharing new papers in PDF format for peers to explore.') }}</p>
+      {% if user.role|int >= 2 %}
+        <a class="btn btn-outline-primary" href="{{ url_for('upload') }}">{{ _('Upload a Paper') }}</a>
+      {% else %}
+        <button class="btn btn-outline-secondary" disabled>{{ _('Upload unavailable') }}</button>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="feature-card feature-card--gold h-100">
+      <h2>{{ _('Manage Collection') }}</h2>
+      <p>{{ _('Keep the repository tidy by removing outdated or duplicate papers. Confirmation keeps actions safe.') }}</p>
+      {% if user.role|int >= 3 %}
+        <a class="btn btn-outline-primary" href="{{ url_for('delete') }}">{{ _('Manage Papers') }}</a>
+      {% else %}
+        <button class="btn btn-outline-secondary" disabled>{{ _('Admin only') }}</button>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

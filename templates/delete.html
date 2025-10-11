@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Delete Papers · PaperQuery') }}{% endblock %}
+{% block content %}
+<div class="page-title">
+  <h1>{{ _('Manage Paper Collection') }}</h1>
+  <p class="text-muted">{{ _('Remove outdated or duplicate papers. Confirm the filename to complete deletion.') }}</p>
+</div>
+
+<div class="mb-3">
+  <a class="btn btn-outline-secondary back-link" href="{{ url_for('dashboard') }}">
+    &larr; {{ _('Back to Dashboard') }}
+  </a>
+</div>
+
+{% if papers %}
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <h2 class="h6 text-uppercase text-muted">{{ _('Available Papers') }}</h2>
+      <ul class="list-group list-group-flush paper-list">
+        {% for paper in papers %}
+          <li class="list-group-item">{{ paper }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <form method="post" class="delete-form">
+        <div class="mb-3">
+          <label for="filename" class="form-label">{{ _('Select filename') }}</label>
+          <select class="form-select" id="filename" name="filename" required>
+            <option value="" selected disabled>{{ _('Choose a paper') }}</option>
+            {% for paper in papers %}
+              <option value="{{ paper }}">{{ paper }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="confirm" class="form-label">{{ _('Confirm filename') }}</label>
+          <input type="text" class="form-control" id="confirm" name="confirm" placeholder="{{ _('Type the exact filename to confirm') }}" required>
+          <div class="form-text">{{ _('This extra step prevents accidental deletions.') }}</div>
+        </div>
+        <button type="submit" class="btn btn-danger">{{ _('Delete Paper') }}</button>
+      </form>
+    </div>
+  </div>
+{% else %}
+  <div class="alert alert-info">{{ _('No papers available to delete. Upload new papers in the Upload section.') }}</div>
+{% endif %}
+{% endblock %}
