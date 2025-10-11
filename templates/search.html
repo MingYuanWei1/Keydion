@@ -25,8 +25,9 @@
 {% if results %}
   <div class="card shadow-sm">
     <div class="card-body">
+      {% set result_count = results|length %}
       <h2 class="h5 mb-3">
-        {{ ngettext('%(count)s paper found', '%(count)s papers found', results|length) % {'count': results|length} }}
+        {{ ngettext('%(count)s paper found', '%(count)s papers found', result_count, count=result_count) }}
       </h2>
       <div class="list-group list-group-flush">
         {% for paper in results %}
