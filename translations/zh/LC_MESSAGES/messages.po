@@ -92,8 +92,8 @@ msgstr "退出"
 msgid "Language"
 msgstr "语言"
 
-msgid "PaperQuery · International Academy Research Hub"
-msgstr "PaperQuery · 国际学校科研平台"
+msgid "PaperQuery International Academy Research Hub"
+msgstr "PaperQuery 国际学校科研平台"
 
 msgid "Sign in · PaperQuery"
 msgstr "登录 · PaperQuery"

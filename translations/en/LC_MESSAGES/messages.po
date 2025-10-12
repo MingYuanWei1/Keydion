@@ -92,8 +92,8 @@ msgstr "Sign out"
 msgid "Language"
 msgstr "Language"
 
-msgid "PaperQuery · International Academy Research Hub"
-msgstr "PaperQuery · International Academy Research Hub"
+msgid "PaperQuery International Academy Research Hub"
+msgstr "PaperQuery International Academy Research Hub"
 
 msgid "Sign in · PaperQuery"
 msgstr "Sign in · PaperQuery"
