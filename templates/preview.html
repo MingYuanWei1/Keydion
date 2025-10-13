@@ -1,23 +1,24 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block title %}{{ _('Preview Paper') }}{% endblock %}
 {% block content %}
-<div class="page-title">
-  <h1>{{ paper.title or paper.filename }}</h1>
-  <p class="text-muted">{{ paper.authors or _('Not specified') }}</p>
+<div class="preview-hero">
+  <div class="preview-hero__text">
+    <h1 class="preview-title">{{ paper.title or paper.filename }}</h1>
+    <p class="preview-subtitle">{{ paper.authors or _('Not specified') }}</p>
+  </div>
+  <div class="preview-hero__actions">
+    {% if source_page %}
+      <a class="btn btn-outline-secondary back-link" href="{{ url_for('search', q=source_query, page=source_page) }}">{{ _('Back to Search') }}</a>
+    {% elif source_query %}
+      <a class="btn btn-outline-secondary back-link" href="{{ url_for('search', q=source_query) }}">{{ _('Back to Search') }}</a>
+    {% else %}
+      <a class="btn btn-outline-secondary back-link" href="{{ url_for('search') }}">{{ _('Back to Search') }}</a>
+    {% endif %}
+    <a class="btn btn-primary" href="{{ url_for('download', filename=paper.filename) }}">{{ _('Download PDF') }}</a>
+  </div>
 </div>
 
-<div class="d-flex flex-wrap gap-2 mb-3">
-  {% if source_page %}
-    <a class="btn btn-outline-secondary back-link" href="{{ url_for('search', q=source_query, page=source_page) }}">{{ _('Back to Search') }}</a>
-  {% elif source_query %}
-    <a class="btn btn-outline-secondary back-link" href="{{ url_for('search', q=source_query) }}">{{ _('Back to Search') }}</a>
-  {% else %}
-    <a class="btn btn-outline-secondary back-link" href="{{ url_for('search') }}">{{ _('Back to Search') }}</a>
-  {% endif %}
-  <a class="btn btn-primary" href="{{ url_for('download', filename=paper.filename) }}">{{ _('Download PDF') }}</a>
-</div>
-
-<div class="card shadow-sm mb-4">
+<div class="card shadow-sm metadata-card mb-4">
   <div class="card-body">
     <dl class="row mb-0">
       <dt class="col-sm-3">{{ _('Title') }}</dt>
@@ -34,10 +35,17 @@
   </div>
 </div>
 
-<div class="card shadow-sm">
+<div class="card shadow-sm pdf-card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>{{ paper.filename }}</span>
+    <div class="btn-group btn-group-sm">
+      <a class="btn btn-outline-primary" href="{{ url_for('download', filename=paper.filename) }}">{{ _('Download PDF') }}</a>
+      <a class="btn btn-outline-secondary" href="{{ url_for('paper_file', filename=paper.filename) }}" target="_blank">{{ _('Open in new tab') }}</a>
+    </div>
+  </div>
   <div class="card-body">
     <div class="ratio ratio-16x9 pdf-preview">
-      <iframe src="{{ url_for('paper_file', filename=paper.filename) }}" title="{{ paper.title or paper.filename }}" frameborder="0"></iframe>
+      <iframe src="{{ url_for('paper_file', filename=paper.filename) }}" title="{{ paper.title or paper.filename }}"></iframe>
     </div>
   </div>
 </div>
