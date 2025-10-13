@@ -1,3 +1,4 @@
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: PaperQuery 1.0\n"
@@ -5,173 +6,182 @@ msgstr ""
 "POT-Creation-Date: 2025-10-11 00:00+0000\n"
 "PO-Revision-Date: 2025-10-11 00:00+0000\n"
 "Last-Translator: \n"
-"Language-Team: English\n"
-"Language: en\n"
+"Language-Team: Chinese\n"
+"Language: zh\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
 msgid "Reader - View & Download"
-msgstr "Reader - View & Download"
+msgstr "阅读者 · 浏览与下载"
 
 msgid "Contributor - Upload Enabled"
-msgstr "Contributor - Upload Enabled"
+msgstr "贡献者 · 可上传"
 
 msgid "Curator - Full Access"
-msgstr "Curator - Full Access"
+msgstr "管理员 · 完整权限"
 
 msgid "English"
-msgstr "English"
+msgstr "英语"
 
 msgid "Chinese"
-msgstr "Chinese"
+msgstr "中文"
 
 msgid "Language not supported."
-msgstr "Language not supported."
+msgstr "暂不支持该语言。"
 
 msgid "Language switched to %(language)s."
-msgstr "Language switched to %(language)s."
+msgstr "已切换为%(language)s。"
 
 msgid "Welcome back, %(username)s!"
-msgstr "Welcome back, %(username)s!"
+msgstr "欢迎回来，%(username)s！"
 
 msgid "Invalid credentials or access expired."
-msgstr "Invalid credentials or access expired."
+msgstr "账号或密码错误，或权限已过期。"
 
 msgid "Signed out successfully."
-msgstr "Signed out successfully."
+msgstr "已成功退出登录。"
 
 msgid "Enter a keyword to search."
-msgstr "Enter a keyword to search."
+msgstr "请输入关键词进行搜索。"
 
 msgid "No matching papers found."
-msgstr "No matching papers found."
+msgstr "未找到匹配的论文。"
 
 msgid "Select a PDF file to upload."
-msgstr "Select a PDF file to upload."
+msgstr "请选择要上传的 PDF 文件。"
 
 msgid "Only PDF files are accepted."
-msgstr "Only PDF files are accepted."
+msgstr "仅支持上传 PDF 文件。"
 
-msgid "A paper with this filename already exists. Rename your file and try again."
-msgstr "A paper with this filename already exists. Rename your file and try again."
+msgid ""
+"A paper with this filename already exists. Rename your file and try again."
+msgstr "已有同名论文，请重命名后再试。"
 
 msgid "Uploaded %(filename)s."
-msgstr "Uploaded %(filename)s."
+msgstr "已上传 %(filename)s。"
 
 msgid "Select a valid paper to delete."
-msgstr "Select a valid paper to delete."
+msgstr "请选择要删除的有效论文。"
 
 msgid "Type the filename exactly to confirm deletion."
-msgstr "Type the filename exactly to confirm deletion."
+msgstr "请完整输入文件名以确认删除。"
 
 msgid "Deleted %(filename)s."
-msgstr "Deleted %(filename)s."
+msgstr "已删除 %(filename)s。"
 
 msgid "Please sign in first."
-msgstr "Please sign in first."
+msgstr "请先登录。"
 
 msgid "You do not have access to that action."
-msgstr "You do not have access to that action."
+msgstr "您没有执行此操作的权限。"
 
 msgid "PaperQuery"
 msgstr "PaperQuery"
 
 msgid "Search"
-msgstr "Search"
+msgstr "检索"
 
 msgid "Upload"
-msgstr "Upload"
+msgstr "上传"
 
 msgid "Delete"
-msgstr "Delete"
+msgstr "删除"
 
 msgid "Sign out"
-msgstr "Sign out"
+msgstr "退出"
 
 msgid "Language"
-msgstr "Language"
+msgstr "语言"
 
 msgid "PaperQuery International Academy Research Hub"
-msgstr "PaperQuery International Academy Research Hub"
+msgstr "PaperQuery 国际学校科研平台"
 
 msgid "Sign in · PaperQuery"
-msgstr "Sign in · PaperQuery"
+msgstr "登录 · PaperQuery"
 
 msgid "PaperQuery Portal"
-msgstr "PaperQuery Portal"
+msgstr "PaperQuery 门户"
 
 msgid "Sign in with your academy credentials to explore the research library."
-msgstr "Sign in with your academy credentials to explore the research library."
+msgstr "使用学校账号登录，访问论文资源库。"
 
 msgid "Username"
-msgstr "Username"
+msgstr "用户名"
 
 msgid "e.g. j.smith"
 msgstr "e.g. j.smith"
 
 msgid "Password"
-msgstr "Password"
+msgstr "密码"
 
 msgid "Sign in"
-msgstr "Sign in"
+msgstr "登录"
 
 msgid "Need help? Contact the Library Services Team."
-msgstr "Need help? Contact the Library Services Team."
+msgstr "需要帮助？请联系图书馆服务团队。"
 
 msgid "Dashboard · PaperQuery"
-msgstr "Dashboard · PaperQuery"
+msgstr "工作台 · PaperQuery"
 
 msgid "Hello, %(username)s!"
-msgstr "Hello, %(username)s!"
+msgstr "您好，%(username)s！"
 
-msgid "Welcome to the PaperQuery research portal. Use the navigation to search, upload, or curate papers based on your access level."
-msgstr "Welcome to the PaperQuery research portal. Use the navigation to search, upload, or curate papers based on your access level."
+msgid ""
+"Welcome to the PaperQuery research portal. Use the navigation to search, "
+"upload, or curate papers based on your access level."
+msgstr "欢迎来到 PaperQuery 论文门户，您可以根据权限检索、上传或管理论文。"
 
 msgid "Access valid through %(date)s"
 msgstr "Access valid through %(date)s"
 
 msgid "Search Library"
-msgstr "Search Library"
+msgstr "检索文库"
 
-msgid "Find relevant publications across the academy's curated collection with quick keyword matching."
-msgstr "Find relevant publications across the academy's curated collection with quick keyword matching."
+msgid ""
+"Find relevant publications across the academy's curated collection with "
+"quick keyword matching."
+msgstr "在学校精选文库中快速查找与关键词相关的论文。"
 
 msgid "Go to Search"
-msgstr "Go to Search"
+msgstr "前往检索"
 
 msgid "Upload Research"
-msgstr "Upload Research"
+msgstr "上传论文"
 
-msgid "Support community scholarship by sharing new papers in PDF format for peers to explore."
-msgstr "Support community scholarship by sharing new papers in PDF format for peers to explore."
+msgid ""
+"Support community scholarship by sharing new papers in PDF format for peers "
+"to explore."
+msgstr "通过上传新的 PDF 论文，支持校园学术共享。"
 
 msgid "Upload a Paper"
-msgstr "Upload a Paper"
+msgstr "上传论文"
 
 msgid "Upload unavailable"
 msgstr "Upload unavailable"
 
 msgid "Manage Collection"
-msgstr "Manage Collection"
+msgstr "管理论文"
 
-msgid "Keep the repository tidy by removing outdated or duplicate papers. Confirmation keeps actions safe."
-msgstr "Keep the repository tidy by removing outdated or duplicate papers. Confirmation keeps actions safe."
+msgid ""
+"Keep the repository tidy by removing outdated or duplicate papers. "
+"Confirmation keeps actions safe."
+msgstr "移除过期或重复的论文，保持文库整洁。"
 
 msgid "Manage Papers"
-msgstr "Manage Papers"
+msgstr "管理论文"
 
 msgid "Admin only"
 msgstr "Admin only"
 
 msgid "Search Papers · PaperQuery"
-msgstr "Search Papers · PaperQuery"
+msgstr "检索论文 · PaperQuery"
 
 msgid "Search the Research Library"
-msgstr "Search the Research Library"
+msgstr "检索论文资源库"
 
 msgid "Enter keywords to find matching papers by title or content."
-msgstr "Enter keywords to find matching papers by title or content."
+msgstr "输入关键词，根据标题或正文查找匹配论文。"
 
 msgid "Keyword"
 msgstr "Keyword"
@@ -186,125 +196,71 @@ msgid "%(count)s papers found"
 msgstr "%(count)s papers found"
 
 msgid "Download PDF"
-msgstr "Download PDF"
+msgstr "下载 PDF"
 
 msgid "No papers matched \"%(query)s\". Try refining your terms."
 msgstr "No papers matched \"%(query)s\". Try refining your terms."
 
 msgid "Upload Paper · PaperQuery"
-msgstr "Upload Paper · PaperQuery"
+msgstr "上传论文 · PaperQuery"
 
 msgid "Upload a New Paper"
-msgstr "Upload a New Paper"
+msgstr "上传新论文"
 
-msgid "Share PDF files with the school community. Files are instantly available for search."
-msgstr "Share PDF files with the school community. Files are instantly available for search."
+msgid ""
+"Share PDF files with the school community. Files are instantly available for"
+" search."
+msgstr "向学校社区分享 PDF 文件，上传后即可检索。"
 
 msgid "Select PDF file"
-msgstr "Select PDF file"
+msgstr "选择 PDF 文件"
 
 msgid "Delete Papers · PaperQuery"
-msgstr "Delete Papers · PaperQuery"
+msgstr "删除论文 · PaperQuery"
 
 msgid "Manage Paper Collection"
-msgstr "Manage Paper Collection"
+msgstr "管理论文集"
 
-msgid "Remove outdated or duplicate papers. Confirm the filename to complete deletion."
-msgstr "Remove outdated or duplicate papers. Confirm the filename to complete deletion."
+msgid ""
+"Remove outdated or duplicate papers. Confirm the filename to complete "
+"deletion."
+msgstr "移除过期或重复的论文，输入文件名以确认删除。"
 
 msgid "Available Papers"
-msgstr "Available Papers"
+msgstr "可删除的论文"
 
 msgid "Select filename"
-msgstr "Select filename"
+msgstr "选择文件名"
 
 msgid "Choose a paper"
-msgstr "Choose a paper"
+msgstr "请选择论文"
 
 msgid "Confirm filename"
-msgstr "Confirm filename"
+msgstr "确认文件名"
 
 msgid "Type the exact filename to confirm"
-msgstr "Type the exact filename to confirm"
+msgstr "输入完整文件名以确认"
 
 msgid "This extra step prevents accidental deletions."
-msgstr "This extra step prevents accidental deletions."
+msgstr "该步骤可避免误删。"
 
 msgid "Delete Paper"
-msgstr "Delete Paper"
+msgstr "删除论文"
 
-msgid "No papers available to delete. Upload new papers in the Upload section."
-msgstr "No papers available to delete. Upload new papers in the Upload section."
+msgid ""
+"No papers available to delete. Upload new papers in the Upload section."
+msgstr "暂无可删除的论文，请在“上传”页面添加新论文。"
 
 msgid "Session expired. Please sign in again."
-msgstr "Session expired. Please sign in again."
+msgstr "会话已过期，请重新登录。"
 
 msgid "Session timed out. Please sign in again."
-msgstr "Session timed out. Please sign in again."
+msgstr "会话超时，请重新登录。"
 
-msgid "This account is already signed in. Please sign out from the other session or wait %(minutes)d minutes."
-msgstr "This account is already signed in. Please sign out from the other session or wait %(minutes)d minutes."
+msgid ""
+"This account is already signed in. Please sign out from the other session or"
+" wait %(minutes)d minutes."
+msgstr "该账户已在其他位置登录，请先退出或等待 %(minutes)d 分钟后再试。"
 
 msgid "Back to Dashboard"
-msgstr "Back to Dashboard"
-
-msgid "Title is required."
-msgstr "Title is required."
-
-msgid "Author field is required."
-msgstr "Author field is required."
-
-msgid "Title"
-msgstr "Title"
-
-msgid "Authors"
-msgstr "Authors"
-
-msgid "Keywords"
-msgstr "Keywords"
-
-msgid "Organization"
-msgstr "Organization"
-
-msgid "Published At"
-msgstr "Published At"
-
-msgid "Separate multiple authors with commas."
-msgstr "Separate multiple authors with commas."
-
-msgid "Separate keywords with commas."
-msgstr "Separate keywords with commas."
-
-msgid "No."
-msgstr "No."
-
-msgid "No papers are available."
-msgstr "No papers are available."
-msgid \"Next Page\"
-msgstr \"Next Page\"
-
-msgid \"Go to page\"
-msgstr \"Go to page\"
-
-msgid \"Go\"
-msgstr \"Go\"
-
-msgid \"Page %(current)d of %(total)d\"
-msgstr \"Page %(current)d of %(total)d\"
-
-msgid \"%(count)s paper total\"
-msgid_plural \"%(count)s papers total\"
-msgstr[0] \"%(count)s paper total\"
-msgstr[1] \"%(count)s papers total\"
-
-msgid \"Preview Paper\"
-msgstr \"Preview Paper\"
-
-msgid \"Back to Search\"
-msgstr \"Back to Search\"
-
-msgid \"Not specified\"
-msgstr \"Not specified\"
-
-msgid \"Paper not found.\"
-msgstr \"Paper not found.\"
+msgstr "返回工作台"
