@@ -13,175 +13,175 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 msgid "Reader - View & Download"
-msgstr "阅读者 · 浏览与下载"
+msgstr "??? ? ?????"
 
 msgid "Contributor - Upload Enabled"
-msgstr "贡献者 · 可上传"
+msgstr "??? ? ???"
 
 msgid "Curator - Full Access"
-msgstr "管理员 · 完整权限"
+msgstr "??? ? ????"
 
 msgid "English"
-msgstr "英语"
+msgstr "??"
 
 msgid "Chinese"
-msgstr "中文"
+msgstr "??"
 
 msgid "Language not supported."
-msgstr "暂不支持该语言。"
+msgstr "????????"
 
 msgid "Language switched to %(language)s."
-msgstr "已切换为%(language)s。"
+msgstr "????%(language)s?"
 
 msgid "Welcome back, %(username)s!"
-msgstr "欢迎回来，%(username)s！"
+msgstr "?????%(username)s?"
 
 msgid "Invalid credentials or access expired."
-msgstr "账号或密码错误，或权限已过期。"
+msgstr "???????????????"
 
 msgid "Signed out successfully."
-msgstr "已成功退出登录。"
+msgstr "????????"
 
 msgid "Enter a keyword to search."
-msgstr "请输入关键词进行搜索。"
+msgstr "???????????"
 
 msgid "No matching papers found."
-msgstr "未找到匹配的论文。"
+msgstr "?????????"
 
 msgid "Select a PDF file to upload."
-msgstr "请选择要上传的 PDF 文件。"
+msgstr "??????? PDF ???"
 
 msgid "Only PDF files are accepted."
-msgstr "仅支持上传 PDF 文件。"
+msgstr "????? PDF ???"
 
 msgid ""
 "A paper with this filename already exists. Rename your file and try again."
-msgstr "已有同名论文，请重命名后再试。"
+msgstr "???????????????"
 
 msgid "Uploaded %(filename)s."
-msgstr "已上传 %(filename)s。"
+msgstr "??? %(filename)s?"
 
 msgid "Select a valid paper to delete."
-msgstr "请选择要删除的有效论文。"
+msgstr "????????????"
 
 msgid "Type the filename exactly to confirm deletion."
-msgstr "请完整输入文件名以确认删除。"
+msgstr "??????????????"
 
 msgid "Deleted %(filename)s."
-msgstr "已删除 %(filename)s。"
+msgstr "??? %(filename)s?"
 
 msgid "Please sign in first."
-msgstr "请先登录。"
+msgstr "?????"
 
 msgid "You do not have access to that action."
-msgstr "您没有执行此操作的权限。"
+msgstr "????????????"
 
 msgid "PaperQuery"
 msgstr "PaperQuery"
 
 msgid "Search"
-msgstr "检索"
+msgstr "??"
 
 msgid "Upload"
-msgstr "上传"
+msgstr "??"
 
 msgid "Delete"
-msgstr "删除"
+msgstr "??"
 
 msgid "Sign out"
-msgstr "退出"
+msgstr "??"
 
 msgid "Language"
-msgstr "语言"
+msgstr "??"
 
 msgid "PaperQuery International Academy Research Hub"
-msgstr "PaperQuery 国际学校科研平台"
+msgstr "PaperQuery ????????"
 
 msgid "Sign in · PaperQuery"
-msgstr "登录 · PaperQuery"
+msgstr "Sign in · PaperQuery"
 
 msgid "PaperQuery Portal"
-msgstr "PaperQuery 门户"
+msgstr "PaperQuery ??"
 
 msgid "Sign in with your academy credentials to explore the research library."
-msgstr "使用学校账号登录，访问论文资源库。"
+msgstr "?????????????????"
 
 msgid "Username"
-msgstr "用户名"
+msgstr "???"
 
 msgid "e.g. j.smith"
 msgstr "e.g. j.smith"
 
 msgid "Password"
-msgstr "密码"
+msgstr "??"
 
 msgid "Sign in"
-msgstr "登录"
+msgstr "??"
 
 msgid "Need help? Contact the Library Services Team."
-msgstr "需要帮助？请联系图书馆服务团队。"
+msgstr "????????????????"
 
 msgid "Dashboard · PaperQuery"
-msgstr "工作台 · PaperQuery"
+msgstr "Dashboard · PaperQuery"
 
 msgid "Hello, %(username)s!"
-msgstr "您好，%(username)s！"
+msgstr "???%(username)s?"
 
 msgid ""
 "Welcome to the PaperQuery research portal. Use the navigation to search, "
 "upload, or curate papers based on your access level."
-msgstr "欢迎来到 PaperQuery 论文门户，您可以根据权限检索、上传或管理论文。"
+msgstr "???? PaperQuery ???????????????????????"
 
 msgid "Access valid through %(date)s"
 msgstr "Access valid through %(date)s"
 
 msgid "Search Library"
-msgstr "检索文库"
+msgstr "????"
 
 msgid ""
 "Find relevant publications across the academy's curated collection with "
 "quick keyword matching."
-msgstr "在学校精选文库中快速查找与关键词相关的论文。"
+msgstr "??????????????????????"
 
 msgid "Go to Search"
-msgstr "前往检索"
+msgstr "????"
 
 msgid "Upload Research"
-msgstr "上传论文"
+msgstr "????"
 
 msgid ""
 "Support community scholarship by sharing new papers in PDF format for peers "
 "to explore."
-msgstr "通过上传新的 PDF 论文，支持校园学术共享。"
+msgstr "?????? PDF ????????????"
 
 msgid "Upload a Paper"
-msgstr "上传论文"
+msgstr "????"
 
 msgid "Upload unavailable"
 msgstr "Upload unavailable"
 
 msgid "Manage Collection"
-msgstr "管理论文"
+msgstr "????"
 
 msgid ""
 "Keep the repository tidy by removing outdated or duplicate papers. "
 "Confirmation keeps actions safe."
-msgstr "移除过期或重复的论文，保持文库整洁。"
+msgstr "??????????????????"
 
 msgid "Manage Papers"
-msgstr "管理论文"
+msgstr "????"
 
 msgid "Admin only"
 msgstr "Admin only"
 
 msgid "Search Papers · PaperQuery"
-msgstr "检索论文 · PaperQuery"
+msgstr "Search Papers · PaperQuery"
 
 msgid "Search the Research Library"
-msgstr "检索论文资源库"
+msgstr "???????"
 
 msgid "Enter keywords to find matching papers by title or content."
-msgstr "输入关键词，根据标题或正文查找匹配论文。"
+msgstr "????????????????????"
 
 msgid "Keyword"
 msgstr "Keyword"
@@ -190,77 +190,77 @@ msgid "climate change"
 msgstr "climate change"
 
 msgid "%(count)s paper found"
-msgstr "%(count)s paper found"
+msgstr "? %(count)s ???"
 
 msgid "%(count)s papers found"
 msgstr "%(count)s papers found"
 
 msgid "Download PDF"
-msgstr "下载 PDF"
+msgstr "?? PDF"
 
 msgid "No papers matched \"%(query)s\". Try refining your terms."
 msgstr "No papers matched \"%(query)s\". Try refining your terms."
 
 msgid "Upload Paper · PaperQuery"
-msgstr "上传论文 · PaperQuery"
+msgstr "Upload Paper · PaperQuery"
 
 msgid "Upload a New Paper"
-msgstr "上传新论文"
+msgstr "?????"
 
 msgid ""
 "Share PDF files with the school community. Files are instantly available for"
 " search."
-msgstr "向学校社区分享 PDF 文件，上传后即可检索。"
+msgstr "??????? PDF ???????????"
 
 msgid "Select PDF file"
-msgstr "选择 PDF 文件"
+msgstr "?? PDF ??"
 
 msgid "Delete Papers · PaperQuery"
-msgstr "删除论文 · PaperQuery"
+msgstr "Delete Papers · PaperQuery"
 
 msgid "Manage Paper Collection"
-msgstr "管理论文集"
+msgstr "?????"
 
 msgid ""
 "Remove outdated or duplicate papers. Confirm the filename to complete "
 "deletion."
-msgstr "移除过期或重复的论文，输入文件名以确认删除。"
+msgstr "??????????????????????"
 
 msgid "Available Papers"
-msgstr "可删除的论文"
+msgstr "??????"
 
 msgid "Select filename"
-msgstr "选择文件名"
+msgstr "?????"
 
 msgid "Choose a paper"
-msgstr "请选择论文"
+msgstr "?????"
 
 msgid "Confirm filename"
-msgstr "确认文件名"
+msgstr "?????"
 
 msgid "Type the exact filename to confirm"
-msgstr "输入完整文件名以确认"
+msgstr "??????????"
 
 msgid "This extra step prevents accidental deletions."
-msgstr "该步骤可避免误删。"
+msgstr "?????????"
 
 msgid "Delete Paper"
-msgstr "删除论文"
+msgstr "????"
 
 msgid ""
 "No papers available to delete. Upload new papers in the Upload section."
-msgstr "暂无可删除的论文，请在“上传”页面添加新论文。"
+msgstr "???????????????????????"
 
 msgid "Session expired. Please sign in again."
-msgstr "会话已过期，请重新登录。"
+msgstr "????????????"
 
 msgid "Session timed out. Please sign in again."
-msgstr "会话超时，请重新登录。"
+msgstr "???????????"
 
 msgid ""
 "This account is already signed in. Please sign out from the other session or"
 " wait %(minutes)d minutes."
-msgstr "该账户已在其他位置登录，请先退出或等待 %(minutes)d 分钟后再试。"
+msgstr "??????????????????? %(minutes)d ??????"
 
 msgid "Back to Dashboard"
-msgstr "返回工作台"
+msgstr "?????"
