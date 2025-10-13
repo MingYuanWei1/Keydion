@@ -1,0 +1,44 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ _('Preview Paper') }}{% endblock %}
+{% block content %}
+<div class="page-title">
+  <h1>{{ paper.title or paper.filename }}</h1>
+  <p class="text-muted">{{ paper.authors or _('Not specified') }}</p>
+</div>
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+  {% if source_page %}
+    <a class="btn btn-outline-secondary back-link" href="{{ url_for('search', q=source_query, page=source_page) }}">{{ _('Back to Search') }}</a>
+  {% elif source_query %}
+    <a class="btn btn-outline-secondary back-link" href="{{ url_for('search', q=source_query) }}">{{ _('Back to Search') }}</a>
+  {% else %}
+    <a class="btn btn-outline-secondary back-link" href="{{ url_for('search') }}">{{ _('Back to Search') }}</a>
+  {% endif %}
+  <a class="btn btn-primary" href="{{ url_for('download', filename=paper.filename) }}">{{ _('Download PDF') }}</a>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-3">{{ _('Title') }}</dt>
+      <dd class="col-sm-9">{{ paper.title or _('Not specified') }}</dd>
+      <dt class="col-sm-3">{{ _('Authors') }}</dt>
+      <dd class="col-sm-9">{{ paper.authors or _('Not specified') }}</dd>
+      <dt class="col-sm-3">{{ _('Organization') }}</dt>
+      <dd class="col-sm-9">{{ paper.organization or _('Not specified') }}</dd>
+      <dt class="col-sm-3">{{ _('Published At') }}</dt>
+      <dd class="col-sm-9">{{ paper.published_at or _('Not specified') }}</dd>
+      <dt class="col-sm-3">{{ _('Keywords') }}</dt>
+      <dd class="col-sm-9">{{ paper.keywords or _('Not specified') }}</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <div class="ratio ratio-16x9 pdf-preview">
+      <iframe src="{{ url_for('paper_file', filename=paper.filename) }}" title="{{ paper.title or paper.filename }}" frameborder="0"></iframe>
+    </div>
+  </div>
+</div>
+{% endblock %}

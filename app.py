@@ -7,6 +7,7 @@ import base64
 import binascii
 import hashlib
 import hmac
+import math
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -15,6 +16,7 @@ from urllib.parse import urlparse
 
 from flask import (
     Flask,
+    abort,
     flash,
     redirect,
     render_template,
@@ -157,21 +159,35 @@ def create_app() -> Flask:
         if not user:
             return redirect(url_for("login"))
 
-        query = ""
-        filtered = False
-        records = gather_paper_records()
-
         if request.method == "POST":
-            query = request.form.get("query", "").strip()
-            if not query:
+            query_value = request.form.get("query", "").strip()
+            if not query_value:
                 flash(_("Enter a keyword to search."), "warning")
-            else:
-                filtered = True
-                records = search_papers(query)
-                if not records:
-                    flash(_("No matching papers found."), "info")
+                return redirect(url_for("search"))
+            return redirect(url_for("search", q=query_value))
 
-        return render_template("search.html", user=user, query=query, records=records, filtered=filtered)
+        query = request.args.get("q", "").strip()
+        try:
+            page = int(request.args.get("page", "1"))
+        except ValueError:
+            page = 1
+
+        per_page = 20
+        filtered = bool(query)
+        record_pool = search_papers(query) if filtered else gather_paper_records()
+        if filtered and not record_pool:
+            flash(_("No matching papers found."), "info")
+
+        pagination = paginate_records(record_pool, page, per_page)
+
+        return render_template(
+            "search.html",
+            user=user,
+            query=query,
+            filtered=filtered,
+            records=pagination["items"],
+            pagination=pagination,
+        )
 
     @app.route("/upload", methods=["GET", "POST"])
     def upload():
@@ -283,6 +299,36 @@ def create_app() -> Flask:
             destination = "dashboard" if session.get("user") else "login"
             next_url = url_for(destination)
         return redirect(next_url)
+
+    @app.route("/preview/<path:filename>")
+    def preview_paper(filename: str):
+        user = require_login()
+        if not user:
+            return redirect(url_for("login"))
+        pdf_path = PAPERS_DIR / filename
+        if not pdf_path.exists():
+            flash(_("Paper not found."), "danger")
+            return redirect(url_for("search"))
+        paper = build_paper_record(filename)
+        source_query = request.args.get("q", "").strip()
+        source_page = request.args.get("page", "").strip()
+        return render_template(
+            "preview.html",
+            user=user,
+            paper=paper,
+            source_query=source_query,
+            source_page=source_page,
+        )
+
+    @app.route("/papers/raw/<path:filename>")
+    def paper_file(filename: str):
+        user = require_login()
+        if not user:
+            return redirect(url_for("login"))
+        pdf_path = PAPERS_DIR / filename
+        if not pdf_path.exists():
+            abort(404)
+        return send_from_directory(PAPERS_DIR, filename, as_attachment=False)
 
     @app.route("/papers/<path:filename>")
     def download(filename: str):
@@ -496,6 +542,26 @@ def remove_paper_metadata(filename: str) -> None:
     filtered = [row for row in rows if row.get("filename") != filename]
     if len(filtered) != len(rows):
         save_paper_metadata(filtered)
+
+
+def paginate_records(records: List[Dict[str, str]], page: int, per_page: int = 20) -> Dict[str, Optional[int]]:
+    total = len(records)
+    total_pages = max(1, math.ceil(total / per_page)) if total else 1
+    current_page = max(1, min(page, total_pages))
+    start = (current_page - 1) * per_page
+    end = start + per_page
+    items = records[start:end]
+    return {
+        "items": items,
+        "total": total,
+        "page": current_page,
+        "pages": total_pages,
+        "per_page": per_page,
+        "has_prev": current_page > 1,
+        "has_next": current_page < total_pages,
+        "prev_page": current_page - 1 if current_page > 1 else None,
+        "next_page": current_page + 1 if current_page < total_pages else None,
+    }
 
 
 def load_sessions() -> Dict[str, Dict[str, str]]:

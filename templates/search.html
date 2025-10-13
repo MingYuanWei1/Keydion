@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block title %}{{ _('Search Papers · PaperQuery') }}{% endblock %}
 {% block content %}
 <div class="page-title">
@@ -12,20 +12,40 @@
   </a>
 </div>
 
-<form method="post" class="row gy-2 gx-3 align-items-center mb-4">
+<form method="get" class="row gy-2 gx-3 align-items-center mb-4">
+  <input type="hidden" name="page" value="1">
   <div class="col-sm-9">
     <label class="visually-hidden" for="query">{{ _('Keyword') }}</label>
-    <input type="text" class="form-control form-control-lg" id="query" name="query" placeholder="{{ _('climate change') }}" value="{{ query }}">
+    <input type="text" class="form-control form-control-lg" id="query" name="q" placeholder="{{ _('climate change') }}" value="{{ query }}">
   </div>
   <div class="col-sm-3 d-grid">
     <button type="submit" class="btn btn-primary btn-lg">{{ _('Search') }}</button>
   </div>
 </form>
 
-{% if filtered %}
-  {% set result_count = records|length %}
-  <div class="alert alert-secondary">
-    {{ ngettext('%(count)s paper found', '%(count)s papers found', result_count, count=result_count) }}
+{% if pagination.total %}
+  <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-3 pagination-toolbar">
+    <div class="text-muted">
+      {{ _('Page %(current)d of %(total)d', current=pagination.page, total=pagination.pages) }}
+      · {{ ngettext('%(count)s paper total', '%(count)s papers total', pagination.total, count=pagination.total) }}
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      {% if pagination.has_next %}
+        <form method="get" class="d-inline">
+          <input type="hidden" name="q" value="{{ query }}">
+          <input type="hidden" name="page" value="{{ pagination.next_page }}">
+          <button type="submit" class="btn btn-outline-primary btn-sm">{{ _('Next Page') }}</button>
+        </form>
+      {% endif %}
+      {% if pagination.pages > 1 %}
+        <form method="get" class="d-flex align-items-center gap-2 jump-form">
+          <input type="hidden" name="q" value="{{ query }}">
+          <label class="visually-hidden" for="page-jump">{{ _('Go to page') }}</label>
+          <input type="number" class="form-control form-control-sm" id="page-jump" name="page" min="1" max="{{ pagination.pages }}" value="{{ pagination.page }}" required>
+          <button type="submit" class="btn btn-outline-secondary btn-sm">{{ _('Go') }}</button>
+        </form>
+      {% endif %}
+    </div>
   </div>
 {% endif %}
 
@@ -46,17 +66,17 @@
           <tbody>
             {% for paper in records %}
               <tr>
-                <td class="text-muted">{{ loop.index }}</td>
+                <td class="text-muted">{{ loop.index0 + 1 + (pagination.page - 1) * pagination.per_page }}</td>
                 <td>
-                  <a class="paper-title-link" href="{{ url_for('download', filename=paper.filename) }}">{{ paper.title or paper.filename }}</a>
+                  <a class="paper-title-link" href="{{ url_for('preview_paper', filename=paper.filename, q=query, page=pagination.page) }}">{{ paper.title or paper.filename }}</a>
                   <div class="small text-muted">{{ paper.filename }}</div>
                   {% if paper.keywords %}
                     <div class="small text-muted">{{ _('Keywords') }}: {{ paper.keywords }}</div>
                   {% endif %}
                 </td>
-                <td>{{ paper.authors or '—' }}</td>
-                <td>{{ paper.organization or '—' }}</td>
-                <td>{{ paper.published_at or '—' }}</td>
+                <td>{{ paper.authors or _('Not specified') }}</td>
+                <td>{{ paper.organization or _('Not specified') }}</td>
+                <td>{{ paper.published_at or _('Not specified') }}</td>
               </tr>
             {% endfor %}
           </tbody>

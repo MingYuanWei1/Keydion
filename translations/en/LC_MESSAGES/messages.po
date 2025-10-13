@@ -280,3 +280,31 @@ msgstr "No."
 
 msgid "No papers are available."
 msgstr "No papers are available."
+msgid \"Next Page\"
+msgstr \"Next Page\"
+
+msgid \"Go to page\"
+msgstr \"Go to page\"
+
+msgid \"Go\"
+msgstr \"Go\"
+
+msgid \"Page %(current)d of %(total)d\"
+msgstr \"Page %(current)d of %(total)d\"
+
+msgid \"%(count)s paper total\"
+msgid_plural \"%(count)s papers total\"
+msgstr[0] \"%(count)s paper total\"
+msgstr[1] \"%(count)s papers total\"
+
+msgid \"Preview Paper\"
+msgstr \"Preview Paper\"
+
+msgid \"Back to Search\"
+msgstr \"Back to Search\"
+
+msgid \"Not specified\"
+msgstr \"Not specified\"
+
+msgid \"Paper not found.\"
+msgstr \"Paper not found.\"

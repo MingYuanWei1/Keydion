@@ -313,3 +313,11 @@ footer {
 .feature-card--pink::before {
   background: radial-gradient(circle at top right, rgba(255, 111, 145, 0.35), transparent 60%);
 }
+
+.pdf-preview iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0.75rem;
+}
+
