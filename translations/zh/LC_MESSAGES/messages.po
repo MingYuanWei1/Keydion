@@ -1,3 +1,4 @@
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: PaperQuery 1.0\n"
@@ -53,7 +54,8 @@ msgstr "请选择要上传的 PDF 文件。"
 msgid "Only PDF files are accepted."
 msgstr "仅支持上传 PDF 文件。"
 
-msgid "A paper with this filename already exists. Rename your file and try again."
+msgid ""
+"A paper with this filename already exists. Rename your file and try again."
 msgstr "已有同名论文，请重命名后再试。"
 
 msgid "Uploaded %(filename)s."
@@ -125,7 +127,9 @@ msgstr "工作台 · PaperQuery"
 msgid "Hello, %(username)s!"
 msgstr "您好，%(username)s！"
 
-msgid "Welcome to the PaperQuery research portal. Use the navigation to search, upload, or curate papers based on your access level."
+msgid ""
+"Welcome to the PaperQuery research portal. Use the navigation to search, "
+"upload, or curate papers based on your access level."
 msgstr "欢迎来到 PaperQuery 论文门户，您可以根据权限检索、上传或管理论文。"
 
 msgid "Access valid through %(date)s"
@@ -134,7 +138,9 @@ msgstr "权限有效期至 %(date)s"
 msgid "Search Library"
 msgstr "检索文库"
 
-msgid "Find relevant publications across the academy's curated collection with quick keyword matching."
+msgid ""
+"Find relevant publications across the academy's curated collection with "
+"quick keyword matching."
 msgstr "在学校精选文库中快速检索与关键词相关的论文。"
 
 msgid "Go to Search"
@@ -143,7 +149,9 @@ msgstr "前往检索"
 msgid "Upload Research"
 msgstr "上传论文"
 
-msgid "Support community scholarship by sharing new papers in PDF format for peers to explore."
+msgid ""
+"Support community scholarship by sharing new papers in PDF format for peers "
+"to explore."
 msgstr "通过上传新的 PDF 论文，支持校园学术共享。"
 
 msgid "Upload a Paper"
@@ -155,7 +163,9 @@ msgstr "暂无上传权限"
 msgid "Manage Collection"
 msgstr "管理文库"
 
-msgid "Keep the repository tidy by removing outdated or duplicate papers. Confirmation keeps actions safe."
+msgid ""
+"Keep the repository tidy by removing outdated or duplicate papers. "
+"Confirmation keeps actions safe."
 msgstr "删除过期或重复的论文，保持文库整洁。"
 
 msgid "Manage Papers"
@@ -197,7 +207,9 @@ msgstr "上传论文 · PaperQuery"
 msgid "Upload a New Paper"
 msgstr "上传新论文"
 
-msgid "Share PDF files with the school community. Files are instantly available for search."
+msgid ""
+"Share PDF files with the school community. Files are instantly available for"
+" search."
 msgstr "向学校社区分享 PDF 文件，上传后即可检索。"
 
 msgid "Select PDF file"
@@ -209,7 +221,9 @@ msgstr "删除论文 · PaperQuery"
 msgid "Manage Paper Collection"
 msgstr "管理论文集"
 
-msgid "Remove outdated or duplicate papers. Confirm the filename to complete deletion."
+msgid ""
+"Remove outdated or duplicate papers. Confirm the filename to complete "
+"deletion."
 msgstr "移除过期或重复的论文，输入文件名以确认删除。"
 
 msgid "Available Papers"
@@ -233,7 +247,8 @@ msgstr "该步骤可避免误删。"
 msgid "Delete Paper"
 msgstr "删除论文"
 
-msgid "No papers available to delete. Upload new papers in the Upload section."
+msgid ""
+"No papers available to delete. Upload new papers in the Upload section."
 msgstr "暂无可删除的论文，请在“上传”页面添加新论文。"
 
 msgid "Session expired. Please sign in again."
@@ -242,8 +257,31 @@ msgstr "会话已过期，请重新登录。"
 msgid "Session timed out. Please sign in again."
 msgstr "会话超时，请重新登录。"
 
-msgid "This account is already signed in. Please sign out from the other session or wait %(minutes)d minutes."
+msgid ""
+"This account is already signed in. Please sign out from the other session or"
+" wait %(minutes)d minutes."
 msgstr "该账户已在其他位置登录，请先退出或等待 %(minutes)d 分钟后再试。"
 
 msgid "Back to Dashboard"
 msgstr "返回工作台"
+
+msgid "Title"
+msgstr "标题"
+
+msgid "Authors"
+msgstr "作者"
+
+msgid "Keywords"
+msgstr "关键词"
+
+msgid "Organization"
+msgstr "单位"
+
+msgid "Published At"
+msgstr "发表时间"
+
+msgid "Separate multiple authors with commas."
+msgstr "多个作者请用逗号分隔。"
+
+msgid "Separate keywords with commas."
+msgstr "多个关键词请用逗号分隔。"
