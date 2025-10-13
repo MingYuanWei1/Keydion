@@ -32,6 +32,7 @@ DATA_DIR = Path(os.environ.get("PAPERQUERY_DATA_DIR", BASE_DIR / "data")).resolv
 PAPERS_DIR = Path(os.environ.get("PAPERQUERY_UPLOAD_DIR", BASE_DIR / "papers")).resolve()
 USERS_CSV_ENV = os.environ.get("PAPERQUERY_USERS_CSV")
 USERS_CSV = Path(USERS_CSV_ENV).resolve() if USERS_CSV_ENV else DATA_DIR / "users.csv"
+METADATA_CSV = DATA_DIR / "papers_metadata.csv"
 ALLOWED_EXTENSIONS = {"pdf"}
 MAX_SEARCH_RESULTS = 20
 PASSWORD_SCHEME = "pbkdf2_sha256"
@@ -39,6 +40,7 @@ SUPPORTED_LOCALES = ("en", "zh")
 SESSION_FILE = DATA_DIR / "active_sessions.json"
 SESSION_TIMEOUT_SECONDS = int(os.environ.get("PAPERQUERY_SESSION_TIMEOUT", "600"))
 SESSION_TIMEOUT = timedelta(seconds=SESSION_TIMEOUT_SECONDS)
+METADATA_FIELDS = ["filename", "title", "authors", "keywords", "organization", "published_at"]
 
 babel = Babel()
 ROLE_LABELS = {
@@ -77,6 +79,7 @@ def create_app() -> Flask:
     SESSION_FILE.parent.mkdir(parents=True, exist_ok=True)
     if not SESSION_FILE.exists():
         SESSION_FILE.write_text("{}", encoding="utf-8")
+    ensure_metadata_file()
     babel.init_app(app, locale_selector=select_locale)
 
     @app.context_processor
@@ -155,18 +158,20 @@ def create_app() -> Flask:
             return redirect(url_for("login"))
 
         query = ""
-        results: List[Dict[str, str]] = []
+        filtered = False
+        records = gather_paper_records()
 
         if request.method == "POST":
             query = request.form.get("query", "").strip()
             if not query:
                 flash(_("Enter a keyword to search."), "warning")
             else:
-                results = search_papers(query)
-                if not results:
+                filtered = True
+                records = search_papers(query)
+                if not records:
                     flash(_("No matching papers found."), "info")
 
-        return render_template("search.html", user=user, query=query, results=results)
+        return render_template("search.html", user=user, query=query, records=records, filtered=filtered)
 
     @app.route("/upload", methods=["GET", "POST"])
     def upload():
@@ -175,7 +180,34 @@ def create_app() -> Flask:
             target = url_for("login") if not session.get("user") else url_for("dashboard")
             return redirect(target)
 
+        today = datetime.utcnow().date().isoformat()
+        form_data = {
+            "title": request.form.get("title", "").strip(),
+            "authors": request.form.get("authors", "").strip(),
+            "keywords": request.form.get("keywords", "").strip(),
+            "organization": request.form.get("organization", "").strip(),
+            "published_at": request.form.get("published_at", "").strip() or today,
+        }
+
+        if request.method != "POST":
+            form_data["published_at"] = today
+
         if request.method == "POST":
+            if not form_data["title"]:
+                flash(_("Title is required."), "danger")
+                return render_template("upload.html", user=user, form_data=form_data)
+            if not form_data["authors"]:
+                flash(_("Author field is required."), "danger")
+                return render_template("upload.html", user=user, form_data=form_data)
+
+            form_data["authors"] = ", ".join(
+                [author.strip() for author in form_data["authors"].split(",") if author.strip()]
+            )
+            if form_data["keywords"]:
+                form_data["keywords"] = ", ".join(
+                    [kw.strip() for kw in form_data["keywords"].split(",") if kw.strip()]
+                )
+
             file = request.files.get("paper")
             if not file or file.filename == "":
                 flash(_("Select a PDF file to upload."), "warning")
@@ -189,10 +221,20 @@ def create_app() -> Flask:
                         flash(_("A paper with this filename already exists. Rename your file and try again."), "warning")
                     else:
                         file.save(save_path)
+                        upsert_paper_metadata(
+                            filename,
+                            {
+                                "title": form_data["title"],
+                                "authors": form_data["authors"],
+                                "keywords": form_data["keywords"],
+                                "organization": form_data["organization"],
+                                "published_at": form_data["published_at"],
+                            },
+                        )
                         flash(_("Uploaded %(filename)s.", filename=filename), "success")
                         return redirect(url_for("upload"))
 
-        return render_template("upload.html", user=user)
+        return render_template("upload.html", user=user, form_data=form_data)
 
     @app.route("/delete", methods=["GET", "POST"])
     def delete():
@@ -211,6 +253,7 @@ def create_app() -> Flask:
             elif confirm != filename:
                 flash(_("Type the filename exactly to confirm deletion."), "warning")
             else:
+                remove_paper_metadata(filename)
                 (PAPERS_DIR / filename).unlink(missing_ok=True)
                 flash(_("Deleted %(filename)s.", filename=filename), "success")
                 return redirect(url_for("delete"))
@@ -344,6 +387,7 @@ def verify_password(password: str, encoded: str) -> bool:
 
 
 def search_papers(keyword: str) -> List[Dict[str, str]]:
+    metadata_index = {row["filename"]: row for row in load_paper_metadata()}
     matches: List[Dict[str, str]] = []
     normalized = keyword.lower()
 
@@ -354,13 +398,9 @@ def search_papers(keyword: str) -> List[Dict[str, str]]:
             print(f"Failed to read {pdf_path.name}: {exc}")
             continue
         if normalized in text.lower():
-            matches.append(
-                {
-                    "title": pdf_path.stem,
-                    "filename": pdf_path.name,
-                }
-            )
+            matches.append(build_paper_record(pdf_path.name, metadata_index))
 
+    matches.sort(key=lambda row: row.get("published_at") or "", reverse=True)
     return matches[:MAX_SEARCH_RESULTS]
 
 
@@ -375,6 +415,87 @@ def extract_pdf_text(pdf_path: Path) -> str:
     for page in reader.pages:
         text_parts.append(page.extract_text() or "")
     return "\n".join(text_parts)
+
+
+def ensure_metadata_file() -> None:
+    if not METADATA_CSV.exists():
+        METADATA_CSV.parent.mkdir(parents=True, exist_ok=True)
+        with METADATA_CSV.open("w", newline="", encoding="utf-8") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=METADATA_FIELDS)
+            writer.writeheader()
+
+
+def load_paper_metadata() -> List[Dict[str, str]]:
+    ensure_metadata_file()
+    with METADATA_CSV.open(newline="", encoding="utf-8") as csvfile:
+        reader = csv.DictReader(csvfile)
+        rows: List[Dict[str, str]] = []
+        for raw_row in reader:
+            normalized = {field: (raw_row.get(field, "") or "").strip() for field in METADATA_FIELDS}
+            rows.append(normalized)
+        return rows
+
+
+def save_paper_metadata(rows: List[Dict[str, str]]) -> None:
+    ensure_metadata_file()
+    with METADATA_CSV.open("w", newline="", encoding="utf-8") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=METADATA_FIELDS)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({field: row.get(field, "") for field in METADATA_FIELDS})
+
+
+def build_paper_record(filename: str, metadata_index: Optional[Dict[str, Dict[str, str]]] = None) -> Dict[str, str]:
+    if metadata_index is None:
+        metadata_index = {row["filename"]: row for row in load_paper_metadata()}
+    record = {field: "" for field in METADATA_FIELDS}
+    record["filename"] = filename
+    data = metadata_index.get(filename)
+    if data:
+        for field in METADATA_FIELDS:
+            if field in data and data[field] is not None:
+                record[field] = data[field]
+    if not record["title"]:
+        record["title"] = Path(filename).stem
+    return record
+
+
+def gather_paper_records() -> List[Dict[str, str]]:
+    metadata_rows = load_paper_metadata()
+    metadata_index = {row["filename"]: row for row in metadata_rows}
+    records: List[Dict[str, str]] = []
+    for pdf_path in sorted(PAPERS_DIR.glob("*.pdf"), key=lambda item: item.name.lower()):
+        records.append(build_paper_record(pdf_path.name, metadata_index))
+    records.sort(key=lambda row: (row.get("published_at") or "", row.get("title") or row["filename"]), reverse=True)
+    return records
+
+
+def upsert_paper_metadata(filename: str, data: Dict[str, str]) -> None:
+    rows = load_paper_metadata()
+    updated = False
+    for row in rows:
+        if row.get("filename") == filename:
+            for field in METADATA_FIELDS:
+                if field == "filename":
+                    continue
+                row[field] = data.get(field, row.get(field, ""))
+            updated = True
+            break
+    if not updated:
+        new_row = {field: "" for field in METADATA_FIELDS}
+        new_row["filename"] = filename
+        for field in METADATA_FIELDS:
+            if field != "filename":
+                new_row[field] = data.get(field, "")
+        rows.append(new_row)
+    save_paper_metadata(rows)
+
+
+def remove_paper_metadata(filename: str) -> None:
+    rows = load_paper_metadata()
+    filtered = [row for row in rows if row.get("filename") != filename]
+    if len(filtered) != len(rows):
+        save_paper_metadata(filtered)
 
 
 def load_sessions() -> Dict[str, Dict[str, str]]:

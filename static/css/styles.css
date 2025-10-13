@@ -113,6 +113,30 @@ body::before {
   color: #1f2a44;
 }
 
+.paper-table th {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: #54617a;
+}
+
+.paper-table td {
+  vertical-align: middle;
+}
+
+.paper-title-link {
+  color: var(--primary-color);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.paper-title-link:hover,
+.paper-title-link:focus {
+  text-decoration: underline;
+  color: var(--secondary-color);
+}
+
 @media (min-width: 992px) {
   .nav-signout {
     margin-top: 0;

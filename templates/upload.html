@@ -15,6 +15,35 @@
 <div class="card shadow-sm">
   <div class="card-body">
     <form method="post" enctype="multipart/form-data" class="upload-form">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label for="title" class="form-label">{{ _('Title') }}</label>
+          <input type="text" class="form-control" id="title" name="title" value="{{ form_data.title }}" required>
+        </div>
+        <div class="col-md-6">
+          <label for="authors" class="form-label">{{ _('Authors') }}</label>
+          <input type="text" class="form-control" id="authors" name="authors" value="{{ form_data.authors }}" placeholder="{{ _('Separate multiple authors with commas.') }}" required>
+        </div>
+      </div>
+
+      <div class="row g-3 mt-1">
+        <div class="col-md-6">
+          <label for="keywords" class="form-label">{{ _('Keywords') }}</label>
+          <input type="text" class="form-control" id="keywords" name="keywords" value="{{ form_data.keywords }}" placeholder="{{ _('Separate keywords with commas.') }}">
+        </div>
+        <div class="col-md-6">
+          <label for="organization" class="form-label">{{ _('Organization') }}</label>
+          <input type="text" class="form-control" id="organization" name="organization" value="{{ form_data.organization }}">
+        </div>
+      </div>
+
+      <div class="row g-3 mt-1 mb-3">
+        <div class="col-md-4">
+          <label for="published_at" class="form-label">{{ _('Published At') }}</label>
+          <input type="date" class="form-control" id="published_at" name="published_at" value="{{ form_data.published_at }}">
+        </div>
+      </div>
+
       <div class="mb-3">
         <label for="paper" class="form-label">{{ _('Select PDF file') }}</label>
         <input class="form-control" type="file" id="paper" name="paper" accept="application/pdf" required>

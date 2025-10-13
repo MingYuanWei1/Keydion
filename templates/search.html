@@ -22,27 +22,51 @@
   </div>
 </form>
 
-{% if results %}
+{% if filtered %}
+  {% set result_count = records|length %}
+  <div class="alert alert-secondary">
+    {{ ngettext('%(count)s paper found', '%(count)s papers found', result_count, count=result_count) }}
+  </div>
+{% endif %}
+
+{% if records %}
   <div class="card shadow-sm">
     <div class="card-body">
-      {% set result_count = results|length %}
-      <h2 class="h5 mb-3">
-        {{ ngettext('%(count)s paper found', '%(count)s papers found', result_count, count=result_count) }}
-      </h2>
-      <div class="list-group list-group-flush">
-        {% for paper in results %}
-          <div class="list-group-item d-flex flex-column flex-lg-row align-items-lg-center justify-content-between">
-            <div>
-              <div class="h5 mb-1">{{ paper.title }}</div>
-              <div class="small text-muted">{{ paper.filename }}</div>
-            </div>
-            <a href="{{ url_for('download', filename=paper.filename) }}" class="btn btn-outline-primary mt-3 mt-lg-0">{{ _('Download PDF') }}</a>
-          </div>
-        {% endfor %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle paper-table">
+          <thead class="table-light">
+            <tr>
+              <th scope="col">{{ _('No.') }}</th>
+              <th scope="col">{{ _('Title') }}</th>
+              <th scope="col">{{ _('Authors') }}</th>
+              <th scope="col">{{ _('Organization') }}</th>
+              <th scope="col">{{ _('Published At') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for paper in records %}
+              <tr>
+                <td class="text-muted">{{ loop.index }}</td>
+                <td>
+                  <a class="paper-title-link" href="{{ url_for('download', filename=paper.filename) }}">{{ paper.title or paper.filename }}</a>
+                  <div class="small text-muted">{{ paper.filename }}</div>
+                  {% if paper.keywords %}
+                    <div class="small text-muted">{{ _('Keywords') }}: {{ paper.keywords }}</div>
+                  {% endif %}
+                </td>
+                <td>{{ paper.authors or '—' }}</td>
+                <td>{{ paper.organization or '—' }}</td>
+                <td>{{ paper.published_at or '—' }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
 {% elif query %}
   <div class="alert alert-info">{{ _('No papers matched "%(query)s". Try refining your terms.', query=query) }}</div>
+{% else %}
+  <div class="alert alert-info">{{ _('No papers are available.') }}</div>
 {% endif %}
 {% endblock %}

@@ -247,3 +247,36 @@ msgstr "This account is already signed in. Please sign out from the other sessio
 
 msgid "Back to Dashboard"
 msgstr "Back to Dashboard"
+
+msgid "Title is required."
+msgstr "Title is required."
+
+msgid "Author field is required."
+msgstr "Author field is required."
+
+msgid "Title"
+msgstr "Title"
+
+msgid "Authors"
+msgstr "Authors"
+
+msgid "Keywords"
+msgstr "Keywords"
+
+msgid "Organization"
+msgstr "Organization"
+
+msgid "Published At"
+msgstr "Published At"
+
+msgid "Separate multiple authors with commas."
+msgstr "Separate multiple authors with commas."
+
+msgid "Separate keywords with commas."
+msgstr "Separate keywords with commas."
+
+msgid "No."
+msgstr "No."
+
+msgid "No papers are available."
+msgstr "No papers are available."
