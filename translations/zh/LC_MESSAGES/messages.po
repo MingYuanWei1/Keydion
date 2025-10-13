@@ -5,305 +5,306 @@ msgstr ""
 "POT-Creation-Date: 2025-10-11 00:00+0000\n"
 "PO-Revision-Date: 2025-10-11 00:00+0000\n"
 "Last-Translator: \n"
-"Language-Team: Chinese\n"
-"Language: zh\n"
+"Language-Team: English\n"
+"Language: en\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
 msgid "Reader - View & Download"
-msgstr "闃呰鑰?路 娴忚涓庝笅杞?
+msgstr "Reader - View & Download"
 
 msgid "Contributor - Upload Enabled"
-msgstr "璐＄尞鑰?路 鍙笂浼?
+msgstr "Contributor - Upload Enabled"
 
 msgid "Curator - Full Access"
-msgstr "绠＄悊鍛?路 瀹屾暣鏉冮檺"
+msgstr "Curator - Full Access"
 
 msgid "English"
-msgstr "鑻辫"
+msgstr "English"
 
 msgid "Chinese"
-msgstr "涓枃"
+msgstr "Chinese"
 
 msgid "Language not supported."
-msgstr "鏆備笉鏀寔璇ヨ瑷€銆?
+msgstr "Language not supported."
 
 msgid "Language switched to %(language)s."
-msgstr "宸插垏鎹负%(language)s銆?
+msgstr "Language switched to %(language)s."
 
 msgid "Welcome back, %(username)s!"
-msgstr "娆㈣繋鍥炴潵锛?(username)s锛?
+msgstr "Welcome back, %(username)s!"
 
 msgid "Invalid credentials or access expired."
-msgstr "璐﹀彿鎴栧瘑鐮侀敊璇紝鎴栨潈闄愬凡杩囨湡銆?
+msgstr "Invalid credentials or access expired."
 
 msgid "Signed out successfully."
-msgstr "宸叉垚鍔熼€€鍑虹櫥褰曘€?
+msgstr "Signed out successfully."
 
 msgid "Enter a keyword to search."
-msgstr "璇疯緭鍏ュ叧閿瘝杩涜鎼滅储銆?
+msgstr "Enter a keyword to search."
 
 msgid "No matching papers found."
-msgstr "鏈壘鍒板尮閰嶇殑璁烘枃銆?
+msgstr "No matching papers found."
 
 msgid "Select a PDF file to upload."
-msgstr "璇烽€夋嫨瑕佷笂浼犵殑 PDF 鏂囦欢銆?
+msgstr "Select a PDF file to upload."
 
 msgid "Only PDF files are accepted."
-msgstr "浠呮敮鎸佷笂浼?PDF 鏂囦欢銆?
+msgstr "Only PDF files are accepted."
 
 msgid "A paper with this filename already exists. Rename your file and try again."
-msgstr "宸叉湁鍚屽悕璁烘枃锛岃閲嶅懡鍚嶅悗鍐嶈瘯銆?
+msgstr "A paper with this filename already exists. Rename your file and try again."
 
 msgid "Uploaded %(filename)s."
-msgstr "宸蹭笂浼?%(filename)s銆?
+msgstr "Uploaded %(filename)s."
 
 msgid "Select a valid paper to delete."
-msgstr "璇烽€夋嫨瑕佸垹闄ょ殑鏈夋晥璁烘枃銆?
+msgstr "Select a valid paper to delete."
 
 msgid "Type the filename exactly to confirm deletion."
-msgstr "璇峰畬鏁磋緭鍏ユ枃浠跺悕浠ョ‘璁ゅ垹闄ゃ€?
+msgstr "Type the filename exactly to confirm deletion."
 
 msgid "Deleted %(filename)s."
-msgstr "宸插垹闄?%(filename)s銆?
+msgstr "Deleted %(filename)s."
 
 msgid "Please sign in first."
-msgstr "璇峰厛鐧诲綍銆?
+msgstr "Please sign in first."
 
 msgid "You do not have access to that action."
-msgstr "鎮ㄦ病鏈夋墽琛岃鎿嶄綔鐨勬潈闄愩€?
+msgstr "You do not have access to that action."
 
 msgid "PaperQuery"
 msgstr "PaperQuery"
 
 msgid "Search"
-msgstr "妫€绱?
+msgstr "Search"
 
 msgid "Upload"
-msgstr "涓婁紶"
+msgstr "Upload"
 
 msgid "Delete"
-msgstr "鍒犻櫎"
+msgstr "Delete"
 
 msgid "Sign out"
-msgstr "閫€鍑?
+msgstr "Sign out"
 
 msgid "Language"
-msgstr "璇█"
+msgstr "Language"
 
 msgid "PaperQuery International Academy Research Hub"
-msgstr "PaperQuery 鍥介檯瀛︽牎绉戠爺骞冲彴"
+msgstr "PaperQuery International Academy Research Hub"
 
-msgid "Sign in 路 PaperQuery"
-msgstr "鐧诲綍 路 PaperQuery"
+msgid "Sign in · PaperQuery"
+msgstr "Sign in · PaperQuery"
 
 msgid "PaperQuery Portal"
-msgstr "PaperQuery 闂ㄦ埛"
+msgstr "PaperQuery Portal"
 
 msgid "Sign in with your academy credentials to explore the research library."
-msgstr "浣跨敤瀛︽牎璐﹀彿鐧诲綍锛岃闂鏂囪祫婧愬簱銆?
+msgstr "Sign in with your academy credentials to explore the research library."
 
 msgid "Username"
-msgstr "鐢ㄦ埛鍚?
+msgstr "Username"
 
 msgid "e.g. j.smith"
-msgstr "濡傦細j.smith"
+msgstr "e.g. j.smith"
 
 msgid "Password"
-msgstr "瀵嗙爜"
+msgstr "Password"
 
 msgid "Sign in"
-msgstr "鐧诲綍"
+msgstr "Sign in"
 
 msgid "Need help? Contact the Library Services Team."
-msgstr "闇€瑕佸府鍔╋紵璇疯仈绯诲浘涔﹂鏈嶅姟鍥㈤槦銆?
+msgstr "Need help? Contact the Library Services Team."
 
-msgid "Dashboard 路 PaperQuery"
-msgstr "宸ヤ綔鍙?路 PaperQuery"
+msgid "Dashboard · PaperQuery"
+msgstr "Dashboard · PaperQuery"
 
 msgid "Hello, %(username)s!"
-msgstr "鎮ㄥソ锛?(username)s锛?
+msgstr "Hello, %(username)s!"
 
 msgid "Welcome to the PaperQuery research portal. Use the navigation to search, upload, or curate papers based on your access level."
-msgstr "娆㈣繋鏉ュ埌 PaperQuery 璁烘枃闂ㄦ埛锛屾偍鍙互鏍规嵁鏉冮檺妫€绱€佷笂浼犳垨绠＄悊璁烘枃銆?
+msgstr "Welcome to the PaperQuery research portal. Use the navigation to search, upload, or curate papers based on your access level."
 
 msgid "Access valid through %(date)s"
-msgstr "鏉冮檺鏈夋晥鏈熻嚦 %(date)s"
+msgstr "Access valid through %(date)s"
 
 msgid "Search Library"
-msgstr "妫€绱㈡枃搴?
+msgstr "Search Library"
 
 msgid "Find relevant publications across the academy's curated collection with quick keyword matching."
-msgstr "鍦ㄥ鏍＄簿閫夋枃搴撲腑蹇€熸绱笌鍏抽敭璇嶇浉鍏崇殑璁烘枃銆?
+msgstr "Find relevant publications across the academy's curated collection with quick keyword matching."
 
 msgid "Go to Search"
-msgstr "鍓嶅線妫€绱?
+msgstr "Go to Search"
 
 msgid "Upload Research"
-msgstr "涓婁紶璁烘枃"
+msgstr "Upload Research"
 
 msgid "Support community scholarship by sharing new papers in PDF format for peers to explore."
-msgstr "閫氳繃涓婁紶鏂扮殑 PDF 璁烘枃锛屾敮鎸佹牎鍥鏈叡浜€?
+msgstr "Support community scholarship by sharing new papers in PDF format for peers to explore."
 
 msgid "Upload a Paper"
-msgstr "涓婁紶璁烘枃"
+msgstr "Upload a Paper"
 
 msgid "Upload unavailable"
-msgstr "鏆傛棤涓婁紶鏉冮檺"
+msgstr "Upload unavailable"
 
 msgid "Manage Collection"
-msgstr "绠＄悊鏂囧簱"
+msgstr "Manage Collection"
 
 msgid "Keep the repository tidy by removing outdated or duplicate papers. Confirmation keeps actions safe."
-msgstr "鍒犻櫎杩囨湡鎴栭噸澶嶇殑璁烘枃锛屼繚鎸佹枃搴撴暣娲併€?
+msgstr "Keep the repository tidy by removing outdated or duplicate papers. Confirmation keeps actions safe."
 
 msgid "Manage Papers"
-msgstr "绠＄悊璁烘枃"
+msgstr "Manage Papers"
 
 msgid "Admin only"
-msgstr "浠呯鐞嗗憳鍙敤"
+msgstr "Admin only"
 
-msgid "Search Papers 路 PaperQuery"
-msgstr "妫€绱㈣鏂?路 PaperQuery"
+msgid "Search Papers · PaperQuery"
+msgstr "Search Papers · PaperQuery"
 
 msgid "Search the Research Library"
-msgstr "妫€绱㈣鏂囪祫婧愬簱"
+msgstr "Search the Research Library"
 
 msgid "Enter keywords to find matching papers by title or content."
-msgstr "杈撳叆鍏抽敭璇嶏紝鏍规嵁鏍囬鎴栨鏂囨煡鎵惧尮閰嶈鏂囥€?
+msgstr "Enter keywords to find matching papers by title or content."
 
 msgid "Keyword"
-msgstr "鍏抽敭璇?
+msgstr "Keyword"
 
 msgid "climate change"
-msgstr "姘斿€欏彉鍖?
+msgstr "climate change"
 
 msgid "%(count)s paper found"
-msgstr "%(count)s 绡囪鏂?
+msgstr "%(count)s paper found"
 
 msgid "%(count)s papers found"
-msgstr "%(count)s 绡囪鏂?
+msgstr "%(count)s papers found"
 
 msgid "Download PDF"
-msgstr "涓嬭浇 PDF"
+msgstr "Download PDF"
 
 msgid "No papers matched \"%(query)s\". Try refining your terms."
-msgstr "娌℃湁璁烘枃鍖归厤 \"%(query)s\"锛岃灏濊瘯璋冩暣鍏抽敭璇嶃€?
+msgstr "No papers matched \"%(query)s\". Try refining your terms."
 
-msgid "Upload Paper 路 PaperQuery"
-msgstr "涓婁紶璁烘枃 路 PaperQuery"
+msgid "Upload Paper · PaperQuery"
+msgstr "Upload Paper · PaperQuery"
 
 msgid "Upload a New Paper"
-msgstr "涓婁紶鏂拌鏂?
+msgstr "Upload a New Paper"
 
 msgid "Share PDF files with the school community. Files are instantly available for search."
-msgstr "鍚戝鏍＄ぞ鍖哄垎浜?PDF 鏂囦欢锛屼笂浼犲悗鍗冲彲妫€绱€?
+msgstr "Share PDF files with the school community. Files are instantly available for search."
 
 msgid "Select PDF file"
-msgstr "閫夋嫨 PDF 鏂囦欢"
+msgstr "Select PDF file"
 
-msgid "Delete Papers 路 PaperQuery"
-msgstr "鍒犻櫎璁烘枃 路 PaperQuery"
+msgid "Delete Papers · PaperQuery"
+msgstr "Delete Papers · PaperQuery"
 
 msgid "Manage Paper Collection"
-msgstr "绠＄悊璁烘枃闆?
+msgstr "Manage Paper Collection"
 
 msgid "Remove outdated or duplicate papers. Confirm the filename to complete deletion."
-msgstr "绉婚櫎杩囨湡鎴栭噸澶嶇殑璁烘枃锛岃緭鍏ユ枃浠跺悕浠ョ‘璁ゅ垹闄ゃ€?
+msgstr "Remove outdated or duplicate papers. Confirm the filename to complete deletion."
 
 msgid "Available Papers"
-msgstr "鍙垹闄ょ殑璁烘枃"
+msgstr "Available Papers"
 
 msgid "Select filename"
-msgstr "閫夋嫨鏂囦欢鍚?
+msgstr "Select filename"
 
 msgid "Choose a paper"
-msgstr "璇烽€夋嫨璁烘枃"
+msgstr "Choose a paper"
 
 msgid "Confirm filename"
-msgstr "纭鏂囦欢鍚?
+msgstr "Confirm filename"
 
 msgid "Type the exact filename to confirm"
-msgstr "杈撳叆瀹屾暣鏂囦欢鍚嶄互纭"
+msgstr "Type the exact filename to confirm"
 
 msgid "This extra step prevents accidental deletions."
-msgstr "璇ユ楠ゅ彲閬垮厤璇垹銆?
+msgstr "This extra step prevents accidental deletions."
 
 msgid "Delete Paper"
-msgstr "鍒犻櫎璁烘枃"
+msgstr "Delete Paper"
 
 msgid "No papers available to delete. Upload new papers in the Upload section."
-msgstr "鏆傛棤鍙垹闄ょ殑璁烘枃锛岃鍦ㄢ€滀笂浼犫€濋〉闈㈡坊鍔犳柊璁烘枃銆?
+msgstr "No papers available to delete. Upload new papers in the Upload section."
 
 msgid "Session expired. Please sign in again."
-msgstr "浼氳瘽宸茶繃鏈燂紝璇烽噸鏂扮櫥褰曘€?
+msgstr "Session expired. Please sign in again."
 
 msgid "Session timed out. Please sign in again."
-msgstr "浼氳瘽瓒呮椂锛岃閲嶆柊鐧诲綍銆?
+msgstr "Session timed out. Please sign in again."
 
 msgid "This account is already signed in. Please sign out from the other session or wait %(minutes)d minutes."
-msgstr "璇ヨ处鎴峰凡鍦ㄥ叾浠栦綅缃櫥褰曪紝璇峰厛閫€鍑烘垨绛夊緟 %(minutes)d 鍒嗛挓鍚庡啀璇曘€?
+msgstr "This account is already signed in. Please sign out from the other session or wait %(minutes)d minutes."
 
 msgid "Back to Dashboard"
-msgstr "杩斿洖宸ヤ綔鍙?
+msgstr "Back to Dashboard"
 
 msgid "Title is required."
-msgstr "鏍囬涓哄繀濉」銆?
+msgstr "Title is required."
 
 msgid "Author field is required."
-msgstr "浣滆€呬负蹇呭～椤广€?
+msgstr "Author field is required."
 
 msgid "Title"
-msgstr "鏍囬"
+msgstr "Title"
 
 msgid "Authors"
-msgstr "浣滆€?
+msgstr "Authors"
 
 msgid "Keywords"
-msgstr "鍏抽敭璇?
+msgstr "Keywords"
 
 msgid "Organization"
-msgstr "鍗曚綅"
+msgstr "Organization"
 
 msgid "Published At"
-msgstr "鍙戣〃鏃堕棿"
+msgstr "Published At"
 
 msgid "Separate multiple authors with commas."
-msgstr "澶氫釜浣滆€呰鐢ㄩ€楀彿鍒嗛殧銆?
+msgstr "Separate multiple authors with commas."
 
 msgid "Separate keywords with commas."
-msgstr "澶氫釜鍏抽敭璇嶈鐢ㄩ€楀彿鍒嗛殧銆?
+msgstr "Separate keywords with commas."
 
 msgid "No."
-msgstr "搴忓彿"
+msgstr "No."
 
 msgid "No papers are available."
-msgstr "鏆傛棤鍙敤璁烘枃銆?
+msgstr "No papers are available."
 msgid \"Next Page\"
-msgstr \"涓嬩竴椤礬"
+msgstr \"Next Page\"
 
 msgid \"Go to page\"
-msgstr \"璺宠浆鍒扮鍑犻〉\"
+msgstr \"Go to page\"
 
 msgid \"Go\"
-msgstr \"璺宠浆\"
+msgstr \"Go\"
 
 msgid \"Page %(current)d of %(total)d\"
-msgstr \"绗?%(current)d / %(total)d 椤礬"
+msgstr \"Page %(current)d of %(total)d\"
 
 msgid \"%(count)s paper total\"
 msgid_plural \"%(count)s papers total\"
-msgstr[0] \"鍏?%(count)s 绡囪鏂嘰"
+msgstr[0] \"%(count)s paper total\"
+msgstr[1] \"%(count)s papers total\"
 
 msgid \"Preview Paper\"
-msgstr \"棰勮璁烘枃\"
+msgstr \"Preview Paper\"
 
 msgid \"Back to Search\"
-msgstr \"杩斿洖妫€绱"
+msgstr \"Back to Search\"
 
 msgid \"Not specified\"
-msgstr \"鏈～鍐橽"
+msgstr \"Not specified\"
 
 msgid \"Paper not found.\"
-msgstr \"鏈壘鍒拌鏂囥€俓"
+msgstr \"Paper not found.\"
