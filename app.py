@@ -2469,7 +2469,6 @@ def is_profile_complete(record: Dict[str, str]) -> bool:
     return bool(
         record.get("first_name")
         and record.get("last_name")
-        and record.get("school")
     )
 
 
