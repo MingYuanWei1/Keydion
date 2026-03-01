@@ -666,24 +666,18 @@ def create_app() -> Flask:
             flash(_("Unable to load your profile. Please sign in again."), "warning")
             return redirect(url_for("logout"))
 
-        grades = [f"Grade {idx}" for idx in range(1, 13)]
-
         if request.method == "POST":
             first_name = request.form.get("first_name", "").strip()
             last_name = request.form.get("last_name", "").strip()
-            grade = request.form.get("grade", "").strip()
 
             if not first_name or not last_name:
                 flash(_("Please enter your first and last name."), "warning")
-            elif grade not in grades:
-                flash(_("Please select your grade."), "warning")
             else:
                 updated = update_ms_user(
                     ms_id,
                     {
                         "first_name": first_name,
                         "last_name": last_name,
-                        "grade": grade,
                     },
                 )
                 if updated:
@@ -696,7 +690,6 @@ def create_app() -> Flask:
         return render_template(
             "profile_setup.html",
             profile=record,
-            grades=grades,
         )
 
 
@@ -2473,7 +2466,6 @@ def is_profile_complete(record: Dict[str, str]) -> bool:
         record.get("first_name")
         and record.get("last_name")
         and record.get("school")
-        and record.get("grade")
     )
 
 

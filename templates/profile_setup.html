@@ -20,17 +20,6 @@
               <label class="form-label" for="last_name">{{ _('Last name') }}</label>
               <input class="form-control" id="last_name" name="last_name" value="{{ profile.last_name }}" required>
             </div>
-            <div class="col-12">
-              <label class="form-label" for="grade">{{ _('Grade') }}</label>
-              <select class="form-select" id="grade" name="grade" required>
-                <option value="">{{ _('Select a grade') }}</option>
-                {% for grade in grades %}
-                <option value="{{ grade }}" {% if profile.grade==grade %}selected{% endif %}>
-                  {{ grade }}
-                </option>
-                {% endfor %}
-              </select>
-            </div>
           </div>
           <button type="submit" class="btn btn-primary w-100 mt-4">
             {{ _('Save profile') }}
