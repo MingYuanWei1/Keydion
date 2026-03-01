@@ -904,6 +904,10 @@ def create_app() -> Flask:
             return redirect(target)
 
         today = datetime.utcnow().date().isoformat()
+        author_names = [n.strip() for n in request.form.getlist("author_name") if n.strip()]
+        author_emails = [e.strip() for e in request.form.getlist("author_email") if e.strip()]
+        author_schools = [s.strip() for s in request.form.getlist("author_school") if s.strip()]
+
         form_data = {
             "title": request.form.get("title", "").strip(),
             "journal": request.form.get("journal", "").strip(),
@@ -911,9 +915,9 @@ def create_app() -> Flask:
             "language": request.form.get("language", "").strip(),
             "keywords": request.form.get("keywords", "").strip(),
             "abstract": request.form.get("abstract", "").strip(),
-            "author_name": request.form.get("author_name", "").strip(),
-            "author_email": request.form.get("author_email", "").strip(),
-            "author_school": request.form.get("author_school", "").strip(),
+            "author_name": ", ".join(author_names),
+            "author_email": ", ".join(author_emails),
+            "author_school": ", ".join(author_schools),
             "published_at": today,
         }
 
