@@ -1,4 +1,7 @@
 from __future__ import annotations
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 import base64
 import binascii
@@ -1465,7 +1468,16 @@ def create_app() -> Flask:
                 art["category"] = new_name
                 changed = True
         if changed:
-            write_csv_rows(NEWS_CSV, NEWS_FIELDS, articles)
+            if not db_enabled():
+                write_csv_rows(NEWS_CSV, NEWS_FIELDS, articles)
+            else:
+                with db_session() as db:
+                    for art in articles:
+                        if art.get("category") == new_name:
+                            db_art = db.query(NewsArticleModel).filter_by(id=art.get("id")).first()
+                            if db_art:
+                                db_art.category = new_name
+                    db.commit()
         return jsonify(categories=cats)
 
     @app.route("/news/categories/delete", methods=["POST"])
@@ -1534,7 +1546,7 @@ def create_app() -> Flask:
                 row["category"] = new_name
                 changed = True
         if changed:
-            write_csv_rows(METADATA_CSV, METADATA_FIELDS, meta_rows)
+            save_paper_metadata(meta_rows)
         return jsonify(items=cats)
 
     @app.route("/admin/paper-categories/delete", methods=["POST"])
@@ -1597,7 +1609,7 @@ def create_app() -> Flask:
                 row["journal"] = ""
                 changed = True
         if changed:
-            write_csv_rows(METADATA_CSV, METADATA_FIELDS, meta_rows)
+            save_paper_metadata(meta_rows)
         journals = [j for j in journals if j["id"] != journal_id]
         save_journals(journals)
         return jsonify(items=journals)
@@ -1650,7 +1662,7 @@ def create_app() -> Flask:
                         row["journal"] = new_name
                         changed = True
                 if changed:
-                    write_csv_rows(METADATA_CSV, METADATA_FIELDS, meta_rows)
+                    save_paper_metadata(meta_rows)
 
             flash(_("Journal updated."), "success")
             return redirect(url_for("journal_edit", journal_id=journal_id))
