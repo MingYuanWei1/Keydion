@@ -20,7 +20,7 @@ from urllib.parse import urlparse
 
 import msal
 import requests
-from sqlalchemy import Column, Date, DateTime, ForeignKey, String, create_engine
+from sqlalchemy import Column, Date, DateTime, ForeignKey, String, Text, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from flask import (
     Flask,
@@ -99,33 +99,57 @@ def save_paper_categories(cats: list) -> None:
 
 def load_journals() -> list:
     """Load journals as list of dicts from JSON."""
-    if JOURNALS_JSON.exists():
-        try:
-            data = json.loads(JOURNALS_JSON.read_text(encoding="utf-8"))
-            # Migration: convert old string-based list to rich objects
-            if data and isinstance(data[0], str):
-                from uuid import uuid4
-                migrated = []
-                for name in data:
-                    migrated.append({
-                        "id": uuid4().hex[:12],
-                        "name": name,
-                        "cover_image": "",
-                        "introduction": "",
-                        "created_at": datetime.utcnow().date().isoformat(),
-                    })
-                save_journals(migrated)
-                return migrated
-            return data
-        except (json.JSONDecodeError, OSError):
-            pass
-    save_journals([])
-    return []
+    if not db_enabled():
+        if JOURNALS_JSON.exists():
+            try:
+                data = json.loads(JOURNALS_JSON.read_text(encoding="utf-8"))
+                # Migration: convert old string-based list to rich objects
+                if data and isinstance(data[0], str):
+                    from uuid import uuid4
+                    migrated = []
+                    for name in data:
+                        migrated.append({
+                            "id": uuid4().hex[:12],
+                            "name": name,
+                            "cover_image": "",
+                            "introduction": "",
+                            "created_at": datetime.utcnow().date().isoformat(),
+                        })
+                    save_journals(migrated)
+                    return migrated
+                return data
+            except (json.JSONDecodeError, OSError):
+                pass
+        save_journals([])
+        return []
+    with db_session() as db:
+        journals = db.query(JournalModel).all()
+        return [{
+            "id": j.id,
+            "name": j.name,
+            "cover_image": j.cover_image,
+            "introduction": j.introduction,
+            "created_at": j.created_at,
+        } for j in journals]
 
 
 def save_journals(journals: list) -> None:
-    JOURNALS_JSON.parent.mkdir(parents=True, exist_ok=True)
-    JOURNALS_JSON.write_text(json.dumps(journals, ensure_ascii=False, indent=2), encoding="utf-8")
+    if not db_enabled():
+        JOURNALS_JSON.parent.mkdir(parents=True, exist_ok=True)
+        JOURNALS_JSON.write_text(json.dumps(journals, ensure_ascii=False, indent=2), encoding="utf-8")
+        return
+
+    with db_session() as db:
+        db.query(JournalModel).delete()
+        for j in journals:
+            db.add(JournalModel(
+                id=j.get("id"),
+                name=j.get("name"),
+                cover_image=j.get("cover_image"),
+                introduction=j.get("introduction"),
+                created_at=j.get("created_at")
+            ))
+        db.commit()
 
 
 def get_journal_by_id(journal_id: str) -> dict | None:
@@ -222,6 +246,59 @@ class MsUser(BASE):
     role = Column(String(10))
     created_at = Column(DateTime)
     updated_at = Column(DateTime)
+
+class JournalModel(BASE):
+    __tablename__ = "journals"
+    id = Column(String(255), primary_key=True)
+    name = Column(String(255))
+    cover_image = Column(String(255))
+    introduction = Column(Text)
+    created_at = Column(String(255))
+
+class PaperMetadataModel(BASE):
+    __tablename__ = "papers_metadata"
+    filename = Column(String(255), primary_key=True)
+    title = Column(String(255))
+    journal = Column(String(255))
+    category = Column(String(255))
+    language = Column(String(255))
+    keywords = Column(Text)
+    abstract = Column(Text)
+    author_name = Column(String(255))
+    author_email = Column(String(255))
+    author_school = Column(String(255))
+    published_at = Column(String(255))
+
+class NewsArticleModel(BASE):
+    __tablename__ = "news_articles"
+    id = Column(String(255), primary_key=True)
+    title = Column(String(255))
+    category = Column(String(255))
+    abstract = Column(Text)
+    body = Column(Text)
+    author = Column(String(255))
+    image_url = Column(String(255))
+    published_at = Column(String(255))
+
+class SubmissionModel(BASE):
+    __tablename__ = "submissions"
+    id = Column(String(255), primary_key=True)
+    pdf_filename = Column(String(255))
+    pending_filename = Column(String(255))
+    title = Column(String(255))
+    author_name = Column(String(255))
+    author_email = Column(String(255))
+    author_school = Column(String(255))
+    status = Column(String(50))
+    submitted_at = Column(String(255))
+    feedback = Column(Text)
+    abstract = Column(Text)
+    keywords = Column(Text)
+    journal = Column(String(255))
+    category = Column(String(255))
+    language = Column(String(255))
+    submitted_by = Column(String(255))
+    original_filename = Column(String(255))
 
 
 
@@ -1619,16 +1696,63 @@ def create_app() -> Flask:
     # ---- Submission review helpers ----
 
     def _load_submissions():
-        if not SUBMISSIONS_JSON.exists():
-            return []
-        try:
-            return json.loads(SUBMISSIONS_JSON.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            return []
+        if not db_enabled():
+            if not SUBMISSIONS_JSON.exists():
+                return []
+            try:
+                return json.loads(SUBMISSIONS_JSON.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                return []
+        with db_session() as db:
+            subs = db.query(SubmissionModel).all()
+            return [{
+                "id": s.id,
+                "pdf_filename": s.pdf_filename,
+                "pending_filename": s.pending_filename,
+                "title": s.title,
+                "author_name": s.author_name,
+                "author_email": s.author_email,
+                "author_school": s.author_school,
+                "status": s.status,
+                "submitted_at": s.submitted_at,
+                "feedback": s.feedback,
+                "abstract": s.abstract,
+                "keywords": s.keywords,
+                "journal": s.journal,
+                "category": s.category,
+                "language": s.language,
+                "submitter": s.submitted_by,
+                "original_filename": s.original_filename
+            } for s in subs]
 
     def _write_submissions(subs):
-        SUBMISSIONS_JSON.parent.mkdir(parents=True, exist_ok=True)
-        SUBMISSIONS_JSON.write_text(json.dumps(subs, ensure_ascii=False, indent=2), encoding="utf-8")
+        if not db_enabled():
+            SUBMISSIONS_JSON.parent.mkdir(parents=True, exist_ok=True)
+            SUBMISSIONS_JSON.write_text(json.dumps(subs, ensure_ascii=False, indent=2), encoding="utf-8")
+            return
+        with db_session() as db:
+            db.query(SubmissionModel).delete()
+            for s in subs:
+                db.add(SubmissionModel(
+                    id=s.get("id"),
+                    pdf_filename=s.get("pdf_filename"),
+                    pending_filename=s.get("pending_filename"),
+                    title=s.get("title"),
+                    author_name=s.get("author_name"),
+                    author_email=s.get("author_email"),
+                    author_school=s.get("author_school"),
+                    status=s.get("status"),
+                    submitted_at=s.get("submitted_at"),
+                    feedback=s.get("feedback"),
+                    abstract=s.get("abstract"),
+                    keywords=s.get("keywords"),
+                    journal=s.get("journal"),
+                    category=s.get("category"),
+                    language=s.get("language"),
+                    submitted_by=s.get("submitter"),
+                    original_filename=s.get("original_filename")
+                ))
+            db.commit()
 
     def _save_submission(sub):
         subs = _load_submissions()
@@ -2498,23 +2622,34 @@ def ensure_metadata_file() -> None:
 
 
 def load_paper_metadata() -> List[Dict[str, str]]:
-    ensure_metadata_file()
-    with METADATA_CSV.open(newline="", encoding="utf-8") as csvfile:
-        reader = csv.DictReader(csvfile)
-        rows: List[Dict[str, str]] = []
-        for raw_row in reader:
-            normalized = {field: (raw_row.get(field, "") or "").strip() for field in METADATA_FIELDS}
-            rows.append(normalized)
-        return rows
+    if not db_enabled():
+        ensure_metadata_file()
+        with METADATA_CSV.open(newline="", encoding="utf-8") as csvfile:
+            reader = csv.DictReader(csvfile)
+            rows: List[Dict[str, str]] = []
+            for raw_row in reader:
+                normalized = {field: (raw_row.get(field, "") or "").strip() for field in METADATA_FIELDS}
+                rows.append(normalized)
+            return rows
+    with db_session() as db:
+        papers = db.query(PaperMetadataModel).all()
+        return [{field: (getattr(p, field) or "") for field in METADATA_FIELDS} for p in papers]
 
 
 def save_paper_metadata(rows: List[Dict[str, str]]) -> None:
-    ensure_metadata_file()
-    with METADATA_CSV.open("w", newline="", encoding="utf-8") as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=METADATA_FIELDS)
-        writer.writeheader()
-        for row in rows:
-            writer.writerow({field: row.get(field, "") for field in METADATA_FIELDS})
+    if not db_enabled():
+        ensure_metadata_file()
+        with METADATA_CSV.open("w", newline="", encoding="utf-8") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=METADATA_FIELDS)
+            writer.writeheader()
+            for row in rows:
+                writer.writerow({field: row.get(field, "") for field in METADATA_FIELDS})
+        return
+    with db_session() as db:
+        db.query(PaperMetadataModel).delete()
+        for r in rows:
+            db.add(PaperMetadataModel(**{field: r.get(field, "") for field in METADATA_FIELDS}))
+        db.commit()
 
 
 def build_paper_record(filename: str, metadata_index: Optional[Dict[str, Dict[str, str]]] = None) -> Dict[str, str]:
@@ -2678,45 +2813,82 @@ def refresh_session(username: str, token: str) -> bool:
 
 def load_news_articles() -> List[Dict[str, str]]:
     """Return all news articles sorted by published_at descending."""
-    rows = read_csv_rows(NEWS_CSV, NEWS_FIELDS)
-    rows.sort(key=lambda r: r.get("published_at", ""), reverse=True)
-    return rows
+    if not db_enabled():
+        rows = read_csv_rows(NEWS_CSV, NEWS_FIELDS)
+        rows.sort(key=lambda r: r.get("published_at", ""), reverse=True)
+        return rows
+    with db_session() as db:
+        articles = db.query(NewsArticleModel).all()
+        rows = [{field: (getattr(a, field) or "") for field in NEWS_FIELDS} for a in articles]
+        rows.sort(key=lambda r: r.get("published_at", ""), reverse=True)
+        return rows
 
 
 def get_news_article(article_id: str) -> Optional[Dict[str, str]]:
-    for row in read_csv_rows(NEWS_CSV, NEWS_FIELDS):
-        if row.get("id") == article_id:
-            return row
-    return None
+    if not db_enabled():
+        for row in read_csv_rows(NEWS_CSV, NEWS_FIELDS):
+            if row.get("id") == article_id:
+                return row
+        return None
+    with db_session() as db:
+        article = db.query(NewsArticleModel).filter_by(id=article_id).first()
+        if article:
+            return {field: (getattr(article, field) or "") for field in NEWS_FIELDS}
+        return None
 
 
 def save_news_article(article: Dict[str, str]) -> None:
-    rows = read_csv_rows(NEWS_CSV, NEWS_FIELDS)
-    rows.append(article)
-    write_csv_rows(NEWS_CSV, NEWS_FIELDS, rows)
+    if not db_enabled():
+        rows = read_csv_rows(NEWS_CSV, NEWS_FIELDS)
+        rows.append(article)
+        write_csv_rows(NEWS_CSV, NEWS_FIELDS, rows)
+        return
+    with db_session() as db:
+        db.add(NewsArticleModel(**{field: article.get(field, "") for field in NEWS_FIELDS}))
+        db.commit()
 
 
 def update_news_article(article_id: str, data: Dict[str, str]) -> bool:
-    rows = read_csv_rows(NEWS_CSV, NEWS_FIELDS)
-    for row in rows:
-        if row.get("id") == article_id:
+    if not db_enabled():
+        rows = read_csv_rows(NEWS_CSV, NEWS_FIELDS)
+        for row in rows:
+            if row.get("id") == article_id:
+                for field in NEWS_FIELDS:
+                    if field in ("id", "published_at"):
+                        continue
+                    if field in data:
+                        row[field] = data[field]
+                write_csv_rows(NEWS_CSV, NEWS_FIELDS, rows)
+                return True
+        return False
+    with db_session() as db:
+        article = db.query(NewsArticleModel).filter_by(id=article_id).first()
+        if article:
             for field in NEWS_FIELDS:
                 if field in ("id", "published_at"):
                     continue
                 if field in data:
-                    row[field] = data[field]
-            write_csv_rows(NEWS_CSV, NEWS_FIELDS, rows)
+                    setattr(article, field, data[field])
+            db.commit()
             return True
-    return False
+        return False
 
 
 def delete_news_article(article_id: str) -> bool:
-    rows = read_csv_rows(NEWS_CSV, NEWS_FIELDS)
-    filtered = [r for r in rows if r.get("id") != article_id]
-    if len(filtered) != len(rows):
-        write_csv_rows(NEWS_CSV, NEWS_FIELDS, filtered)
-        return True
-    return False
+    if not db_enabled():
+        rows = read_csv_rows(NEWS_CSV, NEWS_FIELDS)
+        filtered = [r for r in rows if r.get("id") != article_id]
+        if len(filtered) != len(rows):
+            write_csv_rows(NEWS_CSV, NEWS_FIELDS, filtered)
+            return True
+        return False
+    with db_session() as db:
+        article = db.query(NewsArticleModel).filter_by(id=article_id).first()
+        if article:
+            db.delete(article)
+            db.commit()
+            return True
+        return False
 
 
 app = create_app()
