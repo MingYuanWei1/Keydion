@@ -2,13 +2,31 @@
 data/
 static/uploads/
 papers/
+*.db
+*.sqlite3
+*.sqlite
 
 # Python environments and cache
-venv_new/
 venv/
+venv_new/
+.venv/
 __pycache__/
 *.pyc
+*.pyo
+.mypy_cache/
+.pytest_cache/
+
+# Environment variables
 .env
+.env.*
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
 
 # MacOS files
 .DS_Store
+.AppleDouble
+.LSOverride
