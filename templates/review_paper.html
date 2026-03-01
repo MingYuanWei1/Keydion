@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Review Paper · Keydion') }}{% endblock %}
+{% block content %}
+<div class="page-title">
+    <h1>{{ _('Review Paper') }}</h1>
+    <p class="text-muted">{{ _('Review the submission details and decide whether to accept or reject.') }}</p>
+</div>
+
+<div class="mb-3">
+    <a class="btn btn-outline-secondary back-link" href="{{ url_for('review_list') }}">
+        &larr; {{ _('Back to Review List') }}
+    </a>
+</div>
+
+<div class="row g-4">
+    <!-- Paper Details -->
+    <div class="col-lg-5">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">{{ _('Submission Details') }}</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">{{ _('Title') }}</dt>
+                    <dd class="col-sm-8">{{ submission.title }}</dd>
+
+                    <dt class="col-sm-4">{{ _('Category') }}</dt>
+                    <dd class="col-sm-8">{{ submission.category }}</dd>
+
+                    <dt class="col-sm-4">{{ _('Keywords') }}</dt>
+                    <dd class="col-sm-8">{{ submission.keywords }}</dd>
+
+                    <dt class="col-sm-4">{{ _('Abstract') }}</dt>
+                    <dd class="col-sm-8">{{ submission.abstract }}</dd>
+
+                    <dt class="col-sm-4 border-top pt-2 mt-2">{{ _('Author') }}</dt>
+                    <dd class="col-sm-8 border-top pt-2 mt-2">{{ submission.author_name }}</dd>
+
+                    <dt class="col-sm-4">{{ _('Email') }}</dt>
+                    <dd class="col-sm-8">{{ submission.author_email }}</dd>
+
+                    <dt class="col-sm-4">{{ _('School') }}</dt>
+                    <dd class="col-sm-8">{{ submission.author_school }}</dd>
+
+                    <dt class="col-sm-4 border-top pt-2 mt-2">{{ _('Submitted By') }}</dt>
+                    <dd class="col-sm-8 border-top pt-2 mt-2">{{ submission.submitter_name or submission.submitter }}
+                    </dd>
+
+                    <dt class="col-sm-4">{{ _('Submitted') }}</dt>
+                    <dd class="col-sm-8">{{ submission.submitted_at[:10] if submission.submitted_at else '-' }}</dd>
+
+                    <dt class="col-sm-4">{{ _('Status') }}</dt>
+                    <dd class="col-sm-8">
+                        {% if submission.status == 'pending' %}
+                        <span class="badge bg-warning text-dark">{{ _('Pending Review') }}</span>
+                        {% elif submission.status == 'accepted' %}
+                        <span class="badge bg-success">{{ _('Accepted') }}</span>
+                        {% elif submission.status == 'rejected' %}
+                        <span class="badge bg-danger">{{ _('Rejected') }}</span>
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        {% if submission.status == 'pending' %}
+        <!-- Accept / Reject Actions -->
+        <div class="card shadow-sm border-success mb-3">
+            <div class="card-body">
+                <form method="post" action="{{ url_for('review_accept', sub_id=submission.id) }}">
+                    <button type="submit" class="btn btn-success w-100 btn-lg"
+                        onclick="return confirm('{{ _('Accept this paper? It will be published to the library.') }}')">
+                        ✓ {{ _('Accept & Publish') }}
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-danger">
+            <div class="card-body">
+                <form method="post" action="{{ url_for('review_reject', sub_id=submission.id) }}">
+                    <div class="mb-3">
+                        <label for="comment" class="form-label fw-semibold text-danger">{{ _('Rejection Reason')
+                            }}</label>
+                        <textarea class="form-control" id="comment" name="comment" rows="3"
+                            placeholder="{{ _('Please explain why this paper is being rejected...') }}"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-danger w-100"
+                        onclick="return confirm('{{ _('Reject this paper? This action cannot be undone.') }}')">
+                        ✗ {{ _('Reject') }}
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- PDF Preview -->
+    <div class="col-lg-7">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">{{ _('Paper Preview') }}</h5>
+                <small class="text-muted">{{ submission.filename }}</small>
+            </div>
+            <div class="card-body p-0">
+                <iframe src="{{ pdf_url }}#view=FitH" style="width: 100%; height: 80vh; border: none;"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+{% block title %}{{ journal.name }} · Keydion{% endblock %}
+{% block content %}
+
+<style>
+    .journal-hero {
+        margin-bottom: 2rem;
+    }
+
+    .journal-title {
+        font-family: 'Source Serif 4', Georgia, serif;
+        font-size: 32px;
+        font-weight: 700;
+        line-height: 1.2;
+        margin-bottom: 1rem;
+    }
+
+    .journal-search-label {
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #555;
+        margin-bottom: 6px;
+    }
+
+    .journal-intro {
+        font-family: 'Source Serif 4', Georgia, serif;
+        font-size: 15px;
+        line-height: 1.7;
+        color: #333;
+        margin-top: 1.25rem;
+    }
+
+    .journal-cover {
+        width: 120px;
+        height: 160px;
+        object-fit: cover;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    .journal-meta-label {
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 2px;
+    }
+
+    .journal-meta-value {
+        font-size: 14px;
+        color: #555;
+        margin-bottom: 14px;
+    }
+
+    .journal-sidebar {
+        border-left: 1px solid #ddd;
+        padding-left: 1.5rem;
+    }
+
+    .all-issues-header {
+        font-family: 'Source Serif 4', Georgia, serif;
+        font-size: 20px;
+        font-weight: 500;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #333;
+        margin-bottom: 0;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .paper-entry {
+        padding: 12px 0;
+        border-bottom: 1px solid #eee;
+    }
+
+    .paper-entry:last-child {
+        border-bottom: none;
+    }
+
+    .paper-entry-title {
+        font-family: 'Source Serif 4', Georgia, serif;
+        font-size: 15px;
+        line-height: 1.4;
+        margin-bottom: 2px;
+    }
+
+    .paper-entry-title a {
+        color: #2b457a;
+        text-decoration: none;
+    }
+
+    .paper-entry-title a:hover {
+        text-decoration: underline;
+    }
+
+    .paper-entry-meta {
+        font-size: 12px;
+        color: #888;
+    }
+
+    .year-group {
+        margin-bottom: 0;
+    }
+
+    .year-header {
+        font-family: 'Source Serif 4', Georgia, serif;
+        font-size: 17px;
+        font-weight: 600;
+        padding: 10px 0;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: #333;
+    }
+
+    .year-header:hover {
+        color: #000;
+    }
+
+    .year-chevron {
+        transition: transform 0.2s;
+        font-size: 12px;
+    }
+
+    .year-chevron.open {
+        transform: rotate(90deg);
+    }
+
+    .year-papers {
+        display: none;
+        padding-left: 4px;
+    }
+
+    .year-papers.show {
+        display: block;
+    }
+</style>
+
+<div class="row g-5 journal-hero">
+    <!-- Left Column: Search + Intro + Papers -->
+    <div class="col-lg-8">
+        <h1 class="journal-title">{{ journal.name }}</h1>
+
+        {% if journal.introduction %}
+        <div class="journal-intro">{{ journal.introduction }}</div>
+        {% endif %}
+
+        <!-- All Issues / Papers -->
+        <div class="mt-4">
+            <div class="all-issues-header" onclick="toggleAllPapers()">
+                <span>{{ _('All Papers') }}</span>
+                <svg id="all-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                    viewBox="0 0 16 16" style="transition: transform 0.2s;">
+                    <path fill-rule="evenodd"
+                        d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708" />
+                </svg>
+            </div>
+
+            <div id="all-papers-section">
+                {% if papers %}
+                {% set years = [] %}
+                {% for paper in papers %}
+                {% set year = (paper.published_at or '')[:4] %}
+                {% if year and year not in years %}
+                {% if years.append(year) %}{% endif %}
+                {% endif %}
+                {% endfor %}
+
+                {% for year in years %}
+                <div class="year-group">
+                    <div class="year-header" onclick="toggleYear('{{ year }}')">
+                        <span class="year-chevron" id="chevron-{{ year }}">&#9654;</span>
+                        <span>{{ year }}</span>
+                    </div>
+                    <div class="year-papers" id="papers-{{ year }}">
+                        {% for paper in papers %}
+                        {% set pyear = (paper.published_at or '')[:4] %}
+                        {% if pyear == year %}
+                        <div class="paper-entry">
+                            <div class="paper-entry-title">
+                                <a href="{{ url_for('preview_paper', filename=paper.filename) }}">{{ paper.title or
+                                    paper.filename }}</a>
+                            </div>
+                            <div class="paper-entry-meta">
+                                {{ paper.author_name or _('Unknown') }}
+                                {% if paper.author_school %} · {{ paper.author_school }}{% endif %}
+                                {% if paper.published_at %} · {{ paper.published_at }}{% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+
+                <!-- Papers without a year -->
+                {% set no_year_papers = [] %}
+                {% for paper in papers %}
+                {% if not (paper.published_at or '')[:4] %}
+                {% if no_year_papers.append(paper) %}{% endif %}
+                {% endif %}
+                {% endfor %}
+                {% if no_year_papers %}
+                <div class="year-group">
+                    <div class="year-header" onclick="toggleYear('undated')">
+                        <span class="year-chevron" id="chevron-undated">&#9654;</span>
+                        <span>{{ _('Undated') }}</span>
+                    </div>
+                    <div class="year-papers" id="papers-undated">
+                        {% for paper in no_year_papers %}
+                        <div class="paper-entry">
+                            <div class="paper-entry-title">
+                                <a href="{{ url_for('preview_paper', filename=paper.filename) }}">{{ paper.title or
+                                    paper.filename }}</a>
+                            </div>
+                            <div class="paper-entry-meta">{{ paper.author_name or _('Unknown') }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% else %}
+                <p class="text-muted mt-3" style="font-size: 14px;">{{ _('No papers in this journal yet.') }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Cover + Metadata -->
+    <div class="col-lg-4">
+        <div class="journal-sidebar">
+            {% if journal.cover_image %}
+            <div class="mb-3">
+                <img src="{{ url_for('static', filename='uploads/journal_covers/' ~ journal.cover_image) }}"
+                    class="journal-cover" alt="{{ journal.name }}">
+            </div>
+            {% endif %}
+
+            <div class="journal-meta-label">{{ _('PAPERS') }}</div>
+            <div class="journal-meta-value">{{ papers|length }}</div>
+
+            {% if papers %}
+            {% set dates = [] %}
+            {% for p in papers %}
+            {% if p.published_at %}
+            {% if dates.append(p.published_at) %}{% endif %}
+            {% endif %}
+            {% endfor %}
+            {% if dates %}
+            <div class="journal-meta-label">{{ _('COVERAGE') }}</div>
+            <div class="journal-meta-value">{{ dates|sort|first }} – {{ dates|sort|last }}</div>
+            {% endif %}
+            {% endif %}
+
+            {% set categories = [] %}
+            {% for p in papers %}
+            {% if p.category and p.category not in categories %}
+            {% if categories.append(p.category) %}{% endif %}
+            {% endif %}
+            {% endfor %}
+            {% if categories %}
+            <div class="journal-meta-label">{{ _('SUBJECTS') }}</div>
+            <div class="journal-meta-value">{{ categories|join(', ') }}</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleYear(year) {
+        const papers = document.getElementById('papers-' + year);
+        const chevron = document.getElementById('chevron-' + year);
+        if (papers.classList.contains('show')) {
+            papers.classList.remove('show');
+            chevron.classList.remove('open');
+        } else {
+            papers.classList.add('show');
+            chevron.classList.add('open');
+        }
+    }
+
+    function toggleAllPapers() {
+        const section = document.getElementById('all-papers-section');
+        const chevron = document.getElementById('all-chevron');
+        if (section.style.display === 'none') {
+            section.style.display = '';
+            chevron.style.transform = '';
+        } else {
+            section.style.display = 'none';
+            chevron.style.transform = 'rotate(-90deg)';
+        }
+    }
+</script>
+
+{% endblock %}

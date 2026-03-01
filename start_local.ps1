@@ -40,7 +40,7 @@ if ($Venv -and $Venv.Trim()) {
 
 $env:FLASK_APP = "app"
 
-Write-Host "Launching PaperQuery..." -ForegroundColor Cyan
+Write-Host "Launching Keydion..." -ForegroundColor Cyan
 Write-Host ("  SECRET:      {0}" -f $env:PAPERQUERY_SECRET)
 if ($env:PAPERQUERY_DATA_DIR) {
     Write-Host ("  DATA DIR:    {0}" -f $env:PAPERQUERY_DATA_DIR)

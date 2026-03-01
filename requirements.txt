@@ -1,3 +1,7 @@
 Flask>=3.0
 Flask-Babel>=4.0
 PyPDF2>=3.0
+msal>=1.28
+requests>=2.31
+SQLAlchemy>=2.0
+PyMySQL>=1.1

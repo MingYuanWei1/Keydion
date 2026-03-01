@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ _('News') }} · Keydion</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=Source+Serif+4:wght@600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #ffffff;
+            --bg-alt: #f8f9fb;
+            --ink: #1a1a2e;
+            --ink-light: #4a4a5a;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+            --brand: #1e40af;
+            --brand-light: #3b82f6;
+            --brand-dark: #1e3a8a;
+            --footer-bg: #0f172a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: "Noto Sans SC", "PingFang SC", "Microsoft Yahei", sans-serif;
+            color: var(--ink);
+            background: var(--bg);
+            line-height: 1.6;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        img {
+            max-width: 100%;
+            display: block;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* ==================== HEADER ==================== */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            height: 64px;
+        }
+
+        .header-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 64px;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            color: var(--brand);
+            letter-spacing: 0.5px;
+        }
+
+        nav {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-link {
+            padding: 8px 16px;
+            font-size: 14px;
+            color: var(--ink-light);
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover {
+            color: var(--brand);
+        }
+
+        .btn-submit {
+            margin-left: 16px;
+            padding: 10px 24px;
+            background: var(--brand);
+            color: #fff;
+            font-size: 14px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-submit:hover {
+            background: var(--brand-dark);
+        }
+
+        .btn-user {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            border-radius: 999px;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .lang-switch {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 12px;
+            color: var(--ink-light);
+            font-size: 13px;
+        }
+
+        .lang-select {
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            background: transparent;
+            color: #fff;
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 13px;
+            appearance: none;
+        }
+
+        .lang-select option {
+            color: #111;
+        }
+
+        /* ==================== PAGE ==================== */
+        .page-body {
+            margin-top: 64px;
+            padding: 48px 0 80px;
+        }
+
+        .page-title {
+            font-family: "Source Serif 4", serif;
+            font-size: 36px;
+            font-weight: 700;
+            padding-bottom: 12px;
+            border-bottom: 3px solid var(--ink);
+            margin-bottom: 40px;
+        }
+
+        .news-layout {
+            display: flex;
+            gap: 48px;
+        }
+
+        .news-main {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .news-sidebar {
+            width: 300px;
+            flex-shrink: 0;
+        }
+
+        /* ==================== TOP STORY ==================== */
+        .top-story {
+            margin-bottom: 40px;
+            padding-bottom: 32px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .top-story .thumb {
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: var(--bg-alt);
+            border: 1px solid var(--border);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .top-story .thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .top-story h2 {
+            font-family: "Source Serif 4", serif;
+            font-size: 28px;
+            font-weight: 700;
+            line-height: 1.3;
+            margin-bottom: 12px;
+        }
+
+        .top-story h2 a {
+            transition: color 0.2s;
+        }
+
+        .top-story h2 a:hover {
+            color: var(--brand);
+        }
+
+        .top-story .abstract {
+            font-size: 15px;
+            color: var(--ink-light);
+            line-height: 1.7;
+            margin-bottom: 12px;
+        }
+
+        .news-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            color: var(--muted);
+            flex-wrap: wrap;
+        }
+
+        .news-meta .author {
+            font-weight: 600;
+            color: var(--ink-light);
+        }
+
+        .news-meta .category-tag {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--brand);
+            background: rgba(30, 64, 175, 0.08);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        /* ==================== ARTICLE LIST ==================== */
+        .news-article {
+            display: flex;
+            gap: 20px;
+            padding: 24px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .news-article:last-child {
+            border-bottom: none;
+        }
+
+        .news-article .thumb {
+            width: 180px;
+            flex-shrink: 0;
+            aspect-ratio: 16/10;
+            background: var(--bg-alt);
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .news-article .thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .news-article .content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .news-article h3 {
+            font-size: 17px;
+            font-weight: 600;
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+
+        .news-article h3 a {
+            transition: color 0.2s;
+        }
+
+        .news-article h3 a:hover {
+            color: var(--brand);
+        }
+
+        .news-article .abstract {
+            font-size: 14px;
+            color: var(--ink-light);
+            line-height: 1.6;
+            margin-bottom: 8px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* ==================== SIDEBAR ==================== */
+        .sidebar-section {
+            margin-bottom: 40px;
+        }
+
+        .sidebar-section h3 {
+            font-family: "Source Serif 4", serif;
+            font-size: 18px;
+            font-weight: 700;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--ink);
+            margin-bottom: 16px;
+        }
+
+        .sidebar-item {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-item:last-child {
+            border-bottom: none;
+        }
+
+        .sidebar-item h4 {
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.4;
+            margin-bottom: 4px;
+        }
+
+        .sidebar-item h4 a {
+            transition: color 0.2s;
+        }
+
+        .sidebar-item h4 a:hover {
+            color: var(--brand);
+        }
+
+        .sidebar-item .meta {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        /* ==================== PAGINATION ==================== */
+        .pagination {
+            display: flex;
+            gap: 4px;
+            list-style: none;
+            margin-top: 40px;
+            flex-wrap: wrap;
+        }
+
+        .pagination a,
+        .pagination span {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 36px;
+            height: 36px;
+            padding: 0 10px;
+            border: 1px solid var(--border);
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .pagination a:hover {
+            background: var(--bg-alt);
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .pagination .current {
+            background: var(--brand);
+            color: #fff;
+            border-color: var(--brand);
+            font-weight: 600;
+        }
+
+        /* ==================== EMPTY STATE ==================== */
+        .empty-state {
+            text-align: center;
+            padding: 60px 24px;
+            color: var(--muted);
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.4;
+        }
+
+        .empty-state h3 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--ink-light);
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            font-size: 15px;
+        }
+
+        /* ==================== FOOTER ==================== */
+        footer {
+            background: var(--footer-bg);
+            color: #fff;
+            padding: 40px 0;
+        }
+
+        .footer-inner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-inner .copyright {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .footer-inner a {
+            color: #94a3b8;
+            font-size: 13px;
+            transition: color 0.2s;
+        }
+
+        .footer-inner a:hover {
+            color: #fff;
+        }
+
+        /* ==================== FLASH ==================== */
+        .flash {
+            background: #e5f0ff;
+            border: 1px solid #bcd4ff;
+            color: #0f285c;
+            padding: 10px 14px;
+            margin-bottom: 16px;
+            border-radius: 6px;
+        }
+
+        .flash-success {
+            background: #ecfdf5;
+            border-color: #a7f3d0;
+            color: #065f46;
+        }
+
+        .flash-danger {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #991b1b;
+        }
+
+        .flash-warning {
+            background: #fffbeb;
+            border-color: #fde68a;
+            color: #92400e;
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 1024px) {
+            .news-sidebar {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .page-title {
+                font-size: 28px;
+            }
+
+            .top-story h2 {
+                font-size: 22px;
+            }
+
+            .news-article {
+                flex-direction: column;
+            }
+
+            .news-article .thumb {
+                width: 100%;
+            }
+
+            nav {
+                display: none;
+            }
+
+            .news-detail-header {
+                padding: 20px 24px;
+            }
+
+            .news-detail-content {
+                padding: 24px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ==================== HEADER ==================== -->
+    <header>
+        <div class="container header-inner">
+            <a class="logo-area" href="{{ url_for('index') }}">Keydion</a>
+            <nav>
+                <a class="nav-link" href="{{ url_for('search') }}">{{ _('Search') }}</a>
+                <a class="nav-link" href="{{ url_for('news_list') }}" style="color:var(--brand);font-weight:600;">{{
+                    _('News') }}</a>
+                {% if session.get('user', {}).get('role', '1')|int >= 2 %}
+                <a class="nav-link" href="{{ url_for('upload') }}">{{ _('Upload') }}</a>
+                {% endif %}
+                {% if session.get('user', {}).get('role', '1')|int >= 3 %}
+                <a class="nav-link" href="{{ url_for('delete') }}">{{ _('Manage') }}</a>
+                {% endif %}
+                {% if session.get('user') %}
+                {% set nav_name = session.get('user', {}).get('display_name') or session.get('user', {}).get('username',
+                '') %}
+                {% set nav_initial = nav_name[:1] if nav_name else 'U' %}
+                <a class="btn-submit btn-user" href="{{ url_for('dashboard') }}" title="{{ nav_name }}">{{
+                    nav_initial|upper }}</a>
+                {% else %}
+                <button class="btn-submit" onclick="location.href='{{ url_for('login') }}'">{{ _('Sign in') }}</button>
+                {% endif %}
+                <div class="lang-switch">
+                    {% if current_locale == 'zh' %}
+                    <a href="{{ url_for('set_language', locale_code='en', next=request.full_path) }}"
+                        style="color: inherit; text-decoration: none;">English</a>
+                    {% else %}
+                    <a href="{{ url_for('set_language', locale_code='zh', next=request.full_path) }}"
+                        style="color: inherit; text-decoration: none;">中文</a>
+                    {% endif %}
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- ==================== MAIN PAGE ==================== -->
+    <div class="page-body">
+        <div class="container">
+
+            {% with messages = get_flashed_messages(with_categories=True) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <h1 class="page-title">{{ _('News') }}</h1>
+
+            <div class="news-layout">
+                <!-- ==================== MAIN COLUMN ==================== -->
+                <div class="news-main">
+                    {% if articles|length == 0 %}
+                    <div class="empty-state">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                        </svg>
+                        <h3>{{ _('No news articles yet') }}</h3>
+                        <p>{{ _('Check back later for updates from Keydion.') }}</p>
+                    </div>
+                    {% else %}
+
+                    {# ---- TOP STORY (first article) ---- #}
+                    {% set top = articles[0] %}
+                    <article class="top-story">
+                        {% if top.image_url %}
+                        <div class="thumb">
+                            <img src="{{ top.image_url }}" alt="{{ top.title }}">
+                        </div>
+                        {% endif %}
+                        <h2><a href="{{ url_for('news_detail', news_id=top.id) }}">{{ top.title }}</a></h2>
+                        <p class="abstract">{{ top.abstract }}</p>
+                        <div class="news-meta">
+                            <span class="category-tag">{{ top.category }}</span>
+                            <span class="author">{{ top.author }}</span>
+                            <span>{{ top.published_at }}</span>
+                        </div>
+                    </article>
+
+                    {# ---- REMAINING ARTICLES ---- #}
+                    {% for article in articles[1:] %}
+                    <article class="news-article">
+                        {% if article.image_url %}
+                        <div class="thumb">
+                            <img src="{{ article.image_url }}" alt="{{ article.title }}">
+                        </div>
+                        {% endif %}
+                        <div class="content">
+                            <h3><a href="{{ url_for('news_detail', news_id=article.id) }}">{{ article.title }}</a></h3>
+                            <p class="abstract">{{ article.abstract }}</p>
+                            <div class="news-meta">
+                                <span class="category-tag">{{ article.category }}</span>
+                                <span class="author">{{ article.author }}</span>
+                                <span>{{ article.published_at }}</span>
+                            </div>
+                        </div>
+                    </article>
+                    {% endfor %}
+
+                    {# ---- PAGINATION ---- #}
+                    {% if pagination.pages > 1 %}
+                    <ul class="pagination">
+                        {% if pagination.has_prev %}
+                        <li><a href="{{ url_for('news_list', page=pagination.prev_page) }}">‹ {{ _('Previous') }}</a>
+                        </li>
+                        {% endif %}
+                        {% for p in range(1, pagination.pages + 1) %}
+                        {% if p == pagination.page %}
+                        <li><span class="current">{{ p }}</span></li>
+                        {% else %}
+                        <li><a href="{{ url_for('news_list', page=p) }}">{{ p }}</a></li>
+                        {% endif %}
+                        {% endfor %}
+                        {% if pagination.has_next %}
+                        <li><a href="{{ url_for('news_list', page=pagination.next_page) }}">{{ _('Next') }} ›</a></li>
+                        {% endif %}
+                    </ul>
+                    {% endif %}
+
+                    {% endif %}
+                </div>
+
+                <!-- ==================== SIDEBAR ==================== -->
+                <aside class="news-sidebar">
+                    {% if recent|length > 0 %}
+                    <div class="sidebar-section">
+                        <h3>{{ _('Most Recent') }}</h3>
+                        {% for item in recent[:6] %}
+                        <div class="sidebar-item">
+                            <h4><a href="{{ url_for('news_detail', news_id=item.id) }}">{{ item.title }}</a></h4>
+                            <div class="meta">{{ item.author }} · {{ item.published_at }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </aside>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== FOOTER ==================== -->
+    <footer>
+        <div class="container">
+            <div class="footer-inner">
+                <span class="copyright">© 2026 Keydion</span>
+                <a href="{{ url_for('index') }}">{{ _('Back to Home') }}</a>
+            </div>
+        </div>
+    </footer>
+</body>
+
+</html>

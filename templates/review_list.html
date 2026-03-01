@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Review Submissions · Keydion') }}{% endblock %}
+{% block content %}
+<div class="page-title">
+    <h1>{{ _('Review Submissions') }}</h1>
+    <p class="text-muted">{{ _('Review papers submitted by readers. Accept or reject pending submissions.') }}</p>
+</div>
+
+<div class="mb-3">
+    <a class="btn btn-outline-secondary back-link" href="{{ url_for('dashboard') }}">
+        &larr; {{ _('Back to Dashboard') }}
+    </a>
+</div>
+
+<!-- Status Filter Tabs -->
+<ul class="nav nav-pills mb-4">
+    <li class="nav-item">
+        <a class="nav-link {% if status_filter == 'pending' %}active{% endif %}"
+            href="{{ url_for('review_list', status='pending') }}">
+            {{ _('Pending') }}
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if status_filter == 'accepted' %}active{% endif %}"
+            href="{{ url_for('review_list', status='accepted') }}">
+            {{ _('Accepted') }}
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if status_filter == 'rejected' %}active{% endif %}"
+            href="{{ url_for('review_list', status='rejected') }}">
+            {{ _('Rejected') }}
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if status_filter == 'all' %}active{% endif %}"
+            href="{{ url_for('review_list', status='all') }}">
+            {{ _('All') }}
+        </a>
+    </li>
+</ul>
+
+{% if submissions %}
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>{{ _('Paper Title') }}</th>
+                        <th>{{ _('Submitted By') }}</th>
+                        <th>{{ _('Submitted') }}</th>
+                        <th>{{ _('Status') }}</th>
+                        <th class="text-end">{{ _('Action') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sub in submissions %}
+                    <tr>
+                        <td>
+                            <strong>{{ sub.title }}</strong>
+                            <br>
+                            <small class="text-muted">{{ sub.category }} · {{ sub.keywords }}</small>
+                        </td>
+                        <td>
+                            <small>{{ sub.submitter_name or sub.submitter }}</small>
+                        </td>
+                        <td>
+                            <small>{{ sub.submitted_at[:10] if sub.submitted_at else '-' }}</small>
+                        </td>
+                        <td>
+                            {% if sub.status == 'pending' %}
+                            <span class="badge bg-warning text-dark">{{ _('Pending') }}</span>
+                            {% elif sub.status == 'accepted' %}
+                            <span class="badge bg-success">{{ _('Accepted') }}</span>
+                            {% elif sub.status == 'rejected' %}
+                            <span class="badge bg-danger">{{ _('Rejected') }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if sub.status == 'pending' %}
+                            <a class="btn btn-sm btn-outline-primary"
+                                href="{{ url_for('review_detail', sub_id=sub.id) }}">
+                                {{ _('Review') }}
+                            </a>
+                            {% else %}
+                            <small class="text-muted">{{ sub.reviewer or '-' }}</small>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="card shadow-sm">
+    <div class="card-body text-center py-5">
+        <h4 class="text-muted">{{ _('No submissions found') }}</h4>
+        <p class="text-muted">
+            {% if status_filter == 'pending' %}
+            {{ _('There are no papers waiting for review.') }}
+            {% else %}
+            {{ _('No submissions match the selected filter.') }}
+            {% endif %}
+        </p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,1691 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Publish News · Keydion') }}{% endblock %}
+{% block content %}
+<style>
+    /* ===================== EDITOR SHELL ===================== */
+    .editor-shell {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 0 16px
+    }
+
+    /* Top bar */
+    .editor-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 0 18px;
+        border-bottom: 1px solid #e5e7eb;
+        margin-bottom: 24px
+    }
+
+    .editor-topbar h1 {
+        font-size: 21px;
+        font-weight: 700;
+        color: #111827;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0
+    }
+
+    .editor-topbar .badge-editor {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 3px 10px;
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: #fff;
+        border-radius: 999px;
+        letter-spacing: .6px;
+        text-transform: uppercase
+    }
+
+    .editor-actions {
+        display: flex;
+        gap: 10px
+    }
+
+    .btn-ed {
+        padding: 9px 22px;
+        font-size: 13px;
+        font-weight: 600;
+        border: 1px solid #d1d5db;
+        background: #fff;
+        color: #374151;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all .2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px
+    }
+
+    .btn-ed:hover {
+        border-color: #3b82f6;
+        color: #1d4ed8
+    }
+
+    .btn-ed.primary {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: #fff;
+        border-color: transparent
+    }
+
+    .btn-ed.primary:hover {
+        opacity: .92;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(59, 130, 246, .35)
+    }
+
+    /* Grid: sidebar + main */
+    .editor-grid {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 24px
+    }
+
+    @media(max-width:1024px) {
+        .editor-grid {
+            grid-template-columns: 1fr
+        }
+
+        .editor-sidebar {
+            order: -1
+        }
+    }
+
+    /* ===================== SIDEBAR (WeChat-style preview) ===================== */
+    .editor-sidebar {}
+
+    .side-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        padding: 20px;
+        margin-bottom: 18px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, .04)
+    }
+
+    .side-card h4 {
+        font-size: 14px;
+        font-weight: 700;
+        color: #374151;
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px
+    }
+
+    .side-card h4 .ic {
+        font-size: 16px
+    }
+
+    /* Meta fields in sidebar */
+    .sf-group {
+        margin-bottom: 14px
+    }
+
+    .sf-group label {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+        color: #6b7280;
+        margin-bottom: 5px;
+        letter-spacing: .3px;
+        text-transform: uppercase
+    }
+
+    .sf-group label .req {
+        color: #ef4444;
+        font-size: 14px;
+        margin-left: 2px
+    }
+
+    .sf-group input,
+    .sf-group select,
+    .sf-group textarea {
+        width: 100%;
+        padding: 9px 12px;
+        font-size: 13px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        background: #fafbfc;
+        color: #111827;
+        transition: border .2s, box-shadow .2s;
+        box-sizing: border-box
+    }
+
+    .sf-group input:focus,
+    .sf-group select:focus,
+    .sf-group textarea:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, .1)
+    }
+
+    /* Cover upload */
+    .cover-zone {
+        border: 2px dashed #d1d5db;
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all .25s;
+        position: relative;
+        overflow: hidden;
+        background: #fafbfc
+    }
+
+    .cover-zone:hover {
+        border-color: #3b82f6;
+        background: #eff6ff
+    }
+
+    .cover-zone.has-img {
+        border-style: solid;
+        padding: 0
+    }
+
+    .cover-zone .ph-icon {
+        font-size: 32px;
+        color: #9ca3af;
+        margin-bottom: 6px
+    }
+
+    .cover-zone .ph-text {
+        font-size: 12px;
+        color: #6b7280
+    }
+
+    .cover-zone .ph-text strong {
+        color: #3b82f6
+    }
+
+    .cover-zone img {
+        width: 100%;
+        height: 160px;
+        object-fit: cover;
+        display: block;
+        border-radius: 8px
+    }
+
+    .cover-zone .cover-rm {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, .55);
+        color: #fff;
+        border: none;
+        font-size: 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background .2s
+    }
+
+    .cover-zone .cover-rm:hover {
+        background: #ef4444
+    }
+
+    /* Tips card */
+    .tips-list {
+        list-style: none;
+        padding: 0;
+        margin: 0
+    }
+
+    .tips-list li {
+        padding: 7px 0;
+        font-size: 12px;
+        color: #6b7280;
+        border-bottom: 1px solid #f3f4f6;
+        line-height: 1.55
+    }
+
+    .tips-list li:last-child {
+        border-bottom: none
+    }
+
+    .tips-list li strong {
+        color: #374151
+    }
+
+    /* ===================== MAIN EDITOR COLUMN ===================== */
+    .editor-main {}
+
+    /* Block editor container */
+    .block-editor {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        min-height: 480px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, .04);
+        display: flex;
+        flex-direction: column
+    }
+
+    /* Editor header/toolbar */
+    .be-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 20px;
+        border-bottom: 1px solid #e5e7eb;
+        background: linear-gradient(180deg, #f9fafb, #fff);
+        flex-wrap: wrap;
+        gap: 8px
+    }
+
+    .be-header h3 {
+        font-size: 14px;
+        font-weight: 700;
+        color: #374151;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0
+    }
+
+    .be-header .pill {
+        font-size: 10px;
+        background: #e5e7eb;
+        color: #6b7280;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-weight: 600
+    }
+
+    /* Insert toolbar */
+    .insert-bar {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap
+    }
+
+    .insert-bar button {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        border: 1px solid #d1d5db;
+        background: #fff;
+        color: #374151;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all .2s
+    }
+
+    .insert-bar button:hover {
+        border-color: #3b82f6;
+        color: #1d4ed8;
+        background: #eff6ff
+    }
+
+    .insert-bar button svg {
+        width: 14px;
+        height: 14px
+    }
+
+    /* Blocks container */
+    .blocks-area {
+        padding: 16px 20px;
+        flex: 1;
+        min-height: 320px
+    }
+
+    /* Single block */
+    .cb {
+        position: relative;
+        border: 1.5px solid transparent;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        transition: border-color .2s, box-shadow .2s;
+        animation: blockSlideIn .3s ease
+    }
+
+    @keyframes blockSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px)
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0)
+        }
+    }
+
+    .cb:hover,
+    .cb.active {
+        border-color: #bfdbfe;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, .07)
+    }
+
+    /* Block floating actions */
+    .cb .ba {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        display: flex;
+        gap: 3px;
+        opacity: 0;
+        transition: opacity .2s;
+        z-index: 2
+    }
+
+    .cb:hover .ba {
+        opacity: 1
+    }
+
+    .ba button {
+        width: 26px;
+        height: 26px;
+        border-radius: 6px;
+        border: 1px solid #e5e7eb;
+        background: #fff;
+        color: #6b7280;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all .15s;
+        padding: 0
+    }
+
+    .ba button:hover {
+        background: #f3f4f6;
+        color: #111827
+    }
+
+    .ba button.del:hover {
+        background: #fef2f2;
+        color: #ef4444;
+        border-color: #fecaca
+    }
+
+    /* Text block */
+    .cb textarea {
+        width: 100%;
+        min-height: 90px;
+        padding: 14px 44px 14px 16px;
+        font-size: 15px;
+        line-height: 1.8;
+        color: #111827;
+        border: none;
+        background: transparent;
+        resize: vertical;
+        font-family: "Source Serif 4", Georgia, serif;
+        box-sizing: border-box
+    }
+
+    .cb textarea:focus {
+        outline: none
+    }
+
+    .cb textarea::placeholder {
+        color: #9ca3af
+    }
+
+    /* Block type indicator */
+    .block-type-tag {
+        position: absolute;
+        top: 8px;
+        left: 10px;
+        font-size: 9px;
+        font-weight: 700;
+        color: #9ca3af;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        opacity: 0;
+        transition: opacity .2s
+    }
+
+    .cb:hover .block-type-tag {
+        opacity: 1
+    }
+
+    /* Image block */
+    .ib-inner {
+        padding: 12px
+    }
+
+    .ib-dropzone {
+        border: 2px dashed #d1d5db;
+        border-radius: 10px;
+        padding: 28px;
+        text-align: center;
+        cursor: pointer;
+        transition: all .25s;
+        background: #fafbfc
+    }
+
+    .ib-dropzone:hover {
+        border-color: #3b82f6;
+        background: #eff6ff
+    }
+
+    .ib-dropzone.dragover {
+        border-color: #3b82f6;
+        background: #dbeafe
+    }
+
+    .ib-dropzone .dz-icon {
+        font-size: 28px;
+        color: #9ca3af;
+        margin-bottom: 6px
+    }
+
+    .ib-dropzone .dz-text {
+        font-size: 12px;
+        color: #6b7280
+    }
+
+    .ib-dropzone .dz-text strong {
+        color: #3b82f6
+    }
+
+    .ib-preview {
+        position: relative;
+        border-radius: 8px;
+        overflow: hidden
+    }
+
+    .ib-preview img {
+        width: 100%;
+        display: block;
+        border-radius: 8px
+    }
+
+    .ib-preview .upload-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(255, 255, 255, .82);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px
+    }
+
+    .upload-overlay .spinner {
+        width: 28px;
+        height: 28px;
+        border: 3px solid #e5e7eb;
+        border-top-color: #3b82f6;
+        border-radius: 50%;
+        animation: spin .6s linear infinite
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg)
+        }
+    }
+
+    .upload-overlay .ul-text {
+        margin-top: 6px;
+        font-size: 12px;
+        color: #6b7280
+    }
+
+    .ib-caption {
+        width: 100%;
+        padding: 8px 10px;
+        margin-top: 8px;
+        font-size: 12px;
+        color: #6b7280;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        background: #fafbfc;
+        text-align: center;
+        box-sizing: border-box
+    }
+
+    .ib-caption:focus {
+        outline: none;
+        border-color: #3b82f6
+    }
+
+    /* Divider block */
+    .divider-block {
+        padding: 18px 16px;
+        text-align: center
+    }
+
+    .divider-block hr {
+        border: none;
+        border-top: 2px dashed #d1d5db;
+        margin: 0
+    }
+
+    /* ===================== ADD BLOCK BAR ===================== */
+    .add-bar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 16px 0;
+        border-top: 1px dashed #e5e7eb;
+        margin-top: 6px
+    }
+
+    .add-bar button {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 9px 18px;
+        font-size: 12px;
+        font-weight: 600;
+        border: 1px solid #d1d5db;
+        background: #fff;
+        color: #374151;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all .2s
+    }
+
+    .add-bar button:hover {
+        border-color: #3b82f6;
+        color: #1d4ed8;
+        background: #eff6ff
+    }
+
+    .add-bar button svg {
+        width: 15px;
+        height: 15px
+    }
+
+    /* Status bar */
+    .status-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 20px;
+        border-top: 1px solid #e5e7eb;
+        font-size: 11px;
+        color: #9ca3af;
+        background: #f9fafb;
+        border-radius: 0 0 14px 14px
+    }
+
+    /* Empty state */
+    .blocks-empty {
+        text-align: center;
+        padding: 48px 24px;
+        color: #9ca3af
+    }
+
+    .blocks-empty .emp-icon {
+        font-size: 44px;
+        margin-bottom: 10px;
+        opacity: .45
+    }
+
+    .blocks-empty p {
+        font-size: 13px;
+        line-height: 1.6
+    }
+
+    .blocks-empty p strong {
+        color: #6b7280
+    }
+
+    /* ===================== BETWEEN-BLOCK INSERTER ===================== */
+    .between-inserter {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2px 0;
+        opacity: 0;
+        transition: opacity .2s;
+        height: 18px
+    }
+
+    .between-inserter:hover {
+        opacity: 1
+    }
+
+    .between-inserter .ins-line {
+        flex: 1;
+        height: 1px;
+        background: #d1d5db
+    }
+
+    .between-inserter .ins-btn {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: 1px solid #d1d5db;
+        background: #fff;
+        color: #9ca3af;
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all .2s;
+        padding: 0;
+        line-height: 1;
+        flex-shrink: 0
+    }
+
+    .between-inserter .ins-btn:hover {
+        border-color: #3b82f6;
+        color: #1d4ed8;
+        background: #eff6ff
+    }
+
+    /* Inserter menu */
+    .ins-menu {
+        position: absolute;
+        z-index: 20;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
+        padding: 6px;
+        display: none;
+        min-width: 140px
+    }
+
+    .ins-menu.show {
+        display: block;
+        animation: menuPop .2s ease
+    }
+
+    @keyframes menuPop {
+        from {
+            opacity: 0;
+            transform: scale(.95)
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1)
+        }
+    }
+
+    .ins-menu button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #374151;
+        border: none;
+        background: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background .15s
+    }
+
+    .ins-menu button:hover {
+        background: #eff6ff;
+        color: #1d4ed8
+    }
+
+    .ins-menu button svg {
+        width: 15px;
+        height: 15px;
+        flex-shrink: 0
+    }
+
+    /* ===================== RESPONSIVE ===================== */
+    @media(max-width:768px) {
+        .editor-topbar {
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-start
+        }
+
+        .editor-grid {
+            grid-template-columns: 1fr
+        }
+
+        .be-header {
+            flex-direction: column;
+            align-items: flex-start
+        }
+
+        .format-toolbar {
+            padding: 4px 8px
+        }
+
+        .ft-font-select {
+            width: 110px !important
+        }
+    }
+
+    /* ===================== FORMATTING TOOLBAR ===================== */
+    .format-toolbar {
+        border-bottom: 1px solid #e5e7eb;
+        background: linear-gradient(180deg, #f3f4f6 0%, #e9ecef 100%);
+        padding: 7px 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2px;
+        align-items: center;
+        user-select: none
+    }
+
+    .ft-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 1px;
+        padding: 0 7px;
+        border-right: 1px solid #d1d5db
+    }
+
+    .ft-group:last-child {
+        border-right: none
+    }
+
+    .ft-btn {
+        width: 32px;
+        height: 32px;
+        border: 1px solid transparent;
+        background: none;
+        border-radius: 5px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        color: #374151;
+        transition: all .15s;
+        padding: 0;
+        position: relative;
+        flex-shrink: 0
+    }
+
+    .ft-btn:hover {
+        background: #dbeafe;
+        border-color: #93c5fd
+    }
+
+    .ft-btn.active {
+        background: #bfdbfe;
+        border-color: #60a5fa;
+        color: #1e40af
+    }
+
+    .ft-btn svg {
+        width: 16px;
+        height: 16px
+    }
+
+    .ft-select {
+        height: 30px;
+        padding: 0 22px 0 8px;
+        font-size: 12px;
+        font-weight: 500;
+        border: 1px solid #d1d5db;
+        border-radius: 5px;
+        background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E") no-repeat right 6px center;
+        background-size: 8px 5px;
+        color: #374151;
+        cursor: pointer;
+        -webkit-appearance: none;
+        appearance: none;
+        transition: border .2s
+    }
+
+    .ft-select:hover {
+        border-color: #93c5fd
+    }
+
+    .ft-select:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, .15)
+    }
+
+    .ft-font-select {
+        width: 150px
+    }
+
+    .ft-size-select {
+        width: 58px;
+        text-align: center
+    }
+
+    .color-strip {
+        position: absolute;
+        bottom: 2px;
+        left: 6px;
+        right: 6px;
+        height: 3px;
+        border-radius: 1.5px
+    }
+
+    .color-picker-popup {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        z-index: 50;
+        background: #fff;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        padding: 10px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .15);
+        display: none;
+        width: 222px
+    }
+
+    .color-picker-popup.show {
+        display: block;
+        animation: menuPop .15s ease
+    }
+
+    .color-picker-popup h5 {
+        font-size: 11px;
+        font-weight: 600;
+        color: #6b7280;
+        margin: 0 0 6px;
+        text-transform: uppercase;
+        letter-spacing: .5px
+    }
+
+    .color-grid {
+        display: grid;
+        grid-template-columns: repeat(10, 1fr);
+        gap: 2px
+    }
+
+    .color-swatch {
+        width: 18px;
+        height: 18px;
+        border-radius: 2px;
+        border: 1px solid rgba(0, 0, 0, .08);
+        cursor: pointer;
+        transition: transform .12s, box-shadow .12s
+    }
+
+    .color-swatch:hover {
+        transform: scale(1.3);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, .2);
+        z-index: 1;
+        position: relative
+    }
+
+    /* Contenteditable block */
+    .ce-block {
+        width: 100%;
+        min-height: 90px;
+        padding: 14px 44px 14px 16px;
+        font-size: 15px;
+        line-height: 1.8;
+        color: #111827;
+        border: none;
+        background: transparent;
+        font-family: "Source Serif 4", Georgia, serif;
+        box-sizing: border-box;
+        outline: none;
+        word-wrap: break-word;
+        overflow-wrap: break-word
+    }
+
+    .ce-block:empty::before {
+        content: attr(data-placeholder);
+        color: #9ca3af;
+        pointer-events: none;
+        display: block
+    }
+</style>
+
+<form method="post" enctype="multipart/form-data" id="publishForm">
+    <div class="editor-shell">
+
+        <!-- ===================== TOP BAR ===================== -->
+        <div class="editor-topbar">
+            <h1>
+                {% if editing %}
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+                {{ _('Edit News Article') }}
+                {% else %}
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                </svg>
+                {{ _('Publish News Article') }}
+                <span class="badge-editor">{{ _('Block Editor') }}</span>
+                {% endif %}
+            </h1>
+            <div class="editor-actions">
+                <a class="btn-ed" href="{{ url_for('news_list') }}">{{ _('Cancel') }}</a>
+                <button type="submit" class="btn-ed primary" id="btnPublish">
+                    {% if editing %}{{ _('Save Changes') }}{% else %}{{ _('Publish Article') }}{% endif %}
+                </button>
+            </div>
+        </div>
+
+        <div class="editor-grid">
+            <!-- ===================== SIDEBAR ===================== -->
+            <div class="editor-sidebar">
+                <!-- Article Meta -->
+                <div class="side-card">
+                    <h4><span class="ic">📝</span> {{ _('Article Info') }}</h4>
+                    <div class="sf-group">
+                        <label>{{ _('Title') }} <span class="req">*</span></label>
+                        <input type="text" name="title" id="inputTitle" required value="{{ form_data.title }}"
+                            placeholder="{{ _('Enter article title') }}">
+                    </div>
+                    <div class="sf-group">
+                        <label>{{ _('Category') }} <span class="req">*</span></label>
+                        <select name="category" id="inputCategory" required>
+                            <option value="">{{ _('Select category') }}</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat }}" {% if form_data.category==cat %}selected{% endif %}>{{ cat }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="sf-group">
+                        <label>{{ _('Author') }}</label>
+                        <input type="text" name="author" id="inputAuthor" value="{{ form_data.author }}"
+                            placeholder="{{ _('Author name (optional)') }}">
+                    </div>
+                    <div class="sf-group">
+                        <label>{{ _('Abstract / Summary') }} <span class="req">*</span></label>
+                        <textarea name="abstract" id="inputAbstract" rows="3" required
+                            placeholder="{{ _('A brief summary shown in the news listing') }}">{{ form_data.abstract }}</textarea>
+                    </div>
+                </div>
+
+                <!-- Cover Image -->
+                <div class="side-card">
+                    <h4><span class="ic">🖼️</span> {{ _('Cover Image') }}</h4>
+                    <div class="cover-zone{% if form_data.image_url %} has-img{% endif %}" id="coverDropzone"
+                        onclick="document.getElementById('coverInput').click()">
+                        {% if form_data.image_url %}
+                        <img src="{{ form_data.image_url }}" alt="Cover" id="coverPreviewImg">
+                        <button type="button" class="cover-rm" onclick="event.stopPropagation();removeCover()"
+                            title="{{ _('Remove image') }}">✕</button>
+                        {% else %}
+                        <div class="ph-icon">📷</div>
+                        <div class="ph-text"><strong>{{ _('Click to upload') }}</strong><br><small>PNG, JPG, GIF, WebP ·
+                                Max 32 MB</small></div>
+                        {% endif %}
+                    </div>
+                    <input type="file" name="cover_image" id="coverInput" accept="image/*" style="display:none"
+                        onchange="previewCover(this)">
+                    <input type="hidden" name="remove_image" id="removeImageFlag" value="0">
+                </div>
+
+                <!-- Tips -->
+                <div class="side-card">
+                    <h4><span class="ic">💡</span> {{ _('Writing Tips') }}</h4>
+                    <ul class="tips-list">
+                        <li>{{ _("Use a clear, specific headline that captures readers' attention.") }}</li>
+                        <li>{{ _('Keep the abstract to 1-2 sentences that summarize the key point.') }}</li>
+                        <li><strong>{{ _('Text blocks') }}</strong>: {{ _('Each block becomes a paragraph. Use multiple
+                            blocks for clear structure.') }}</li>
+                        <li><strong>{{ _('Image blocks') }}</strong>: {{ _('Insert images anywhere in the article with
+                            optional captions.') }}</li>
+                        <li>{{ _('Reorder blocks with the arrow buttons that appear on hover.') }}</li>
+                    </ul>
+                </div>
+
+                <!-- Keyboard shortcuts -->
+                <div class="side-card">
+                    <h4><span class="ic">⌨️</span> {{ _('Shortcuts') }}</h4>
+                    <ul class="tips-list">
+                        <li><strong>Ctrl/⌘ + Enter</strong> — {{ _('Publish / Save') }}</li>
+                        <li><strong>Tab</strong> — {{ _('Next block') }}</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- ===================== MAIN EDITOR AREA ===================== -->
+            <div class="editor-main">
+                <div class="block-editor">
+                    <!-- Toolbar -->
+                    <div class="be-header">
+                        <h3>
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                                viewBox="0 0 24 24">
+                                <rect x="3" y="3" width="18" height="18" rx="2" />
+                                <path d="M3 9h18M3 15h18M9 3v18" />
+                            </svg>
+                            {{ _('Article Content') }}
+                            <span class="pill" id="blockCount">0</span>
+                        </h3>
+                        <div class="insert-bar">
+                            <button type="button" onclick="addTextBlock()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M4 7V4h16v3" />
+                                    <path d="M9 20h6" />
+                                    <path d="M12 4v16" />
+                                </svg>
+                                {{ _('Text') }}
+                            </button>
+                            <button type="button" onclick="addImageBlock()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                                    <circle cx="8.5" cy="8.5" r="1.5" />
+                                    <path d="m21 15-5-5L5 21" />
+                                </svg>
+                                {{ _('Image') }}
+                            </button>
+                            <button type="button" onclick="addDividerBlock()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="4" y1="12" x2="20" y2="12" />
+                                </svg>
+                                {{ _('Divider') }}
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ===================== FORMATTING TOOLBAR ===================== -->
+                    <div class="format-toolbar" id="formatToolbar">
+                        <!-- Font Family -->
+                        <div class="ft-group">
+                            <select class="ft-select ft-font-select" id="ftFontFamily"
+                                onchange="restoreSel();fmtFont(this.value)" title="{{ _('Font Family') }}">
+                                <option value="'Source Serif 4', Georgia, serif">Source Serif 4</option>
+                                <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                                <option value="Georgia, serif">Georgia</option>
+                                <option value="SimSun, '宋体', serif">宋体 Songti</option>
+                                <option value="'STHeiti', '华文黑体', sans-serif">华文黑体 STHeiti</option>
+                                <option value="'Microsoft YaHei', '微软雅黑', sans-serif">微软雅黑 YaHei</option>
+                                <option value="KaiTi, '楷体', serif">楷体 KaiTi</option>
+                                <option value="FangSong, '仿宋', serif">仿宋 FangSong</option>
+                                <option value="'Noto Sans SC', sans-serif">Noto Sans SC</option>
+                                <option value="Arial, Helvetica, sans-serif">Arial</option>
+                            </select>
+                        </div>
+                        <!-- Font Size -->
+                        <div class="ft-group">
+                            <select class="ft-select ft-size-select" id="ftFontSize"
+                                onchange="restoreSel();fmtSize(this.value)" title="{{ _('Font Size') }}">
+                                <option value="1">8</option>
+                                <option value="2">10</option>
+                                <option value="3" selected>12</option>
+                                <option value="4">14</option>
+                                <option value="5">18</option>
+                                <option value="6">24</option>
+                                <option value="7">36</option>
+                            </select>
+                        </div>
+                        <!-- B I U S -->
+                        <div class="ft-group">
+                            <button type="button" class="ft-btn" onmousedown="event.preventDefault()"
+                                onclick="fmtCmd('bold')" title="Bold (Ctrl+B)"><b>B</b></button>
+                            <button type="button" class="ft-btn" onmousedown="event.preventDefault()"
+                                onclick="fmtCmd('italic')" title="Italic (Ctrl+I)"><i>I</i></button>
+                            <button type="button" class="ft-btn" onmousedown="event.preventDefault()"
+                                onclick="fmtCmd('underline')" title="Underline (Ctrl+U)"><u>U</u></button>
+                            <button type="button" class="ft-btn" onmousedown="event.preventDefault()"
+                                onclick="fmtCmd('strikeThrough')" title="Strikethrough"><s>S</s></button>
+                        </div>
+                        <!-- Font Color & Highlight -->
+                        <div class="ft-group">
+                            <div style="position:relative;display:inline-flex">
+                                <button type="button" class="ft-btn" onmousedown="event.preventDefault()"
+                                    onclick="fmtApplyColor('foreColor')" title="{{ _('Font Color') }}">
+                                    <span style="font-weight:700;font-size:16px">A</span>
+                                    <span class="color-strip" id="fontColorStrip" style="background:#ef4444"></span>
+                                </button>
+                                <button type="button" class="ft-btn" style="width:16px;padding:0"
+                                    onmousedown="event.preventDefault()" onclick="togglePicker('fontColor')"
+                                    title="{{ _('More Colors') }}">
+                                    <svg width="8" height="5" viewBox="0 0 10 6">
+                                        <path d="M0 0l5 6 5-6z" fill="#6b7280" />
+                                    </svg>
+                                </button>
+                                <div class="color-picker-popup" id="fontColorPicker"></div>
+                            </div>
+                            <div style="position:relative;display:inline-flex">
+                                <button type="button" class="ft-btn" onmousedown="event.preventDefault()"
+                                    onclick="fmtApplyColor('hiliteColor')" title="{{ _('Highlight') }}">
+                                    <span style="font-weight:600;font-size:12px;padding:1px 4px;border-radius:2px"
+                                        id="hlLabel">ab</span>
+                                    <span class="color-strip" id="hlColorStrip" style="background:#fde047"></span>
+                                </button>
+                                <button type="button" class="ft-btn" style="width:16px;padding:0"
+                                    onmousedown="event.preventDefault()" onclick="togglePicker('highlight')"
+                                    title="{{ _('More Colors') }}">
+                                    <svg width="8" height="5" viewBox="0 0 10 6">
+                                        <path d="M0 0l5 6 5-6z" fill="#6b7280" />
+                                    </svg>
+                                </button>
+                                <div class="color-picker-popup" id="highlightPicker"></div>
+                            </div>
+                        </div>
+                        <!-- Alignment -->
+                        <div class="ft-group" style="border-right:none">
+                            <button type="button" class="ft-btn" onmousedown="event.preventDefault()"
+                                onclick="fmtCmd('justifyLeft')" title="{{ _('Align Left') }}">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="3" y1="6" x2="21" y2="6" />
+                                    <line x1="3" y1="12" x2="15" y2="12" />
+                                    <line x1="3" y1="18" x2="21" y2="18" />
+                                </svg>
+                            </button>
+                            <button type="button" class="ft-btn" onmousedown="event.preventDefault()"
+                                onclick="fmtCmd('justifyCenter')" title="{{ _('Align Center') }}">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="3" y1="6" x2="21" y2="6" />
+                                    <line x1="6" y1="12" x2="18" y2="12" />
+                                    <line x1="3" y1="18" x2="21" y2="18" />
+                                </svg>
+                            </button>
+                            <button type="button" class="ft-btn" onmousedown="event.preventDefault()"
+                                onclick="fmtCmd('justifyRight')" title="{{ _('Align Right') }}">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="3" y1="6" x2="21" y2="6" />
+                                    <line x1="9" y1="12" x2="21" y2="12" />
+                                    <line x1="3" y1="18" x2="21" y2="18" />
+                                </svg>
+                            </button>
+                            <button type="button" class="ft-btn" onmousedown="event.preventDefault()"
+                                onclick="fmtCmd('justifyFull')" title="{{ _('Justify') }}">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="3" y1="6" x2="21" y2="6" />
+                                    <line x1="3" y1="12" x2="21" y2="12" />
+                                    <line x1="3" y1="18" x2="21" y2="18" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Blocks -->
+                    <div class="blocks-area" id="blocksContainer"></div>
+
+                    <!-- Bottom add bar -->
+                    <div class="add-bar">
+                        <button type="button" onclick="addTextBlock()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                            {{ _('Add Text') }}
+                        </button>
+                        <button type="button" onclick="addImageBlock()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                            {{ _('Add Image') }}
+                        </button>
+                        <button type="button" onclick="addDividerBlock()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                            {{ _('Add Divider') }}
+                        </button>
+                    </div>
+
+                    <!-- Status bar -->
+                    <div class="status-bar">
+                        <span id="charCount">0 {{ _('characters') }}</span>
+                        <span id="blockInfo">{{ _('Ready') }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden field carries the JSON body on submit -->
+    <input type="hidden" name="body" id="bodyField" value="">
+</form>
+
+<script>
+    (function () {
+        // ===================== STATE =====================
+        var blocks = [];
+        var idCounter = 0;
+        var UPLOAD_URL = "{{ url_for('news_upload_inline_image') }}";
+        var activeEditor = null;
+        var savedSelection = null;
+        var currentFontColor = '#ef4444';
+        var currentHlColor = '#fde047';
+
+        // Parse existing body (editing mode)
+        var existingBody = {{ form_data.body | tojson
+    }};
+    if (existingBody) {
+        try {
+            var parsed = JSON.parse(existingBody);
+            if (Array.isArray(parsed)) {
+                parsed.forEach(function (b) { b._id = ++idCounter; blocks.push(b); });
+            } else { throw 0; }
+        } catch (e) {
+            // Legacy plain text
+            if (existingBody.trim()) {
+                existingBody.split(/\n/).forEach(function (p) {
+                    if (p.trim()) blocks.push({ _id: ++idCounter, type: 'text', content: p.trim() });
+                });
+            }
+        }
+    }
+    if (!blocks.length) blocks.push({ _id: ++idCounter, type: 'text', content: '' });
+
+    // ===================== RENDER =====================
+    function render() {
+        var c = document.getElementById('blocksContainer');
+        c.innerHTML = '';
+        blocks.forEach(function (block, idx) {
+            // Between-block inserter (before each block except first)
+            if (idx > 0) {
+                var ins = mkBetweenInserter(idx);
+                c.appendChild(ins);
+            }
+            var el = buildBlock(block, idx);
+            c.appendChild(el);
+        });
+        updateCounts();
+        syncBody();
+    }
+
+    // ---- Between-block inserter ----
+    function mkBetweenInserter(insertIdx) {
+        var wrap = document.createElement('div');
+        wrap.className = 'between-inserter';
+        wrap.style.position = 'relative';
+        var lineL = document.createElement('div'); lineL.className = 'ins-line';
+        var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'ins-btn'; btn.textContent = '+';
+        var lineR = document.createElement('div'); lineR.className = 'ins-line';
+        wrap.appendChild(lineL); wrap.appendChild(btn); wrap.appendChild(lineR);
+
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            // Toggle menu
+            var existing = wrap.querySelector('.ins-menu');
+            if (existing) { existing.remove(); return; }
+            closeAllMenus();
+            var menu = document.createElement('div');
+            menu.className = 'ins-menu show';
+            menu.style.left = '50%'; menu.style.transform = 'translateX(-50%)'; menu.style.top = '24px';
+            menu.innerHTML = '<button type="button" data-type="text"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>' + "{{ _('Text') }}" + '</button>'
+                + '<button type="button" data-type="image"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>' + "{{ _('Image') }}" + '</button>'
+                + '<button type="button" data-type="divider"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="12" x2="20" y2="12"/></svg>' + "{{ _('Divider') }}" + '</button>';
+            menu.querySelectorAll('button').forEach(function (mb) {
+                mb.addEventListener('click', function (ev) {
+                    ev.stopPropagation();
+                    var t = mb.getAttribute('data-type');
+                    insertBlockAt(insertIdx, t);
+                    menu.remove();
+                });
+            });
+            wrap.appendChild(menu);
+        });
+        return wrap;
+    }
+
+    function closeAllMenus() {
+        document.querySelectorAll('.ins-menu').forEach(function (m) { m.remove(); });
+    }
+    document.addEventListener('click', closeAllMenus);
+
+    function insertBlockAt(idx, type) {
+        var b;
+        if (type === 'text') b = { _id: ++idCounter, type: 'text', content: '' };
+        else if (type === 'image') b = { _id: ++idCounter, type: 'image', url: '', caption: '' };
+        else b = { _id: ++idCounter, type: 'divider' };
+        blocks.splice(idx, 0, b);
+        render();
+        if (type === 'text') {
+            var el = document.querySelector('.cb[data-id="' + b._id + '"] .ce-block');
+            if (el) el.focus();
+        }
+    }
+
+    // ===================== BUILD BLOCK =====================
+    function buildBlock(block, idx) {
+        var div = document.createElement('div');
+        div.className = 'cb';
+        div.dataset.id = block._id;
+
+        // Floating action buttons
+        var ba = document.createElement('div'); ba.className = 'ba';
+        if (idx > 0) {
+            var up = mkABtn('↑', function () { moveBlock(idx, idx - 1); }); ba.appendChild(up);
+        }
+        if (idx < blocks.length - 1) {
+            var dn = mkABtn('↓', function () { moveBlock(idx, idx + 1); }); ba.appendChild(dn);
+        }
+        var del = mkABtn('✕', function () { removeBlock(idx); }); del.classList.add('del'); ba.appendChild(del);
+        div.appendChild(ba);
+
+        if (block.type === 'text') {
+            var ce = document.createElement('div');
+            ce.className = 'ce-block';
+            ce.contentEditable = 'true';
+            ce.setAttribute('data-placeholder', "{{ _('Write your paragraph here…') }}");
+            ce.innerHTML = block.content || '';
+            ce.addEventListener('input', function () {
+                block.content = ce.innerHTML;
+                updateCounts(); syncBody();
+            });
+            ce.addEventListener('focus', function () {
+                activeEditor = ce;
+                div.classList.add('active');
+            });
+            ce.addEventListener('blur', function () {
+                div.classList.remove('active');
+            });
+            div.appendChild(ce);
+        }
+        else if (block.type === 'image') {
+            var inner = document.createElement('div'); inner.className = 'ib-inner';
+            if (block.url) {
+                var prev = document.createElement('div'); prev.className = 'ib-preview';
+                var img = document.createElement('img'); img.src = block.url; img.alt = block.caption || '';
+                prev.appendChild(img);
+                if (block._uploading) {
+                    var ov = document.createElement('div'); ov.className = 'upload-overlay';
+                    ov.innerHTML = '<div class="spinner"></div><div class="ul-text">' + "{{ _('Uploading…') }}" + '</div>';
+                    prev.appendChild(ov);
+                }
+                inner.appendChild(prev);
+                if (!block._uploading) {
+                    var cap = document.createElement('input'); cap.type = 'text'; cap.className = 'ib-caption';
+                    cap.placeholder = "{{ _('Add image caption (optional)') }}";
+                    cap.value = block.caption || '';
+                    cap.addEventListener('input', function () { block.caption = cap.value; syncBody(); });
+                    inner.appendChild(cap);
+                }
+            } else {
+                var dz = document.createElement('div'); dz.className = 'ib-dropzone';
+                dz.innerHTML = '<div class="dz-icon">📷</div><div class="dz-text"><strong>' + "{{ _('Click or drag to upload') }}" + '</strong><br><small>PNG, JPG, GIF, WebP</small></div>';
+                var fi = document.createElement('input'); fi.type = 'file'; fi.accept = 'image/*'; fi.style.display = 'none';
+                fi.addEventListener('change', function () { if (fi.files && fi.files[0]) uploadInline(block, fi.files[0]); });
+                dz.addEventListener('click', function () { fi.click(); });
+                dz.addEventListener('dragover', function (e) { e.preventDefault(); dz.classList.add('dragover'); });
+                dz.addEventListener('dragleave', function () { dz.classList.remove('dragover'); });
+                dz.addEventListener('drop', function (e) {
+                    e.preventDefault(); dz.classList.remove('dragover');
+                    if (e.dataTransfer.files && e.dataTransfer.files[0]) uploadInline(block, e.dataTransfer.files[0]);
+                });
+                inner.appendChild(dz); inner.appendChild(fi);
+            }
+            div.appendChild(inner);
+        }
+        else if (block.type === 'divider') {
+            var dd = document.createElement('div'); dd.className = 'divider-block';
+            dd.innerHTML = '<hr>';
+            div.appendChild(dd);
+        }
+        return div;
+    }
+
+    // ===================== OPERATIONS =====================
+    window.addTextBlock = function () {
+        blocks.push({ _id: ++idCounter, type: 'text', content: '' });
+        render();
+        var ces = document.querySelectorAll('.ce-block');
+        if (ces.length) ces[ces.length - 1].focus();
+    };
+    window.addImageBlock = function () {
+        blocks.push({ _id: ++idCounter, type: 'image', url: '', caption: '' });
+        render();
+    };
+    window.addDividerBlock = function () {
+        blocks.push({ _id: ++idCounter, type: 'divider' });
+        render();
+    };
+
+    function moveBlock(from, to) {
+        var item = blocks.splice(from, 1)[0];
+        blocks.splice(to, 0, item);
+        render();
+    }
+
+    function removeBlock(idx) {
+        if (blocks.length <= 1 && blocks[idx].type === 'text') {
+            blocks[idx].content = '';
+            render(); return;
+        }
+        blocks.splice(idx, 1);
+        if (!blocks.length) blocks.push({ _id: ++idCounter, type: 'text', content: '' });
+        render();
+    }
+
+    // ===================== INLINE IMAGE UPLOAD =====================
+    function uploadInline(block, file) {
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            block.url = e.target.result;
+            block._uploading = true;
+            render();
+
+            var fd = new FormData();
+            fd.append('file', file);
+            fetch(UPLOAD_URL, { method: 'POST', body: fd })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.url) { block.url = data.url; }
+                    else { alert(data.error || 'Upload failed'); block.url = ''; }
+                    block._uploading = false;
+                    render();
+                })
+                .catch(function () {
+                    alert("{{ _('Image upload failed. Please try again.') }}");
+                    block.url = ''; block._uploading = false;
+                    render();
+                });
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // ===================== HELPERS =====================
+    function mkABtn(label, fn) {
+        var b = document.createElement('button'); b.type = 'button'; b.textContent = label;
+        b.addEventListener('click', fn); return b;
+    }
+
+    function autoGrow(ta) {
+        ta.style.height = 'auto';
+        ta.style.height = Math.max(80, ta.scrollHeight) + 'px';
+    }
+
+    function updateCounts() {
+        var chars = 0, txt = 0, imgs = 0, divs = 0;
+        var tmp = document.createElement('div');
+        blocks.forEach(function (b) {
+            if (b.type === 'text') { txt++; tmp.innerHTML = b.content || ''; chars += (tmp.textContent || '').length; }
+            else if (b.type === 'image') imgs++;
+            else divs++;
+        });
+        document.getElementById('blockCount').textContent = blocks.length;
+        document.getElementById('charCount').textContent = chars + ' ' + "{{ _('characters') }}";
+        document.getElementById('blockInfo').textContent = txt + ' ' + "{{ _('text') }}" + ', ' + imgs + ' ' + "{{ _('images') }}" + ', ' + divs + ' ' + "{{ _('dividers') }}";
+    }
+
+    function syncBody() {
+        var out = blocks.map(function (b) {
+            if (b.type === 'text') return { type: 'text', content: b.content || '' };
+            if (b.type === 'image') return { type: 'image', url: b.url || '', caption: b.caption || '' };
+            return { type: 'divider' };
+        });
+        document.getElementById('bodyField').value = JSON.stringify(out);
+    }
+
+    // ===================== COVER IMAGE =====================
+    window.previewCover = function (inp) {
+        if (inp.files && inp.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                var dz = document.getElementById('coverDropzone');
+                dz.classList.add('has-img');
+                dz.innerHTML = '<img src="' + e.target.result + '" alt="Cover" id="coverPreviewImg">'
+                    + '<button type="button" class="cover-rm" onclick="event.stopPropagation();removeCover()" title="' + "{{ _('Remove image') }}" + '">✕</button>';
+                document.getElementById('removeImageFlag').value = '0';
+            };
+            reader.readAsDataURL(inp.files[0]);
+        }
+    };
+    window.removeCover = function () {
+        var dz = document.getElementById('coverDropzone');
+        dz.classList.remove('has-img');
+        dz.innerHTML = '<div class="ph-icon">📷</div><div class="ph-text"><strong>' + "{{ _('Click to upload') }}" + '</strong><br><small>PNG, JPG, GIF, WebP · Max 32 MB</small></div>';
+        document.getElementById('coverInput').value = '';
+        document.getElementById('removeImageFlag').value = '1';
+    };
+
+    // ===================== KEYBOARD =====================
+    document.addEventListener('keydown', function (e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('publishForm').requestSubmit();
+        }
+    });
+
+    // ===================== FORM VALIDATION =====================
+    document.getElementById('publishForm').addEventListener('submit', function (e) {
+        syncAllBlocks();
+        var tmp = document.createElement('div');
+        var has = blocks.some(function (b) {
+            if (b.type === 'text') { tmp.innerHTML = b.content || ''; return (tmp.textContent || '').trim().length > 0; }
+            return (b.type === 'image' && b.url && !b._uploading);
+        });
+        if (!has) {
+            e.preventDefault();
+            alert("{{ _('Please add at least one content block with text or an image.') }}");
+            return false;
+        }
+    });
+
+    // ===================== INIT =====================
+    {% if form_data.image_url %}
+    document.getElementById('coverDropzone').classList.add('has-img');
+    {% endif %}
+
+    // ===================== FORMATTING TOOLBAR LOGIC =====================
+    var PALETTE = [
+        '#000000', '#434343', '#666666', '#999999', '#b7b7b7', '#cccccc', '#d9d9d9', '#efefef', '#f3f3f3', '#ffffff',
+        '#980000', '#ff0000', '#ff9900', '#ffff00', '#00ff00', '#00ffff', '#4a86e8', '#0000ff', '#9900ff', '#ff00ff',
+        '#e6b8af', '#f4cccc', '#fce5cd', '#fff2cc', '#d9ead3', '#d0e0e3', '#c9daf8', '#cfe2f3', '#d9d2e9', '#ead1dc',
+        '#dd7e6b', '#ea9999', '#f9cb9c', '#ffe599', '#b6d7a8', '#a2c4c9', '#a4c2f4', '#9fc5e8', '#b4a7d6', '#d5a6bd',
+        '#cc4125', '#e06666', '#f6b26b', '#ffd966', '#93c47d', '#76a5af', '#6d9eeb', '#6fa8dc', '#8e7cc3', '#c27ba0',
+        '#a61c00', '#cc0000', '#e69138', '#f1c232', '#6aa84f', '#45818e', '#3c78d8', '#3d85c6', '#674ea7', '#a64d79',
+        '#85200c', '#990000', '#b45f06', '#bf9000', '#38761d', '#134f5c', '#1155cc', '#0b5394', '#351c75', '#741b47',
+        '#5b0f00', '#660000', '#783f04', '#7f6000', '#274e13', '#0c343d', '#1c4587', '#073763', '#20124d', '#4c1130'
+    ];
+
+    function buildColorGrid(container, type) {
+        var label = type === 'fontColor' ? "{{ _('Font Color') }}" : "{{ _('Highlight Color') }}";
+        container.innerHTML = '<h5>' + label + '</h5>';
+        var grid = document.createElement('div'); grid.className = 'color-grid';
+        PALETTE.forEach(function (color) {
+            var sw = document.createElement('div'); sw.className = 'color-swatch';
+            sw.style.background = color; sw.title = color;
+            sw.addEventListener('mousedown', function (e) { e.preventDefault(); });
+            sw.addEventListener('click', function () {
+                if (type === 'fontColor') {
+                    currentFontColor = color;
+                    document.getElementById('fontColorStrip').style.background = color;
+                    document.execCommand('foreColor', false, color);
+                } else {
+                    currentHlColor = color;
+                    document.getElementById('hlColorStrip').style.background = color;
+                    document.getElementById('hlLabel').style.background = color;
+                    document.execCommand('hiliteColor', false, color);
+                }
+                container.classList.remove('show');
+                syncAllBlocks();
+            });
+            grid.appendChild(sw);
+        });
+        container.appendChild(grid);
+    }
+
+    function initColorPickers() {
+        buildColorGrid(document.getElementById('fontColorPicker'), 'fontColor');
+        buildColorGrid(document.getElementById('highlightPicker'), 'highlight');
+    }
+
+    // Save selection when it changes inside a contenteditable
+    document.addEventListener('selectionchange', function () {
+        var sel = window.getSelection();
+        if (sel.rangeCount > 0 && activeEditor && activeEditor.contains(sel.anchorNode)) {
+            savedSelection = sel.getRangeAt(0).cloneRange();
+        }
+    });
+
+    window.restoreSel = function () {
+        if (savedSelection && activeEditor) {
+            activeEditor.focus();
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(savedSelection);
+        }
+    };
+
+    window.fmtCmd = function (cmd) {
+        if (!activeEditor) return;
+        document.execCommand(cmd, false, null);
+        syncAllBlocks();
+    };
+
+    window.fmtFont = function (val) {
+        if (!activeEditor) return;
+        document.execCommand('fontName', false, val);
+        syncAllBlocks();
+    };
+
+    window.fmtSize = function (val) {
+        if (!activeEditor) return;
+        document.execCommand('fontSize', false, val);
+        syncAllBlocks();
+    };
+
+    window.fmtApplyColor = function (type) {
+        if (!activeEditor) return;
+        if (type === 'foreColor') {
+            document.execCommand('foreColor', false, currentFontColor);
+        } else {
+            document.execCommand('hiliteColor', false, currentHlColor);
+        }
+        syncAllBlocks();
+    };
+
+    window.togglePicker = function (type) {
+        var picker = document.getElementById(type === 'fontColor' ? 'fontColorPicker' : 'highlightPicker');
+        var isOpen = picker.classList.contains('show');
+        document.querySelectorAll('.color-picker-popup').forEach(function (p) { p.classList.remove('show'); });
+        if (!isOpen) picker.classList.add('show');
+    };
+
+    // Close color pickers on outside click
+    document.addEventListener('mousedown', function (e) {
+        if (!e.target.closest('.color-picker-popup') && !e.target.closest('.ft-btn')) {
+            document.querySelectorAll('.color-picker-popup').forEach(function (p) { p.classList.remove('show'); });
+        }
+    });
+
+    function syncAllBlocks() {
+        document.querySelectorAll('.ce-block').forEach(function (el, i) {
+            var textIdx = 0;
+            for (var j = 0; j < blocks.length; j++) {
+                if (blocks[j].type === 'text') {
+                    if (textIdx === i) { blocks[j].content = el.innerHTML; break; }
+                    textIdx++;
+                }
+            }
+        });
+        updateCounts();
+        syncBody();
+    }
+
+    initColorPickers();
+    render();
+}) ();
+</script>
+{% endblock %}

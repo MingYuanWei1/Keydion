@@ -1,16 +1,23 @@
 {% extends "base.html" %}
-{% block title %}{{ _('Dashboard · PaperQuery') }}{% endblock %}
+{% block title %}{{ _('User Menu · Keydion') }}{% endblock %}
 {% block content %}
 <div class="row align-items-center mb-4">
   <div class="col-md-8">
-    <h1 class="display-6 fw-semibold text-primary">{{ _('Hello, %(username)s!', username=user.username) }}</h1>
-    <p class="lead text-muted">{{ _('Welcome to the PaperQuery research portal. Use the navigation to search, upload, or curate papers based on your access level.') }}</p>
+    {% set display_name = user.display_name %}
+    {% if not display_name %}
+    {% set display_name = (user.first_name ~ ' ' ~ user.last_name)|trim %}
+    {% endif %}
+    {% if not display_name %}
+    {% set display_name = user.email or user.username %}
+    {% endif %}
+    <h1 class="display-6 fw-semibold text-primary">{{ _('Hello, %(username)s!', username=display_name) }}</h1>
+    <p class="lead text-muted">{{ _('Manage your account access, uploads, and linked services.') }}</p>
   </div>
   <div class="col-md-4 text-md-end text-center">
     <div class="d-flex flex-column align-items-md-end align-items-center gap-2">
       <div class="badge bg-info text-dark fs-6">{{ role_label(user.role|int) }}</div>
       {% if user.expiry_date %}
-        <div class="small text-muted">{{ _('Access valid through %(date)s', date=user.expiry_date) }}</div>
+      <div class="small text-muted">{{ _('Access valid through %(date)s', date=user.expiry_date) }}</div>
       {% endif %}
       <a class="btn btn-outline-primary" href="{{ url_for('logout') }}">{{ _('Sign out') }}</a>
     </div>
@@ -18,34 +25,73 @@
 </div>
 
 <div class="row g-4">
-  <div class="col-md-4">
-    <div class="feature-card feature-card--pink h-100">
-      <h2>{{ _('Search Library') }}</h2>
-      <p>{{ _('Find relevant publications across the academy\'s curated collection with quick keyword matching.') }}</p>
-      <a class="btn btn-outline-primary" href="{{ url_for('search') }}">{{ _('Go to Search') }}</a>
-    </div>
-  </div>
-  <div class="col-md-4">
+  {# Upload — visible to ALL logged-in users #}
+  <div class="col-md-6">
     <div class="feature-card feature-card--teal h-100">
       <h2>{{ _('Upload Research') }}</h2>
       <p>{{ _('Support community scholarship by sharing new papers in PDF format for peers to explore.') }}</p>
-      {% if user.role|int >= 2 %}
-        <a class="btn btn-outline-primary" href="{{ url_for('upload') }}">{{ _('Upload a Paper') }}</a>
-      {% else %}
-        <button class="btn btn-outline-secondary" disabled>{{ _('Upload unavailable') }}</button>
-      {% endif %}
+      <a class="btn btn-outline-primary" href="{{ url_for('upload') }}">{{ _('Upload a Paper') }}</a>
     </div>
   </div>
-  <div class="col-md-4">
+  {# My Submissions — readers only #}
+  {% if user.role|int == 1 %}
+  <div class="col-md-6">
+    <div class="feature-card feature-card--pink h-100">
+      <h2>{{ _('My Submissions') }}</h2>
+      <p>{{ _('Track the review status of your submitted papers.') }}</p>
+      <a class="btn btn-outline-primary" href="{{ url_for('my_submissions') }}">{{ _('View Submissions') }}</a>
+    </div>
+  </div>
+  {% endif %}
+  {# Review Submissions — moderator / admin #}
+  {% if user.role|int >= 2 %}
+  <div class="col-md-6">
+    <div class="feature-card feature-card--gold h-100">
+      <h2>{{ _('Review Submissions') }}</h2>
+      <p>{{ _('Review papers submitted by readers. Accept or reject pending submissions.') }}</p>
+      <a class="btn btn-outline-primary" href="{{ url_for('review_list') }}">{{ _('Review Papers') }}</a>
+    </div>
+  </div>
+  {% endif %}
+  {% if user.role|int >= 3 %}
+  <div class="col-md-6">
     <div class="feature-card feature-card--gold h-100">
       <h2>{{ _('Manage Collection') }}</h2>
-      <p>{{ _('Keep the repository tidy by removing outdated or duplicate papers. Confirmation keeps actions safe.') }}</p>
-      {% if user.role|int >= 3 %}
-        <a class="btn btn-outline-primary" href="{{ url_for('delete') }}">{{ _('Manage Papers') }}</a>
-      {% else %}
-        <button class="btn btn-outline-secondary" disabled>{{ _('Admin only') }}</button>
-      {% endif %}
+      <p>{{ _('Keep the repository tidy by removing outdated or duplicate papers. Confirmation keeps actions safe.') }}
+      </p>
+      <a class="btn btn-outline-primary" href="{{ url_for('delete') }}">{{ _('Manage Papers') }}</a>
     </div>
   </div>
+  {% endif %}
+  {% if user.role|int >= 2 %}
+  <div class="col-md-6">
+    <div class="feature-card feature-card--pink h-100">
+      <h2>{{ _('News') }}</h2>
+      <p>{{ _('Share updates, announcements, and stories with the Keydion community. Manage existing articles or
+        publish new ones.') }}</p>
+      <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-outline-primary" href="{{ url_for('news_publish') }}">{{ _('Write an Article') }}</a>
+        <a class="btn btn-outline-primary" href="{{ url_for('news_manage') }}">{{ _('Manage News') }}</a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  {% if user.role|int >= 3 %}
+  <div class="col-md-6">
+    <div class="feature-card feature-card--gold h-100">
+      <h2>{{ _('Admin Tools') }}</h2>
+      <p>{{ _('Manage local and Microsoft users, roles, and passwords.') }}</p>
+      <a class="btn btn-outline-primary" href="{{ url_for('admin_users') }}">{{ _('Manage Users') }}</a>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="feature-card feature-card--teal h-100">
+      <h2>{{ _('Manage Categories & Journals') }}</h2>
+      <p>{{ _('Add, rename, or remove paper subject categories and journal names used in the submission forms.') }}</p>
+      <a class="btn btn-outline-primary" href="{{ url_for('paper_manage') }}">{{ _('Manage') }}</a>
+    </div>
+  </div>
+  {% endif %}
+
 </div>
 {% endblock %}

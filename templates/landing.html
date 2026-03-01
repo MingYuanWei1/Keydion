@@ -1,0 +1,1373 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Keydion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700&family=Source+Serif+4:wght@600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-alt: #f8f9fb;
+      --ink: #1a1a2e;
+      --ink-light: #4a4a5a;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --brand: #1e40af;
+      --brand-light: #3b82f6;
+      --brand-dark: #1e3a8a;
+      --footer-bg: #0f172a;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: "Noto Sans SC", "PingFang SC", "Microsoft Yahei", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.6;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    img {
+      max-width: 100%;
+      display: block;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ==================== HEADER ==================== */
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      height: 64px;
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      color: var(--brand);
+      letter-spacing: 0.5px;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-link {
+      padding: 8px 16px;
+      font-size: 14px;
+      color: var(--ink-light);
+      transition: color 0.2s;
+    }
+
+    .nav-link:hover {
+      color: var(--brand);
+    }
+
+    .btn-submit {
+      margin-left: 16px;
+      padding: 10px 24px;
+      background: var(--brand);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-submit:hover {
+      background: var(--brand-dark);
+    }
+
+    .btn-user {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      border-radius: 999px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .lang-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: 12px;
+      color: var(--ink-light);
+      font-size: 13px;
+    }
+
+    .lang-select {
+      border: 1px solid var(--border);
+      background: var(--bg-alt);
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 6px 28px 6px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%236b7280'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 10px 10px;
+      transition: all 0.2s;
+    }
+
+    .lang-select:hover {
+      background: #e5e7eb;
+      border-color: #d1d5db;
+    }
+
+    .lang-select:focus {
+      outline: none;
+      border-color: var(--brand-light);
+    }
+
+    .lang-select option {
+      color: var(--ink);
+      background: var(--bg);
+    }
+
+    /* ==================== HERO ==================== */
+    .hero {
+      margin-top: 64px;
+      padding: 120px 0 100px;
+      background: var(--bg);
+      position: relative;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .hero-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-content {
+      max-width: 1100px;
+    }
+
+    .hero h1 {
+      font-family: "Source Serif 4", serif;
+      font-size: 52px;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      letter-spacing: -1px;
+      color: var(--brand-dark);
+    }
+
+    .hero .tagline {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 38.4px;
+      font-weight: 700;
+      color: rgb(18, 19, 23);
+      margin-bottom: 40px;
+      line-height: 1.4;
+    }
+
+    html[lang="en"] .hero .tagline {
+      font-family: 'Harding', 'Montserrat', sans-serif;
+    }
+
+    .hero-actions {
+      display: flex;
+      justify-content: center;
+    }
+
+    .hero-search {
+      width: min(700px, 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .hero-search .search-row {
+      display: flex;
+      gap: 12px;
+      align-items: stretch;
+      justify-content: center;
+    }
+
+    .hero-search input {
+      width: 408px;
+      height: 49px;
+      padding: 14px 18px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .hero-search input:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.12);
+    }
+
+    .hero-search .btn-primary {
+      border-radius: 999px;
+      padding: 14px 26px;
+      white-space: nowrap;
+    }
+
+
+
+    .hero .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 32px;
+      background: var(--brand);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .hero .btn-primary:hover {
+      background: var(--brand-dark);
+      transform: translateY(-2px);
+    }
+
+    .hero .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 32px;
+      background: transparent;
+      color: var(--ink);
+      font-size: 15px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .hero .btn-secondary:hover {
+      border-color: var(--brand);
+      color: var(--brand);
+      transform: translateY(-2px);
+    }
+
+    /* Login Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .login-modal {
+      width: 100%;
+      max-width: 380px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 32px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+      animation: modalSlideIn 0.3s ease;
+    }
+
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .login-modal h3 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 24px;
+      color: var(--ink);
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--brand);
+      margin-bottom: 6px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 14px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-group input:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+    }
+
+    .form-group input::placeholder {
+      color: #9ca3af;
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 12px;
+      background: var(--brand);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+      margin-top: 8px;
+    }
+
+    .btn-login:hover {
+      background: var(--brand-dark);
+      transform: translateY(-1px);
+    }
+
+    .login-links {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .login-links a {
+      font-size: 13px;
+      color: var(--brand);
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .login-links a:hover {
+      color: var(--brand-dark);
+      text-decoration: underline;
+    }
+
+    /* ==================== CONTENT SECTION ==================== */
+    .section {
+      padding: 80px 0;
+    }
+
+    .section-alt {
+      background: var(--bg-alt);
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 40px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid var(--ink);
+    }
+
+    .section-header h2 {
+      font-family: "Source Serif 4", serif;
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .section-header .view-all {
+      font-size: 14px;
+      color: var(--brand);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .section-header .view-all:hover {
+      text-decoration: underline;
+    }
+
+    /* ==================== ARTICLES GRID ==================== */
+    .articles-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+    }
+
+    .article-card {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .article-card .thumb {
+      width: 100%;
+      aspect-ratio: 16/10;
+      background: var(--bg-alt);
+      border: 1px solid var(--border);
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+
+    .article-card .thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .article-card .category {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--brand);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .article-card h3 {
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+
+    .article-card .date {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: auto;
+    }
+
+    .article-card a {
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+
+    .article-card h3 a {
+      transition: color 0.2s;
+    }
+
+    .article-card h3 a:hover {
+      color: var(--brand);
+    }
+
+    /* ==================== PROJECTS LIST ==================== */
+    .projects-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+    }
+
+    .projects-column h3 {
+      font-family: "Source Serif 4", serif;
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .project-item {
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .project-item:last-child {
+      border-bottom: none;
+    }
+
+    .project-item a {
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 1.5;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .project-item a:hover {
+      color: var(--brand);
+      text-decoration: underline;
+    }
+
+    .project-item .tag {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* ==================== ABOUT SECTION ==================== */
+    .about-section {
+      display: block;
+    }
+
+    .about-content h2 {
+      font-family: "Source Serif 4", serif;
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 24px;
+    }
+
+    .about-content p {
+      font-size: 16px;
+      color: var(--ink-light);
+      line-height: 1.8;
+      margin-bottom: 16px;
+    }
+
+    .stats-row {
+      display: flex;
+      gap: 40px;
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+    }
+
+    .stat-item .number {
+      font-family: "Source Serif 4", serif;
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--brand);
+      line-height: 1;
+    }
+
+    .stat-item .label {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+
+
+
+    /* ==================== FOOTER ==================== */
+    footer {
+      background: var(--footer-bg);
+      color: #fff;
+      padding: 60px 0 40px;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+
+    .footer-brand h4 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .footer-brand p {
+      font-size: 14px;
+      color: #94a3b8;
+      line-height: 1.6;
+    }
+
+    .footer-col h5 {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 16px;
+      color: #94a3b8;
+    }
+
+    .footer-col ul {
+      list-style: none;
+    }
+
+    .footer-col li {
+      margin-bottom: 8px;
+    }
+
+    .footer-col a {
+      font-size: 14px;
+      color: #e2e8f0;
+      transition: color 0.2s;
+    }
+
+    .footer-col a:hover {
+      color: #fff;
+    }
+
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 24px;
+      border-top: 1px solid #334155;
+    }
+
+    .footer-bottom .copyright {
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    .social-links {
+      display: flex;
+      gap: 16px;
+    }
+
+    .social-links a {
+      width: 32px;
+      height: 32px;
+      background: #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .social-links a:hover {
+      background: var(--brand);
+    }
+
+    .social-links svg {
+      width: 16px;
+      height: 16px;
+      fill: #e2e8f0;
+    }
+
+    .partner-logos {
+      display: flex;
+      gap: 24px;
+      margin-top: 24px;
+    }
+
+    .partner-logo {
+      width: 80px;
+      height: 32px;
+      background: #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #64748b;
+    }
+
+    /* ==================== RESPONSIVE ==================== */
+    @media (max-width: 1024px) {
+      .articles-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .projects-section {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+
+      .about-section {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .hero {
+        padding: 80px 0 60px;
+      }
+
+      .hero h1 {
+        font-size: 36px;
+      }
+
+      .hero-actions {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .hero .btn-primary,
+      .hero .btn-secondary {
+        width: 100%;
+        max-width: 280px;
+        justify-content: center;
+      }
+
+      .login-modal {
+        padding: 24px;
+        margin: 16px;
+      }
+
+      .articles-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .stats-row {
+        flex-wrap: wrap;
+        gap: 24px;
+      }
+
+      .footer-grid {
+        grid-template-columns: 1fr;
+      }
+
+      nav {
+        display: none;
+      }
+    }
+
+    .flash {
+      background: #e5f0ff;
+      border: 1px solid #bcd4ff;
+      color: #0f285c;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      border-radius: 6px;
+    }
+
+    /* ==================== FAQ MODAL ==================== */
+    .faq-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 300;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      overflow-y: auto;
+    }
+
+    .faq-overlay.active {
+      display: flex;
+    }
+
+    .faq-modal {
+      width: 100%;
+      max-width: 720px;
+      max-height: 90vh;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .faq-header {
+      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+      color: #fff;
+      padding: 24px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .faq-header h2 {
+      font-family: "Source Serif 4", serif;
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .faq-close {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: #fff;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .faq-close:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .faq-content {
+      padding: 32px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .faq-item {
+      margin-bottom: 24px;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 24px;
+    }
+
+    .faq-item:last-child {
+      margin-bottom: 0;
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .faq-question {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1e3a8a;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .faq-question::before {
+      content: 'Q';
+      background: #1e3a8a;
+      color: #fff;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .faq-answer {
+      font-size: 15px;
+      color: #4b5563;
+      line-height: 1.7;
+      padding-left: 36px;
+    }
+
+    .faq-footer {
+      background: #f9fafb;
+      padding: 20px 32px;
+      text-align: center;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .faq-footer-btn {
+      background: #1e3a8a;
+      color: #fff;
+      border: none;
+      padding: 12px 32px;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .faq-footer-btn:hover {
+      background: #1e40af;
+      transform: translateY(-1px);
+    }
+
+    /* Typing Effect */
+    .typing-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1.4em;
+      background-color: var(--muted);
+      margin-left: 2px;
+      vertical-align: -0.2em;
+      animation: blink 1s step-end infinite;
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0;
+      }
+    }
+
+    .typing-char {
+      opacity: 0;
+      transition: opacity 0.05s ease;
+    }
+
+    .typing-char.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ==================== HEADER ==================== -->
+  <header>
+    <div class="container header-inner">
+      <div class="logo-area">Keydion</div>
+      <nav>
+        <a class="nav-link" href="{{ url_for('upload') }}">{{ _('Upload') }}</a>
+        {% if session.get('user', {}).get('role', '1')|int >= 3 %}
+        <a class="nav-link" href="{{ url_for('delete') }}">{{ _('Manage') }}</a>
+        {% endif %}
+        {% if session.get('user') %}
+        {% set nav_name = session.get('user', {}).get('display_name') or session.get('user', {}).get('username', '') %}
+        {% set nav_initial = nav_name[:1] if nav_name else 'U' %}
+        <a class="btn-submit btn-user" href="{{ url_for('dashboard') }}" title="{{ nav_name }}">{{ nav_initial|upper
+          }}</a>
+        {% else %}
+        <button class="btn-submit" onclick="location.href='{{ url_for('login') }}'">登录</button>
+        {% endif %}
+        <div class="lang-switch">
+          {% if current_locale == 'zh' %}
+          <a href="{{ url_for('set_language', locale_code='en', next=request.full_path) }}"
+            style="color: inherit; text-decoration: none;">English</a>
+          {% else %}
+          <a href="{{ url_for('set_language', locale_code='zh', next=request.full_path) }}"
+            style="color: inherit; text-decoration: none;">中文</a>
+          {% endif %}
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ==================== HERO ==================== -->
+  <section class="hero" id="home">
+    <div class="container">
+      <div class="hero-inner">
+        <div class="hero-content">
+          {% set hero_quotes = [_("tagline_quote_1"), _("tagline_quote_2")] %}
+          <script>window.__heroQuotes = {{ hero_quotes | tojson }};</script>
+          <p class="tagline" id="typing-tagline" style="min-height: 1.6em; visibility: hidden;">
+            <span class="typing-wrapper"></span><span class="typing-cursor"></span>
+          </p>
+          <div class="hero-actions">
+            <form class="hero-search" action="{{ url_for('search') }}" method="get">
+              <div class="search-row">
+                <input type="text" name="q" placeholder="{{ _('搜索论文标题、关键词') }}" aria-label="{{ _('搜索论文') }}">
+                <button class="btn-primary" type="submit">{{ _('Search') }}</button>
+              </div>
+              <div style="margin-top: 10px; text-align: center;">
+                <a href="{{ url_for('advanced_search') }}"
+                  style="color: #666; font-size: 0.9em; text-decoration: underline;">{{ _('Advanced Search') }}</a>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== ARTICLES SECTION ==================== -->
+  <section class="section" id="articles">
+    <div class="container">
+      <div class="section-header">
+        <h2>最新动态</h2>
+        <a href="{{ url_for('news_list') }}" class="view-all">查看全部 →</a>
+      </div>
+      <div class="articles-grid">
+        {% if latest_news and latest_news|length > 0 %}
+        {% for news in latest_news %}
+        <article class="article-card">
+          {% if news.image_url %}
+          <div class="thumb">
+            <a href="{{ url_for('news_detail', news_id=news.id) }}">
+              <img src="{{ news.image_url }}" alt="{{ news.title }}">
+            </a>
+          </div>
+          {% else %}
+          <div class="thumb">
+            <a href="{{ url_for('news_detail', news_id=news.id) }}">
+              <img src="{{ url_for('static', filename='landing/article-' ~ loop.index ~ '.jpg') }}"
+                alt="{{ news.title }}">
+            </a>
+          </div>
+          {% endif %}
+          <span class="category">{{ news.category }}</span>
+          <h3><a href="{{ url_for('news_detail', news_id=news.id) }}">{{ news.title }}</a></h3>
+          <span class="date">{{ news.published_at }}</span>
+        </article>
+        {% endfor %}
+        {% else %}
+        <article class="article-card">
+          <div class="thumb">
+            <img src="{{ url_for('static', filename='landing/article-1.jpg') }}" alt="学术写作工作坊">
+          </div>
+          <span class="category">活动回顾</span>
+          <h3>2025 春季学术写作工作坊圆满结束</h3>
+          <span class="date">Nov 28, 2025</span>
+        </article>
+        <article class="article-card">
+          <div class="thumb">
+            <img src="{{ url_for('static', filename='landing/article-2.jpg') }}" alt="期刊发布">
+          </div>
+          <span class="category">期刊发布</span>
+          <h3>《青年研究》Vol.2 No.1 正式上线</h3>
+          <span class="date">Nov 15, 2025</span>
+        </article>
+        <article class="article-card">
+          <div class="thumb">
+            <img src="{{ url_for('static', filename='landing/article-3.jpg') }}" alt="讲座预告">
+          </div>
+          <span class="category">讲座预告</span>
+          <h3>如何选择适合自己的研究课题？</h3>
+          <span class="date">Nov 08, 2025</span>
+        </article>
+        <article class="article-card">
+          <div class="thumb">
+            <img src="{{ url_for('static', filename='landing/article-4.jpg') }}" alt="成果展示">
+          </div>
+          <span class="category">成果展示</span>
+          <h3>社员论文入选国际中学生学术会议</h3>
+          <span class="date">Oct 30, 2025</span>
+        </article>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== PROJECTS SECTION ==================== -->
+  <section class="section section-alt" id="projects">
+    <div class="container">
+      <div class="projects-section">
+        <div class="projects-column">
+          <h3>研究项目</h3>
+          <div class="project-item">
+            <span style="color: #888;">TBD</span>
+          </div>
+        </div>
+        <div class="projects-column">
+          <h3>期刊存档</h3>
+          <div class="project-item">
+            <span style="color: #888;">TBD</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== ABOUT SECTION ==================== -->
+  <section class="section" id="about">
+    <div class="container">
+      <div class="about-section">
+        <div class="about-content">
+          <h2>{{ _('关于我们') }}</h2>
+          <p>{{ _('Keydion 是一个专为高中设计的学术资产平台。我们聚焦于学生的科研成果，包括 IA、EE、TOK 等项目。通过本平台，学生的研究成果将不再被忽视，而是被系统性地保存于 Keydion
+            数据库中，供师生查阅与参考。同时，教师也可以更全面地了解本校科研项目的内容与整体质量。') }}</p>
+          <p>{{ _('Keydion
+            同样致力于维护学术诚信，避免撞题以及学术不端误判。我们希望为每一所学校留存这些珍贵的学术成果，让优秀的学生研究经验得以传承，使学术探索不再只是一次性的作业，而成为可以持续积累与发展的知识资产。') }}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer id="contact">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <h4>Keydion</h4>
+          <p>致力于培养青年学术研究能力，为中学生提供学术写作训练与论文发表平台。</p>
+          <!-- <div class="partner-logos">
+            <div class="partner-logo">合作方</div>
+            <div class="partner-logo">合作方</div>
+            <div class="partner-logo">合作方</div>
+          </div> -->
+        </div>
+        <div class="footer-col">
+          <h5>导航</h5>
+          <ul>
+            <li><a href="#home">首页</a></li>
+            <li><a href="#articles">最新动态</a></li>
+            <li><a href="#projects">研究项目</a></li>
+            <li><a href="#about">关于我们</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>资源</h5>
+          <ul>
+            <li><a href="#">期刊存档</a></li>
+            <li><a href="#">投递指南</a></li>
+            <li><a href="#">写作资源</a></li>
+            <li><a href="{{ url_for('faq') }}">常见问题</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>联系我们</h5>
+          <ul>
+            <li><a href="mailto:28heqiwen@huijia.edu.cn">28heqiwen@huijia.edu.cn</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span class="copyright">© 2026 Keydion</span>
+        <div class="social-links" aria-label="社交链接">
+          <a href="#" title="微信">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M8.5 11a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm5 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm-8.25 4.5a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5zm6.5 0a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5zM12 2C6.477 2 2 5.813 2 10.5c0 2.614 1.4 4.94 3.6 6.48l-.9 2.72 3.24-1.62c1.28.4 2.68.62 4.06.62 5.523 0 10-3.813 10-8.5S17.523 2 12 2z" />
+            </svg>
+          </a>
+          <a href="#" title="微博">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M20.194 14.197c0 3.306-4.227 5.803-9.467 5.803-5.24 0-9.467-2.497-9.467-5.803 0-3.306 4.227-5.803 9.467-5.803.513 0 1.017.027 1.51.08-.18-.487-.28-1.01-.28-1.554 0-2.352 1.907-4.26 4.26-4.26s4.26 1.908 4.26 4.26c0 1.26-.548 2.39-1.417 3.17.707.927 1.134 2.013 1.134 3.107z" />
+            </svg>
+          </a>
+          <a href="#" title="邮箱">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+            </svg>
+          </a>
+          <a href="#" title="Bilibili">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M17.813 4.653h.854c1.51.054 2.769.578 3.773 1.574 1.004.995 1.524 2.249 1.56 3.76v7.36c-.036 1.51-.556 2.769-1.56 3.773s-2.262 1.524-3.773 1.56H5.333c-1.51-.036-2.769-.556-3.773-1.56S.036 18.858 0 17.347v-7.36c.036-1.511.556-2.765 1.56-3.76 1.004-.996 2.262-1.52 3.773-1.574h.774l-1.174-1.12a1.234 1.234 0 0 1-.373-.906c0-.356.124-.659.373-.907.249-.248.557-.372.92-.372.362 0 .662.124.906.372l2.18 2.093h5.14l2.18-2.093c.244-.248.544-.372.906-.372.363 0 .671.124.92.372.249.248.373.551.373.907 0 .355-.124.657-.373.906l-1.174 1.12zM6.12 15.6c.355 0 .66-.124.909-.373.248-.248.373-.551.373-.906V12c0-.355-.125-.66-.373-.907a1.236 1.236 0 0 0-.91-.373c-.354 0-.657.124-.906.373A1.238 1.238 0 0 0 4.84 12v2.32c0 .356.124.66.373.907.249.249.551.373.907.373zm11.76 0c.355 0 .66-.124.906-.373.249-.248.373-.551.373-.906V12c0-.355-.124-.66-.373-.907a1.238 1.238 0 0 0-.906-.373c-.356 0-.66.124-.907.373a1.236 1.236 0 0 0-.373.907v2.32c0 .356.124.66.373.907.248.249.55.373.907.373z" />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==================== LOGIN MODAL ==================== -->
+  {% set flash_messages = get_flashed_messages(with_categories=true) %}
+  {% set ns = namespace(has_login_error=false) %}
+  {% for category, message in flash_messages %}
+  {% if category in ['warning', 'danger'] %}
+  {% set ns.has_login_error = true %}
+  {% endif %}
+  {% endfor %}
+  <div id="loginModal" class="modal-overlay">
+    <div class="login-modal">
+      {% if flash_messages %}
+      {% for category, message in flash_messages %}
+      {% if category != 'info' %}
+      <div class="flash">{{ message }}</div>
+      {% endif %}
+      {% endfor %}
+      {% endif %}
+      <h3>账号登录</h3>
+      {% if ms_enabled %}
+      <form action="{{ url_for('ms_login') }}" method="get">
+        <button type="submit" class="btn-login">使用微软账号登录</button>
+      </form>
+      {% else %}
+      <div class="flash">Microsoft 登录尚未配置，请联系管理员。</div>
+      {% endif %}
+      <div class="login-links">
+        <span style="color: #666; font-size: 13px;">如有问题请联系管理员</span>
+        <a href="#" onclick="closeLoginModal(); return false;">取消</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== FAQ MODAL ==================== -->
+  <div id="faqModal" class="faq-overlay">
+    <div class="faq-modal">
+      <div class="faq-header">
+        <h2>常见问题 FAQ</h2>
+        <button class="faq-close" onclick="closeFaqModal()" aria-label="关闭">&times;</button>
+      </div>
+      <div class="faq-content">
+        <div class="faq-item">
+          <div class="faq-question">如何投稿论文？</div>
+          <div class="faq-answer">
+            在导航栏点击“投稿”，登录后即可进入投稿系统。支持 PDF 格式的论文上传，请确保文件大小不超过 10MB。
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">投稿有什么要求？</div>
+          <div class="faq-answer">
+            投稿对象为在校中学生，稿件类型包括研究论文、文献综述、调查报告等。语言中英文均可，英文优先。格式要求为 Word 或 PDF 文档，需包含摘要、关键词、正文和参考文献。
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">如何注册账号？</div>
+          <div class="faq-answer">
+            请联系社团管理员获取账号。出于学术诚信考虑，我们采用邀请制注册，确保每位用户的真实身份。联系邮箱：club@example.edu
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">论文审核需要多长时间？</div>
+          <div class="faq-answer">
+            通常情况下，初审结果会在 1-2 周内反馈。如需修改，修改稿的审核周期约为 1 周。最终录用通知会通过邮件发送。
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">可以查看已发表的论文吗？</div>
+          <div class="faq-answer">
+            是的，登录系统后可以在"检索文库"功能中搜索和浏览已发表的论文。部分优秀论文也会在首页的"最新动态"中展示。
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">如何联系社团？</div>
+          <div class="faq-answer">
+            您可以通过以下方式联系我们：<br>
+            • 邮箱：club@example.edu<br>
+            • 微信公众号：EssayClub_official<br>
+            • 线下地址：图书馆二层 · 学术社团中心
+          </div>
+        </div>
+      </div>
+      <div class="faq-footer">
+        <button class="faq-footer-btn" onclick="closeFaqModal()">返回首页</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const loginModal = document.getElementById('loginModal');
+
+    function openLoginModal() {
+      loginModal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+      // 聚焦到用户名输入框
+      setTimeout(() => {
+        document.getElementById('username').focus();
+      }, 100);
+    }
+
+    function closeLoginModal() {
+      loginModal.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    // FAQ 模态框
+    const faqModal = document.getElementById('faqModal');
+
+    function openFaqModal() {
+      faqModal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeFaqModal() {
+      faqModal.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    // 点击 FAQ 遮罩层关闭
+    faqModal.addEventListener('click', (e) => {
+      if (e.target === faqModal) closeFaqModal();
+    });
+
+    // 点击遮罩层关闭
+    loginModal.addEventListener('click', (e) => {
+      if (e.target === loginModal) closeLoginModal();
+    });
+
+    // ESC 键关闭
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (loginModal.classList.contains('active')) closeLoginModal();
+        if (faqModal.classList.contains('active')) closeFaqModal();
+      }
+    });
+
+    // 只有在登录相关的错误/警告消息时才自动打开登录框（不包括退出成功消息）
+    {% if ns.has_login_error %}
+    openLoginModal();
+    {% endif %}
+
+    // Typing Effect Logic
+    document.addEventListener('DOMContentLoaded', () => {
+      const tagline = document.getElementById('typing-tagline');
+      if (tagline) {
+        // Pick a quote that rotates on each refresh
+        const quotes = window.__heroQuotes || [];
+        let idx = parseInt(sessionStorage.getItem('tagline_idx') || '0', 10);
+        if (idx >= quotes.length) idx = 0;
+        const text = quotes[idx];
+        sessionStorage.setItem('tagline_idx', String((idx + 1) % quotes.length));
+
+        const wrapper = tagline.querySelector('.typing-wrapper');
+        tagline.style.visibility = 'visible';
+
+        // Prepare spans
+        wrapper.innerHTML = '';
+        const chars = text.split('');
+        const spans = chars.map(char => {
+          const span = document.createElement('span');
+          span.textContent = char;
+          span.className = 'typing-char';
+          wrapper.appendChild(span);
+          return span;
+        });
+
+        // Type function
+        let i = 0;
+        function typeChar() {
+          if (i < spans.length) {
+            spans[i].classList.add('visible');
+            i++;
+            setTimeout(typeChar, 50);
+          } else {
+            const cursor = tagline.querySelector('.typing-cursor');
+            if (cursor) cursor.style.display = 'none';
+          }
+        }
+
+        setTimeout(typeChar, 300);
+      }
+    });
+  </script>
+</body>
+
+</html>

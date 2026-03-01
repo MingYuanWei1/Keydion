@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Edit Journal') }} – {{ journal.name }}{% endblock %}
+{% block content %}
+
+<style>
+    .cover-preview {
+        max-width: 180px;
+        max-height: 240px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        object-fit: cover;
+    }
+
+    .paper-list-item {
+        padding: 10px 0;
+        border-bottom: 1px solid #eee;
+    }
+
+    .paper-list-item:last-child {
+        border-bottom: none;
+    }
+
+    .paper-list-item h6 {
+        margin-bottom: 2px;
+    }
+
+    .paper-list-item .meta {
+        font-size: 12px;
+        color: #888;
+    }
+</style>
+
+<div class="page-title">
+    <h1>{{ _('Edit Journal') }}</h1>
+    <p class="text-muted">{{ journal.name }}</p>
+</div>
+
+<div class="mb-3">
+    <a class="btn btn-outline-secondary back-link" href="{{ url_for('paper_manage') }}">
+        &larr; {{ _('Back to Management') }}
+    </a>
+</div>
+
+<div class="row g-4">
+    <!-- Left: Edit form -->
+    <div class="col-lg-7">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">{{ _('Journal Details') }}</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="name" class="form-label fw-semibold">{{ _('Journal Name') }} <span
+                                class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name" value="{{ journal.name }}"
+                            required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="cover_image" class="form-label fw-semibold">{{ _('Cover Image') }}</label>
+                        {% if journal.cover_image %}
+                        <div class="mb-2">
+                            <img src="{{ url_for('static', filename='uploads/journal_covers/' ~ journal.cover_image) }}"
+                                class="cover-preview" alt="{{ journal.name }}">
+                        </div>
+                        {% endif %}
+                        <input type="file" class="form-control" id="cover_image" name="cover_image" accept="image/*">
+                        <small class="text-muted">{{ _('Upload a cover image (PNG, JPG, WebP)') }}</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="introduction" class="form-label fw-semibold">{{ _('Introduction') }}</label>
+                        <textarea class="form-control" id="introduction" name="introduction" rows="8"
+                            placeholder="{{ _('Write the journal introduction...') }}">{{ journal.introduction }}</textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">{{ _('Save Changes') }}</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Papers in this journal -->
+    <div class="col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">{{ _('Papers in this Journal') }}</h5>
+                <span class="badge bg-primary">{{ papers|length }}</span>
+            </div>
+            <div class="card-body">
+                {% if papers %}
+                <div>
+                    {% for paper in papers %}
+                    <div class="paper-list-item">
+                        <h6>
+                            <a href="{{ url_for('preview_paper', filename=paper.filename) }}"
+                                class="text-decoration-none" style="color: #2b457a;">
+                                {{ paper.title or paper.filename }}
+                            </a>
+                        </h6>
+                        <div class="meta">
+                            {{ paper.author_name or _('Unknown') }} · {{ paper.published_at or '' }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">{{ _('No papers assigned to this journal yet.') }}</p>
+                <small class="text-muted">{{ _('Papers can be assigned when uploading or editing.') }}</small>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card shadow-sm mt-3">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">{{ _('Quick Info') }}</h5>
+            </div>
+            <div class="card-body">
+                <dl class="mb-0" style="font-size: 14px;">
+                    <dt class="text-muted">{{ _('Journal ID') }}</dt>
+                    <dd class="mb-2"><code>{{ journal.id }}</code></dd>
+                    <dt class="text-muted">{{ _('Created') }}</dt>
+                    <dd class="mb-2">{{ journal.created_at or _('Unknown') }}</dd>
+                    <dt class="text-muted">{{ _('Public Page') }}</dt>
+                    <dd class="mb-0"><a href="{{ url_for('journal_detail', journal_id=journal.id) }}"
+                            class="text-decoration-none">{{ _('View Journal Page') }} &rarr;</a></dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

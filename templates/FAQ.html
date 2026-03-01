@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="{{ 'zh-CN' if current_locale == 'zh' else 'en' }}">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FAQs - {{ _('High School English Paper Club') }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=Source+Serif+4:wght@600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: "Noto Sans SC", "PingFang SC", "Microsoft Yahei", sans-serif;
+      background-color: #dfe6ed;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .faq-container {
+      max-width: 760px;
+      margin: 0 auto;
+      background-color: #e8eef4;
+      padding: 50px 60px;
+      box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    h1 {
+      font-family: "Source Serif 4", "Times New Roman", serif;
+      font-size: 36px;
+      font-weight: 600;
+      color: #1e3a5f;
+      text-align: center;
+      margin-bottom: 40px;
+      letter-spacing: 2px;
+    }
+
+    .faq-item {
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(30, 58, 95, 0.1);
+    }
+
+    .faq-item:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .question {
+      color: #1e3a5f;
+      font-weight: 600;
+      font-size: 15px;
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+
+    .answer {
+      color: #333;
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    .answer strong {
+      font-weight: 600;
+    }
+
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 40px;
+      padding-top: 30px;
+      border-top: 1px solid rgba(30, 58, 95, 0.15);
+    }
+
+    .back-link a {
+      color: #1e3a5f;
+      text-decoration: none;
+      font-size: 14px;
+      padding: 10px 24px;
+      border: 1px solid #1e3a5f;
+      transition: all 0.3s;
+    }
+
+    .back-link a:hover {
+      background-color: #1e3a5f;
+      color: #fff;
+    }
+
+    @media (max-width: 768px) {
+      .faq-container {
+        padding: 30px 24px;
+      }
+
+      h1 {
+        font-size: 28px;
+      }
+
+      .question {
+        font-size: 14px;
+      }
+
+      .answer {
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="faq-container">
+    <h1>FAQs</h1>
+
+    <div class="faq-item">
+      <p class="question">{{ _('Q. I missed the registration deadline. May I still register or submit an essay?') }}</p>
+      <p class="answer">{{ _('A. No. Only candidates who registered before 31 May will be able to submit an essay.') }}
+      </p>
+    </div>
+
+    <div class="faq-item">
+      <p class="question">{{ _('Q. Are footnotes, endnotes, a bibliography or references counted towards the word
+        limit?') }}</p>
+      <p class="answer">{{ _('A. No. Only the body of the essay is counted.') }}</p>
+    </div>
+
+    <div class="faq-item">
+      <p class="question">{{ _('Q. Are in-text citations counted towards the word limit?') }}</p>
+      <p class="answer">{{ _('A. If you are using an in-text based referencing format, such as APA, your in-text
+        citations are included in the word limit.') }}</p>
+    </div>
+
+    <div class="faq-item">
+      <p class="question">{{ _('Q. Is it necessary to include footnotes or endnotes in an essay?') }}</p>
+      <p class="answer">{{ _('A. You <strong>may not</strong> include footnotes, but you may include in-text citations
+        or endnotes. You should give your sources of any factual claims you make, and you should acknowledge any other
+        authors on whom you rely.') }}</p>
+    </div>
+
+    <div class="faq-item">
+      <p class="question">{{ _('Q. I am interested in a question that seems ambiguous. How should I interpret it?') }}
+      </p>
+      <p class="answer">{{ _('A. You may interpret a question as you deem appropriate, clarifying your interpretation if
+        necessary. Having done so, you must answer the question as directly as possible.') }}</p>
+    </div>
+
+    <div class="back-link">
+      <a href="{{ url_for('index') }}">← {{ _('Back to Home') }}</a>
+    </div>
+  </div>
+
+</body>
+
+</html>

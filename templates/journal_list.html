@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Journals · Keydion') }}{% endblock %}
+{% block content %}
+
+<style>
+    .journal-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .journal-card {
+        border: 1px solid #e5e5e5;
+        border-radius: 12px;
+        overflow: hidden;
+        transition: box-shadow 0.2s, transform 0.15s;
+        background: #fff;
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .journal-card:hover {
+        box-shadow: 0 6px 24px rgba(0, 0, 0, .1);
+        transform: translateY(-2px);
+    }
+
+    .journal-card-cover {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .journal-card-cover img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .journal-card-cover .placeholder-text {
+        color: #fff;
+        font-family: 'Source Serif 4', Georgia, serif;
+        font-size: 20px;
+        font-weight: 600;
+        padding: 1rem;
+        text-align: center;
+    }
+
+    .journal-card-body {
+        padding: 1rem 1.25rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .journal-card-name {
+        font-family: 'Source Serif 4', Georgia, serif;
+        font-size: 17px;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: #1a1a1a;
+    }
+
+    .journal-card-intro {
+        font-size: 13px;
+        color: #666;
+        line-height: 1.5;
+        flex: 1;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #888;
+    }
+
+    .empty-state svg {
+        margin-bottom: 1rem;
+        opacity: 0.4;
+    }
+</style>
+
+<div class="page-title">
+    <h1 style="font-family: 'Source Serif 4', Georgia, serif;">{{ _('Journals') }}</h1>
+    <p class="text-muted">{{ _('Browse our collection of academic journals.') }}</p>
+</div>
+
+{% if journals %}
+<div class="journal-grid">
+    {% for j in journals %}
+    <a href="{{ url_for('journal_detail', journal_id=j.id) }}" class="journal-card">
+        <div class="journal-card-cover">
+            {% if j.cover_image %}
+            <img src="{{ url_for('static', filename='uploads/journal_covers/' ~ j.cover_image) }}" alt="{{ j.name }}">
+            {% else %}
+            <div class="placeholder-text">{{ j.name }}</div>
+            {% endif %}
+        </div>
+        <div class="journal-card-body">
+            <div class="journal-card-name">{{ j.name }}</div>
+            {% if j.introduction %}
+            <div class="journal-card-intro">{{ j.introduction }}</div>
+            {% endif %}
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" viewBox="0 0 16 16">
+        <path
+            d="M5 10.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5" />
+        <path
+            d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2" />
+        <path
+            d="M1 5v-.5a.5.5 0 0 1 1 0V5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1zm0 3v-.5a.5.5 0 0 1 1 0V8h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1z" />
+    </svg>
+    <p>{{ _('No journals available yet.') }}</p>
+</div>
+{% endif %}
+
+{% endblock %}

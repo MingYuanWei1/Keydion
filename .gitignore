@@ -1,12 +1,13 @@
+# Database and uploaded files (DO NOT COMMIT THESE)
+data/
+static/uploads/
+
+# Python environments and cache
+venv_new/
+venv/
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
-env/
 .env
-instance/
+
+# MacOS files
 .DS_Store
-Thumbs.db
-papers/*
-!papers/.gitkeep
-data/active_sessions.json

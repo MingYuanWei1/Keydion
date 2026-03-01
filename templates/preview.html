@@ -1,52 +1,226 @@
 {% extends "base.html" %}
 {% block title %}{{ _('Preview Paper') }}{% endblock %}
 {% block content %}
-<div class="preview-hero">
-  <div class="preview-hero__text">
-    <h1 class="preview-title">{{ paper.title or paper.filename }}</h1>
-    <p class="preview-subtitle">{{ paper.authors or _('Not specified') }}</p>
-  </div>
-  <div class="preview-hero__actions">
+
+<!-- Header row (Back to results and Actions) -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
     {% if source_page %}
-      <a class="btn btn-outline-secondary back-link" href="{{ url_for('search', q=source_query, page=source_page) }}">{{ _('Back to Search') }}</a>
+    <a class="text-decoration-none text-muted fw-medium"
+      href="{{ url_for('search', q=source_query, page=source_page) }}">&larr; {{ _('Back to Search') }}</a>
     {% elif source_query %}
-      <a class="btn btn-outline-secondary back-link" href="{{ url_for('search', q=source_query) }}">{{ _('Back to Search') }}</a>
+    <a class="text-decoration-none text-muted fw-medium" href="{{ url_for('search', q=source_query) }}">&larr; {{
+      _('Back to Search') }}</a>
     {% else %}
-      <a class="btn btn-outline-secondary back-link" href="{{ url_for('search') }}">{{ _('Back to Search') }}</a>
+    <a class="text-decoration-none text-muted fw-medium" href="{{ url_for('search') }}">&larr; {{ _('Back to Search')
+      }}</a>
     {% endif %}
-    <a class="btn btn-primary" href="{{ url_for('download', filename=paper.filename) }}">{{ _('Download PDF') }}</a>
+  </div>
+  <div class="d-flex gap-2">
+    {% if is_guest %}
+    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('login') }}">{{ _('Sign in to download') }}</a>
+    {% else %}
+    <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('paper_file', filename=paper.filename) }}"
+      target="_blank">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
+        class="bi bi-box-arrow-up-right me-1" viewBox="0 0 16 16" style="vertical-align: -2px;">
+        <path fill-rule="evenodd"
+          d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5" />
+        <path fill-rule="evenodd"
+          d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0z" />
+      </svg>
+      {{ _('Open in new tab') }}
+    </a>
+    <a class="btn btn-primary btn-sm fw-medium" href="{{ url_for('download', filename=paper.filename) }}">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-download me-1"
+        viewBox="0 0 16 16" style="vertical-align: -2px;">
+        <path
+          d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5" />
+        <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 1 0-.708.708z" />
+      </svg>
+      {{ _('Download') }}
+    </a>
+    {% endif %}
   </div>
 </div>
 
-<div class="card shadow-sm metadata-card mb-4">
-  <div class="card-body">
-    <dl class="row mb-0">
-      <dt class="col-sm-3">{{ _('Title') }}</dt>
-      <dd class="col-sm-9">{{ paper.title or _('Not specified') }}</dd>
-      <dt class="col-sm-3">{{ _('Authors') }}</dt>
-      <dd class="col-sm-9">{{ paper.authors or _('Not specified') }}</dd>
-      <dt class="col-sm-3">{{ _('Organization') }}</dt>
-      <dd class="col-sm-9">{{ paper.organization or _('Not specified') }}</dd>
-      <dt class="col-sm-3">{{ _('Published At') }}</dt>
-      <dd class="col-sm-9">{{ paper.published_at or _('Not specified') }}</dd>
-      <dt class="col-sm-3">{{ _('Keywords') }}</dt>
-      <dd class="col-sm-9">{{ paper.keywords or _('Not specified') }}</dd>
-    </dl>
+<!-- Title section -->
+<div class="pb-3 mb-4 border-bottom">
+  <div class="text-muted small text-uppercase mb-2 fw-bold"
+    style="letter-spacing: 0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-journal-text me-1"
+      viewBox="0 0 16 16" style="vertical-align:-1px;">
+      <path
+        d="M5 10.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5" />
+      <path
+        d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2" />
+      <path
+        d="M1 5v-.5a.5.5 0 0 1 1 0V5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1zm0 3v-.5a.5.5 0 0 1 1 0V8h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1z" />
+    </svg>
+    {% if paper.journal and journal_id_map.get(paper.journal) %}
+    <a href="{{ url_for('journal_detail', journal_id=journal_id_map[paper.journal]) }}" class="text-decoration-none"
+      style="color: inherit;">{{ paper.journal }}</a>
+    {% else %}
+    {{ paper.journal or _('Journal Article') }}
+    {% endif %}
+  </div>
+  <h1 class="mb-2" style="font-family: 'Source Serif 4', Georgia, serif; font-size: 28px; line-height: 1.3;">{{
+    paper.title or _('Untitled Paper') }}</h1>
+  <div class="mb-1" style="font-size: 15px;">
+    <u>{{ paper.author_name or _('Not specified') }}</u>{% if paper.author_school %} <span class="text-muted">({{
+      paper.author_school }})</span>{% endif %}
+  </div>
+  <div class="text-muted" style="font-size: 13px;">
+    {{ paper.published_at or _('Not specified') }}
   </div>
 </div>
 
-<div class="card shadow-sm pdf-card">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <span>{{ paper.filename }}</span>
-    <div class="btn-group btn-group-sm">
-      <a class="btn btn-outline-primary" href="{{ url_for('download', filename=paper.filename) }}">{{ _('Download PDF') }}</a>
-      <a class="btn btn-outline-secondary" href="{{ url_for('paper_file', filename=paper.filename) }}" target="_blank">{{ _('Open in new tab') }}</a>
+{% if is_guest %}
+<div class="alert alert-info border-0 bg-light rounded-3 mb-4">
+  {{ _('Guest preview is limited to the first two pages of each paper.') }}
+  <a href="{{ url_for('login') }}" class="alert-link text-decoration-none">{{ _('Sign in to view full papers') }}</a>
+</div>
+{% endif %}
+
+<!-- Split View: Sidebar and PDF -->
+<div class="row g-4 mb-4">
+  <!-- Left Sidebar -->
+  <div class="col-lg-3">
+    <div class="accordion accordion-flush bg-transparent border-0" id="previewAccordion">
+
+      <!-- Abstract Accordion -->
+      <div class="accordion-item bg-transparent">
+        <h2 class="accordion-header" id="headingAbstract">
+          <button class="accordion-button collapsed px-2 shadow-none bg-transparent fw-semibold" type="button"
+            data-bs-toggle="collapse" data-bs-target="#collapseAbstract" aria-expanded="false"
+            aria-controls="collapseAbstract" style="font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">
+            {{ _('Abstract') }}
+          </button>
+        </h2>
+        <div id="collapseAbstract" class="accordion-collapse collapse" aria-labelledby="headingAbstract"
+          data-bs-parent="#previewAccordion">
+          <div class="accordion-body px-2 pt-1 pb-4 text-muted" style="font-size: 14px; line-height: 1.6;">
+            {{ paper.abstract or _('No abstract available.') }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Metadata Accordion -->
+      <div class="accordion-item bg-transparent">
+        <h2 class="accordion-header" id="headingAbout">
+          <button class="accordion-button collapsed px-2 shadow-none bg-transparent fw-semibold" type="button"
+            data-bs-toggle="collapse" data-bs-target="#collapseAbout" aria-expanded="false"
+            aria-controls="collapseAbout" style="font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">
+            {{ _('About this issue') }}
+          </button>
+        </h2>
+        <div id="collapseAbout" class="accordion-collapse collapse" aria-labelledby="headingAbout"
+          data-bs-parent="#previewAccordion">
+          <div class="accordion-body px-2 pt-1 pb-4 text-muted" style="font-size: 14px; line-height: 1.5;">
+            <dl class="mb-0">
+              <dt class="fw-semibold text-dark">{{ _('Title') }}</dt>
+              <dd class="mb-3">{{ paper.title or _('Not specified') }}</dd>
+              <dt class="fw-semibold text-dark">{{ _('Category') }}</dt>
+              <dd class="mb-3">{{ paper.category or _('Not specified') }}</dd>
+              <dt class="fw-semibold text-dark">{{ _('Keywords') }}</dt>
+              <dd class="mb-3">{{ paper.keywords or _('Not specified') }}</dd>
+              <dt class="fw-semibold text-dark">{{ _('Organization') }}</dt>
+              <dd class="mb-0">{{ paper.author_school or _('Not specified') }}</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <!-- Related Text Accordion -->
+      <div class="accordion-item bg-transparent">
+        <h2 class="accordion-header" id="headingRelated">
+          <button class="accordion-button px-2 shadow-none bg-transparent fw-semibold" type="button"
+            data-bs-toggle="collapse" data-bs-target="#collapseRelated" aria-expanded="true"
+            aria-controls="collapseRelated" style="font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">
+            {{ _('Related text') }} {% if related_papers %}({{ related_papers|length }}){% endif %}
+          </button>
+        </h2>
+        <div id="collapseRelated" class="accordion-collapse collapse show" aria-labelledby="headingRelated"
+          data-bs-parent="#previewAccordion">
+          <div class="accordion-body px-2 pt-1 pb-4" style="font-size: 14px;">
+            {% if related_papers %}
+            <div class="d-flex flex-column gap-3">
+              {% for rp in related_papers %}
+              <div>
+                <a href="{{ url_for('preview_paper', filename=rp.filename, q=source_query, page=source_page) }}"
+                  class="text-decoration-none text-brand fw-medium d-block pb-1" style="line-height: 1.3;">
+                  {{ rp.title or _('Untitled Paper') }}
+                </a>
+                <div class="text-muted" style="font-size: 13px;">{{ rp.author_name or _('Not specified') }}</div>
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted mb-0">{{ _('No related texts found in this category.') }}</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
-  <div class="card-body">
-    <div class="ratio ratio-16x9 pdf-preview">
-      <iframe src="{{ url_for('paper_file', filename=paper.filename) }}" title="{{ paper.title or paper.filename }}"></iframe>
+
+  <!-- Right: PDF iframe -->
+  <div class="col-lg-9">
+    <div class="bg-dark rounded-top d-flex align-items-center justify-content-between px-3 py-2 text-white">
+      <div class="small mx-auto fw-medium d-flex align-items-center opacity-75">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
+          class="bi bi-file-earmark-pdf me-2" viewBox="0 0 16 16">
+          <path
+            d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z" />
+          <path
+            d="M4.603 14.087a.81.81 0 0 1-.438-.42c-.195-.388-.13-.776.08-1.102.198-.307.526-.568.897-.787a7.7 7.7 0 0 1 1.482-.645 20 20 0 0 0 1.062-2.227 7.3 7.3 0 0 1-.43-1.295c-.086-.4-.119-.796-.046-1.136.075-.354.274-.672.65-.823.192-.077.4-.12.602-.077a.7.7 0 0 1 .477.365c.088.164.12.356.127.538.007.188-.012.396-.047.614-.084.51-.27 1.134-.52 1.794a11 11 0 0 0 .98 1.686 5.8 5.8 0 0 1 1.334.05c.364.066.734.195.96.465.12.144.193.32.2.518.007.192-.047.382-.138.563a1.04 1.04 0 0 1-.354.416.86.86 0 0 1-.51.138c-.331-.014-.654-.196-.933-.417a5.7 5.7 0 0 1-.911-.95 11.6 11.6 0 0 0-1.997.406 11.3 11.3 0 0 1-1.02 1.51c-.292.35-.609.656-.927.787a.8.8 0 0 1-.58.029m1.379-1.901q-.25.115-.459.238c-.328.194-.541.383-.647.547-.094.145-.096.25-.04.361q.016.032.026.044l.035-.012c.137-.056.355-.235.635-.572a8.2 8.2 0 0 0 .45-.606m1.64-1.33a13 13 0 0 1 1.01-.193 12 12 0 0 1-.51-.858 21 21 0 0 1-.5 1.05zm2.446.45q.226.245.435.41c.24.19.407.253.498.256a.1.1 0 0 0 .07-.015.3.3 0 0 0 .094-.125.44.44 0 0 0 .059-.2.09.09 0 0 0-.026-.063c-.052-.062-.2-.152-.518-.209a3.9 3.9 0 0 0-.612-.053zM8.078 7.8a6.7 6.7 0 0 0 .2-.828q.046-.282.038-.465a.6.6 0 0 0-.032-.207.09.09 0 0 0-.063-.045.3.3 0 0 0-.107-.008.2.2 0 0 0-.115.029.2.2 0 0 0-.056.09c-.049.098-.033.313.032.612q.024.115.068.272.048.169.135.545" />
+        </svg>
+        {{ _('PDF Preview') }}
+      </div>
+    </div>
+    <div class="border border-top-0 rounded-bottom" style="height: 80vh; min-height: 600px; background: #525659;"
+      oncontextmenu="return false;">
+      <iframe src="{{ pdf_url }}#toolbar=0&navpanes=0&scrollbar=0&view=FitV" class="w-100 h-100 border-0 rounded-bottom"
+        title="{{ paper.title or _('Untitled Paper') }}"></iframe>
     </div>
   </div>
 </div>
+
+<style>
+  /* Custom styles to match the sparse/clean accordion look from the mock */
+  .accordion-button::after {
+    background-size: 0.8rem;
+    transition: transform .2s ease-in-out;
+  }
+
+  .accordion-item {
+    border-top: 1px solid #e5e7eb;
+    border-bottom: none;
+  }
+
+  .accordion-item:last-child {
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .accordion-button:not(.collapsed) {
+    color: inherit;
+    background-color: transparent;
+    box-shadow: none;
+  }
+
+  .accordion-button:focus {
+    border-color: rgba(0, 0, 0, .125);
+    box-shadow: none;
+  }
+
+  .text-brand {
+    color: var(--brand);
+  }
+
+  .text-brand:hover {
+    color: var(--brand-dark);
+    text-decoration: underline !important;
+  }
+</style>
 {% endblock %}

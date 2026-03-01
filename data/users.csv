@@ -1,4 +1,4 @@
-username,password,registration_date,expiry_date,role
-admin,pbkdf2_sha256$260000$PI50GLcAcPEnBswtLwAVHA==$SRAMrWcH0wEtvuEOo/Tm8GaBMJQzzOg8wleAAbeZAAI=,2024-01-01,2026-12-31,3
-contributor,pbkdf2_sha256$260000$XxDkESkP8bM3HW/YnRcbfQ==$o7Lj6pwp2AhUH/YwZWoS/MmjhDFDUjqo9VwdvwP0ihc=,2024-05-10,2025-12-31,2
-reader,pbkdf2_sha256$260000$OKnlhnYxh1RlzQJyVmFwfw==$TH0JoH8SN5xMx9b151CG8QI3QDbXDuVCeYpWBT6qORc=,2024-01-01,2026-12-31,1
+username,password,registration_date,expiry_date,role,email,first_name,last_name,school
+admin,pbkdf2_sha256$260000$PI50GLcAcPEnBswtLwAVHA==$SRAMrWcH0wEtvuEOo/Tm8GaBMJQzzOg8wleAAbeZAAI=,2024-01-01,2026-12-31,3,,,,
+reader,pbkdf2_sha256$260000$OKnlhnYxh1RlzQJyVmFwfw==$TH0JoH8SN5xMx9b151CG8QI3QDbXDuVCeYpWBT6qORc=,2024-01-01,2026-12-31,1,,,,
+contributor,pbkdf2_sha256$260000$surPDLAJHk0v77aDpXkqsw==$h3JHEYHMvqTCdsHrInhG5Wu8WfZ4bO/k9Lt1+3lzeG4=,2026-02-22,,2,,,,

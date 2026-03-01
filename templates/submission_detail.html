@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Submission Details · Keydion') }}{% endblock %}
+{% block content %}
+<div class="page-title">
+    <h1>{{ _('Submission Details') }}</h1>
+    <p class="text-muted">{{ _('View the details and current status of your submission.') }}</p>
+</div>
+
+<div class="mb-3">
+    <a class="btn btn-outline-secondary back-link" href="{{ url_for('my_submissions') }}">
+        &larr; {{ _('Back to My Submissions') }}
+    </a>
+</div>
+
+<div class="row g-4">
+    <!-- Paper Details -->
+    <div class="col-lg-5">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">{{ _('Submission Details') }}</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">{{ _('Title') }}</dt>
+                    <dd class="col-sm-8">{{ submission.title }}</dd>
+
+                    <dt class="col-sm-4">{{ _('Category') }}</dt>
+                    <dd class="col-sm-8">{{ submission.category }}</dd>
+
+                    <dt class="col-sm-4">{{ _('Keywords') }}</dt>
+                    <dd class="col-sm-8">{{ submission.keywords }}</dd>
+
+                    <dt class="col-sm-4">{{ _('Abstract') }}</dt>
+                    <dd class="col-sm-8">{{ submission.abstract }}</dd>
+
+                    <dt class="col-sm-4 border-top pt-2 mt-2">{{ _('Author') }}</dt>
+                    <dd class="col-sm-8 border-top pt-2 mt-2">{{ submission.author_name }}</dd>
+
+                    <dt class="col-sm-4">{{ _('Email') }}</dt>
+                    <dd class="col-sm-8">{{ submission.author_email }}</dd>
+
+                    <dt class="col-sm-4">{{ _('School') }}</dt>
+                    <dd class="col-sm-8">{{ submission.author_school }}</dd>
+
+                    <dt class="col-sm-4 border-top pt-2 mt-2">{{ _('Submitted') }}</dt>
+                    <dd class="col-sm-8 border-top pt-2 mt-2">{{ submission.submitted_at[:10] if submission.submitted_at
+                        else '-' }}</dd>
+
+                    <dt class="col-sm-4">{{ _('Status') }}</dt>
+                    <dd class="col-sm-8">
+                        {% if submission.status == 'pending' %}
+                        <span class="badge bg-warning text-dark">{{ _('Pending Review') }}</span>
+                        {% elif submission.status == 'accepted' %}
+                        <span class="badge bg-success">{{ _('Accepted') }}</span>
+                        {% elif submission.status == 'rejected' %}
+                        <span class="badge bg-danger">{{ _('Rejected') }}</span>
+                        {% endif %}
+                    </dd>
+
+                    {% if submission.reviewer %}
+                    <dt class="col-sm-4">{{ _('Reviewer') }}</dt>
+                    <dd class="col-sm-8">{{ submission.reviewer }}</dd>
+                    {% endif %}
+
+                    {% if submission.reviewed_at %}
+                    <dt class="col-sm-4">{{ _('Reviewed') }}</dt>
+                    <dd class="col-sm-8">{{ submission.reviewed_at[:10] }}</dd>
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+
+        {% if submission.comment %}
+        <div class="card shadow-sm border-danger">
+            <div class="card-header bg-danger bg-opacity-10">
+                <h5 class="mb-0 text-danger">{{ _('Reviewer Comment') }}</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-0">{{ submission.comment }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- PDF Preview -->
+    <div class="col-lg-7">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">{{ _('Paper Preview') }}</h5>
+                <small class="text-muted">{{ submission.filename }}</small>
+            </div>
+            <div class="card-body p-0">
+                {% if pdf_url %}
+                <iframe src="{{ pdf_url }}#view=FitH" style="width: 100%; height: 80vh; border: none;"></iframe>
+                {% else %}
+                <div class="text-center py-5 text-muted">
+                    <p>{{ _('Paper preview is not available.') }}</p>
+                    {% if submission.status == 'rejected' %}
+                    <small>{{ _('The file was removed after rejection.') }}</small>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
