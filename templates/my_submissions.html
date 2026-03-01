@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}{{ _('My Submissions · Keydion') }}{% endblock %}
+{% block content %}
+<div class="page-title">
+    <h1>{{ _('My Submissions') }}</h1>
+    <p class="text-muted">{{ _('Track the review status of your submitted papers.') }}</p>
+</div>
+
+<div class="mb-3">
+    <a class="btn btn-outline-secondary back-link" href="{{ url_for('dashboard') }}">
+        &larr; {{ _('Back to Dashboard') }}
+    </a>
+    <a class="btn btn-primary ms-2" href="{{ url_for('upload') }}">
+        + {{ _('Submit a New Paper') }}
+    </a>
+</div>
+
+{% if submissions %}
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>{{ _('Paper Title') }}</th>
+                        <th>{{ _('Submitted') }}</th>
+                        <th>{{ _('Status') }}</th>
+                        <th>{{ _('Reviewer') }}</th>
+                        <th>{{ _('Comment') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sub in submissions %}
+                    <tr style="cursor: pointer;"
+                        onclick="window.location='{{ url_for('submission_detail', sub_id=sub.id) }}'">
+                        <td>
+                            <strong class="text-primary">{{ sub.title }}</strong>
+                            <br>
+                            <small class="text-muted">{{ sub.filename }}</small>
+                        </td>
+                        <td>
+                            <small>{{ sub.submitted_at[:10] if sub.submitted_at else '-' }}</small>
+                        </td>
+                        <td>
+                            {% if sub.status == 'pending' %}
+                            <span class="badge bg-warning text-dark">{{ _('Pending Review') }}</span>
+                            {% elif sub.status == 'accepted' %}
+                            <span class="badge bg-success">{{ _('Accepted') }}</span>
+                            {% elif sub.status == 'rejected' %}
+                            <span class="badge bg-danger">{{ _('Rejected') }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small>{{ sub.reviewer or '-' }}</small>
+                        </td>
+                        <td>
+                            {% if sub.comment %}
+                            <span class="badge bg-secondary">{{ _('Yes') }}</span>
+                            {% else %}
+                            <span class="text-muted">{{ _('No') }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="card shadow-sm">
+    <div class="card-body text-center py-5">
+        <h4 class="text-muted">{{ _('No submissions yet') }}</h4>
+        <p class="text-muted">{{ _('Upload a paper to get started. Your submission will be reviewed by a moderator.') }}
+        </p>
+        <a class="btn btn-primary" href="{{ url_for('upload') }}">{{ _('Upload a Paper') }}</a>
+    </div>
+</div>
+{% endif %}
+
+<div class="card border-info mt-4">
+    <div class="card-body">
+        <h5 class="card-title text-info">{{ _('How the review process works') }}</h5>
+        <ul class="mb-0">
+            <li>{{ _('After you submit a paper, it enters the <strong>Pending Review</strong> queue.') }}</li>
+            <li>{{ _('A moderator or administrator will review your paper.') }}</li>
+            <li>{{ _('If <strong>Accepted</strong>, your paper becomes available in the library.') }}</li>
+            <li>{{ _('If <strong>Rejected</strong>, you will see the reviewer\'s comments here.') }}</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

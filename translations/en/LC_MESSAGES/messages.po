@@ -1,249 +1,3027 @@
+
 msgid ""
 msgstr ""
-"Project-Id-Version: PaperQuery 1.0\n"
+"Project-Id-Version: Keydion 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-11 00:00+0000\n"
+"POT-Creation-Date: 2026-02-27 12:44+0800\n"
 "PO-Revision-Date: 2025-10-11 00:00+0000\n"
 "Last-Translator: \n"
-"Language-Team: English\n"
 "Language: en\n"
+"Language-Team: English\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
 
-msgid "Reader - View & Download"
-msgstr "Reader - View & Download"
-
-msgid "Contributor - Upload Enabled"
-msgstr "Contributor - Upload Enabled"
-
-msgid "Curator - Full Access"
-msgstr "Curator - Full Access"
-
-msgid "English"
-msgstr "English"
-
-msgid "Chinese"
-msgstr "Chinese"
-
-msgid "Language not supported."
-msgstr "Language not supported."
-
-msgid "Language switched to %(language)s."
-msgstr "Language switched to %(language)s."
-
+# ==================== AUTH FLASH MESSAGES ====================
+#: app.py:427 app.py:448 app_old.py:134
+#, python-format
 msgid "Welcome back, %(username)s!"
 msgstr "Welcome back, %(username)s!"
 
-msgid "Invalid credentials or access expired."
-msgstr "Invalid credentials or access expired."
+#: app.py:429
+#, fuzzy
+msgid "Invalid email or password"
+msgstr "Invalid username or password"
 
+#: app.py:433 app.py:506 app.py:522
+msgid "Microsoft sign-in is not configured. Please contact the administrator."
+msgstr "Microsoft sign-in is not configured. Please contact the administrator."
+
+#: app.py:450
+msgid "Invalid username or password"
+msgstr "Invalid username or password"
+
+#: app.py:465
+msgid "Email, password, first name, and last name are required."
+msgstr ""
+
+#: app.py:469
+msgid "Passwords do not match."
+msgstr "Passwords do not match."
+
+#: app.py:473 app.py:488
+msgid "An account with this email already exists."
+msgstr "An account with this email already exists."
+
+#: app.py:495
+#, python-format
+msgid "Account created successfully. Welcome, %(name)s!"
+msgstr ""
+
+#: app.py:497
+msgid "Account created. Please sign in."
+msgstr ""
+
+#: app.py:525
+#, fuzzy
+msgid "Login session expired. Please try again."
+msgstr "Session expired. Please sign in again."
+
+#: app.py:531 app.py:546
+#, python-format
+msgid "Microsoft sign-in failed: %(reason)s"
+msgstr ""
+
+#: app.py:536
+#, fuzzy
+msgid "Microsoft sign-in failed. Please try again."
+msgstr "Microsoft sign-in is not configured. Please contact the administrator."
+
+#: app.py:551
+#, fuzzy
+msgid "Microsoft sign-in did not return a valid profile."
+msgstr "Microsoft sign-in is not configured yet."
+
+#: app.py:577 app_old.py:146
 msgid "Signed out successfully."
 msgstr "Signed out successfully."
 
+#: app.py:588
+#, fuzzy
+msgid "Unable to load your profile. Please sign in again."
+msgstr "Session timed out. Please sign in again."
+
+#: app.py:601
+#, fuzzy
+msgid "Please enter your first and last name."
+msgstr "Please enter the author name"
+
+#: app.py:603
+#, fuzzy
+msgid "Please select a school from the list."
+msgstr "Please select a category..."
+
+#: app.py:605
+#, fuzzy
+msgid "Please select your grade."
+msgstr "Please select a category..."
+
+#: app.py:620
+#, fuzzy
+msgid "Profile saved successfully."
+msgstr "Signed out successfully."
+
+#: app.py:662
+msgid "Role updates saved."
+msgstr "Role updates saved."
+
+#: app.py:674
+msgid "Username and password are required."
+msgstr "Username and password are required."
+
+#: app.py:677
+msgid "That username is already taken."
+msgstr "That username is already taken."
+
+#: app.py:680
+msgid "Local user created."
+msgstr "Local user created."
+
+#: app.py:690 app.py:728
+msgid "Role updated."
+msgstr "Role updated."
+
+#: app.py:692 app.py:730
+msgid "Unable to update role."
+msgstr "Unable to update role."
+
+#: app.py:702
+msgid "Password is required."
+msgstr "Password is required."
+
+#: app.py:705
+msgid "Password reset successfully."
+msgstr "Password reset successfully."
+
+#: app.py:707
+msgid "Unable to reset password."
+msgstr "Unable to reset password."
+
+#: app.py:716
+msgid "Local user deleted."
+msgstr "Local user deleted."
+
+#: app.py:718
+msgid "Unable to delete user."
+msgstr "Unable to delete user."
+
+#: app.py:739
+msgid "Microsoft user deleted."
+msgstr "Microsoft user deleted."
+
+#: app.py:741
+msgid "Unable to delete Microsoft user."
+msgstr "Unable to delete Microsoft user."
+
+# ==================== SEARCH ====================
+#: app.py:766 app_old.py:165
 msgid "Enter a keyword to search."
 msgstr "Enter a keyword to search."
 
+#: app.py:814 app_old.py:179
 msgid "No matching papers found."
 msgstr "No matching papers found."
 
-msgid "Select a PDF file to upload."
-msgstr "Select a PDF file to upload."
+#: app.py:858
+msgid "Please enter the paper title"
+msgstr "Please enter the paper title"
 
-msgid "Only PDF files are accepted."
-msgstr "Only PDF files are accepted."
+#: app.py:861
+msgid "Please select a subject category"
+msgstr "Please select a subject category"
 
-msgid "A paper with this filename already exists. Rename your file and try again."
-msgstr "A paper with this filename already exists. Rename your file and try again."
+#: app.py:864
+msgid "Please select a language"
+msgstr "Please select a language"
 
-msgid "Uploaded %(filename)s."
-msgstr "Uploaded %(filename)s."
+#: app.py:867
+msgid "Please enter keywords"
+msgstr "Please enter keywords"
 
-msgid "Select a valid paper to delete."
-msgstr "Select a valid paper to delete."
+#: app.py:870
+msgid "Please enter the abstract"
+msgstr "Please enter the abstract"
 
-msgid "Type the filename exactly to confirm deletion."
-msgstr "Type the filename exactly to confirm deletion."
+#: app.py:873
+msgid "Please enter the author name"
+msgstr "Please enter the author name"
 
+#: app.py:876
+msgid "Please enter the contact email"
+msgstr "Please enter the contact email"
+
+#: app.py:879
+msgid "Please enter the school name"
+msgstr "Please enter the school name"
+
+#: app.py:890
+msgid "Please select a file to upload"
+msgstr "Please select a file to upload"
+
+#: app.py:894
+msgid "Only PDF files are supported"
+msgstr "Only PDF files are supported"
+
+#: app.py:901
+msgid "A file with this name already exists"
+msgstr "A file with this name already exists"
+
+#: app.py:919
+#, python-format
+msgid "Paper %(filename)s uploaded successfully!"
+msgstr "Paper %(filename)s uploaded successfully!"
+
+#: app.py:1025 app.py:1061 app.py:1095 app_old.py:310
+msgid "Paper not found."
+msgstr "Paper not found."
+
+#: app.py:1047
+msgid "Paper information updated."
+msgstr "Paper information updated."
+
+#: app.py:1066 app_old.py:274
+#, python-format
 msgid "Deleted %(filename)s."
 msgstr "Deleted %(filename)s."
 
+#: app.py:1072 app_old.py:282
+msgid "Language not supported."
+msgstr "Language not supported."
+
+#: app.py:1202 app.py:1281
+#, fuzzy
+msgid "Please enter a title."
+msgstr "Please enter the paper title"
+
+#: app.py:1204 app.py:1283
+#, fuzzy
+msgid "Please select a category."
+msgstr "Please select a category..."
+
+#: app.py:1206 app.py:1285
+#, fuzzy
+msgid "Please enter an abstract."
+msgstr "Please enter the abstract"
+
+#: app.py:1208 app.py:1287
+#, fuzzy
+msgid "Please write the article body."
+msgstr "Please enter the paper title"
+
+#: app.py:1222 app.py:1299
+msgid "Cover image must be PNG, JPG, GIF, or WebP."
+msgstr ""
+
+#: app.py:1240
+#, fuzzy
+msgid "Article published successfully."
+msgstr "Signed out successfully."
+
+#: app.py:1259 app.py:1328 app.py:1602
+#, fuzzy
+msgid "Article not found."
+msgstr "Paper not found."
+
+#: app.py:1310
+#, fuzzy
+msgid "Article updated."
+msgstr "Role updated."
+
+#: app.py:1326
+#, fuzzy
+msgid "Article deleted."
+msgstr "Local user deleted."
+
+#: app.py:1347 app.py:1390 app.py:1416 app.py:1459
+#, fuzzy
+msgid "Category name is required."
+msgstr "Journal name is required."
+
+#: app.py:1350 app.py:1419
+#, fuzzy
+msgid "Category already exists."
+msgstr "Journal already exists."
+
+#: app.py:1364 app.py:1433
+msgid "Both old and new names are required."
+msgstr ""
+
+#: app.py:1367 app.py:1393 app.py:1436 app.py:1462
+#, fuzzy
+msgid "Category not found."
+msgstr "Paper not found."
+
+#: app.py:1369 app.py:1438
+#, fuzzy
+msgid "A category with that name already exists."
+msgstr "A journal with that name already exists."
+
+#: app.py:1474 app.py:1534
+msgid "Journal name is required."
+msgstr "Journal name is required."
+
+#: app.py:1478
+msgid "Journal already exists."
+msgstr "Journal already exists."
+
+#: app.py:1498
+msgid "Journal ID is required."
+msgstr "Journal ID is required."
+
+#: app.py:1502 app.py:1525 app.py:1587
+msgid "Journal not found."
+msgstr "Journal not found."
+
+#: app.py:1567
+msgid "Journal updated."
+msgstr "Journal updated."
+
+#: app.py:1661 app.py:1720
+msgid "Submission not found."
+msgstr "Submission not found."
+
+#: app.py:1732 app.py:1779
+msgid "Submission not found or already reviewed."
+msgstr "Submission not found or already reviewed."
+
+#: app.py:1769
+msgid "Paper accepted and published."
+msgstr "Paper accepted and published."
+
+#: app.py:1796
+msgid "Paper rejected."
+msgstr "Paper rejected."
+
+#: app.py:2351 app_old.py:382
 msgid "Please sign in first."
 msgstr "Please sign in first."
 
-msgid "You do not have access to that action."
-msgstr "You do not have access to that action."
-
-msgid "PaperQuery"
-msgstr "PaperQuery"
-
-msgid "Search"
-msgstr "Search"
-
-msgid "Upload"
-msgstr "Upload"
-
-msgid "Delete"
-msgstr "Delete"
-
-msgid "Sign out"
-msgstr "Sign out"
-
-msgid "Language"
-msgstr "Language"
-
-msgid "PaperQuery International Academy Research Hub"
-msgstr "PaperQuery International Academy Research Hub"
-
-msgid "Sign in · PaperQuery"
-msgstr "Sign in · PaperQuery"
-
-msgid "PaperQuery Portal"
-msgstr "PaperQuery Portal"
-
-msgid "Sign in with your academy credentials to explore the research library."
-msgstr "Sign in with your academy credentials to explore the research library."
-
-msgid "Username"
-msgstr "Username"
-
-msgid "e.g. j.smith"
-msgstr "e.g. j.smith"
-
-msgid "Password"
-msgstr "Password"
-
-msgid "Sign in"
-msgstr "Sign in"
-
-msgid "Need help? Contact the Library Services Team."
-msgstr "Need help? Contact the Library Services Team."
-
-msgid "Dashboard · PaperQuery"
-msgstr "Dashboard · PaperQuery"
-
-msgid "Hello, %(username)s!"
-msgstr "Hello, %(username)s!"
-
-msgid "Welcome to the PaperQuery research portal. Use the navigation to search, upload, or curate papers based on your access level."
-msgstr "Welcome to the PaperQuery research portal. Use the navigation to search, upload, or curate papers based on your access level."
-
-msgid "Access valid through %(date)s"
-msgstr "Access valid through %(date)s"
-
-msgid "Search Library"
-msgstr "Search Library"
-
-msgid "Find relevant publications across the academy's curated collection with quick keyword matching."
-msgstr "Find relevant publications across the academy's curated collection with quick keyword matching."
-
-msgid "Go to Search"
-msgstr "Go to Search"
-
-msgid "Upload Research"
-msgstr "Upload Research"
-
-msgid "Support community scholarship by sharing new papers in PDF format for peers to explore."
-msgstr "Support community scholarship by sharing new papers in PDF format for peers to explore."
-
-msgid "Upload a Paper"
-msgstr "Upload a Paper"
-
-msgid "Upload unavailable"
-msgstr "Upload unavailable"
-
-msgid "Manage Collection"
-msgstr "Manage Collection"
-
-msgid "Keep the repository tidy by removing outdated or duplicate papers. Confirmation keeps actions safe."
-msgstr "Keep the repository tidy by removing outdated or duplicate papers. Confirmation keeps actions safe."
-
-msgid "Manage Papers"
-msgstr "Manage Papers"
-
-msgid "Admin only"
-msgstr "Admin only"
-
-msgid "Search Papers · PaperQuery"
-msgstr "Search Papers · PaperQuery"
-
-msgid "Search the Research Library"
-msgstr "Search the Research Library"
-
-msgid "Enter keywords to find matching papers by title or content."
-msgstr "Enter keywords to find matching papers by title or content."
-
-msgid "Keyword"
-msgstr "Keyword"
-
-msgid "climate change"
-msgstr "climate change"
-
-msgid "%(count)s paper found"
-msgstr "%(count)s paper found"
-
-msgid "%(count)s papers found"
-msgstr "%(count)s papers found"
-
-msgid "Download PDF"
-msgstr "Download PDF"
-
-msgid "No papers matched \"%(query)s\". Try refining your terms."
-msgstr "No papers matched \"%(query)s\". Try refining your terms."
-
-msgid "Upload Paper · PaperQuery"
-msgstr "Upload Paper · PaperQuery"
-
-msgid "Upload a New Paper"
-msgstr "Upload a New Paper"
-
-msgid "Share PDF files with the school community. Files are instantly available for search."
-msgstr "Share PDF files with the school community. Files are instantly available for search."
-
-msgid "Select PDF file"
-msgstr "Select PDF file"
-
-msgid "Delete Papers · PaperQuery"
-msgstr "Delete Papers · PaperQuery"
-
-msgid "Manage Paper Collection"
-msgstr "Manage Paper Collection"
-
-msgid "Remove outdated or duplicate papers. Confirm the filename to complete deletion."
-msgstr "Remove outdated or duplicate papers. Confirm the filename to complete deletion."
-
-msgid "Available Papers"
-msgstr "Available Papers"
-
-msgid "Select filename"
-msgstr "Select filename"
-
-msgid "Choose a paper"
-msgstr "Choose a paper"
-
-msgid "Confirm filename"
-msgstr "Confirm filename"
-
-msgid "Type the exact filename to confirm"
-msgstr "Type the exact filename to confirm"
-
-msgid "This extra step prevents accidental deletions."
-msgstr "This extra step prevents accidental deletions."
-
-msgid "Delete Paper"
-msgstr "Delete Paper"
-
-msgid "No papers available to delete. Upload new papers in the Upload section."
-msgstr "No papers available to delete. Upload new papers in the Upload section."
-
+#: app.py:2357 app_old.py:388
 msgid "Session expired. Please sign in again."
 msgstr "Session expired. Please sign in again."
 
+#: app.py:2361 app_old.py:392
 msgid "Session timed out. Please sign in again."
 msgstr "Session timed out. Please sign in again."
 
-msgid "This account is already signed in. Please sign out from the other session or wait %(minutes)d minutes."
-msgstr "This account is already signed in. Please sign out from the other session or wait %(minutes)d minutes."
+#: app.py:2368 app_old.py:399
+msgid "You do not have access to that action."
+msgstr "You do not have access to that action."
 
+#: app.py:2590 app_old.py:603
+#, python-format
+msgid ""
+"This account is already signed in. Please sign out from the other session"
+" or wait %(minutes)d minutes."
+msgstr ""
+"This account is already signed in. Please sign out from the other session"
+" or wait %(minutes)d minutes."
+
+#: app_old.py:136
+msgid "Invalid credentials or access expired."
+msgstr "Invalid credentials or access expired."
+
+#: app_old.py:213
+#, fuzzy
+msgid "Title is required."
+msgstr "Email is required."
+
+#: app_old.py:216
+#, fuzzy
+msgid "Author field is required."
+msgstr "Password is required."
+
+# ==================== UPLOAD ====================
+#: app_old.py:229
+msgid "Select a PDF file to upload."
+msgstr "Select a PDF file to upload."
+
+#: app_old.py:233
+msgid "Only PDF files are accepted."
+msgstr "Only PDF files are accepted."
+
+#: app_old.py:237
+msgid "A paper with this filename already exists. Rename your file and try again."
+msgstr "A paper with this filename already exists. Rename your file and try again."
+
+#: app_old.py:250
+#, python-format
+msgid "Uploaded %(filename)s."
+msgstr "Uploaded %(filename)s."
+
+# ==================== DELETE ====================
+#: app_old.py:268
+msgid "Select a valid paper to delete."
+msgstr "Select a valid paper to delete."
+
+#: app_old.py:270
+msgid "Type the filename exactly to confirm deletion."
+msgstr "Type the filename exactly to confirm deletion."
+
+#: app_old.py:286
+#, python-format
+msgid "Language switched to %(language)s."
+msgstr "Language switched to %(language)s."
+
+#: templates/FAQ.html:7
+msgid "High School English Paper Club"
+msgstr "High School English Paper Club"
+
+#: templates/FAQ.html:123
+msgid ""
+"Q. I missed the registration deadline. May I still register or submit an "
+"essay?"
+msgstr ""
+
+#: templates/FAQ.html:124
+msgid ""
+"A. No. Only candidates who registered before 31 May will be able to "
+"submit an essay."
+msgstr ""
+
+#: templates/FAQ.html:129
+msgid ""
+"Q. Are footnotes, endnotes, a bibliography or references counted towards "
+"the word\n"
+"        limit?"
+msgstr ""
+
+#: templates/FAQ.html:131
+msgid "A. No. Only the body of the essay is counted."
+msgstr ""
+
+#: templates/FAQ.html:135
+msgid "Q. Are in-text citations counted towards the word limit?"
+msgstr ""
+
+#: templates/FAQ.html:136
+msgid ""
+"A. If you are using an in-text based referencing format, such as APA, "
+"your in-text\n"
+"        citations are included in the word limit."
+msgstr ""
+
+#: templates/FAQ.html:141
+msgid "Q. Is it necessary to include footnotes or endnotes in an essay?"
+msgstr ""
+
+#: templates/FAQ.html:142
+msgid ""
+"A. You <strong>may not</strong> include footnotes, but you may include "
+"in-text citations\n"
+"        or endnotes. You should give your sources of any factual claims "
+"you make, and you should acknowledge any other\n"
+"        authors on whom you rely."
+msgstr ""
+
+#: templates/FAQ.html:148
+msgid ""
+"Q. I am interested in a question that seems ambiguous. How should I "
+"interpret it?"
+msgstr ""
+
+#: templates/FAQ.html:150
+msgid ""
+"A. You may interpret a question as you deem appropriate, clarifying your "
+"interpretation if\n"
+"        necessary. Having done so, you must answer the question as "
+"directly as possible."
+msgstr ""
+
+#: templates/FAQ.html:155 templates/news.html:662 templates/search.html:66
+msgid "Back to Home"
+msgstr "Back to Home"
+
+# ==================== REGISTER PAGE ====================
+#: templates/account_register.html:2
+#, fuzzy
+msgid "Create Local Account - Keydion"
+msgstr "Create Account · Keydion"
+
+#: templates/account_register.html:8
+#, fuzzy
+msgid "Create a local account"
+msgstr "Create your account"
+
+#: templates/account_register.html:9
+msgid "Set a username and password to link with your Microsoft sign-in."
+msgstr ""
+
+# ==================== MS AUTH ====================
+#: templates/account_register.html:12
+msgid "We will use your Microsoft email as the username."
+msgstr "We will use your Microsoft email as the username."
+
+#: templates/account_register.html:16 templates/admin_login.html:19
+#: templates/admin_users.html:127 templates/login.html:25
+#: templates/register.html:39
+msgid "Password"
+msgstr "Password"
+
+#: templates/account_register.html:20 templates/register.html:44
+msgid "Confirm password"
+msgstr "Confirm password"
+
+#: templates/account_register.html:23
+#, fuzzy
+msgid "Create and link account"
+msgstr "Create account"
+
+# ==================== ADMIN LOGIN PAGE ====================
+#: templates/admin_login.html:2
+msgid "Admin Sign In · Keydion"
+msgstr "Admin Sign In · Keydion"
+
+#: templates/admin_login.html:8
+msgid "Admin Login"
+msgstr "Admin Login"
+
+#: templates/admin_login.html:10
+msgid "Sign in with your administrator username and password."
+msgstr "Sign in with your administrator username and password."
+
+#: templates/admin_login.html:14
+msgid "Username"
+msgstr "Username"
+
+#: templates/admin_login.html:16
+msgid "e.g. admin"
+msgstr "e.g. admin"
+
+#: templates/admin_login.html:22 templates/base.html:47 templates/login.html:28
+#: templates/news.html:536 templates/news_article.html:603
+#: templates/register.html:53
+msgid "Sign in"
+msgstr "Sign in"
+
+#: templates/admin_login.html:25
+msgid "← Back to regular login"
+msgstr "← Back to regular login"
+
+# ==================== ADMIN USER MANAGEMENT ====================
+#: templates/admin_users.html:2
+msgid "User Management - Keydion"
+msgstr "User Management - Keydion"
+
+#: templates/admin_users.html:6
+msgid "User Management"
+msgstr "User Management"
+
+#: templates/admin_users.html:7
+msgid "Manage local and Microsoft users and roles."
+msgstr "Manage local and Microsoft users and roles."
+
+#: templates/admin_users.html:14 templates/admin_users.html:117
+msgid "Add Local User"
+msgstr "Add Local User"
+
+#: templates/admin_users.html:16
+msgid "Save role changes"
+msgstr "Save role changes"
+
+#: templates/admin_users.html:22
+msgid "Local Users"
+msgstr "Local Users"
+
+#: templates/admin_users.html:27 templates/admin_users.html:123
+msgid "Username / Email"
+msgstr "Username / Email"
+
+#: templates/admin_users.html:28 templates/admin_users.html:79
+#: templates/admin_users.html:131
+msgid "Role"
+msgstr "Role"
+
+#: templates/admin_users.html:29 templates/admin_users.html:80
+#: templates/delete.html:265 templates/news_manage.html:464
+msgid "Actions"
+msgstr "Actions"
+
+#: templates/admin_users.html:48
+msgid "New password"
+msgstr "New password"
+
+#: templates/admin_users.html:50
+msgid "Reset"
+msgstr "Reset"
+
+#: templates/admin_users.html:54 templates/admin_users.html:98
+#: templates/delete.html:298 templates/delete.html:358
+#: templates/news_article.html:685 templates/news_manage.html:485
+#: templates/news_manage.html:595 templates/news_manage.html:608
+#: templates/paper_manage.html:124 templates/paper_manage.html:175
+#: templates/paper_manage.html:223
+msgid "Delete"
+msgstr "Delete"
+
+#: templates/admin_users.html:61
+msgid "No local users found."
+msgstr "No local users found."
+
+#: templates/admin_users.html:72
+msgid "Microsoft Users (External)"
+msgstr "Microsoft Users (External)"
+
+#: templates/admin_users.html:77
+msgid "Display Name"
+msgstr "Display Name"
+
+#: templates/admin_users.html:78 templates/delete.html:334
+#: templates/login.html:20 templates/paper_modify.html:88
+#: templates/register.html:14 templates/review_paper.html:39
+#: templates/submission_detail.html:39 templates/upload.html:87
+msgid "Email"
+msgstr "Email"
+
+#: templates/admin_users.html:86 templates/journal_detail.html:192
+#: templates/journal_detail.html:223 templates/journal_edit.html:103
+#: templates/journal_edit.html:124
+msgid "Unknown"
+msgstr "Unknown"
+
+#: templates/admin_users.html:104
+msgid "No Microsoft users found."
+msgstr "No Microsoft users found."
+
+#: templates/admin_users.html:118 templates/admin_users.html:140
+#: templates/news_manage.html:507
+msgid "Close"
+msgstr "Close"
+
+#: templates/admin_users.html:141 templates/news_manage.html:522
+#: templates/paper_manage.html:143 templates/paper_manage.html:194
+msgid "Add"
+msgstr "Add"
+
+#: templates/advanced_search.html:2 templates/landing.html:1008
+#, fuzzy
+msgid "Advanced Search"
+msgstr "Go to Search"
+
+#: templates/advanced_search.html:6
+#, fuzzy
+msgid "Advanced search"
+msgstr "Go to Search"
+
+#: templates/advanced_search.html:10
+#, fuzzy
+msgid "Find articles…"
+msgstr "Paper Title"
+
+#: templates/advanced_search.html:12
+msgid "that contain these"
+msgstr ""
+
+#: templates/advanced_search.html:13
+msgid "terms"
+msgstr ""
+
+#: templates/advanced_search.html:15
+msgid "Keywords, e.g., neural networks"
+msgstr ""
+
+#: templates/advanced_search.html:18
+msgid "where the list of"
+msgstr ""
+
+#: templates/advanced_search.html:19
+#, fuzzy
+msgid "authors"
+msgstr "Authors"
+
+#: templates/advanced_search.html:19 templates/advanced_search.html:24
+msgid "contains"
+msgstr ""
+
+#: templates/advanced_search.html:20
+#, fuzzy
+msgid "Author name"
+msgstr "Author Name"
+
+#: templates/advanced_search.html:23
+msgid "where the"
+msgstr ""
+
+# ==================== PAPER METADATA ====================
+#: templates/advanced_search.html:23
+#, fuzzy
+msgid "title"
+msgstr "Title"
+
+#: templates/advanced_search.html:25
+#, fuzzy
+msgid "Title keywords"
+msgstr "Keywords"
+
+#: templates/advanced_search.html:28
+#, fuzzy
+msgid "Refine your results by…"
+msgstr "Refine Results"
+
+#: templates/advanced_search.html:31
+#, fuzzy
+msgid "publication"
+msgstr "Public Page"
+
+#: templates/advanced_search.html:31
+#, fuzzy
+msgid "date"
+msgstr "Date"
+
+#: templates/advanced_search.html:36 templates/advanced_search.html:43
+#, fuzzy
+msgid "Year"
+msgstr "Search"
+
+#: templates/advanced_search.html:41
+msgid "to"
+msgstr ""
+
+#: templates/advanced_search.html:52
+#, fuzzy
+msgid "journal(s)"
+msgstr "Journals"
+
+#: templates/advanced_search.html:65 templates/base.html:24
+#: templates/base.html:40 templates/landing.html:1004 templates/news.html:520
+#: templates/news_article.html:590
+msgid "Search"
+msgstr "Search"
+
+#: templates/base.html:7 templates/base.html:16 templates/base.html:82
+msgid "Keydion"
+msgstr "Keydion"
+
+#: templates/base.html:25 templates/base.html:41 templates/dashboard.html:69
+#: templates/news.html:7 templates/news.html:522 templates/news.html:563
+#: templates/news_article.html:592
+msgid "News"
+msgstr "News"
+
+#: templates/base.html:26 templates/base.html:42 templates/landing.html:965
+#: templates/news.html:524 templates/news_article.html:594
+msgid "Upload"
+msgstr "Upload"
+
+#: templates/base.html:28 templates/review_list.html:84
+msgid "Review"
+msgstr "Review"
+
+#: templates/base.html:31 templates/base.html:43 templates/dashboard.html:91
+#: templates/landing.html:967 templates/news.html:527
+msgid "Manage"
+msgstr "Manage"
+
+#: templates/base.html:36 templates/dashboard.html:22
+msgid "Sign out"
+msgstr "Sign out"
+
+#: templates/dashboard.html:2
+msgid "User Menu · Keydion"
+msgstr "User Menu · Keydion"
+
+#: templates/dashboard.html:13
+#, python-format
+msgid "Hello, %(username)s!"
+msgstr "Hello, %(username)s!"
+
+#: templates/dashboard.html:14
+msgid "Manage your account access, uploads, and linked services."
+msgstr "Manage your account access, uploads, and linked services."
+
+#: templates/dashboard.html:20
+#, python-format
+msgid "Access valid through %(date)s"
+msgstr "Access valid through %(date)s"
+
+#: templates/dashboard.html:31
+msgid "Upload Research"
+msgstr "Upload Research"
+
+#: templates/dashboard.html:32
+msgid ""
+"Support community scholarship by sharing new papers in PDF format for "
+"peers to explore."
+msgstr ""
+"Support community scholarship by sharing new papers in PDF format for "
+"peers to explore."
+
+#: templates/dashboard.html:33 templates/delete.html:245
+#: templates/my_submissions.html:76
+msgid "Upload a Paper"
+msgstr "Upload a Paper"
+
+#: templates/dashboard.html:40 templates/my_submissions.html:5
+msgid "My Submissions"
+msgstr "My Submissions"
+
+#: templates/dashboard.html:41 templates/my_submissions.html:6
+msgid "Track the review status of your submitted papers."
+msgstr "Track the review status of your submitted papers."
+
+#: templates/dashboard.html:42
+msgid "View Submissions"
+msgstr "View Submissions"
+
+#: templates/dashboard.html:50 templates/review_list.html:5
+msgid "Review Submissions"
+msgstr "Review Submissions"
+
+#: templates/dashboard.html:51 templates/review_list.html:6
+msgid "Review papers submitted by readers. Accept or reject pending submissions."
+msgstr "Review papers submitted by readers. Accept or reject pending submissions."
+
+#: templates/dashboard.html:52
+msgid "Review Papers"
+msgstr "Review Papers"
+
+#: templates/dashboard.html:59
+msgid "Manage Collection"
+msgstr "Manage Collection"
+
+#: templates/dashboard.html:60
+msgid ""
+"Keep the repository tidy by removing outdated or duplicate papers. "
+"Confirmation keeps actions safe."
+msgstr ""
+"Keep the repository tidy by removing outdated or duplicate papers. "
+"Confirmation keeps actions safe."
+
+#: templates/dashboard.html:62 templates/delete.html:237
+msgid "Manage Papers"
+msgstr "Manage Papers"
+
+#: templates/dashboard.html:70
+#, fuzzy
+msgid ""
+"Share updates, announcements, and stories with the Keydion community. "
+"Manage existing articles or\n"
+"        publish new ones."
+msgstr ""
+"Share updates, announcements, and stories with the Keydion community. "
+"Manage existing articles or publish new ones."
+
+#: templates/dashboard.html:73
+msgid "Write an Article"
+msgstr "Write an Article"
+
+#: templates/dashboard.html:74 templates/news_manage.html:429
+msgid "Manage News"
+msgstr "Manage News"
+
+#: templates/dashboard.html:82
+msgid "Admin Tools"
+msgstr "Admin Tools"
+
+#: templates/dashboard.html:83
+msgid "Manage local and Microsoft users, roles, and passwords."
+msgstr "Manage local and Microsoft users, roles, and passwords."
+
+#: templates/dashboard.html:84
+msgid "Manage Users"
+msgstr "Manage Users"
+
+#: templates/dashboard.html:89 templates/paper_manage.html:94
+msgid "Manage Categories & Journals"
+msgstr "Manage Categories & Journals"
+
+#: templates/dashboard.html:90
+msgid ""
+"Add, rename, or remove paper subject categories and journal names used in"
+" the submission forms."
+msgstr ""
+"Add, rename, or remove paper subject categories and journal names used in"
+" the submission forms."
+
+# ==================== PAPER MANAGEMENT ====================
+#: templates/delete.html:2
+msgid "Manage Papers · Keydion"
+msgstr "Manage Papers · Keydion"
+
+#: templates/delete.html:238
+msgid "Preview, modify, or delete papers from the library."
+msgstr "Preview, modify, or delete papers from the library."
+
+#: templates/delete.html:251
+msgid "No papers in the library yet."
+msgstr "No papers in the library yet."
+
+#: templates/delete.html:252
+msgid "Upload your first paper"
+msgstr "Upload your first paper"
+
+# ==================== PAPER METADATA ====================
+#: templates/delete.html:261 templates/delete.html:324
+#: templates/news_manage.html:460 templates/news_publish.html:983
+#: templates/paper_modify.html:27 templates/preview.html:122
+#: templates/review_paper.html:24 templates/submission_detail.html:24
+msgid "Title"
+msgstr "Title"
+
+#: templates/delete.html:262 templates/delete.html:326
+#: templates/news_manage.html:461 templates/news_publish.html:988
+#: templates/paper_modify.html:45 templates/preview.html:124
+#: templates/review_paper.html:27 templates/submission_detail.html:27
+#, fuzzy
+msgid "Category"
+msgstr "Subject Category"
+
+#: templates/delete.html:263 templates/delete.html:332
+#: templates/news_manage.html:462 templates/news_publish.html:998
+#: templates/review_paper.html:36 templates/submission_detail.html:36
+#, fuzzy
+msgid "Author"
+msgstr "Authors"
+
+#: templates/delete.html:264 templates/delete.html:338
+#: templates/news_manage.html:463 templates/paper_modify.html:101
+#, fuzzy
+msgid "Published"
+msgstr "Published At"
+
+#: templates/delete.html:294
+msgid "Modify"
+msgstr "Modify"
+
+#: templates/delete.html:314 templates/paper_modify.html:127
+#: templates/review_paper.html:102 templates/submission_detail.html:89
+msgid "Paper Preview"
+msgstr "Paper Preview"
+
+#: templates/delete.html:328 templates/paper_modify.html:67
+#: templates/preview.html:126 templates/review_paper.html:30
+#: templates/submission_detail.html:30 templates/upload.html:39
+msgid "Keywords"
+msgstr "Keywords"
+
+#: templates/delete.html:330 templates/paper_modify.html:73
+#: templates/preview.html:98 templates/review_paper.html:33
+#: templates/submission_detail.html:33 templates/upload.html:70
+msgid "Abstract"
+msgstr "Abstract"
+
+#: templates/delete.html:336 templates/profile_setup.html:24
+#: templates/review_paper.html:42 templates/submission_detail.html:42
+#: templates/upload.html:91
+msgid "School"
+msgstr "School"
+
+#: templates/delete.html:352
+msgid "Delete Paper"
+msgstr "Delete Paper"
+
+#: templates/delete.html:353 templates/paper_manage.html:246
+#: templates/paper_manage.html:263
+msgid "Are you sure you want to delete"
+msgstr "Are you sure you want to delete"
+
+#: templates/delete.html:353
+msgid "?"
+msgstr "?"
+
+#: templates/delete.html:354
+msgid "This action cannot be undone."
+msgstr "This action cannot be undone."
+
+#: templates/delete.html:357 templates/news_manage.html:607
+#: templates/news_publish.html:969 templates/paper_modify.html:116
+#: templates/upload.html:105
+msgid "Cancel"
+msgstr "Cancel"
+
+#: templates/journal_detail.html:158
+msgid "All Papers"
+msgstr "All Papers"
+
+#: templates/journal_detail.html:214
+msgid "Undated"
+msgstr "Undated"
+
+#: templates/journal_detail.html:231
+msgid "No papers in this journal yet."
+msgstr "No papers in this journal yet."
+
+#: templates/journal_detail.html:247
+msgid "PAPERS"
+msgstr "PAPERS"
+
+#: templates/journal_detail.html:258
+msgid "COVERAGE"
+msgstr "COVERAGE"
+
+#: templates/journal_detail.html:270
+msgid "SUBJECTS"
+msgstr "SUBJECTS"
+
+#: templates/journal_edit.html:2 templates/journal_edit.html:34
+msgid "Edit Journal"
+msgstr "Edit Journal"
+
+#: templates/journal_edit.html:40
+msgid "Back to Management"
+msgstr "Back to Management"
+
+#: templates/journal_edit.html:49
+msgid "Journal Details"
+msgstr "Journal Details"
+
+#: templates/journal_edit.html:54
+msgid "Journal Name"
+msgstr "Journal Name"
+
+#: templates/journal_edit.html:61 templates/news_publish.html:1011
+msgid "Cover Image"
+msgstr "Cover Image"
+
+#: templates/journal_edit.html:69
+msgid "Upload a cover image (PNG, JPG, WebP)"
+msgstr "Upload a cover image (PNG, JPG, WebP)"
+
+#: templates/journal_edit.html:73
+msgid "Introduction"
+msgstr "Introduction"
+
+#: templates/journal_edit.html:75
+msgid "Write the journal introduction..."
+msgstr "Write the journal introduction..."
+
+#: templates/journal_edit.html:78 templates/news_publish.html:971
+#: templates/paper_modify.html:114
+msgid "Save Changes"
+msgstr "Save Changes"
+
+#: templates/journal_edit.html:88
+msgid "Papers in this Journal"
+msgstr "Papers in this Journal"
+
+#: templates/journal_edit.html:109
+msgid "No papers assigned to this journal yet."
+msgstr "No papers assigned to this journal yet."
+
+#: templates/journal_edit.html:110
+msgid "Papers can be assigned when uploading or editing."
+msgstr "Papers can be assigned when uploading or editing."
+
+#: templates/journal_edit.html:117
+msgid "Quick Info"
+msgstr "Quick Info"
+
+#: templates/journal_edit.html:121
+msgid "Journal ID"
+msgstr "Journal ID"
+
+#: templates/journal_edit.html:123
+msgid "Created"
+msgstr "Created"
+
+#: templates/journal_edit.html:125
+msgid "Public Page"
+msgstr "Public Page"
+
+#: templates/journal_edit.html:127
+msgid "View Journal Page"
+msgstr "View Journal Page"
+
+# ==================== ADMIN USER MANAGEMENT ====================
+#: templates/journal_list.html:2
+#, fuzzy
+msgid "Journals · Keydion"
+msgstr "User Management - Keydion"
+
+#: templates/journal_list.html:93 templates/paper_manage.html:153
+msgid "Journals"
+msgstr "Journals"
+
+#: templates/journal_list.html:94
+msgid "Browse our collection of academic journals."
+msgstr "Browse our collection of academic journals."
+
+#: templates/journal_list.html:127
+msgid "No journals available yet."
+msgstr "No journals available yet."
+
+# ==================== LANDING PAGE TAGLINE ====================
+#: templates/landing.html:995
+msgid "tagline_quote_1"
+msgstr ""
+"Explore true wisdom within the classroom, and feel its echoes across the "
+"boundless earth."
+
+#: templates/landing.html:995
+msgid "tagline_quote_2"
+msgstr ""
+"A living vessel for scholarly learning, research exploration, and "
+"academic prowess."
+
+#: templates/landing.html:1003
+msgid "搜索论文标题、关键词"
+msgstr "Search paper title, keywords"
+
+#: templates/landing.html:1003
+msgid "搜索论文"
+msgstr "Search"
+
+#: templates/landing.html:1110
+msgid "关于我们"
+msgstr "About Us"
+
+#: templates/landing.html:1111
+msgid ""
+"Keydion 是一个专为高中设计的学术资产平台。我们聚焦于学生的科研成果，包括 IA、EE、TOK "
+"等项目。通过本平台，学生的研究成果将不再被忽视，而是被系统性地保存于 Keydion\n"
+"            数据库中，供师生查阅与参考。同时，教师也可以更全面地了解本校科研项目的内容与整体质量。"
+msgstr ""
+"Keydion is an academic asset platform specifically designed for high "
+"schools. We focus on students' research output, including IA, EE, TOK, "
+"and other projects. Through this platform, students' research "
+"achievements will no longer be overlooked but systematically preserved in"
+" the Keydion database for reference by teachers and students. Moreover, "
+"teachers can gain a more comprehensive understanding of the content and "
+"overall quality of research projects at their school."
+
+#: templates/landing.html:1113
+msgid ""
+"Keydion\n"
+"            "
+"同样致力于维护学术诚信，避免撞题以及学术不端误判。我们希望为每一所学校留存这些珍贵的学术成果，让优秀的学生研究经验得以传承，使学术探索不再只是一次性的作业，而成为可以持续积累与发展的知识资产。"
+msgstr ""
+"Keydion is also dedicated to maintaining academic integrity by preventing"
+" topic overlap and avoiding false accusations of academic misconduct. We "
+"hope to preserve these precious academic achievements for every school, "
+"allowing outstanding student research experiences to be passed down, so "
+"that academic exploration is no longer just a one-off assignment but a "
+"knowledge asset that can be continuously accumulated and developed."
+
+# ==================== ADMIN LOGIN PAGE ====================
+#: templates/login.html:2
+#, fuzzy
+msgid "Sign in · Keydion"
+msgstr "Admin Sign In · Keydion"
+
+# ==================== LOGIN PAGE ====================
+#: templates/login.html:8
+msgid "Keydion Portal"
+msgstr "Login"
+
+#: templates/login.html:11
+msgid "Sign in with Microsoft"
+msgstr "Sign in with Microsoft"
+
+#: templates/login.html:12
+msgid "or sign in with email"
+msgstr "or sign in with email"
+
+#: templates/login.html:15
+msgid "Microsoft sign-in is not configured yet."
+msgstr "Microsoft sign-in is not configured yet."
+
+#: templates/login.html:22 templates/register.html:17
+msgid "e.g. user@example.com"
+msgstr "e.g. user@example.com"
+
+#: templates/login.html:31
+msgid "Don't have an account?"
+msgstr "Don't have an account?"
+
+#: templates/login.html:32
+msgid "Register now"
+msgstr "Register now"
+
+#: templates/login.html:35
+msgid "Admin login"
+msgstr "Admin login"
+
+#: templates/my_submissions.html:2
+msgid "My Submissions · Keydion"
+msgstr "My Submissions · Keydion"
+
+#: templates/my_submissions.html:11 templates/paper_manage.html:100
+#: templates/review_list.html:11 templates/upload.html:11
 msgid "Back to Dashboard"
 msgstr "Back to Dashboard"
+
+#: templates/my_submissions.html:14
+msgid "Submit a New Paper"
+msgstr "Submit a New Paper"
+
+#: templates/my_submissions.html:25 templates/review_list.html:50
+#: templates/upload.html:20
+msgid "Paper Title"
+msgstr "Paper Title"
+
+#: templates/my_submissions.html:26 templates/review_list.html:52
+#: templates/review_paper.html:49 templates/submission_detail.html:45
+msgid "Submitted"
+msgstr "Submitted"
+
+#: templates/my_submissions.html:27 templates/review_list.html:53
+#: templates/review_paper.html:52 templates/submission_detail.html:49
+msgid "Status"
+msgstr ""
+
+#: templates/my_submissions.html:28 templates/submission_detail.html:61
+msgid "Reviewer"
+msgstr "Reviewer"
+
+#: templates/my_submissions.html:29
+msgid "Comment"
+msgstr "Comment"
+
+#: templates/my_submissions.html:46 templates/review_paper.html:55
+#: templates/submission_detail.html:52
+msgid "Pending Review"
+msgstr "Pending Review"
+
+#: templates/my_submissions.html:48 templates/review_list.html:26
+#: templates/review_list.html:75 templates/review_paper.html:57
+#: templates/submission_detail.html:54
+msgid "Accepted"
+msgstr "Accepted"
+
+#: templates/my_submissions.html:50 templates/review_list.html:32
+#: templates/review_list.html:77 templates/review_paper.html:59
+#: templates/submission_detail.html:56
+msgid "Rejected"
+msgstr "Rejected"
+
+#: templates/my_submissions.html:58
+msgid "Yes"
+msgstr "Yes"
+
+#: templates/my_submissions.html:60
+msgid "No"
+msgstr "No"
+
+#: templates/my_submissions.html:73
+msgid "No submissions yet"
+msgstr "No submissions yet"
+
+#: templates/my_submissions.html:74
+msgid ""
+"Upload a paper to get started. Your submission will be reviewed by a "
+"moderator."
+msgstr ""
+"Upload a paper to get started. Your submission will be reviewed by a "
+"moderator."
+
+#: templates/my_submissions.html:83
+msgid "How the review process works"
+msgstr "How the review process works"
+
+#: templates/my_submissions.html:85
+msgid ""
+"After you submit a paper, it enters the <strong>Pending Review</strong> "
+"queue."
+msgstr ""
+"After you submit a paper, it enters the <strong>Pending Review</strong> "
+"queue."
+
+#: templates/my_submissions.html:86
+msgid "A moderator or administrator will review your paper."
+msgstr "A moderator or administrator will review your paper."
+
+#: templates/my_submissions.html:87
+msgid "If <strong>Accepted</strong>, your paper becomes available in the library."
+msgstr "If <strong>Accepted</strong>, your paper becomes available in the library."
+
+#: templates/my_submissions.html:88
+msgid "If <strong>Rejected</strong>, you will see the reviewer's comments here."
+msgstr "If <strong>Rejected</strong>, you will see the reviewer's comments here."
+
+#: templates/news.html:574
+msgid "No news articles yet"
+msgstr ""
+
+#: templates/news.html:575
+msgid "Check back later for updates from Keydion."
+msgstr ""
+
+#: templates/news.html:620 templates/search.html:170
+msgid "Previous"
+msgstr ""
+
+#: templates/news.html:631 templates/search.html:181
+msgid "Next"
+msgstr ""
+
+#: templates/news.html:643
+msgid "Most Recent"
+msgstr ""
+
+#: templates/news_article.html:646
+msgid "Anonymous"
+msgstr ""
+
+#: templates/news_article.html:652
+msgid "Copy link"
+msgstr ""
+
+#: templates/news_article.html:658
+msgid "Print"
+msgstr ""
+
+#: templates/news_article.html:676 templates/news_manage.html:482
+#: templates/paper_manage.html:168
+msgid "Edit"
+msgstr ""
+
+#: templates/news_article.html:679 templates/news_manage.html:484
+msgid "Are you sure you want to delete this article?"
+msgstr ""
+
+#: templates/news_article.html:719
+msgid "Read More"
+msgstr ""
+
+#: templates/news_article.html:752
+#, fuzzy
+msgid "Back to News"
+msgstr "Back to Home"
+
+# ==================== ADMIN USER MANAGEMENT ====================
+#: templates/news_manage.html:2
+#, fuzzy
+msgid "Manage News · Keydion"
+msgstr "User Management - Keydion"
+
+#: templates/news_manage.html:437 templates/news_manage.html:505
+#, fuzzy
+msgid "Manage Categories"
+msgstr "Paper Categories"
+
+#: templates/news_manage.html:445
+#, fuzzy
+msgid "Publish New Article"
+msgstr "Published At"
+
+#: templates/news_manage.html:452
+msgid "No news articles yet."
+msgstr ""
+
+#: templates/news_manage.html:453
+msgid "Publish your first article"
+msgstr ""
+
+#: templates/news_manage.html:514
+#, fuzzy
+msgid "New category name…"
+msgstr "New category name..."
+
+#: templates/news_manage.html:580
+#, fuzzy
+msgid "No categories yet. Add one above."
+msgstr "No categories yet. Add one below."
+
+#: templates/news_manage.html:590
+#, fuzzy
+msgid "articles"
+msgstr "Paper Title"
+
+#: templates/news_manage.html:592 templates/paper_manage.html:117
+#: templates/paper_manage.html:222
+msgid "Rename"
+msgstr "Rename"
+
+#: templates/news_manage.html:605
+msgid ""
+"Delete this category? Articles using it will keep their current category "
+"label."
+msgstr ""
+
+#: templates/news_manage.html:654
+#, fuzzy
+msgid "Category added"
+msgstr "Subject Category"
+
+#: templates/news_manage.html:695
+#, fuzzy
+msgid "Category renamed"
+msgstr "New category name..."
+
+#: templates/news_manage.html:713
+#, fuzzy
+msgid "Category deleted"
+msgstr "Local user deleted."
+
+# ==================== SEARCH PAGE ====================
+#: templates/news_publish.html:2
+#, fuzzy
+msgid "Publish News · Keydion"
+msgstr "Search Papers · Keydion"
+
+#: templates/news_publish.html:958
+#, fuzzy
+msgid "Edit News Article"
+msgstr "Write an Article"
+
+#: templates/news_publish.html:964
+#, fuzzy
+msgid "Publish News Article"
+msgstr "Published At"
+
+#: templates/news_publish.html:965
+msgid "Block Editor"
+msgstr ""
+
+#: templates/news_publish.html:971
+msgid "Publish Article"
+msgstr "Publish Article"
+
+#: templates/news_publish.html:981
+#, fuzzy
+msgid "Article Info"
+msgstr "Paper not found."
+
+#: templates/news_publish.html:985
+msgid "Enter article title"
+msgstr ""
+
+#: templates/news_publish.html:990
+#, fuzzy
+msgid "Select category"
+msgstr "Subject Category"
+
+#: templates/news_publish.html:1000
+msgid "Author name (optional)"
+msgstr ""
+
+#: templates/news_publish.html:1003
+#, fuzzy
+msgid "Abstract / Summary"
+msgstr "Abstract"
+
+#: templates/news_publish.html:1005
+msgid "A brief summary shown in the news listing"
+msgstr ""
+
+#: templates/news_publish.html:1017 templates/news_publish.html:1528
+msgid "Remove image"
+msgstr "Remove image"
+
+#: templates/news_publish.html:1020 templates/news_publish.html:1537
+#, fuzzy
+msgid "Click to upload"
+msgstr "File Upload"
+
+#: templates/news_publish.html:1031
+msgid "Writing Tips"
+msgstr "Writing Tips"
+
+#: templates/news_publish.html:1033
+msgid "Use a clear, specific headline that captures readers' attention."
+msgstr "Use a clear, specific headline that captures readers' attention."
+
+#: templates/news_publish.html:1034
+msgid "Keep the abstract to 1-2 sentences that summarize the key point."
+msgstr "Keep the abstract to 1-2 sentences that summarize the key point."
+
+#: templates/news_publish.html:1035
+msgid "Text blocks"
+msgstr ""
+
+#: templates/news_publish.html:1035
+msgid ""
+"Each block becomes a paragraph. Use multiple\n"
+"                            blocks for clear structure."
+msgstr ""
+
+#: templates/news_publish.html:1037
+msgid "Image blocks"
+msgstr ""
+
+#: templates/news_publish.html:1037
+msgid ""
+"Insert images anywhere in the article with\n"
+"                            optional captions."
+msgstr ""
+
+#: templates/news_publish.html:1039
+msgid "Reorder blocks with the arrow buttons that appear on hover."
+msgstr ""
+
+#: templates/news_publish.html:1045
+msgid "Shortcuts"
+msgstr ""
+
+#: templates/news_publish.html:1047
+#, fuzzy
+msgid "Publish / Save"
+msgstr "Published At"
+
+#: templates/news_publish.html:1048
+msgid "Next block"
+msgstr ""
+
+#: templates/news_publish.html:1064
+#, fuzzy
+msgid "Article Content"
+msgstr "Paper not found."
+
+#: templates/news_publish.html:1074 templates/news_publish.html:1315
+msgid "Text"
+msgstr ""
+
+#: templates/news_publish.html:1082 templates/news_publish.html:1316
+#, fuzzy
+msgid "Image"
+msgstr "Manage"
+
+#: templates/news_publish.html:1088 templates/news_publish.html:1317
+msgid "Divider"
+msgstr ""
+
+#: templates/news_publish.html:1098
+msgid "Font Family"
+msgstr ""
+
+#: templates/news_publish.html:1114
+msgid "Font Size"
+msgstr ""
+
+#: templates/news_publish.html:1139 templates/news_publish.html:1583
+msgid "Font Color"
+msgstr ""
+
+#: templates/news_publish.html:1145 templates/news_publish.html:1161
+msgid "More Colors"
+msgstr ""
+
+#: templates/news_publish.html:1154
+msgid "Highlight"
+msgstr ""
+
+#: templates/news_publish.html:1172
+msgid "Align Left"
+msgstr ""
+
+#: templates/news_publish.html:1180
+msgid "Align Center"
+msgstr ""
+
+#: templates/news_publish.html:1188
+msgid "Align Right"
+msgstr ""
+
+#: templates/news_publish.html:1196
+msgid "Justify"
+msgstr ""
+
+#: templates/news_publish.html:1216
+#, fuzzy
+msgid "Add Text"
+msgstr "Related text"
+
+#: templates/news_publish.html:1223
+#, fuzzy
+msgid "Add Image"
+msgstr "Cover Image"
+
+#: templates/news_publish.html:1230
+msgid "Add Divider"
+msgstr ""
+
+#: templates/news_publish.html:1236 templates/news_publish.html:1507
+#, fuzzy
+msgid "characters"
+msgstr "300 characters max"
+
+#: templates/news_publish.html:1237
+#, fuzzy
+msgid "Ready"
+msgstr "Created"
+
+#: templates/news_publish.html:1370
+msgid "Write your paragraph here…"
+msgstr ""
+
+#: templates/news_publish.html:1393
+#, fuzzy
+msgid "Uploading…"
+msgstr "Upload"
+
+#: templates/news_publish.html:1399
+msgid "Add image caption (optional)"
+msgstr ""
+
+#: templates/news_publish.html:1406
+msgid "Click or drag to upload"
+msgstr ""
+
+#: templates/news_publish.html:1479
+#, fuzzy
+msgid "Image upload failed. Please try again."
+msgstr "Microsoft sign-in is not configured. Please contact the administrator."
+
+#: templates/news_publish.html:1508
+msgid "text"
+msgstr ""
+
+#: templates/news_publish.html:1508
+#, fuzzy
+msgid "images"
+msgstr "Manage"
+
+#: templates/news_publish.html:1508
+msgid "dividers"
+msgstr ""
+
+#: templates/news_publish.html:1560
+msgid "Please add at least one content block with text or an image."
+msgstr ""
+
+#: templates/news_publish.html:1583
+msgid "Highlight Color"
+msgstr ""
+
+#: templates/paper_manage.html:2
+#, fuzzy
+msgid "Manage Categories & Journals · Keydion"
+msgstr "Manage Categories & Journals"
+
+#: templates/paper_manage.html:95
+msgid "Add, rename, or remove paper subject categories and journal names."
+msgstr "Add, rename, or remove paper subject categories and journal names."
+
+#: templates/paper_manage.html:109
+msgid "Paper Categories"
+msgstr "Paper Categories"
+
+#: templates/paper_manage.html:138
+msgid "No categories yet. Add one below."
+msgstr "No categories yet. Add one below."
+
+#: templates/paper_manage.html:142
+msgid "New category name..."
+msgstr "New category name..."
+
+#: templates/paper_manage.html:189
+msgid "No journals yet. Add one below."
+msgstr "No journals yet. Add one below."
+
+#: templates/paper_manage.html:193
+msgid "New journal name..."
+msgstr "New journal name..."
+
+#: templates/paper_manage.html:238
+msgid "Enter new name:"
+msgstr "Enter new name:"
+
+#: templates/paper_modify.html:2
+msgid "Modify Paper · Keydion"
+msgstr "Modify Paper · Keydion"
+
+#: templates/paper_modify.html:6
+msgid "Modify Paper Information"
+msgstr "Modify Paper Information"
+
+#: templates/paper_modify.html:7
+msgid "Edit the metadata for this paper. Changes will take effect immediately."
+msgstr "Edit the metadata for this paper. Changes will take effect immediately."
+
+#: templates/paper_modify.html:12
+msgid "Back to Paper Management"
+msgstr "Back to Paper Management"
+
+#: templates/paper_modify.html:21
+#, fuzzy
+msgid "Paper Details"
+msgstr "Paper Title"
+
+#: templates/paper_modify.html:34 templates/upload.html:28
+msgid "Journal"
+msgstr "Journal"
+
+#: templates/paper_modify.html:36 templates/upload.html:31
+msgid "No journal (leave blank)"
+msgstr "No journal (leave blank)"
+
+#: templates/paper_modify.html:47
+msgid "Select a category"
+msgstr "Select a category"
+
+#: templates/paper_modify.html:56 templates/search.html:51
+#: templates/upload.html:58
+msgid "Language"
+msgstr "Language"
+
+#: templates/paper_modify.html:58
+#, fuzzy
+msgid "Select a language"
+msgstr "Please select a language"
+
+#: templates/paper_modify.html:60 templates/search.html:55
+#: templates/upload.html:62
+msgid "Chinese"
+msgstr "Chinese"
+
+# ==================== LANGUAGE ====================
+#: templates/paper_modify.html:62 templates/search.html:56
+#: templates/upload.html:63
+msgid "English"
+msgstr "English"
+
+#: templates/paper_modify.html:69
+msgid "Comma-separated keywords"
+msgstr "Comma-separated keywords"
+
+#: templates/paper_modify.html:75
+msgid "Brief summary of the paper"
+msgstr "Brief summary of the paper"
+
+#: templates/paper_modify.html:79
+msgid "Author Information"
+msgstr "Author Information"
+
+#: templates/paper_modify.html:82
+msgid "Author Name"
+msgstr "Author Name"
+
+#: templates/paper_modify.html:94
+msgid "School/Institution"
+msgstr "School/Institution"
+
+#: templates/paper_modify.html:103
+msgid "Submission date cannot be modified."
+msgstr "Submission date cannot be modified."
+
+#: templates/preview.html:2
+#, fuzzy
+msgid "Preview Paper"
+msgstr "Delete Paper"
+
+#: templates/preview.html:10 templates/preview.html:13
+#: templates/preview.html:15
+#, fuzzy
+msgid "Back to Search"
+msgstr "Go to Search"
+
+#: templates/preview.html:21
+msgid "Sign in to download"
+msgstr "Sign in to download"
+
+#: templates/preview.html:32
+msgid "Open in new tab"
+msgstr ""
+
+#: templates/preview.html:42 templates/search.html:146
+msgid "Download"
+msgstr "Download"
+
+#: templates/preview.html:65 templates/search.html:104
+msgid "Journal Article"
+msgstr "Journal Article"
+
+#: templates/preview.html:69 templates/preview.html:153
+#: templates/preview.html:185 templates/search.html:110
+msgid "Untitled Paper"
+msgstr "Untitled Paper"
+
+#: templates/preview.html:71 templates/preview.html:75
+#: templates/preview.html:123 templates/preview.html:125
+#: templates/preview.html:127 templates/preview.html:129
+#: templates/preview.html:155 templates/search.html:114
+#: templates/search.html:117
+msgid "Not specified"
+msgstr ""
+
+# ==================== PREVIEW / GUEST ====================
+#: templates/preview.html:81
+msgid "Guest preview is limited to the first two pages of each paper."
+msgstr "Guest preview is limited to the first two pages of each paper."
+
+#: templates/preview.html:82
+msgid "Sign in to view full papers"
+msgstr "Sign in to view full papers"
+
+#: templates/preview.html:104 templates/search.html:123
+msgid "No abstract available."
+msgstr "No abstract available."
+
+#: templates/preview.html:115
+msgid "About this issue"
+msgstr "About this issue"
+
+#: templates/preview.html:128
+msgid "Organization"
+msgstr "Organization"
+
+#: templates/preview.html:141
+msgid "Related text"
+msgstr "Related text"
+
+#: templates/preview.html:160
+msgid "No related texts found in this category."
+msgstr "No related texts found in this category."
+
+#: templates/preview.html:180
+msgid "PDF Preview"
+msgstr "PDF Preview"
+
+#: templates/profile_setup.html:2
+msgid "Complete your profile - Keydion"
+msgstr ""
+
+#: templates/profile_setup.html:8
+msgid "Complete your profile"
+msgstr ""
+
+#: templates/profile_setup.html:10
+msgid "Add your basic information so we can personalize your experience."
+msgstr ""
+
+#: templates/profile_setup.html:15 templates/register.html:21
+msgid "First name"
+msgstr "First name"
+
+#: templates/profile_setup.html:20 templates/register.html:27
+msgid "Last name"
+msgstr "Last name"
+
+#: templates/profile_setup.html:26
+#, fuzzy
+msgid "Select a school"
+msgstr "Select PDF file"
+
+#: templates/profile_setup.html:35
+msgid "Grade"
+msgstr ""
+
+#: templates/profile_setup.html:37
+#, fuzzy
+msgid "Select a grade"
+msgstr "Select PDF file"
+
+#: templates/profile_setup.html:47
+#, fuzzy
+msgid "Save profile"
+msgstr "Save role changes"
+
+# ==================== REGISTER PAGE ====================
+#: templates/register.html:2
+msgid "Create Account · Keydion"
+msgstr "Create Account · Keydion"
+
+#: templates/register.html:8
+msgid "Create your account"
+msgstr "Create your account"
+
+#: templates/register.html:10
+msgid "Fill in the details below to register a new Keydion account."
+msgstr "Fill in the details below to register a new Keydion account."
+
+#: templates/register.html:34
+msgid "School name"
+msgstr "School name"
+
+#: templates/register.html:36
+msgid "Optional"
+msgstr "Optional"
+
+#: templates/register.html:49
+msgid "Create account"
+msgstr "Create account"
+
+#: templates/register.html:52
+msgid "Already have an account?"
+msgstr "Already have an account?"
+
+#: templates/review_list.html:2
+msgid "Review Submissions · Keydion"
+msgstr "Review Submissions · Keydion"
+
+#: templates/review_list.html:20 templates/review_list.html:73
+msgid "Pending"
+msgstr "Pending"
+
+#: templates/review_list.html:38
+msgid "All"
+msgstr "All"
+
+#: templates/review_list.html:51 templates/review_paper.html:45
+msgid "Submitted By"
+msgstr "Submitted By"
+
+#: templates/review_list.html:54
+msgid "Action"
+msgstr "Action"
+
+#: templates/review_list.html:100
+msgid "No submissions found"
+msgstr "No submissions found"
+
+#: templates/review_list.html:103
+msgid "There are no papers waiting for review."
+msgstr "There are no papers waiting for review."
+
+#: templates/review_list.html:105
+msgid "No submissions match the selected filter."
+msgstr "No submissions match the selected filter."
+
+#: templates/review_paper.html:2
+msgid "Review Paper · Keydion"
+msgstr "Review Paper · Keydion"
+
+#: templates/review_paper.html:5
+msgid "Review Paper"
+msgstr "Review Paper"
+
+#: templates/review_paper.html:6
+msgid "Review the submission details and decide whether to accept or reject."
+msgstr "Review the submission details and decide whether to accept or reject."
+
+#: templates/review_paper.html:11
+msgid "Back to Review List"
+msgstr "Back to Review List"
+
+#: templates/review_paper.html:20 templates/submission_detail.html:5
+#: templates/submission_detail.html:20
+msgid "Submission Details"
+msgstr "Submission Details"
+
+#: templates/review_paper.html:72
+msgid "Accept this paper? It will be published to the library."
+msgstr "Accept this paper? It will be published to the library."
+
+#: templates/review_paper.html:73
+msgid "Accept & Publish"
+msgstr "Accept & Publish"
+
+#: templates/review_paper.html:83
+msgid "Rejection Reason"
+msgstr "Rejection Reason"
+
+#: templates/review_paper.html:86
+msgid "Please explain why this paper is being rejected..."
+msgstr "Please explain why this paper is being rejected..."
+
+#: templates/review_paper.html:89
+msgid "Reject this paper? This action cannot be undone."
+msgstr "Reject this paper? This action cannot be undone."
+
+#: templates/review_paper.html:90
+msgid "Reject"
+msgstr "Reject"
+
+# ==================== SEARCH PAGE ====================
+#: templates/search.html:2
+msgid "Search Papers · Keydion"
+msgstr "Search Papers · Keydion"
+
+#: templates/search.html:7
+msgid "Refine Results"
+msgstr "Refine Results"
+
+#: templates/search.html:14
+msgid "Search Within Results"
+msgstr "Search Within Results"
+
+#: templates/search.html:30
+msgid "Subject"
+msgstr "Subject"
+
+#: templates/search.html:33
+msgid "Any Subject"
+msgstr "Any Subject"
+
+#: templates/search.html:43
+msgid "Date"
+msgstr "Date"
+
+#: templates/search.html:54
+msgid "Any Language"
+msgstr "Any Language"
+
+#: templates/search.html:63
+#, fuzzy
+msgid ""
+"Back to\n"
+"        Dashboard"
+msgstr "Back to Dashboard"
+
+#: templates/search.html:78
+#, python-format
+msgid "%(count)s result"
+msgid_plural "%(count)s results"
+msgstr[0] "%(count)s result"
+msgstr[1] "%(count)s results"
+
+#: templates/search.html:133
+msgid "Sign in to Download"
+msgstr "Sign in to Download"
+
+#: templates/search.html:151
+msgid "View"
+msgstr "View"
+
+#: templates/search.html:187
+#, python-format
+msgid "Page %(current)d of %(total)d"
+msgstr ""
+
+#: templates/search.html:194
+msgid "No papers match your search criteria. Try adjusting your filters."
+msgstr "No papers match your search criteria. Try adjusting your filters."
+
+#: templates/submission_detail.html:2
+msgid "Submission Details · Keydion"
+msgstr "Submission Details · Keydion"
+
+#: templates/submission_detail.html:6
+msgid "View the details and current status of your submission."
+msgstr "View the details and current status of your submission."
+
+#: templates/submission_detail.html:11
+msgid "Back to My Submissions"
+msgstr "Back to My Submissions"
+
+#: templates/submission_detail.html:66
+msgid "Reviewed"
+msgstr "Reviewed"
+
+#: templates/submission_detail.html:76
+msgid "Reviewer Comment"
+msgstr "Reviewer Comment"
+
+#: templates/submission_detail.html:97
+msgid "Paper preview is not available."
+msgstr "Paper preview is not available."
+
+#: templates/submission_detail.html:99
+msgid "The file was removed after rejection."
+msgstr "The file was removed after rejection."
+
+# ==================== PAPER SUBMISSION ====================
+#: templates/upload.html:2
+#, fuzzy
+msgid "Paper Submission · Keydion"
+msgstr "Paper Submission · Keydion"
+
+#: templates/upload.html:5
+msgid "Paper Submission Portal"
+msgstr "Paper Submission Portal"
+
+#: templates/upload.html:6
+msgid "Please fill in the information below and upload your research"
+msgstr "Please fill in the information below and upload your research"
+
+#: templates/upload.html:22
+msgid "Please enter the complete paper title"
+msgstr "Please enter the complete paper title"
+
+#: templates/upload.html:28
+msgid "optional"
+msgstr "optional"
+
+#: templates/upload.html:41
+msgid "Enter keywords, separated by commas"
+msgstr "Enter keywords, separated by commas"
+
+#: templates/upload.html:48
+msgid "Subject Category"
+msgstr "Subject Category"
+
+#: templates/upload.html:50
+#, fuzzy
+msgid ""
+"Please select a\n"
+"              category..."
+msgstr "Please select a category..."
+
+#: templates/upload.html:60
+#, fuzzy
+msgid ""
+"Please select a\n"
+"              language..."
+msgstr "Please select a language"
+
+#: templates/upload.html:70
+#, fuzzy
+msgid ""
+"300 characters\n"
+"            max"
+msgstr "300 characters max"
+
+#: templates/upload.html:73
+msgid ""
+"Please briefly describe your research background, methods, and "
+"conclusions..."
+msgstr ""
+"Please briefly describe your research background, methods, and "
+"conclusions..."
+
+#: templates/upload.html:79
+msgid "First Author Information"
+msgstr "First Author Information"
+
+#: templates/upload.html:83
+msgid "Name"
+msgstr "Name"
+
+#: templates/upload.html:98
+msgid "File Upload"
+msgstr "File Upload"
+
+#: templates/upload.html:98
+msgid "max 20MB"
+msgstr "max 20MB"
+
+#: templates/upload.html:104
+msgid "Submit Paper"
+msgstr "Submit Paper"
+
+#: templates/upload_success.html:7
+msgid "Upload Success"
+msgstr "Upload Success"
+
+#: templates/upload_success.html:156
+msgid "Submission Successful!"
+msgstr "Submission Successful!"
+
+#: templates/upload_success.html:157
+msgid "Submitted at"
+msgstr "Submitted at"
+
+#: templates/upload_success.html:163
+msgid "Done"
+msgstr "Done"
+
+#: templates/upload_success.html:164
+msgid "View My Submissions"
+msgstr "View My Submissions"
+
+#: venv_new/lib/python3.9/site-packages/click/_termui_impl.py:556
+#, python-brace-format
+msgid "{editor}: Editing failed"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/_termui_impl.py:560
+#, python-brace-format
+msgid "{editor}: Editing failed: {e}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:1124
+msgid "Aborted!"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:1349
+#: venv_new/lib/python3.9/site-packages/click/core.py:1379
+#, python-brace-format
+msgid "(Deprecated) {text}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:1396
+#, fuzzy
+msgid "Options"
+msgstr "Optional"
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:1422
+#, python-brace-format
+msgid "Got unexpected extra argument ({args})"
+msgid_plural "Got unexpected extra arguments ({args})"
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:1438
+#, python-brace-format
+msgid "DeprecationWarning: The command {name!r} is deprecated."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:1645
+msgid "Commands"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:1677
+msgid "Missing command."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:1755
+#, python-brace-format
+msgid "No such command {name!r}."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:2313
+msgid "Value must be an iterable."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:2334
+#, python-brace-format
+msgid "Takes {nargs} values but 1 was given."
+msgid_plural "Takes {nargs} values but {len} were given."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:2783
+#, python-brace-format
+msgid "env var: {var}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:2813
+msgid "(dynamic)"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:2828
+#, python-brace-format
+msgid "default: {default}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:2841
+#, fuzzy
+msgid "required"
+msgstr "Email is required."
+
+#: venv_new/lib/python3.9/site-packages/click/decorators.py:457
+#, python-format
+msgid "%(prog)s, version %(version)s"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/decorators.py:520
+msgid "Show the version and exit."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/decorators.py:541
+msgid "Show this message and exit."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:49
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:88
+#, python-brace-format
+msgid "Error: {message}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:80
+#, python-brace-format
+msgid "Try '{command} {option}' for help."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:129
+#, python-brace-format
+msgid "Invalid value: {message}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:131
+#, python-brace-format
+msgid "Invalid value for {param_hint}: {message}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:187
+#, fuzzy
+msgid "Missing argument"
+msgstr "Submission Guide"
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:189
+msgid "Missing option"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:191
+msgid "Missing parameter"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:193
+#, python-brace-format
+msgid "Missing {param_type}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:200
+#, python-brace-format
+msgid "Missing parameter: {param_name}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:220
+#, fuzzy, python-brace-format
+msgid "No such option: {name}"
+msgstr "School name"
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:232
+#, python-brace-format
+msgid "Did you mean {possibility}?"
+msgid_plural "(Possible options: {possibilities})"
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:270
+#, fuzzy
+msgid "unknown error"
+msgstr "Unknown"
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:277
+#, python-brace-format
+msgid "Could not open file {filename!r}: {message}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/parser.py:233
+#, python-brace-format
+msgid "Argument {name!r} takes {nargs} values."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/parser.py:415
+#, python-brace-format
+msgid "Option {name!r} does not take a value."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/parser.py:476
+#, python-brace-format
+msgid "Option {name!r} requires an argument."
+msgid_plural "Option {name!r} requires {nargs} arguments."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv_new/lib/python3.9/site-packages/click/shell_completion.py:326
+msgid "Shell completion is not supported for Bash versions older than 4.4."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/shell_completion.py:333
+msgid "Couldn't detect Bash version, shell completion is not supported."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/termui.py:158
+#, fuzzy
+msgid "Repeat for confirmation"
+msgstr "First Author Information"
+
+#: venv_new/lib/python3.9/site-packages/click/termui.py:174
+msgid "Error: The value you entered was invalid."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/termui.py:176
+#, python-brace-format
+msgid "Error: {e.message}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/termui.py:187
+msgid "Error: The two entered values do not match."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/termui.py:243
+msgid "Error: invalid input"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/termui.py:773
+msgid "Press any key to continue..."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:267
+#, python-brace-format
+msgid ""
+"Choose from:\n"
+"\t{choices}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:299
+#, python-brace-format
+msgid "{value!r} is not {choice}."
+msgid_plural "{value!r} is not one of {choices}."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:393
+#, python-brace-format
+msgid "{value!r} does not match the format {format}."
+msgid_plural "{value!r} does not match the formats {formats}."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:415
+#, python-brace-format
+msgid "{value!r} is not a valid {number_type}."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:471
+#, python-brace-format
+msgid "{value} is not in the range {range}."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:612
+#, python-brace-format
+msgid "{value!r} is not a valid boolean."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:636
+#, python-brace-format
+msgid "{value!r} is not a valid UUID."
+msgstr ""
+
+# ==================== PAPER METADATA ====================
+#: venv_new/lib/python3.9/site-packages/click/types.py:826
+#, fuzzy
+msgid "file"
+msgstr "Title"
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:828
+msgid "directory"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:830
+msgid "path"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:881
+#, python-brace-format
+msgid "{name} {filename!r} does not exist."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:890
+#, python-brace-format
+msgid "{name} {filename!r} is a file."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:898
+#, python-brace-format
+msgid "{name} {filename!r} is a directory."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:907
+#, python-brace-format
+msgid "{name} {filename!r} is not readable."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:916
+#, python-brace-format
+msgid "{name} {filename!r} is not writable."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:925
+#, python-brace-format
+msgid "{name} {filename!r} is not executable."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:992
+#, python-brace-format
+msgid "{len_type} values are required, but {len_value} was given."
+msgid_plural "{len_type} values are required, but {len_value} were given."
+msgstr[0] ""
+msgstr[1] ""
+
+#~ msgid "Please use the Microsoft button to sign in."
+#~ msgstr "Please use the Microsoft button to sign in."
+
+# ==================== BASE TEMPLATE ====================
+#~ msgid "Keydion"
+#~ msgstr "Keydion"
+
+#~ msgid "e.g. j.smith"
+#~ msgstr "e.g. j.smith"
+
+#~ msgid "Need help? Contact the Library Services Team."
+#~ msgstr "Need help? Contact the Library Services Team."
+
+#~ msgid "Registration successful! You can now sign in."
+#~ msgstr "Registration successful! You can now sign in."
+
+# ==================== DASHBOARD ====================
+#~ msgid "Dashboard · Keydion"
+#~ msgstr "Dashboard · Keydion"
+
+#~ msgid ""
+#~ "Welcome to the Keydion research portal."
+#~ " Use the navigation to search, "
+#~ "upload, or curate papers based on "
+#~ "your access level."
+#~ msgstr ""
+#~ "Welcome to the Keydion research portal."
+#~ " Use the navigation to search, "
+#~ "upload, or curate papers based on "
+#~ "your access level."
+
+#~ msgid "Search Library"
+#~ msgstr "Search Library"
+
+#~ msgid ""
+#~ "Find relevant publications across the "
+#~ "academy's curated collection with quick "
+#~ "keyword matching."
+#~ msgstr ""
+#~ "Find relevant publications across the "
+#~ "academy's curated collection with quick "
+#~ "keyword matching."
+
+#~ msgid "Upload unavailable"
+#~ msgstr "Upload unavailable"
+
+#~ msgid "Admin only"
+#~ msgstr "Admin only"
+
+#~ msgid "%(count)s papers found"
+#~ msgstr "%(count)s papers found"
+
+# ==================== UPLOAD PAGE ====================
+#~ msgid "Upload Paper · Keydion"
+#~ msgstr "Upload Paper · Keydion"
+
+#~ msgid "Upload a New Paper"
+#~ msgstr "Upload a New Paper"
+
+#~ msgid ""
+#~ "Share PDF files with the school "
+#~ "community. Files are instantly available "
+#~ "for search."
+#~ msgstr ""
+#~ "Share PDF files with the school "
+#~ "community. Files are instantly available "
+#~ "for search."
+
+#~ msgid "Separate multiple authors with commas."
+#~ msgstr "Separate multiple authors with commas."
+
+#~ msgid "Separate keywords with commas."
+#~ msgstr "Separate keywords with commas."
+
+#~ msgid "Sign in to view the full paper"
+#~ msgstr "Sign in to view the full paper"
+
+#~ msgid "Guest access shows only the first two pages."
+#~ msgstr "Guest access shows only the first two pages."
+
+#~ msgid "Sign in or sign up"
+#~ msgstr "Sign in or sign up"
+
+#~ msgid "Microsoft email is missing. Please contact the administrator."
+#~ msgstr "Microsoft email is missing. Please contact the administrator."
+
+# ==================== LANDING PAGE ====================
+#~ msgid "Keydion - Academic Club Homepage"
+#~ msgstr "Keydion - Academic Club Homepage"
+
+#~ msgid "Submit"
+#~ msgstr "Submit"
+
+#~ msgid "Select Language"
+#~ msgstr "Language"
+
+#~ msgid ""
+#~ "Explore academic research methods, document"
+#~ " youth perspectives, and publish original"
+#~ "\n"
+#~ "            student research."
+#~ msgstr ""
+#~ "Explore academic research methods, document"
+#~ " youth perspectives, and publish original"
+#~ " student research."
+
+#~ msgid "Search paper titles, keywords"
+#~ msgstr "Search paper titles, keywords"
+
+#~ msgid "Search papers"
+#~ msgstr "Search papers"
+
+#~ msgid "Search Papers"
+#~ msgstr "Search Papers"
+
+#~ msgid "Guests can only preview the first two pages."
+#~ msgstr "Guests can only preview the first two pages."
+
+#~ msgid "Latest News"
+#~ msgstr "Latest News"
+
+#~ msgid "View All"
+#~ msgstr "View All"
+
+#~ msgid "Academic Writing Workshop"
+#~ msgstr "Academic Writing Workshop"
+
+#~ msgid "Event Review"
+#~ msgstr "Event Review"
+
+#~ msgid "2025 Spring Academic Writing Workshop Concluded Successfully"
+#~ msgstr "2025 Spring Academic Writing Workshop Concluded Successfully"
+
+#~ msgid "Journal Release"
+#~ msgstr "Journal Release"
+
+#~ msgid "Youth Research Vol.2 No.1 Now Online"
+#~ msgstr "Youth Research Vol.2 No.1 Now Online"
+
+#~ msgid "Lecture Preview"
+#~ msgstr "Lecture Preview"
+
+#~ msgid "How to Choose a Research Topic That Suits You?"
+#~ msgstr "How to Choose a Research Topic That Suits You?"
+
+#~ msgid "Achievement Showcase"
+#~ msgstr "Achievement Showcase"
+
+#~ msgid ""
+#~ "Club Member Paper Selected for International High School\n"
+#~ "              Academic Conference"
+#~ msgstr ""
+#~ "Club Member Paper Selected for "
+#~ "International High School Academic Conference"
+
+#~ msgid "Research Projects"
+#~ msgstr "Research Projects"
+
+#~ msgid "Urban Sustainability from a High School Perspective"
+#~ msgstr "Urban Sustainability from a High School Perspective"
+
+#~ msgid "In Progress"
+#~ msgstr "In Progress"
+
+#~ msgid "AI Ethics: High School Student Attitudes Toward AI Applications"
+#~ msgstr "AI Ethics: High School Student Attitudes Toward AI Applications"
+
+#~ msgid "Impact of Social Media on Adolescent Reading Habits"
+#~ msgstr "Impact of Social Media on Adolescent Reading Habits"
+
+#~ msgid "Completed"
+#~ msgstr "Completed"
+
+#~ msgid "Campus Food Safety Awareness and Behavior Analysis"
+#~ msgstr "Campus Food Safety Awareness and Behavior Analysis"
+
+#~ msgid "Journal Archive"
+#~ msgstr "Journal Archive"
+
+#~ msgid "Vol.2 No.1 (2025 Autumn) - Interdisciplinary Research Methods"
+#~ msgstr "Vol.2 No.1 (2025 Autumn) - Interdisciplinary Research Methods"
+
+#~ msgid "Journal"
+#~ msgstr "Journal"
+
+#~ msgid "Vol.1 No.2 (2025 Summer) - AI Ethics and Society"
+#~ msgstr "Vol.1 No.2 (2025 Summer) - AI Ethics and Society"
+
+#~ msgid "Vol.1 No.1 (2025 Spring) - Voice of Young Researchers"
+#~ msgstr "Vol.1 No.1 (2025 Spring) - Voice of Young Researchers"
+
+#~ msgid "Essay Writing Collection (2024)"
+#~ msgstr "Essay Writing Collection (2024)"
+
+#~ msgid "Collection"
+#~ msgstr "Collection"
+
+#~ msgid "About Us"
+#~ msgstr "About Us"
+
+#~ msgid ""
+#~ "The High School English Paper Club "
+#~ "focuses on cultivating academic research "
+#~ "skills among youth,\n"
+#~ "            providing high school students "
+#~ "with academic writing training, research "
+#~ "methodology guidance, and a paper\n"
+#~ "            publication platform."
+#~ msgstr ""
+#~ "The High School English Paper Club "
+#~ "focuses on cultivating academic research "
+#~ "skills among youth, providing high "
+#~ "school students with academic writing "
+#~ "training, research methodology guidance, and"
+#~ " a paper publication platform."
+
+#~ msgid ""
+#~ "The club regularly organizes topic "
+#~ "seminars, writing workshops, and literature"
+#~ " search training to\n"
+#~ "            help members develop independent"
+#~ " research perspectives. The journal Youth"
+#~ " Research publishes outstanding\n"
+#~ "            student papers."
+#~ msgstr ""
+#~ "The club regularly organizes topic "
+#~ "seminars, writing workshops, and literature"
+#~ " search training to help members "
+#~ "develop independent research perspectives. The"
+#~ " journal Youth Research publishes "
+#~ "outstanding student papers."
+
+#~ msgid "Club Members"
+#~ msgstr "Club Members"
+
+#~ msgid "Journal Issues"
+#~ msgstr "Journal Issues"
+
+#~ msgid "Published Papers"
+#~ msgstr "Published Papers"
+
+#~ msgid "Themed Events"
+#~ msgstr "Themed Events"
+
+#~ msgid "Core Team"
+#~ msgstr "Core Team"
+
+#~ msgid "Student Zhang"
+#~ msgstr "Student Zhang"
+
+#~ msgid "President - Overall planning and journal review"
+#~ msgstr "President - Overall planning and journal review"
+
+#~ msgid "Student Li"
+#~ msgstr "Student Li"
+
+#~ msgid "Vice President - Event planning and outreach"
+#~ msgstr "Vice President - Event planning and outreach"
+
+#~ msgid "Student Wang"
+#~ msgstr "Student Wang"
+
+#~ msgid "Editor-in-Chief - Journal editing and layout"
+#~ msgstr "Editor-in-Chief - Journal editing and layout"
+
+#~ msgid "Student Zhao"
+#~ msgstr "Student Zhao"
+
+#~ msgid "Tech Lead - Website and database maintenance"
+#~ msgstr "Tech Lead - Website and database maintenance"
+
+#~ msgid ""
+#~ "Dedicated to cultivating academic research "
+#~ "skills and providing a writing and "
+#~ "publication platform\n"
+#~ "            for high school students."
+#~ msgstr ""
+#~ "Dedicated to cultivating academic research "
+#~ "skills and providing a writing and "
+#~ "publication platform for high school "
+#~ "students."
+
+#~ msgid "Partner"
+#~ msgstr "Partner"
+
+#~ msgid "Navigation"
+#~ msgstr "Navigation"
+
+#~ msgid "Home"
+#~ msgstr "Home"
+
+#~ msgid "Resources"
+#~ msgstr "Resources"
+
+#~ msgid "Submission Guide"
+#~ msgstr "Submission Guide"
+
+#~ msgid "Writing Resources"
+#~ msgstr "Writing Resources"
+
+#~ msgid "FAQ"
+#~ msgstr "FAQ"
+
+#~ msgid "Contact Us"
+#~ msgstr "Contact Us"
+
+#~ msgid "WeChat: EssayClub_official"
+#~ msgstr "WeChat: EssayClub_official"
+
+#~ msgid "Library 2F - Academic Club Center"
+#~ msgstr "Library 2F - Academic Club Center"
+
+#~ msgid "Social Links"
+#~ msgstr "Social Links"
+
+#~ msgid "WeChat"
+#~ msgstr "WeChat"
+
+#~ msgid "Weibo"
+#~ msgstr "Weibo"
+
+#~ msgid "Account Login"
+#~ msgstr "Account Login"
+
+#~ msgid "Contact administrator for help"
+#~ msgstr "Contact administrator for help"
+
+#~ msgid "Frequently Asked Questions"
+#~ msgstr "Frequently Asked Questions"
+
+#~ msgid "How do I submit a paper?"
+#~ msgstr "How do I submit a paper?"
+
+#~ msgid ""
+#~ "Click Submit in the navigation bar "
+#~ "and sign in to access the "
+#~ "submission system. PDF uploads are\n"
+#~ "            supported; please ensure files do not exceed 10MB."
+#~ msgstr ""
+#~ "Click Submit in the navigation bar "
+#~ "and sign in to access the "
+#~ "submission system. PDF uploads are "
+#~ "supported; please ensure files do not"
+#~ " exceed 10MB."
+
+#~ msgid "What are the submission requirements?"
+#~ msgstr "What are the submission requirements?"
+
+#~ msgid ""
+#~ "Submissions are open to enrolled high"
+#~ " school students. Accepted formats include"
+#~ " research papers,\n"
+#~ "            literature reviews, and survey "
+#~ "reports. Both Chinese and English are"
+#~ " accepted, with English preferred.\n"
+#~ "            Documents should be in Word"
+#~ " or PDF format and include an "
+#~ "abstract, keywords, body text, and "
+#~ "references."
+#~ msgstr ""
+#~ "Submissions are open to enrolled high"
+#~ " school students. Accepted formats include"
+#~ " research papers, literature reviews, and"
+#~ " survey reports. Both Chinese and "
+#~ "English are accepted, with English "
+#~ "preferred. Documents should be in Word"
+#~ " or PDF format and include an "
+#~ "abstract, keywords, body text, and "
+#~ "references."
+
+#~ msgid "How do I register an account?"
+#~ msgstr "How do I register an account?"
+
+#~ msgid ""
+#~ "Please contact the club administrator to"
+#~ " obtain an account. For academic "
+#~ "integrity, we use an\n"
+#~ "            invitation-based registration "
+#~ "system. Contact: club@example.edu"
+#~ msgstr ""
+#~ "Please contact the club administrator to"
+#~ " obtain an account. For academic "
+#~ "integrity, we use an invitation-based"
+#~ " registration system. Contact: club@example.edu"
+
+#~ msgid "How long does the review process take?"
+#~ msgstr "How long does the review process take?"
+
+#~ msgid ""
+#~ "Initial review results are typically "
+#~ "provided within 1-2 weeks. If revisions"
+#~ " are needed, the revised\n"
+#~ "            manuscript review takes about "
+#~ "1 week. Final acceptance notifications "
+#~ "are sent via email."
+#~ msgstr ""
+#~ "Initial review results are typically "
+#~ "provided within 1-2 weeks. If revisions"
+#~ " are needed, the revised manuscript "
+#~ "review takes about 1 week. Final "
+#~ "acceptance notifications are sent via "
+#~ "email."
+
+#~ msgid "Can I view published papers?"
+#~ msgstr "Can I view published papers?"
+
+#~ msgid ""
+#~ "Yes, after signing in you can "
+#~ "search and browse published papers in"
+#~ " the Search Library section.\n"
+#~ "            Outstanding papers are also "
+#~ "featured in the Latest News on the"
+#~ " homepage."
+#~ msgstr ""
+#~ "Yes, after signing in you can "
+#~ "search and browse published papers in"
+#~ " the Search Library section. Outstanding"
+#~ " papers are also featured in the "
+#~ "Latest News on the homepage."
+
+#~ msgid "How can I contact the club?"
+#~ msgstr "How can I contact the club?"
+
+#~ msgid "You can reach us through the following channels:"
+#~ msgstr "You can reach us through the following channels:"
+
+#~ msgid "Email: club@example.edu"
+#~ msgstr "Email: club@example.edu"
+
+#~ msgid "Location: Library 2F - Academic Club Center"
+#~ msgstr "Location: Library 2F - Academic Club Center"
+
+#~ msgid "Cover Image URL"
+#~ msgstr ""
+
+#~ msgid "Paste a direct URL to an image. Leave blank for no cover image."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Add a cover image URL (e.g. from"
+#~ " Unsplash) to make the article stand"
+#~ " out."
+#~ msgstr ""
+
+# ==================== DELETE PAGE ====================
+#~ msgid "Delete Papers · Keydion"
+#~ msgstr "Delete Papers · Keydion"
+
+#~ msgid "Manage Paper Collection"
+#~ msgstr "Manage Paper Collection"
+
+#~ msgid ""
+#~ "Remove outdated or duplicate papers. "
+#~ "Confirm the filename to complete "
+#~ "deletion."
+#~ msgstr ""
+#~ "Remove outdated or duplicate papers. "
+#~ "Confirm the filename to complete "
+#~ "deletion."
+
+#~ msgid "Available Papers"
+#~ msgstr "Available Papers"
+
+#~ msgid "Select filename"
+#~ msgstr "Select filename"
+
+#~ msgid "Choose a paper"
+#~ msgstr "Choose a paper"
+
+#~ msgid "Confirm filename"
+#~ msgstr "Confirm filename"
+
+#~ msgid "Type the exact filename to confirm"
+#~ msgstr "Type the exact filename to confirm"
+
+#~ msgid "This extra step prevents accidental deletions."
+#~ msgstr "This extra step prevents accidental deletions."
+
+#~ msgid "No papers available to delete. Upload new papers in the Upload section."
+#~ msgstr "No papers available to delete. Upload new papers in the Upload section."
+
+#~ msgid "Sign in with your academy credentials to explore the research library."
+#~ msgstr "Sign in with your academy credentials to explore the research library."
+
+#~ msgid "Share updates, announcements, and stories with the Keydion community."
+#~ msgstr ""
+#~ "Share updates, announcements, and stories "
+#~ "with the Keydion community. Manage "
+#~ "existing articles or publish new ones."
+
+#~ msgid "Full Article"
+#~ msgstr ""
+
+#~ msgid "Write the full article content. Use blank lines to separate paragraphs."
+#~ msgstr ""
+
+#~ msgid "Select a PNG, JPG, GIF, or WebP image. Max 32 MB."
+#~ msgstr "Select a PNG, JPG, GIF, or WebP image. Max 32 MB."
+
+#~ msgid ""
+#~ "In the full article, use blank "
+#~ "lines between paragraphs for readability."
+#~ msgstr ""
+#~ "In the full article, use blank "
+#~ "lines between paragraphs for readability."
+
+#~ msgid "Upload a cover image to make the article stand out in the news listing."
+#~ msgstr "Upload a cover image to make the article stand out in the news listing."
+
+#~ msgid "Download PDF"
+#~ msgstr "Download PDF"
+
+#~ msgid "Authors"
+#~ msgstr "Authors"
+
+#~ msgid "Published At"
+#~ msgstr "Published At"
+
+#~ msgid "Search the Research Library"
+#~ msgstr "Search the Research Library"
+
+#~ msgid "Enter keywords to find matching papers by title or content."
+#~ msgstr "Enter keywords to find matching papers by title or content."
+
+#~ msgid "Keyword"
+#~ msgstr "Keyword"
+
+#~ msgid "climate change"
+#~ msgstr "climate change"
+
+#~ msgid "%(count)s paper total"
+#~ msgid_plural "%(count)s papers total"
+#~ msgstr[0] "%(count)s paper found"
+#~ msgstr[1] ""
+
+#~ msgid "Next Page"
+#~ msgstr ""
+
+#~ msgid "Go to page"
+#~ msgstr "Go to Search"
+
+#~ msgid "Go"
+#~ msgstr ""
+
+#~ msgid "No."
+#~ msgstr ""
+
+#~ msgid "No papers matched \"%(query)s\". Try refining your terms."
+#~ msgstr "No papers matched \"%(query)s\". Try refining your terms."
+
+#~ msgid "No papers are available."
+#~ msgstr ""
+
+#~ msgid "Literature"
+#~ msgstr "Literature"
+
+#~ msgid "Natural Science"
+#~ msgstr "Natural Science"
+
+#~ msgid "Social Science"
+#~ msgstr "Social Science"
+
+#~ msgid "Humanities"
+#~ msgstr "Humanities"
+
+# ==================== REVIEW SYSTEM ====================
+#~ msgid ""
+#~ "Paper submitted for review. You can "
+#~ "track its status from your dashboard."
+#~ msgstr ""
+#~ "Paper submitted for review. You can "
+#~ "track its status from your dashboard."
+
+#~ msgid "Preview"
+#~ msgstr "Preview"
+
+#~ msgid "未登录用户仅可预览前两页。"
+#~ msgstr "Unregistered users can only preview the first two pages."
+
+# ==================== ROLES ====================
+#~ msgid "Reader - View & Download"
+#~ msgstr "Reader - View & Download"
+
+#~ msgid "Contributor - Upload Enabled"
+#~ msgstr "Contributor - Upload Enabled"
+
+#~ msgid "Curator - Full Access"
+#~ msgstr "Curator - Full Access"
+
+#~ msgid "International Academy Research Hub"
+#~ msgstr "Keydion"
+

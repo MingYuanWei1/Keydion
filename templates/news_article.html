@@ -1,0 +1,759 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ article.title }} · Keydion</title>
+    <meta name="description" content="{{ article.abstract }}">
+    <meta property="og:title" content="{{ article.title }}">
+    <meta property="og:description" content="{{ article.abstract }}">
+    <meta property="og:type" content="article">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #ffffff;
+            --bg-alt: #f8f9fb;
+            --ink: #1a1a2e;
+            --ink-light: #4a4a5a;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+            --brand: #1e40af;
+            --brand-light: #3b82f6;
+            --brand-dark: #1e3a8a;
+            --footer-bg: #0f172a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: "Noto Sans SC", "PingFang SC", "Microsoft Yahei", sans-serif;
+            color: var(--ink);
+            background: var(--bg);
+            line-height: 1.6;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        img {
+            max-width: 100%;
+            display: block;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* ==================== HEADER ==================== */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            height: 64px;
+        }
+
+        .header-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 64px;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            color: var(--brand);
+            letter-spacing: 0.5px;
+            font-size: 18px;
+        }
+
+        nav {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-link {
+            padding: 8px 16px;
+            font-size: 14px;
+            color: var(--ink-light);
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover {
+            color: var(--brand);
+        }
+
+        .btn-submit {
+            margin-left: 16px;
+            padding: 10px 24px;
+            background: var(--brand);
+            color: #fff;
+            font-size: 14px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-submit:hover {
+            background: var(--brand-dark);
+        }
+
+        .btn-user {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            border-radius: 999px;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        /* ==================== ARTICLE PAGE ==================== */
+        .page-body {
+            margin-top: 64px;
+        }
+
+        /* --- Kicker / Category --- */
+        .kicker {
+            display: inline-block;
+            margin-bottom: 12px;
+        }
+
+        .kicker a,
+        .kicker span {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--brand);
+            transition: color 0.2s;
+        }
+
+        .kicker a:hover {
+            color: var(--brand-dark);
+        }
+
+        /* --- Article Header --- */
+        .article-header {
+            max-width: 780px;
+            margin: 0 auto;
+            padding: 48px 24px 0;
+        }
+
+        .article-header h1 {
+            font-family: "Source Serif 4", serif;
+            font-size: 40px;
+            font-weight: 700;
+            line-height: 1.2;
+            color: var(--ink);
+            margin-bottom: 16px;
+        }
+
+        .article-abstract-block {
+            font-size: 18px;
+            line-height: 1.7;
+            color: var(--ink-light);
+            margin-bottom: 24px;
+            font-style: italic;
+            border-left: 3px solid var(--brand);
+            padding-left: 16px;
+        }
+
+        /* --- Hero Image --- */
+        .hero-figure {
+            max-width: 1000px;
+            margin: 0 auto 32px;
+            padding: 0 24px;
+        }
+
+        .hero-figure img {
+            width: 100%;
+            border-radius: 4px;
+        }
+
+        .hero-caption {
+            margin-top: 10px;
+            text-align: right;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .hero-caption .credit {
+            font-weight: 600;
+            color: var(--ink-light);
+        }
+
+        /* --- Author / Date --- */
+        .article-meta {
+            max-width: 780px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding-bottom: 20px;
+            margin-bottom: 32px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .author-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .author-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--brand-light), var(--brand-dark));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .author-name {
+            font-weight: 600;
+            color: var(--ink);
+            font-size: 15px;
+        }
+
+        .meta-date {
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        .share-links {
+            display: flex;
+            gap: 12px;
+        }
+
+        .share-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--ink-light);
+        }
+
+        .share-btn:hover {
+            background: var(--brand);
+            color: #fff;
+            border-color: var(--brand);
+        }
+
+        /* --- Article Body --- */
+        .article-body {
+            max-width: 780px;
+            margin: 0 auto;
+            padding: 0 24px 48px;
+        }
+
+        .article-body p {
+            font-family: "Source Serif 4", serif;
+            font-size: 18px;
+            line-height: 1.9;
+            color: var(--ink);
+            margin-bottom: 24px;
+        }
+
+        .article-body p:last-child {
+            margin-bottom: 0;
+        }
+
+        .article-body .body-paragraph {
+            font-family: "Source Serif 4", serif;
+            font-size: 18px;
+            line-height: 1.9;
+            color: var(--ink);
+            margin-bottom: 24px;
+        }
+
+        .article-body .body-paragraph:last-child {
+            margin-bottom: 0;
+        }
+
+        .article-body .body-figure {
+            margin: 32px 0;
+            text-align: center;
+        }
+
+        .article-body .body-figure img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, .08);
+        }
+
+        .article-body .body-figure figcaption {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #6b7280;
+            font-style: italic;
+        }
+
+        .article-body .body-divider {
+            margin: 36px 0;
+            border: none;
+            border-top: 2px dashed #d1d5db;
+        }
+
+        /* --- Admin Actions --- */
+        .admin-actions {
+            max-width: 780px;
+            margin: 0 auto;
+            padding: 0 24px 32px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn-edit,
+        .btn-delete,
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--ink-light);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-edit:hover {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .btn-delete {
+            color: #dc2626;
+            border-color: #fecaca;
+        }
+
+        .btn-delete:hover {
+            background: #fef2f2;
+            border-color: #dc2626;
+        }
+
+        .btn-back {
+            border-color: var(--border);
+            color: var(--ink-light);
+        }
+
+        .btn-back:hover {
+            border-color: var(--ink-light);
+            color: var(--ink);
+        }
+
+        /* --- Divider --- */
+        .section-divider {
+            max-width: 780px;
+            margin: 0 auto 40px;
+            padding: 0 24px;
+        }
+
+        .section-divider hr {
+            border: none;
+            border-top: 2px solid var(--ink);
+            margin: 0;
+        }
+
+        /* --- Related Articles (Read More) --- */
+        .related-section {
+            background: var(--bg-alt);
+            padding: 48px 0 64px;
+            border-top: 1px solid var(--border);
+        }
+
+        .related-header {
+            font-family: "Source Serif 4", serif;
+            font-size: 24px;
+            font-weight: 700;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--ink);
+            margin-bottom: 32px;
+        }
+
+        .related-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0;
+        }
+
+        .related-article {
+            display: flex;
+            gap: 20px;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .related-article:last-child {
+            border-bottom: none;
+        }
+
+        .related-article .r-thumb {
+            width: 160px;
+            flex-shrink: 0;
+            aspect-ratio: 4/3;
+            background: var(--border);
+            overflow: hidden;
+        }
+
+        .related-article .r-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .related-article .r-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .related-article h3 {
+            font-family: "Source Serif 4", serif;
+            font-size: 17px;
+            font-weight: 700;
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+
+        .related-article h3 a {
+            transition: color 0.2s;
+        }
+
+        .related-article h3 a:hover {
+            color: var(--brand);
+        }
+
+        .related-article .r-meta {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .related-article .r-abstract {
+            font-size: 14px;
+            color: var(--ink-light);
+            line-height: 1.6;
+            margin-top: 6px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            line-clamp: 2;
+            overflow: hidden;
+        }
+
+        /* ==================== FOOTER ==================== */
+        footer {
+            background: var(--footer-bg);
+            color: #fff;
+            padding: 40px 0;
+        }
+
+        .footer-inner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-inner .copyright {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .footer-inner a {
+            color: #94a3b8;
+            font-size: 13px;
+            transition: color 0.2s;
+        }
+
+        .footer-inner a:hover {
+            color: #fff;
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 768px) {
+            .article-header h1 {
+                font-size: 28px;
+            }
+
+            .article-body p {
+                font-size: 16px;
+            }
+
+            .article-abstract-block {
+                font-size: 16px;
+            }
+
+            .article-meta {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .related-article {
+                flex-direction: column;
+            }
+
+            .related-article .r-thumb {
+                width: 100%;
+            }
+
+            nav {
+                display: none;
+            }
+        }
+
+        /* ==================== FLASH ==================== */
+        .flash {
+            max-width: 780px;
+            margin: 16px auto;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .flash-success {
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            color: #065f46;
+        }
+
+        .flash-danger {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+        }
+
+        .flash-warning {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            color: #92400e;
+        }
+
+        .flash-info {
+            background: #e5f0ff;
+            border: 1px solid #bcd4ff;
+            color: #0f285c;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ==================== HEADER ==================== -->
+    <header>
+        <div class="container header-inner">
+            <a class="logo-area" href="{{ url_for('index') }}">Keydion</a>
+            <nav>
+                <a class="nav-link" href="{{ url_for('search') }}">{{ _('Search') }}</a>
+                <a class="nav-link" href="{{ url_for('news_list') }}" style="color:var(--brand);font-weight:600;">{{
+                    _('News') }}</a>
+                {% if session.get('user', {}).get('role', '1')|int >= 2 %}
+                <a class="nav-link" href="{{ url_for('upload') }}">{{ _('Upload') }}</a>
+                {% endif %}
+                {% if session.get('user') %}
+                {% set nav_name = session.get('user', {}).get('display_name') or session.get('user', {}).get('username',
+                '') %}
+                {% set nav_initial = nav_name[:1] if nav_name else 'U' %}
+                <a class="btn-submit btn-user" href="{{ url_for('dashboard') }}" title="{{ nav_name }}">{{
+                    nav_initial|upper }}</a>
+                {% else %}
+                <button class="btn-submit" onclick="location.href='{{ url_for('login') }}'">{{ _('Sign in') }}</button>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+    <!-- ==================== PAGE BODY ==================== -->
+    <div class="page-body">
+
+        {% with messages = get_flashed_messages(with_categories=True) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <!-- Kicker -->
+        <div class="article-header">
+            <div class="kicker">
+                <a href="{{ url_for('news_list') }}">{{ article.category|upper }}</a>
+            </div>
+            <h1>{{ article.title }}</h1>
+            {% if article.abstract %}
+            <div class="article-abstract-block">{{ article.abstract }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Hero Image -->
+        {% if article.image_url %}
+        <figure class="hero-figure">
+            <img src="{{ article.image_url }}" alt="{{ article.title }}">
+            <figcaption class="hero-caption">
+                <span class="credit">Keydion</span>
+            </figcaption>
+        </figure>
+        {% endif %}
+
+        <!-- Author / Date -->
+        <div class="article-meta">
+            <div class="author-info">
+                <div class="author-avatar">{{ article.author[:1]|upper if article.author else 'A' }}</div>
+                <div>
+                    <div class="author-name">{{ article.author or _('Anonymous') }}</div>
+                    <div class="meta-date">{{ article.published_at }}</div>
+                </div>
+            </div>
+            <div class="share-links">
+                <button class="share-btn" onclick="navigator.clipboard.writeText(window.location.href)"
+                    title="{{ _('Copy link') }}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                    </svg>
+                </button>
+                <button class="share-btn" onclick="window.print()" title="{{ _('Print') }}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 6 2 18 2 18 9" />
+                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                        <rect x="6" y="14" width="12" height="8" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Admin Actions -->
+        {% if session.get('user', {}).get('role', '1')|int >= 2 %}
+        <div class="admin-actions">
+            <a class="btn-edit" href="{{ url_for('news_edit', news_id=article.id) }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+                {{ _('Edit') }}
+            </a>
+            <form method="post" action="{{ url_for('news_delete', news_id=article.id) }}" style="display:inline"
+                onsubmit="return confirm('{{ _('Are you sure you want to delete this article?') }}')">
+                <button type="submit" class="btn-delete">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                    {{ _('Delete') }}
+                </button>
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- Article Body -->
+        <div class="article-body">
+            {% set body_blocks = article.body | parse_body_blocks %}
+            {% for block in body_blocks %}
+            {% if block.type == 'text' and block.content|trim %}
+            <div class="body-paragraph">{{ block.content|safe }}</div>
+            {% elif block.type == 'image' and block.url %}
+            <figure class="body-figure">
+                <img src="{{ block.url }}" alt="{{ block.caption or article.title }}">
+                {% if block.caption %}
+                <figcaption>{{ block.caption }}</figcaption>
+                {% endif %}
+            </figure>
+            {% elif block.type == 'divider' %}
+            <hr class="body-divider">
+            {% endif %}
+            {% endfor %}
+        </div>
+
+        <!-- Divider -->
+        <div class="section-divider">
+            <hr>
+        </div>
+
+        <!-- Related Articles -->
+        {% if related|length > 0 %}
+        <section class="related-section">
+            <div class="container">
+                <h2 class="related-header">{{ _('Read More') }}</h2>
+                <div class="related-grid">
+                    {% for item in related %}
+                    <article class="related-article">
+                        {% if item.image_url %}
+                        <div class="r-thumb">
+                            <a href="{{ url_for('news_detail', news_id=item.id) }}">
+                                <img src="{{ item.image_url }}" alt="{{ item.title }}">
+                            </a>
+                        </div>
+                        {% endif %}
+                        <div class="r-content">
+                            <h3><a href="{{ url_for('news_detail', news_id=item.id) }}">{{ item.title }}</a></h3>
+                            <div class="r-meta">
+                                <span>{{ item.author }}</span> · <span>{{ item.published_at }}</span>
+                            </div>
+                            {% if item.abstract %}
+                            <p class="r-abstract">{{ item.abstract }}</p>
+                            {% endif %}
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+        {% endif %}
+    </div>
+
+    <!-- ==================== FOOTER ==================== -->
+    <footer>
+        <div class="container">
+            <div class="footer-inner">
+                <span class="copyright">© 2026 Keydion</span>
+                <a href="{{ url_for('news_list') }}">← {{ _('Back to News') }}</a>
+            </div>
+        </div>
+    </footer>
+
+</body>
+
+</html>

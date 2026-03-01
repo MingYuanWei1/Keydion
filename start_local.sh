@@ -24,7 +24,7 @@ if [[ -n "${PAPERQUERY_UPLOAD_DIR:-}" ]]; then
   export PAPERQUERY_UPLOAD_DIR
 fi
 
-echo "Launching PaperQuery..."
+echo "Launching Keydion..."
 echo "  SECRET:      ${PAPERQUERY_SECRET}"
 [[ -n "${PAPERQUERY_DATA_DIR:-}" ]] && echo "  DATA DIR:    ${PAPERQUERY_DATA_DIR}"
 [[ -n "${PAPERQUERY_UPLOAD_DIR:-}" ]] && echo "  UPLOAD DIR:  ${PAPERQUERY_UPLOAD_DIR}"
@@ -41,4 +41,5 @@ if [[ -z "${PY_BIN}" ]]; then
   fi
 fi
 
-exec "${PY_BIN}" -m flask --app app run --debug
+# exec "${PY_BIN}" -m flask --app app run --debug
+exec "${PY_BIN}" -m flask --app app run --debug --host="${HOST:-0.0.0.0}" --port="${PORT:-5000}"

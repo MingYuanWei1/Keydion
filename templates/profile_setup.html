@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Complete your profile - Keydion') }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4">
+        <h1 class="h4 mb-2">{{ _('Complete your profile') }}</h1>
+        <p class="text-muted mb-4">
+          {{ _('Add your basic information so we can personalize your experience.') }}
+        </p>
+        <form method="post">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label" for="first_name">{{ _('First name') }}</label>
+              <input class="form-control" id="first_name" name="first_name" value="{{ profile.first_name }}" required
+                autofocus>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="last_name">{{ _('Last name') }}</label>
+              <input class="form-control" id="last_name" name="last_name" value="{{ profile.last_name }}" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="grade">{{ _('Grade') }}</label>
+              <select class="form-select" id="grade" name="grade" required>
+                <option value="">{{ _('Select a grade') }}</option>
+                {% for grade in grades %}
+                <option value="{{ grade }}" {% if profile.grade==grade %}selected{% endif %}>
+                  {{ grade }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary w-100 mt-4">
+            {{ _('Save profile') }}
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

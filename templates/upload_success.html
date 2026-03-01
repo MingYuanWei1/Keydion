@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="{{ current_locale }}">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ _('Upload Success') }} · Keydion</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=Source+Serif+4:wght@600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft Yahei', sans-serif;
+            background: #f5f3ef;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* ===== Confetti canvas ===== */
+        #confetti-canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* ===== Card ===== */
+        .success-card {
+            position: relative;
+            z-index: 10;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+            max-width: 520px;
+            width: 90%;
+            text-align: center;
+            padding: 48px 40px 40px;
+            animation: cardSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes cardSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px) scale(0.96);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .brand {
+            font-weight: 700;
+            font-size: 28px;
+            letter-spacing: 1px;
+            margin-bottom: 28px;
+            color: #1e40af;
+        }
+
+        /* ===== Text ===== */
+        .success-heading {
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-size: 22px;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 8px;
+        }
+
+        .success-time {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 32px;
+        }
+
+        .paper-title {
+            font-size: 15px;
+            color: #555;
+            font-style: italic;
+            margin-bottom: 28px;
+            max-width: 360px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* ===== Buttons ===== */
+        .btn-done {
+            display: block;
+            width: 100%;
+            max-width: 320px;
+            margin: 0 auto 12px;
+            padding: 14px 0;
+            background: #f5c518;
+            color: #1a1a2e;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .btn-done:hover {
+            background: #e6b800;
+            transform: translateY(-1px);
+        }
+
+        .btn-done:active {
+            transform: translateY(0);
+        }
+
+        .btn-view {
+            display: block;
+            width: 100%;
+            max-width: 320px;
+            margin: 0 auto;
+            padding: 12px 0;
+            background: transparent;
+            color: #555;
+            font-size: 14px;
+            font-weight: 500;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .btn-view:hover {
+            background: #f9f9f9;
+            border-color: #bbb;
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="confetti-canvas"></canvas>
+
+    <div class="success-card">
+        <div class="brand">Keydion</div>
+
+        <div class="success-heading">{{ _('Submission Successful!') }}</div>
+        <div class="success-time">{{ _('Submitted at') }} {{ submitted_at }}</div>
+
+        {% if title %}
+        <div class="paper-title">"{{ title }}"</div>
+        {% endif %}
+
+        <a class="btn-done" href="{{ url_for('dashboard') }}">{{ _('Done') }}</a>
+        <a class="btn-view" href="{{ url_for('my_submissions') }}">{{ _('View My Submissions') }}</a>
+    </div>
+
+    <script>
+        // ===== Confetti Animation =====
+        (function () {
+            const canvas = document.getElementById('confetti-canvas');
+            const ctx = canvas.getContext('2d');
+            let W, H;
+            const particles = [];
+            const colors = [
+                '#f94144', '#f3722c', '#f8961e', '#f9c74f', '#90be6d',
+                '#43aa8b', '#577590', '#7c3aed', '#ec4899', '#3b82f6'
+            ];
+
+            function resize() {
+                W = canvas.width = window.innerWidth;
+                H = canvas.height = window.innerHeight;
+            }
+            resize();
+            window.addEventListener('resize', resize);
+
+            function Particle() {
+                this.x = Math.random() * W;
+                this.y = Math.random() * H * -1;
+                this.r = Math.random() * 6 + 3;
+                this.d = Math.random() * 200 + 50;
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+                this.tilt = Math.random() * 10 - 5;
+                this.tiltAngle = 0;
+                this.tiltAngleInc = Math.random() * 0.07 + 0.05;
+                this.shape = Math.random() > 0.5 ? 'rect' : 'circle';
+                this.opacity = Math.random() * 0.6 + 0.4;
+                this.speed = Math.random() * 2 + 1;
+            }
+
+            for (let i = 0; i < 150; i++) particles.push(new Particle());
+
+            function draw() {
+                ctx.clearRect(0, 0, W, H);
+                particles.forEach(p => {
+                    ctx.save();
+                    ctx.globalAlpha = p.opacity;
+                    ctx.fillStyle = p.color;
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate(p.tiltAngle);
+                    if (p.shape === 'rect') {
+                        ctx.fillRect(-p.r, -p.r / 2, p.r * 2, p.r);
+                    } else {
+                        ctx.beginPath();
+                        ctx.arc(0, 0, p.r, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    ctx.restore();
+                });
+            }
+
+            function update() {
+                particles.forEach(p => {
+                    p.y += p.speed;
+                    p.x += Math.sin(p.d) * 0.5;
+                    p.tiltAngle += p.tiltAngleInc;
+                    if (p.y > H + 20) {
+                        p.y = -20;
+                        p.x = Math.random() * W;
+                    }
+                });
+            }
+
+            let frame = 0;
+            const maxFrames = 400;
+
+            function loop() {
+                draw();
+                update();
+                frame++;
+                if (frame < maxFrames) {
+                    requestAnimationFrame(loop);
+                } else {
+                    // Fade out
+                    let fadeOpacity = 1;
+                    function fadeOut() {
+                        fadeOpacity -= 0.02;
+                        if (fadeOpacity <= 0) {
+                            ctx.clearRect(0, 0, W, H);
+                            return;
+                        }
+                        ctx.globalAlpha = fadeOpacity;
+                        draw();
+                        update();
+                        requestAnimationFrame(fadeOut);
+                    }
+                    fadeOut();
+                }
+            }
+            loop();
+        })();
+    </script>
+
+</body>
+
+</html>

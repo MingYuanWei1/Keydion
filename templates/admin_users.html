@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}{{ _('User Management - Keydion') }}{% endblock %}
+{% block content %}
+<div class="row mb-4">
+  <div class="col">
+    <h1 class="h3">{{ _('User Management') }}</h1>
+    <p class="text-muted">{{ _('Manage local and Microsoft users and roles.') }}</p>
+  </div>
+</div>
+
+<form id="role-update-form" method="post" action="{{ url_for('admin_bulk_update_roles') }}">
+  <div class="d-flex justify-content-end gap-2 mb-3">
+    <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#addLocalUserModal">
+      {{ _('Add Local User') }}
+    </button>
+    <button class="btn btn-primary" type="submit">{{ _('Save role changes') }}</button>
+  </div>
+</form>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <h2 class="h5">{{ _('Local Users') }}</h2>
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead>
+          <tr>
+            <th>{{ _('Username / Email') }}</th>
+            <th>{{ _('Role') }}</th>
+            <th>{{ _('Actions') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for entry in local_users %}
+          <tr>
+            <td>{{ entry.email or entry.username }}</td>
+            <td>
+              <input type="hidden" name="local_username" value="{{ entry.username }}" form="role-update-form">
+              <select class="form-select form-select-sm" name="local_role" form="role-update-form">
+                {% for value, label in role_options %}
+                <option value="{{ value }}" {% if entry.role==value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td>
+              <div class="d-flex flex-wrap gap-2">
+                <form method="post" action="{{ url_for('admin_reset_password', username=entry.username) }}">
+                  <div class="input-group input-group-sm">
+                    <input class="form-control" name="password" type="password" placeholder="{{ _('New password') }}"
+                      required>
+                    <button class="btn btn-outline-secondary" type="submit">{{ _('Reset') }}</button>
+                  </div>
+                </form>
+                <form method="post" action="{{ url_for('admin_delete_local_user', username=entry.username) }}">
+                  <button class="btn btn-outline-danger btn-sm" type="submit">{{ _('Delete') }}</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4" class="text-muted">{{ _('No local users found.') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <h2 class="h5">{{ _('Microsoft Users (External)') }}</h2>
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead>
+          <tr>
+            <th>{{ _('Display Name') }}</th>
+            <th>{{ _('Email') }}</th>
+            <th>{{ _('Role') }}</th>
+            <th>{{ _('Actions') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for entry in ms_users %}
+          <tr>
+            <td>{{ entry.display_name or _('Unknown') }}</td>
+            <td>{{ entry.email or '-' }}</td>
+            <td>
+              <input type="hidden" name="ms_id" value="{{ entry.ms_id }}" form="role-update-form">
+              <select class="form-select form-select-sm" name="ms_role" form="role-update-form">
+                {% for value, label in role_options %}
+                <option value="{{ value }}" {% if entry.role==value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td>
+              <form method="post" action="{{ url_for('admin_delete_ms_user', ms_id=entry.ms_id) }}">
+                <button class="btn btn-outline-danger btn-sm" type="submit">{{ _('Delete') }}</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4" class="text-muted">{{ _('No Microsoft users found.') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="addLocalUserModal" tabindex="-1" aria-labelledby="addLocalUserLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addLocalUserLabel">{{ _('Add Local User') }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+      </div>
+      <form method="post" action="{{ url_for('admin_add_local_user') }}">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label" for="modal-username">{{ _('Username / Email') }}</label>
+            <input class="form-control" id="modal-username" name="username" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="modal-password">{{ _('Password') }}</label>
+            <input class="form-control" id="modal-password" name="password" type="password" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="modal-role">{{ _('Role') }}</label>
+            <select class="form-select" id="modal-role" name="role">
+              {% for value, label in role_options %}
+              <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ _('Close') }}</button>
+          <button class="btn btn-primary" type="submit">{{ _('Add') }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,2292 @@
+# Translations template for PROJECT.
+# Copyright (C) 2026 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-02-27 12:44+0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.18.0\n"
+
+#: app.py:427 app.py:448 app_old.py:134
+#, python-format
+msgid "Welcome back, %(username)s!"
+msgstr ""
+
+#: app.py:429
+msgid "Invalid email or password"
+msgstr ""
+
+#: app.py:433 app.py:506 app.py:522
+msgid "Microsoft sign-in is not configured. Please contact the administrator."
+msgstr ""
+
+#: app.py:450
+msgid "Invalid username or password"
+msgstr ""
+
+#: app.py:465
+msgid "Email, password, first name, and last name are required."
+msgstr ""
+
+#: app.py:469
+msgid "Passwords do not match."
+msgstr ""
+
+#: app.py:473 app.py:488
+msgid "An account with this email already exists."
+msgstr ""
+
+#: app.py:495
+#, python-format
+msgid "Account created successfully. Welcome, %(name)s!"
+msgstr ""
+
+#: app.py:497
+msgid "Account created. Please sign in."
+msgstr ""
+
+#: app.py:525
+msgid "Login session expired. Please try again."
+msgstr ""
+
+#: app.py:531 app.py:546
+#, python-format
+msgid "Microsoft sign-in failed: %(reason)s"
+msgstr ""
+
+#: app.py:536
+msgid "Microsoft sign-in failed. Please try again."
+msgstr ""
+
+#: app.py:551
+msgid "Microsoft sign-in did not return a valid profile."
+msgstr ""
+
+#: app.py:577 app_old.py:146
+msgid "Signed out successfully."
+msgstr ""
+
+#: app.py:588
+msgid "Unable to load your profile. Please sign in again."
+msgstr ""
+
+#: app.py:601
+msgid "Please enter your first and last name."
+msgstr ""
+
+#: app.py:603
+msgid "Please select a school from the list."
+msgstr ""
+
+#: app.py:605
+msgid "Please select your grade."
+msgstr ""
+
+#: app.py:620
+msgid "Profile saved successfully."
+msgstr ""
+
+#: app.py:662
+msgid "Role updates saved."
+msgstr ""
+
+#: app.py:674
+msgid "Username and password are required."
+msgstr ""
+
+#: app.py:677
+msgid "That username is already taken."
+msgstr ""
+
+#: app.py:680
+msgid "Local user created."
+msgstr ""
+
+#: app.py:690 app.py:728
+msgid "Role updated."
+msgstr ""
+
+#: app.py:692 app.py:730
+msgid "Unable to update role."
+msgstr ""
+
+#: app.py:702
+msgid "Password is required."
+msgstr ""
+
+#: app.py:705
+msgid "Password reset successfully."
+msgstr ""
+
+#: app.py:707
+msgid "Unable to reset password."
+msgstr ""
+
+#: app.py:716
+msgid "Local user deleted."
+msgstr ""
+
+#: app.py:718
+msgid "Unable to delete user."
+msgstr ""
+
+#: app.py:739
+msgid "Microsoft user deleted."
+msgstr ""
+
+#: app.py:741
+msgid "Unable to delete Microsoft user."
+msgstr ""
+
+#: app.py:766 app_old.py:165
+msgid "Enter a keyword to search."
+msgstr ""
+
+#: app.py:814 app_old.py:179
+msgid "No matching papers found."
+msgstr ""
+
+#: app.py:858
+msgid "Please enter the paper title"
+msgstr ""
+
+#: app.py:861
+msgid "Please select a subject category"
+msgstr ""
+
+#: app.py:864
+msgid "Please select a language"
+msgstr ""
+
+#: app.py:867
+msgid "Please enter keywords"
+msgstr ""
+
+#: app.py:870
+msgid "Please enter the abstract"
+msgstr ""
+
+#: app.py:873
+msgid "Please enter the author name"
+msgstr ""
+
+#: app.py:876
+msgid "Please enter the contact email"
+msgstr ""
+
+#: app.py:879
+msgid "Please enter the school name"
+msgstr ""
+
+#: app.py:890
+msgid "Please select a file to upload"
+msgstr ""
+
+#: app.py:894
+msgid "Only PDF files are supported"
+msgstr ""
+
+#: app.py:901
+msgid "A file with this name already exists"
+msgstr ""
+
+#: app.py:919
+#, python-format
+msgid "Paper %(filename)s uploaded successfully!"
+msgstr ""
+
+#: app.py:1025 app.py:1061 app.py:1095 app_old.py:310
+msgid "Paper not found."
+msgstr ""
+
+#: app.py:1047
+msgid "Paper information updated."
+msgstr ""
+
+#: app.py:1066 app_old.py:274
+#, python-format
+msgid "Deleted %(filename)s."
+msgstr ""
+
+#: app.py:1072 app_old.py:282
+msgid "Language not supported."
+msgstr ""
+
+#: app.py:1202 app.py:1281
+msgid "Please enter a title."
+msgstr ""
+
+#: app.py:1204 app.py:1283
+msgid "Please select a category."
+msgstr ""
+
+#: app.py:1206 app.py:1285
+msgid "Please enter an abstract."
+msgstr ""
+
+#: app.py:1208 app.py:1287
+msgid "Please write the article body."
+msgstr ""
+
+#: app.py:1222 app.py:1299
+msgid "Cover image must be PNG, JPG, GIF, or WebP."
+msgstr ""
+
+#: app.py:1240
+msgid "Article published successfully."
+msgstr ""
+
+#: app.py:1259 app.py:1328 app.py:1602
+msgid "Article not found."
+msgstr ""
+
+#: app.py:1310
+msgid "Article updated."
+msgstr ""
+
+#: app.py:1326
+msgid "Article deleted."
+msgstr ""
+
+#: app.py:1347 app.py:1390 app.py:1416 app.py:1459
+msgid "Category name is required."
+msgstr ""
+
+#: app.py:1350 app.py:1419
+msgid "Category already exists."
+msgstr ""
+
+#: app.py:1364 app.py:1433
+msgid "Both old and new names are required."
+msgstr ""
+
+#: app.py:1367 app.py:1393 app.py:1436 app.py:1462
+msgid "Category not found."
+msgstr ""
+
+#: app.py:1369 app.py:1438
+msgid "A category with that name already exists."
+msgstr ""
+
+#: app.py:1474 app.py:1534
+msgid "Journal name is required."
+msgstr ""
+
+#: app.py:1478
+msgid "Journal already exists."
+msgstr ""
+
+#: app.py:1498
+msgid "Journal ID is required."
+msgstr ""
+
+#: app.py:1502 app.py:1525 app.py:1587
+msgid "Journal not found."
+msgstr ""
+
+#: app.py:1567
+msgid "Journal updated."
+msgstr ""
+
+#: app.py:1661 app.py:1720
+msgid "Submission not found."
+msgstr ""
+
+#: app.py:1732 app.py:1779
+msgid "Submission not found or already reviewed."
+msgstr ""
+
+#: app.py:1769
+msgid "Paper accepted and published."
+msgstr ""
+
+#: app.py:1796
+msgid "Paper rejected."
+msgstr ""
+
+#: app.py:2351 app_old.py:382
+msgid "Please sign in first."
+msgstr ""
+
+#: app.py:2357 app_old.py:388
+msgid "Session expired. Please sign in again."
+msgstr ""
+
+#: app.py:2361 app_old.py:392
+msgid "Session timed out. Please sign in again."
+msgstr ""
+
+#: app.py:2368 app_old.py:399
+msgid "You do not have access to that action."
+msgstr ""
+
+#: app.py:2590 app_old.py:603
+#, python-format
+msgid ""
+"This account is already signed in. Please sign out from the other session"
+" or wait %(minutes)d minutes."
+msgstr ""
+
+#: app_old.py:136
+msgid "Invalid credentials or access expired."
+msgstr ""
+
+#: app_old.py:213
+msgid "Title is required."
+msgstr ""
+
+#: app_old.py:216
+msgid "Author field is required."
+msgstr ""
+
+#: app_old.py:229
+msgid "Select a PDF file to upload."
+msgstr ""
+
+#: app_old.py:233
+msgid "Only PDF files are accepted."
+msgstr ""
+
+#: app_old.py:237
+msgid "A paper with this filename already exists. Rename your file and try again."
+msgstr ""
+
+#: app_old.py:250
+#, python-format
+msgid "Uploaded %(filename)s."
+msgstr ""
+
+#: app_old.py:268
+msgid "Select a valid paper to delete."
+msgstr ""
+
+#: app_old.py:270
+msgid "Type the filename exactly to confirm deletion."
+msgstr ""
+
+#: app_old.py:286
+#, python-format
+msgid "Language switched to %(language)s."
+msgstr ""
+
+#: templates/FAQ.html:7
+msgid "High School English Paper Club"
+msgstr ""
+
+#: templates/FAQ.html:123
+msgid ""
+"Q. I missed the registration deadline. May I still register or submit an "
+"essay?"
+msgstr ""
+
+#: templates/FAQ.html:124
+msgid ""
+"A. No. Only candidates who registered before 31 May will be able to "
+"submit an essay."
+msgstr ""
+
+#: templates/FAQ.html:129
+msgid ""
+"Q. Are footnotes, endnotes, a bibliography or references counted towards "
+"the word\n"
+"        limit?"
+msgstr ""
+
+#: templates/FAQ.html:131
+msgid "A. No. Only the body of the essay is counted."
+msgstr ""
+
+#: templates/FAQ.html:135
+msgid "Q. Are in-text citations counted towards the word limit?"
+msgstr ""
+
+#: templates/FAQ.html:136
+msgid ""
+"A. If you are using an in-text based referencing format, such as APA, "
+"your in-text\n"
+"        citations are included in the word limit."
+msgstr ""
+
+#: templates/FAQ.html:141
+msgid "Q. Is it necessary to include footnotes or endnotes in an essay?"
+msgstr ""
+
+#: templates/FAQ.html:142
+msgid ""
+"A. You <strong>may not</strong> include footnotes, but you may include "
+"in-text citations\n"
+"        or endnotes. You should give your sources of any factual claims "
+"you make, and you should acknowledge any other\n"
+"        authors on whom you rely."
+msgstr ""
+
+#: templates/FAQ.html:148
+msgid ""
+"Q. I am interested in a question that seems ambiguous. How should I "
+"interpret it?"
+msgstr ""
+
+#: templates/FAQ.html:150
+msgid ""
+"A. You may interpret a question as you deem appropriate, clarifying your "
+"interpretation if\n"
+"        necessary. Having done so, you must answer the question as "
+"directly as possible."
+msgstr ""
+
+#: templates/FAQ.html:155 templates/news.html:662 templates/search.html:66
+msgid "Back to Home"
+msgstr ""
+
+#: templates/account_register.html:2
+msgid "Create Local Account - Keydion"
+msgstr ""
+
+#: templates/account_register.html:8
+msgid "Create a local account"
+msgstr ""
+
+#: templates/account_register.html:9
+msgid "Set a username and password to link with your Microsoft sign-in."
+msgstr ""
+
+#: templates/account_register.html:12
+msgid "We will use your Microsoft email as the username."
+msgstr ""
+
+#: templates/account_register.html:16 templates/admin_login.html:19
+#: templates/admin_users.html:127 templates/login.html:25
+#: templates/register.html:39
+msgid "Password"
+msgstr ""
+
+#: templates/account_register.html:20 templates/register.html:44
+msgid "Confirm password"
+msgstr ""
+
+#: templates/account_register.html:23
+msgid "Create and link account"
+msgstr ""
+
+#: templates/admin_login.html:2
+msgid "Admin Sign In · Keydion"
+msgstr ""
+
+#: templates/admin_login.html:8
+msgid "Admin Login"
+msgstr ""
+
+#: templates/admin_login.html:10
+msgid "Sign in with your administrator username and password."
+msgstr ""
+
+#: templates/admin_login.html:14
+msgid "Username"
+msgstr ""
+
+#: templates/admin_login.html:16
+msgid "e.g. admin"
+msgstr ""
+
+#: templates/admin_login.html:22 templates/base.html:47 templates/login.html:28
+#: templates/news.html:536 templates/news_article.html:603
+#: templates/register.html:53
+msgid "Sign in"
+msgstr ""
+
+#: templates/admin_login.html:25
+msgid "← Back to regular login"
+msgstr ""
+
+#: templates/admin_users.html:2
+msgid "User Management - Keydion"
+msgstr ""
+
+#: templates/admin_users.html:6
+msgid "User Management"
+msgstr ""
+
+#: templates/admin_users.html:7
+msgid "Manage local and Microsoft users and roles."
+msgstr ""
+
+#: templates/admin_users.html:14 templates/admin_users.html:117
+msgid "Add Local User"
+msgstr ""
+
+#: templates/admin_users.html:16
+msgid "Save role changes"
+msgstr ""
+
+#: templates/admin_users.html:22
+msgid "Local Users"
+msgstr ""
+
+#: templates/admin_users.html:27 templates/admin_users.html:123
+msgid "Username / Email"
+msgstr ""
+
+#: templates/admin_users.html:28 templates/admin_users.html:79
+#: templates/admin_users.html:131
+msgid "Role"
+msgstr ""
+
+#: templates/admin_users.html:29 templates/admin_users.html:80
+#: templates/delete.html:265 templates/news_manage.html:464
+msgid "Actions"
+msgstr ""
+
+#: templates/admin_users.html:48
+msgid "New password"
+msgstr ""
+
+#: templates/admin_users.html:50
+msgid "Reset"
+msgstr ""
+
+#: templates/admin_users.html:54 templates/admin_users.html:98
+#: templates/delete.html:298 templates/delete.html:358
+#: templates/news_article.html:685 templates/news_manage.html:485
+#: templates/news_manage.html:595 templates/news_manage.html:608
+#: templates/paper_manage.html:124 templates/paper_manage.html:175
+#: templates/paper_manage.html:223
+msgid "Delete"
+msgstr ""
+
+#: templates/admin_users.html:61
+msgid "No local users found."
+msgstr ""
+
+#: templates/admin_users.html:72
+msgid "Microsoft Users (External)"
+msgstr ""
+
+#: templates/admin_users.html:77
+msgid "Display Name"
+msgstr ""
+
+#: templates/admin_users.html:78 templates/delete.html:334
+#: templates/login.html:20 templates/paper_modify.html:88
+#: templates/register.html:14 templates/review_paper.html:39
+#: templates/submission_detail.html:39 templates/upload.html:87
+msgid "Email"
+msgstr ""
+
+#: templates/admin_users.html:86 templates/journal_detail.html:192
+#: templates/journal_detail.html:223 templates/journal_edit.html:103
+#: templates/journal_edit.html:124
+msgid "Unknown"
+msgstr ""
+
+#: templates/admin_users.html:104
+msgid "No Microsoft users found."
+msgstr ""
+
+#: templates/admin_users.html:118 templates/admin_users.html:140
+#: templates/news_manage.html:507
+msgid "Close"
+msgstr ""
+
+#: templates/admin_users.html:141 templates/news_manage.html:522
+#: templates/paper_manage.html:143 templates/paper_manage.html:194
+msgid "Add"
+msgstr ""
+
+#: templates/advanced_search.html:2 templates/landing.html:1008
+msgid "Advanced Search"
+msgstr ""
+
+#: templates/advanced_search.html:6
+msgid "Advanced search"
+msgstr ""
+
+#: templates/advanced_search.html:10
+msgid "Find articles…"
+msgstr ""
+
+#: templates/advanced_search.html:12
+msgid "that contain these"
+msgstr ""
+
+#: templates/advanced_search.html:13
+msgid "terms"
+msgstr ""
+
+#: templates/advanced_search.html:15
+msgid "Keywords, e.g., neural networks"
+msgstr ""
+
+#: templates/advanced_search.html:18
+msgid "where the list of"
+msgstr ""
+
+#: templates/advanced_search.html:19
+msgid "authors"
+msgstr ""
+
+#: templates/advanced_search.html:19 templates/advanced_search.html:24
+msgid "contains"
+msgstr ""
+
+#: templates/advanced_search.html:20
+msgid "Author name"
+msgstr ""
+
+#: templates/advanced_search.html:23
+msgid "where the"
+msgstr ""
+
+#: templates/advanced_search.html:23
+msgid "title"
+msgstr ""
+
+#: templates/advanced_search.html:25
+msgid "Title keywords"
+msgstr ""
+
+#: templates/advanced_search.html:28
+msgid "Refine your results by…"
+msgstr ""
+
+#: templates/advanced_search.html:31
+msgid "publication"
+msgstr ""
+
+#: templates/advanced_search.html:31
+msgid "date"
+msgstr ""
+
+#: templates/advanced_search.html:36 templates/advanced_search.html:43
+msgid "Year"
+msgstr ""
+
+#: templates/advanced_search.html:41
+msgid "to"
+msgstr ""
+
+#: templates/advanced_search.html:52
+msgid "journal(s)"
+msgstr ""
+
+#: templates/advanced_search.html:65 templates/base.html:24
+#: templates/base.html:40 templates/landing.html:1004 templates/news.html:520
+#: templates/news_article.html:590
+msgid "Search"
+msgstr ""
+
+#: templates/base.html:7 templates/base.html:16 templates/base.html:82
+msgid "Keydion"
+msgstr ""
+
+#: templates/base.html:25 templates/base.html:41 templates/dashboard.html:69
+#: templates/news.html:7 templates/news.html:522 templates/news.html:563
+#: templates/news_article.html:592
+msgid "News"
+msgstr ""
+
+#: templates/base.html:26 templates/base.html:42 templates/landing.html:965
+#: templates/news.html:524 templates/news_article.html:594
+msgid "Upload"
+msgstr ""
+
+#: templates/base.html:28 templates/review_list.html:84
+msgid "Review"
+msgstr ""
+
+#: templates/base.html:31 templates/base.html:43 templates/dashboard.html:91
+#: templates/landing.html:967 templates/news.html:527
+msgid "Manage"
+msgstr ""
+
+#: templates/base.html:36 templates/dashboard.html:22
+msgid "Sign out"
+msgstr ""
+
+#: templates/dashboard.html:2
+msgid "User Menu · Keydion"
+msgstr ""
+
+#: templates/dashboard.html:13
+#, python-format
+msgid "Hello, %(username)s!"
+msgstr ""
+
+#: templates/dashboard.html:14
+msgid "Manage your account access, uploads, and linked services."
+msgstr ""
+
+#: templates/dashboard.html:20
+#, python-format
+msgid "Access valid through %(date)s"
+msgstr ""
+
+#: templates/dashboard.html:31
+msgid "Upload Research"
+msgstr ""
+
+#: templates/dashboard.html:32
+msgid ""
+"Support community scholarship by sharing new papers in PDF format for "
+"peers to explore."
+msgstr ""
+
+#: templates/dashboard.html:33 templates/delete.html:245
+#: templates/my_submissions.html:76
+msgid "Upload a Paper"
+msgstr ""
+
+#: templates/dashboard.html:40 templates/my_submissions.html:5
+msgid "My Submissions"
+msgstr ""
+
+#: templates/dashboard.html:41 templates/my_submissions.html:6
+msgid "Track the review status of your submitted papers."
+msgstr ""
+
+#: templates/dashboard.html:42
+msgid "View Submissions"
+msgstr ""
+
+#: templates/dashboard.html:50 templates/review_list.html:5
+msgid "Review Submissions"
+msgstr ""
+
+#: templates/dashboard.html:51 templates/review_list.html:6
+msgid "Review papers submitted by readers. Accept or reject pending submissions."
+msgstr ""
+
+#: templates/dashboard.html:52
+msgid "Review Papers"
+msgstr ""
+
+#: templates/dashboard.html:59
+msgid "Manage Collection"
+msgstr ""
+
+#: templates/dashboard.html:60
+msgid ""
+"Keep the repository tidy by removing outdated or duplicate papers. "
+"Confirmation keeps actions safe."
+msgstr ""
+
+#: templates/dashboard.html:62 templates/delete.html:237
+msgid "Manage Papers"
+msgstr ""
+
+#: templates/dashboard.html:70
+msgid ""
+"Share updates, announcements, and stories with the Keydion community. "
+"Manage existing articles or\n"
+"        publish new ones."
+msgstr ""
+
+#: templates/dashboard.html:73
+msgid "Write an Article"
+msgstr ""
+
+#: templates/dashboard.html:74 templates/news_manage.html:429
+msgid "Manage News"
+msgstr ""
+
+#: templates/dashboard.html:82
+msgid "Admin Tools"
+msgstr ""
+
+#: templates/dashboard.html:83
+msgid "Manage local and Microsoft users, roles, and passwords."
+msgstr ""
+
+#: templates/dashboard.html:84
+msgid "Manage Users"
+msgstr ""
+
+#: templates/dashboard.html:89 templates/paper_manage.html:94
+msgid "Manage Categories & Journals"
+msgstr ""
+
+#: templates/dashboard.html:90
+msgid ""
+"Add, rename, or remove paper subject categories and journal names used in"
+" the submission forms."
+msgstr ""
+
+#: templates/delete.html:2
+msgid "Manage Papers · Keydion"
+msgstr ""
+
+#: templates/delete.html:238
+msgid "Preview, modify, or delete papers from the library."
+msgstr ""
+
+#: templates/delete.html:251
+msgid "No papers in the library yet."
+msgstr ""
+
+#: templates/delete.html:252
+msgid "Upload your first paper"
+msgstr ""
+
+#: templates/delete.html:261 templates/delete.html:324
+#: templates/news_manage.html:460 templates/news_publish.html:983
+#: templates/paper_modify.html:27 templates/preview.html:122
+#: templates/review_paper.html:24 templates/submission_detail.html:24
+msgid "Title"
+msgstr ""
+
+#: templates/delete.html:262 templates/delete.html:326
+#: templates/news_manage.html:461 templates/news_publish.html:988
+#: templates/paper_modify.html:45 templates/preview.html:124
+#: templates/review_paper.html:27 templates/submission_detail.html:27
+msgid "Category"
+msgstr ""
+
+#: templates/delete.html:263 templates/delete.html:332
+#: templates/news_manage.html:462 templates/news_publish.html:998
+#: templates/review_paper.html:36 templates/submission_detail.html:36
+msgid "Author"
+msgstr ""
+
+#: templates/delete.html:264 templates/delete.html:338
+#: templates/news_manage.html:463 templates/paper_modify.html:101
+msgid "Published"
+msgstr ""
+
+#: templates/delete.html:294
+msgid "Modify"
+msgstr ""
+
+#: templates/delete.html:314 templates/paper_modify.html:127
+#: templates/review_paper.html:102 templates/submission_detail.html:89
+msgid "Paper Preview"
+msgstr ""
+
+#: templates/delete.html:328 templates/paper_modify.html:67
+#: templates/preview.html:126 templates/review_paper.html:30
+#: templates/submission_detail.html:30 templates/upload.html:39
+msgid "Keywords"
+msgstr ""
+
+#: templates/delete.html:330 templates/paper_modify.html:73
+#: templates/preview.html:98 templates/review_paper.html:33
+#: templates/submission_detail.html:33 templates/upload.html:70
+msgid "Abstract"
+msgstr ""
+
+#: templates/delete.html:336 templates/profile_setup.html:24
+#: templates/review_paper.html:42 templates/submission_detail.html:42
+#: templates/upload.html:91
+msgid "School"
+msgstr ""
+
+#: templates/delete.html:352
+msgid "Delete Paper"
+msgstr ""
+
+#: templates/delete.html:353 templates/paper_manage.html:246
+#: templates/paper_manage.html:263
+msgid "Are you sure you want to delete"
+msgstr ""
+
+#: templates/delete.html:353
+msgid "?"
+msgstr ""
+
+#: templates/delete.html:354
+msgid "This action cannot be undone."
+msgstr ""
+
+#: templates/delete.html:357 templates/news_manage.html:607
+#: templates/news_publish.html:969 templates/paper_modify.html:116
+#: templates/upload.html:105
+msgid "Cancel"
+msgstr ""
+
+#: templates/journal_detail.html:158
+msgid "All Papers"
+msgstr ""
+
+#: templates/journal_detail.html:214
+msgid "Undated"
+msgstr ""
+
+#: templates/journal_detail.html:231
+msgid "No papers in this journal yet."
+msgstr ""
+
+#: templates/journal_detail.html:247
+msgid "PAPERS"
+msgstr ""
+
+#: templates/journal_detail.html:258
+msgid "COVERAGE"
+msgstr ""
+
+#: templates/journal_detail.html:270
+msgid "SUBJECTS"
+msgstr ""
+
+#: templates/journal_edit.html:2 templates/journal_edit.html:34
+msgid "Edit Journal"
+msgstr ""
+
+#: templates/journal_edit.html:40
+msgid "Back to Management"
+msgstr ""
+
+#: templates/journal_edit.html:49
+msgid "Journal Details"
+msgstr ""
+
+#: templates/journal_edit.html:54
+msgid "Journal Name"
+msgstr ""
+
+#: templates/journal_edit.html:61 templates/news_publish.html:1011
+msgid "Cover Image"
+msgstr ""
+
+#: templates/journal_edit.html:69
+msgid "Upload a cover image (PNG, JPG, WebP)"
+msgstr ""
+
+#: templates/journal_edit.html:73
+msgid "Introduction"
+msgstr ""
+
+#: templates/journal_edit.html:75
+msgid "Write the journal introduction..."
+msgstr ""
+
+#: templates/journal_edit.html:78 templates/news_publish.html:971
+#: templates/paper_modify.html:114
+msgid "Save Changes"
+msgstr ""
+
+#: templates/journal_edit.html:88
+msgid "Papers in this Journal"
+msgstr ""
+
+#: templates/journal_edit.html:109
+msgid "No papers assigned to this journal yet."
+msgstr ""
+
+#: templates/journal_edit.html:110
+msgid "Papers can be assigned when uploading or editing."
+msgstr ""
+
+#: templates/journal_edit.html:117
+msgid "Quick Info"
+msgstr ""
+
+#: templates/journal_edit.html:121
+msgid "Journal ID"
+msgstr ""
+
+#: templates/journal_edit.html:123
+msgid "Created"
+msgstr ""
+
+#: templates/journal_edit.html:125
+msgid "Public Page"
+msgstr ""
+
+#: templates/journal_edit.html:127
+msgid "View Journal Page"
+msgstr ""
+
+#: templates/journal_list.html:2
+msgid "Journals · Keydion"
+msgstr ""
+
+#: templates/journal_list.html:93 templates/paper_manage.html:153
+msgid "Journals"
+msgstr ""
+
+#: templates/journal_list.html:94
+msgid "Browse our collection of academic journals."
+msgstr ""
+
+#: templates/journal_list.html:127
+msgid "No journals available yet."
+msgstr ""
+
+#: templates/landing.html:995
+msgid "tagline_quote_1"
+msgstr ""
+
+#: templates/landing.html:995
+msgid "tagline_quote_2"
+msgstr ""
+
+#: templates/landing.html:1003
+msgid "搜索论文标题、关键词"
+msgstr ""
+
+#: templates/landing.html:1003
+msgid "搜索论文"
+msgstr ""
+
+#: templates/landing.html:1110
+msgid "关于我们"
+msgstr ""
+
+#: templates/landing.html:1111
+msgid ""
+"Keydion 是一个专为高中设计的学术资产平台。我们聚焦于学生的科研成果，包括 IA、EE、TOK "
+"等项目。通过本平台，学生的研究成果将不再被忽视，而是被系统性地保存于 Keydion\n"
+"            数据库中，供师生查阅与参考。同时，教师也可以更全面地了解本校科研项目的内容与整体质量。"
+msgstr ""
+
+#: templates/landing.html:1113
+msgid ""
+"Keydion\n"
+"            "
+"同样致力于维护学术诚信，避免撞题以及学术不端误判。我们希望为每一所学校留存这些珍贵的学术成果，让优秀的学生研究经验得以传承，使学术探索不再只是一次性的作业，而成为可以持续积累与发展的知识资产。"
+msgstr ""
+
+#: templates/login.html:2
+msgid "Sign in · Keydion"
+msgstr ""
+
+#: templates/login.html:8
+msgid "Keydion Portal"
+msgstr ""
+
+#: templates/login.html:11
+msgid "Sign in with Microsoft"
+msgstr ""
+
+#: templates/login.html:12
+msgid "or sign in with email"
+msgstr ""
+
+#: templates/login.html:15
+msgid "Microsoft sign-in is not configured yet."
+msgstr ""
+
+#: templates/login.html:22 templates/register.html:17
+msgid "e.g. user@example.com"
+msgstr ""
+
+#: templates/login.html:31
+msgid "Don't have an account?"
+msgstr ""
+
+#: templates/login.html:32
+msgid "Register now"
+msgstr ""
+
+#: templates/login.html:35
+msgid "Admin login"
+msgstr ""
+
+#: templates/my_submissions.html:2
+msgid "My Submissions · Keydion"
+msgstr ""
+
+#: templates/my_submissions.html:11 templates/paper_manage.html:100
+#: templates/review_list.html:11 templates/upload.html:11
+msgid "Back to Dashboard"
+msgstr ""
+
+#: templates/my_submissions.html:14
+msgid "Submit a New Paper"
+msgstr ""
+
+#: templates/my_submissions.html:25 templates/review_list.html:50
+#: templates/upload.html:20
+msgid "Paper Title"
+msgstr ""
+
+#: templates/my_submissions.html:26 templates/review_list.html:52
+#: templates/review_paper.html:49 templates/submission_detail.html:45
+msgid "Submitted"
+msgstr ""
+
+#: templates/my_submissions.html:27 templates/review_list.html:53
+#: templates/review_paper.html:52 templates/submission_detail.html:49
+msgid "Status"
+msgstr ""
+
+#: templates/my_submissions.html:28 templates/submission_detail.html:61
+msgid "Reviewer"
+msgstr ""
+
+#: templates/my_submissions.html:29
+msgid "Comment"
+msgstr ""
+
+#: templates/my_submissions.html:46 templates/review_paper.html:55
+#: templates/submission_detail.html:52
+msgid "Pending Review"
+msgstr ""
+
+#: templates/my_submissions.html:48 templates/review_list.html:26
+#: templates/review_list.html:75 templates/review_paper.html:57
+#: templates/submission_detail.html:54
+msgid "Accepted"
+msgstr ""
+
+#: templates/my_submissions.html:50 templates/review_list.html:32
+#: templates/review_list.html:77 templates/review_paper.html:59
+#: templates/submission_detail.html:56
+msgid "Rejected"
+msgstr ""
+
+#: templates/my_submissions.html:58
+msgid "Yes"
+msgstr ""
+
+#: templates/my_submissions.html:60
+msgid "No"
+msgstr ""
+
+#: templates/my_submissions.html:73
+msgid "No submissions yet"
+msgstr ""
+
+#: templates/my_submissions.html:74
+msgid ""
+"Upload a paper to get started. Your submission will be reviewed by a "
+"moderator."
+msgstr ""
+
+#: templates/my_submissions.html:83
+msgid "How the review process works"
+msgstr ""
+
+#: templates/my_submissions.html:85
+msgid ""
+"After you submit a paper, it enters the <strong>Pending Review</strong> "
+"queue."
+msgstr ""
+
+#: templates/my_submissions.html:86
+msgid "A moderator or administrator will review your paper."
+msgstr ""
+
+#: templates/my_submissions.html:87
+msgid "If <strong>Accepted</strong>, your paper becomes available in the library."
+msgstr ""
+
+#: templates/my_submissions.html:88
+msgid "If <strong>Rejected</strong>, you will see the reviewer's comments here."
+msgstr ""
+
+#: templates/news.html:574
+msgid "No news articles yet"
+msgstr ""
+
+#: templates/news.html:575
+msgid "Check back later for updates from Keydion."
+msgstr ""
+
+#: templates/news.html:620 templates/search.html:170
+msgid "Previous"
+msgstr ""
+
+#: templates/news.html:631 templates/search.html:181
+msgid "Next"
+msgstr ""
+
+#: templates/news.html:643
+msgid "Most Recent"
+msgstr ""
+
+#: templates/news_article.html:646
+msgid "Anonymous"
+msgstr ""
+
+#: templates/news_article.html:652
+msgid "Copy link"
+msgstr ""
+
+#: templates/news_article.html:658
+msgid "Print"
+msgstr ""
+
+#: templates/news_article.html:676 templates/news_manage.html:482
+#: templates/paper_manage.html:168
+msgid "Edit"
+msgstr ""
+
+#: templates/news_article.html:679 templates/news_manage.html:484
+msgid "Are you sure you want to delete this article?"
+msgstr ""
+
+#: templates/news_article.html:719
+msgid "Read More"
+msgstr ""
+
+#: templates/news_article.html:752
+msgid "Back to News"
+msgstr ""
+
+#: templates/news_manage.html:2
+msgid "Manage News · Keydion"
+msgstr ""
+
+#: templates/news_manage.html:437 templates/news_manage.html:505
+msgid "Manage Categories"
+msgstr ""
+
+#: templates/news_manage.html:445
+msgid "Publish New Article"
+msgstr ""
+
+#: templates/news_manage.html:452
+msgid "No news articles yet."
+msgstr ""
+
+#: templates/news_manage.html:453
+msgid "Publish your first article"
+msgstr ""
+
+#: templates/news_manage.html:514
+msgid "New category name…"
+msgstr ""
+
+#: templates/news_manage.html:580
+msgid "No categories yet. Add one above."
+msgstr ""
+
+#: templates/news_manage.html:590
+msgid "articles"
+msgstr ""
+
+#: templates/news_manage.html:592 templates/paper_manage.html:117
+#: templates/paper_manage.html:222
+msgid "Rename"
+msgstr ""
+
+#: templates/news_manage.html:605
+msgid ""
+"Delete this category? Articles using it will keep their current category "
+"label."
+msgstr ""
+
+#: templates/news_manage.html:654
+msgid "Category added"
+msgstr ""
+
+#: templates/news_manage.html:695
+msgid "Category renamed"
+msgstr ""
+
+#: templates/news_manage.html:713
+msgid "Category deleted"
+msgstr ""
+
+#: templates/news_publish.html:2
+msgid "Publish News · Keydion"
+msgstr ""
+
+#: templates/news_publish.html:958
+msgid "Edit News Article"
+msgstr ""
+
+#: templates/news_publish.html:964
+msgid "Publish News Article"
+msgstr ""
+
+#: templates/news_publish.html:965
+msgid "Block Editor"
+msgstr ""
+
+#: templates/news_publish.html:971
+msgid "Publish Article"
+msgstr ""
+
+#: templates/news_publish.html:981
+msgid "Article Info"
+msgstr ""
+
+#: templates/news_publish.html:985
+msgid "Enter article title"
+msgstr ""
+
+#: templates/news_publish.html:990
+msgid "Select category"
+msgstr ""
+
+#: templates/news_publish.html:1000
+msgid "Author name (optional)"
+msgstr ""
+
+#: templates/news_publish.html:1003
+msgid "Abstract / Summary"
+msgstr ""
+
+#: templates/news_publish.html:1005
+msgid "A brief summary shown in the news listing"
+msgstr ""
+
+#: templates/news_publish.html:1017 templates/news_publish.html:1528
+msgid "Remove image"
+msgstr ""
+
+#: templates/news_publish.html:1020 templates/news_publish.html:1537
+msgid "Click to upload"
+msgstr ""
+
+#: templates/news_publish.html:1031
+msgid "Writing Tips"
+msgstr ""
+
+#: templates/news_publish.html:1033
+msgid "Use a clear, specific headline that captures readers' attention."
+msgstr ""
+
+#: templates/news_publish.html:1034
+msgid "Keep the abstract to 1-2 sentences that summarize the key point."
+msgstr ""
+
+#: templates/news_publish.html:1035
+msgid "Text blocks"
+msgstr ""
+
+#: templates/news_publish.html:1035
+msgid ""
+"Each block becomes a paragraph. Use multiple\n"
+"                            blocks for clear structure."
+msgstr ""
+
+#: templates/news_publish.html:1037
+msgid "Image blocks"
+msgstr ""
+
+#: templates/news_publish.html:1037
+msgid ""
+"Insert images anywhere in the article with\n"
+"                            optional captions."
+msgstr ""
+
+#: templates/news_publish.html:1039
+msgid "Reorder blocks with the arrow buttons that appear on hover."
+msgstr ""
+
+#: templates/news_publish.html:1045
+msgid "Shortcuts"
+msgstr ""
+
+#: templates/news_publish.html:1047
+msgid "Publish / Save"
+msgstr ""
+
+#: templates/news_publish.html:1048
+msgid "Next block"
+msgstr ""
+
+#: templates/news_publish.html:1064
+msgid "Article Content"
+msgstr ""
+
+#: templates/news_publish.html:1074 templates/news_publish.html:1315
+msgid "Text"
+msgstr ""
+
+#: templates/news_publish.html:1082 templates/news_publish.html:1316
+msgid "Image"
+msgstr ""
+
+#: templates/news_publish.html:1088 templates/news_publish.html:1317
+msgid "Divider"
+msgstr ""
+
+#: templates/news_publish.html:1098
+msgid "Font Family"
+msgstr ""
+
+#: templates/news_publish.html:1114
+msgid "Font Size"
+msgstr ""
+
+#: templates/news_publish.html:1139 templates/news_publish.html:1583
+msgid "Font Color"
+msgstr ""
+
+#: templates/news_publish.html:1145 templates/news_publish.html:1161
+msgid "More Colors"
+msgstr ""
+
+#: templates/news_publish.html:1154
+msgid "Highlight"
+msgstr ""
+
+#: templates/news_publish.html:1172
+msgid "Align Left"
+msgstr ""
+
+#: templates/news_publish.html:1180
+msgid "Align Center"
+msgstr ""
+
+#: templates/news_publish.html:1188
+msgid "Align Right"
+msgstr ""
+
+#: templates/news_publish.html:1196
+msgid "Justify"
+msgstr ""
+
+#: templates/news_publish.html:1216
+msgid "Add Text"
+msgstr ""
+
+#: templates/news_publish.html:1223
+msgid "Add Image"
+msgstr ""
+
+#: templates/news_publish.html:1230
+msgid "Add Divider"
+msgstr ""
+
+#: templates/news_publish.html:1236 templates/news_publish.html:1507
+msgid "characters"
+msgstr ""
+
+#: templates/news_publish.html:1237
+msgid "Ready"
+msgstr ""
+
+#: templates/news_publish.html:1370
+msgid "Write your paragraph here…"
+msgstr ""
+
+#: templates/news_publish.html:1393
+msgid "Uploading…"
+msgstr ""
+
+#: templates/news_publish.html:1399
+msgid "Add image caption (optional)"
+msgstr ""
+
+#: templates/news_publish.html:1406
+msgid "Click or drag to upload"
+msgstr ""
+
+#: templates/news_publish.html:1479
+msgid "Image upload failed. Please try again."
+msgstr ""
+
+#: templates/news_publish.html:1508
+msgid "text"
+msgstr ""
+
+#: templates/news_publish.html:1508
+msgid "images"
+msgstr ""
+
+#: templates/news_publish.html:1508
+msgid "dividers"
+msgstr ""
+
+#: templates/news_publish.html:1560
+msgid "Please add at least one content block with text or an image."
+msgstr ""
+
+#: templates/news_publish.html:1583
+msgid "Highlight Color"
+msgstr ""
+
+#: templates/paper_manage.html:2
+msgid "Manage Categories & Journals · Keydion"
+msgstr ""
+
+#: templates/paper_manage.html:95
+msgid "Add, rename, or remove paper subject categories and journal names."
+msgstr ""
+
+#: templates/paper_manage.html:109
+msgid "Paper Categories"
+msgstr ""
+
+#: templates/paper_manage.html:138
+msgid "No categories yet. Add one below."
+msgstr ""
+
+#: templates/paper_manage.html:142
+msgid "New category name..."
+msgstr ""
+
+#: templates/paper_manage.html:189
+msgid "No journals yet. Add one below."
+msgstr ""
+
+#: templates/paper_manage.html:193
+msgid "New journal name..."
+msgstr ""
+
+#: templates/paper_manage.html:238
+msgid "Enter new name:"
+msgstr ""
+
+#: templates/paper_modify.html:2
+msgid "Modify Paper · Keydion"
+msgstr ""
+
+#: templates/paper_modify.html:6
+msgid "Modify Paper Information"
+msgstr ""
+
+#: templates/paper_modify.html:7
+msgid "Edit the metadata for this paper. Changes will take effect immediately."
+msgstr ""
+
+#: templates/paper_modify.html:12
+msgid "Back to Paper Management"
+msgstr ""
+
+#: templates/paper_modify.html:21
+msgid "Paper Details"
+msgstr ""
+
+#: templates/paper_modify.html:34 templates/upload.html:28
+msgid "Journal"
+msgstr ""
+
+#: templates/paper_modify.html:36 templates/upload.html:31
+msgid "No journal (leave blank)"
+msgstr ""
+
+#: templates/paper_modify.html:47
+msgid "Select a category"
+msgstr ""
+
+#: templates/paper_modify.html:56 templates/search.html:51
+#: templates/upload.html:58
+msgid "Language"
+msgstr ""
+
+#: templates/paper_modify.html:58
+msgid "Select a language"
+msgstr ""
+
+#: templates/paper_modify.html:60 templates/search.html:55
+#: templates/upload.html:62
+msgid "Chinese"
+msgstr ""
+
+#: templates/paper_modify.html:62 templates/search.html:56
+#: templates/upload.html:63
+msgid "English"
+msgstr ""
+
+#: templates/paper_modify.html:69
+msgid "Comma-separated keywords"
+msgstr ""
+
+#: templates/paper_modify.html:75
+msgid "Brief summary of the paper"
+msgstr ""
+
+#: templates/paper_modify.html:79
+msgid "Author Information"
+msgstr ""
+
+#: templates/paper_modify.html:82
+msgid "Author Name"
+msgstr ""
+
+#: templates/paper_modify.html:94
+msgid "School/Institution"
+msgstr ""
+
+#: templates/paper_modify.html:103
+msgid "Submission date cannot be modified."
+msgstr ""
+
+#: templates/preview.html:2
+msgid "Preview Paper"
+msgstr ""
+
+#: templates/preview.html:10 templates/preview.html:13
+#: templates/preview.html:15
+msgid "Back to Search"
+msgstr ""
+
+#: templates/preview.html:21
+msgid "Sign in to download"
+msgstr ""
+
+#: templates/preview.html:32
+msgid "Open in new tab"
+msgstr ""
+
+#: templates/preview.html:42 templates/search.html:146
+msgid "Download"
+msgstr ""
+
+#: templates/preview.html:65 templates/search.html:104
+msgid "Journal Article"
+msgstr ""
+
+#: templates/preview.html:69 templates/preview.html:153
+#: templates/preview.html:185 templates/search.html:110
+msgid "Untitled Paper"
+msgstr ""
+
+#: templates/preview.html:71 templates/preview.html:75
+#: templates/preview.html:123 templates/preview.html:125
+#: templates/preview.html:127 templates/preview.html:129
+#: templates/preview.html:155 templates/search.html:114
+#: templates/search.html:117
+msgid "Not specified"
+msgstr ""
+
+#: templates/preview.html:81
+msgid "Guest preview is limited to the first two pages of each paper."
+msgstr ""
+
+#: templates/preview.html:82
+msgid "Sign in to view full papers"
+msgstr ""
+
+#: templates/preview.html:104 templates/search.html:123
+msgid "No abstract available."
+msgstr ""
+
+#: templates/preview.html:115
+msgid "About this issue"
+msgstr ""
+
+#: templates/preview.html:128
+msgid "Organization"
+msgstr ""
+
+#: templates/preview.html:141
+msgid "Related text"
+msgstr ""
+
+#: templates/preview.html:160
+msgid "No related texts found in this category."
+msgstr ""
+
+#: templates/preview.html:180
+msgid "PDF Preview"
+msgstr ""
+
+#: templates/profile_setup.html:2
+msgid "Complete your profile - Keydion"
+msgstr ""
+
+#: templates/profile_setup.html:8
+msgid "Complete your profile"
+msgstr ""
+
+#: templates/profile_setup.html:10
+msgid "Add your basic information so we can personalize your experience."
+msgstr ""
+
+#: templates/profile_setup.html:15 templates/register.html:21
+msgid "First name"
+msgstr ""
+
+#: templates/profile_setup.html:20 templates/register.html:27
+msgid "Last name"
+msgstr ""
+
+#: templates/profile_setup.html:26
+msgid "Select a school"
+msgstr ""
+
+#: templates/profile_setup.html:35
+msgid "Grade"
+msgstr ""
+
+#: templates/profile_setup.html:37
+msgid "Select a grade"
+msgstr ""
+
+#: templates/profile_setup.html:47
+msgid "Save profile"
+msgstr ""
+
+#: templates/register.html:2
+msgid "Create Account · Keydion"
+msgstr ""
+
+#: templates/register.html:8
+msgid "Create your account"
+msgstr ""
+
+#: templates/register.html:10
+msgid "Fill in the details below to register a new Keydion account."
+msgstr ""
+
+#: templates/register.html:34
+msgid "School name"
+msgstr ""
+
+#: templates/register.html:36
+msgid "Optional"
+msgstr ""
+
+#: templates/register.html:49
+msgid "Create account"
+msgstr ""
+
+#: templates/register.html:52
+msgid "Already have an account?"
+msgstr ""
+
+#: templates/review_list.html:2
+msgid "Review Submissions · Keydion"
+msgstr ""
+
+#: templates/review_list.html:20 templates/review_list.html:73
+msgid "Pending"
+msgstr ""
+
+#: templates/review_list.html:38
+msgid "All"
+msgstr ""
+
+#: templates/review_list.html:51 templates/review_paper.html:45
+msgid "Submitted By"
+msgstr ""
+
+#: templates/review_list.html:54
+msgid "Action"
+msgstr ""
+
+#: templates/review_list.html:100
+msgid "No submissions found"
+msgstr ""
+
+#: templates/review_list.html:103
+msgid "There are no papers waiting for review."
+msgstr ""
+
+#: templates/review_list.html:105
+msgid "No submissions match the selected filter."
+msgstr ""
+
+#: templates/review_paper.html:2
+msgid "Review Paper · Keydion"
+msgstr ""
+
+#: templates/review_paper.html:5
+msgid "Review Paper"
+msgstr ""
+
+#: templates/review_paper.html:6
+msgid "Review the submission details and decide whether to accept or reject."
+msgstr ""
+
+#: templates/review_paper.html:11
+msgid "Back to Review List"
+msgstr ""
+
+#: templates/review_paper.html:20 templates/submission_detail.html:5
+#: templates/submission_detail.html:20
+msgid "Submission Details"
+msgstr ""
+
+#: templates/review_paper.html:72
+msgid "Accept this paper? It will be published to the library."
+msgstr ""
+
+#: templates/review_paper.html:73
+msgid "Accept & Publish"
+msgstr ""
+
+#: templates/review_paper.html:83
+msgid "Rejection Reason"
+msgstr ""
+
+#: templates/review_paper.html:86
+msgid "Please explain why this paper is being rejected..."
+msgstr ""
+
+#: templates/review_paper.html:89
+msgid "Reject this paper? This action cannot be undone."
+msgstr ""
+
+#: templates/review_paper.html:90
+msgid "Reject"
+msgstr ""
+
+#: templates/search.html:2
+msgid "Search Papers · Keydion"
+msgstr ""
+
+#: templates/search.html:7
+msgid "Refine Results"
+msgstr ""
+
+#: templates/search.html:14
+msgid "Search Within Results"
+msgstr ""
+
+#: templates/search.html:30
+msgid "Subject"
+msgstr ""
+
+#: templates/search.html:33
+msgid "Any Subject"
+msgstr ""
+
+#: templates/search.html:43
+msgid "Date"
+msgstr ""
+
+#: templates/search.html:54
+msgid "Any Language"
+msgstr ""
+
+#: templates/search.html:63
+msgid ""
+"Back to\n"
+"        Dashboard"
+msgstr ""
+
+#: templates/search.html:78
+#, python-format
+msgid "%(count)s result"
+msgid_plural "%(count)s results"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/search.html:133
+msgid "Sign in to Download"
+msgstr ""
+
+#: templates/search.html:151
+msgid "View"
+msgstr ""
+
+#: templates/search.html:187
+#, python-format
+msgid "Page %(current)d of %(total)d"
+msgstr ""
+
+#: templates/search.html:194
+msgid "No papers match your search criteria. Try adjusting your filters."
+msgstr ""
+
+#: templates/submission_detail.html:2
+msgid "Submission Details · Keydion"
+msgstr ""
+
+#: templates/submission_detail.html:6
+msgid "View the details and current status of your submission."
+msgstr ""
+
+#: templates/submission_detail.html:11
+msgid "Back to My Submissions"
+msgstr ""
+
+#: templates/submission_detail.html:66
+msgid "Reviewed"
+msgstr ""
+
+#: templates/submission_detail.html:76
+msgid "Reviewer Comment"
+msgstr ""
+
+#: templates/submission_detail.html:97
+msgid "Paper preview is not available."
+msgstr ""
+
+#: templates/submission_detail.html:99
+msgid "The file was removed after rejection."
+msgstr ""
+
+#: templates/upload.html:2
+msgid "Paper Submission · Keydion"
+msgstr ""
+
+#: templates/upload.html:5
+msgid "Paper Submission Portal"
+msgstr ""
+
+#: templates/upload.html:6
+msgid "Please fill in the information below and upload your research"
+msgstr ""
+
+#: templates/upload.html:22
+msgid "Please enter the complete paper title"
+msgstr ""
+
+#: templates/upload.html:28
+msgid "optional"
+msgstr ""
+
+#: templates/upload.html:41
+msgid "Enter keywords, separated by commas"
+msgstr ""
+
+#: templates/upload.html:48
+msgid "Subject Category"
+msgstr ""
+
+#: templates/upload.html:50
+msgid ""
+"Please select a\n"
+"              category..."
+msgstr ""
+
+#: templates/upload.html:60
+msgid ""
+"Please select a\n"
+"              language..."
+msgstr ""
+
+#: templates/upload.html:70
+msgid ""
+"300 characters\n"
+"            max"
+msgstr ""
+
+#: templates/upload.html:73
+msgid ""
+"Please briefly describe your research background, methods, and "
+"conclusions..."
+msgstr ""
+
+#: templates/upload.html:79
+msgid "First Author Information"
+msgstr ""
+
+#: templates/upload.html:83
+msgid "Name"
+msgstr ""
+
+#: templates/upload.html:98
+msgid "File Upload"
+msgstr ""
+
+#: templates/upload.html:98
+msgid "max 20MB"
+msgstr ""
+
+#: templates/upload.html:104
+msgid "Submit Paper"
+msgstr ""
+
+#: templates/upload_success.html:7
+msgid "Upload Success"
+msgstr ""
+
+#: templates/upload_success.html:156
+msgid "Submission Successful!"
+msgstr ""
+
+#: templates/upload_success.html:157
+msgid "Submitted at"
+msgstr ""
+
+#: templates/upload_success.html:163
+msgid "Done"
+msgstr ""
+
+#: templates/upload_success.html:164
+msgid "View My Submissions"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/_termui_impl.py:556
+#, python-brace-format
+msgid "{editor}: Editing failed"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/_termui_impl.py:560
+#, python-brace-format
+msgid "{editor}: Editing failed: {e}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:1124
+msgid "Aborted!"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:1349
+#: venv_new/lib/python3.9/site-packages/click/core.py:1379
+#, python-brace-format
+msgid "(Deprecated) {text}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:1396
+msgid "Options"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:1422
+#, python-brace-format
+msgid "Got unexpected extra argument ({args})"
+msgid_plural "Got unexpected extra arguments ({args})"
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:1438
+#, python-brace-format
+msgid "DeprecationWarning: The command {name!r} is deprecated."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:1645
+msgid "Commands"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:1677
+msgid "Missing command."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:1755
+#, python-brace-format
+msgid "No such command {name!r}."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:2313
+msgid "Value must be an iterable."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:2334
+#, python-brace-format
+msgid "Takes {nargs} values but 1 was given."
+msgid_plural "Takes {nargs} values but {len} were given."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:2783
+#, python-brace-format
+msgid "env var: {var}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:2813
+msgid "(dynamic)"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:2828
+#, python-brace-format
+msgid "default: {default}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:2841
+msgid "required"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/decorators.py:457
+#, python-format
+msgid "%(prog)s, version %(version)s"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/decorators.py:520
+msgid "Show the version and exit."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/decorators.py:541
+msgid "Show this message and exit."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:49
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:88
+#, python-brace-format
+msgid "Error: {message}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:80
+#, python-brace-format
+msgid "Try '{command} {option}' for help."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:129
+#, python-brace-format
+msgid "Invalid value: {message}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:131
+#, python-brace-format
+msgid "Invalid value for {param_hint}: {message}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:187
+msgid "Missing argument"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:189
+msgid "Missing option"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:191
+msgid "Missing parameter"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:193
+#, python-brace-format
+msgid "Missing {param_type}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:200
+#, python-brace-format
+msgid "Missing parameter: {param_name}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:220
+#, python-brace-format
+msgid "No such option: {name}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:232
+#, python-brace-format
+msgid "Did you mean {possibility}?"
+msgid_plural "(Possible options: {possibilities})"
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:270
+msgid "unknown error"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:277
+#, python-brace-format
+msgid "Could not open file {filename!r}: {message}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/parser.py:233
+#, python-brace-format
+msgid "Argument {name!r} takes {nargs} values."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/parser.py:415
+#, python-brace-format
+msgid "Option {name!r} does not take a value."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/parser.py:476
+#, python-brace-format
+msgid "Option {name!r} requires an argument."
+msgid_plural "Option {name!r} requires {nargs} arguments."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv_new/lib/python3.9/site-packages/click/shell_completion.py:326
+msgid "Shell completion is not supported for Bash versions older than 4.4."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/shell_completion.py:333
+msgid "Couldn't detect Bash version, shell completion is not supported."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/termui.py:158
+msgid "Repeat for confirmation"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/termui.py:174
+msgid "Error: The value you entered was invalid."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/termui.py:176
+#, python-brace-format
+msgid "Error: {e.message}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/termui.py:187
+msgid "Error: The two entered values do not match."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/termui.py:243
+msgid "Error: invalid input"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/termui.py:773
+msgid "Press any key to continue..."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:267
+#, python-brace-format
+msgid ""
+"Choose from:\n"
+"\t{choices}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:299
+#, python-brace-format
+msgid "{value!r} is not {choice}."
+msgid_plural "{value!r} is not one of {choices}."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:393
+#, python-brace-format
+msgid "{value!r} does not match the format {format}."
+msgid_plural "{value!r} does not match the formats {formats}."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:415
+#, python-brace-format
+msgid "{value!r} is not a valid {number_type}."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:471
+#, python-brace-format
+msgid "{value} is not in the range {range}."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:612
+#, python-brace-format
+msgid "{value!r} is not a valid boolean."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:636
+#, python-brace-format
+msgid "{value!r} is not a valid UUID."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:826
+msgid "file"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:828
+msgid "directory"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:830
+msgid "path"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:881
+#, python-brace-format
+msgid "{name} {filename!r} does not exist."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:890
+#, python-brace-format
+msgid "{name} {filename!r} is a file."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:898
+#, python-brace-format
+msgid "{name} {filename!r} is a directory."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:907
+#, python-brace-format
+msgid "{name} {filename!r} is not readable."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:916
+#, python-brace-format
+msgid "{name} {filename!r} is not writable."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:925
+#, python-brace-format
+msgid "{name} {filename!r} is not executable."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:992
+#, python-brace-format
+msgid "{len_type} values are required, but {len_value} was given."
+msgid_plural "{len_type} values are required, but {len_value} were given."
+msgstr[0] ""
+msgstr[1] ""
+

@@ -1,92 +1,200 @@
 ﻿{% extends "base.html" %}
-{% block title %}{{ _('Search Papers · PaperQuery') }}{% endblock %}
+{% block title %}{{ _('Search Papers · Keydion') }}{% endblock %}
 {% block content %}
-<div class="page-title">
-  <h1>{{ _('Search the Research Library') }}</h1>
-  <p class="text-muted">{{ _('Enter keywords to find matching papers by title or content.') }}</p>
-</div>
+<div class="row gx-5 mt-3">
+  <!-- Left Side: Refine Results -->
+  <div class="col-lg-3 border-end pe-4" style="min-height: 80vh;">
+    <h4 class="fs-5 fw-semibold mb-4">{{ _('Refine Results') }}</h4>
 
-<div class="mb-3">
-  <a class="btn btn-outline-secondary back-link" href="{{ url_for('dashboard') }}">
-    &larr; {{ _('Back to Dashboard') }}
-  </a>
-</div>
+    <form method="get" action="{{ url_for('search') }}">
 
-<form method="get" class="row gy-2 gx-3 align-items-center mb-4">
-  <input type="hidden" name="page" value="1">
-  <div class="col-sm-9">
-    <label class="visually-hidden" for="query">{{ _('Keyword') }}</label>
-    <input type="text" class="form-control form-control-lg" id="query" name="q" placeholder="{{ _('climate change') }}" value="{{ query }}">
-  </div>
-  <div class="col-sm-3 d-grid">
-    <button type="submit" class="btn btn-primary btn-lg">{{ _('Search') }}</button>
-  </div>
-</form>
+      <!-- Search Within Results -->
+      <div class="mb-4">
+        <label for="query" class="form-label text-uppercase text-muted fw-bold"
+          style="font-size: 11px; letter-spacing: 0.5px;">{{ _('Search Within Results') }}</label>
+        <div class="input-group input-group-sm">
+          <input type="text" class="form-control shadow-none" id="query" name="q" value="{{ query }}">
+          <button class="btn btn-outline-secondary shadow-none" type="submit">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-search"
+              viewBox="0 0 16 16">
+              <path
+                d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+            </svg>
+          </button>
+        </div>
+      </div>
 
-{% if pagination.total %}
-  <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-3 pagination-toolbar">
-    <div class="text-muted">
-      {{ _('Page %(current)d of %(total)d', current=pagination.page, total=pagination.pages) }}
-      · {{ ngettext('%(count)s paper total', '%(count)s papers total', pagination.total, count=pagination.total) }}
+      <!-- Subject Category -->
+      <div class="mb-4">
+        <label for="category" class="form-label text-uppercase text-muted fw-bold"
+          style="font-size: 11px; letter-spacing: 0.5px;">{{ _('Subject') }}</label>
+        <select class="form-select form-select-sm shadow-none" id="category" name="category"
+          onchange="this.form.submit()">
+          <option value="">{{ _('Any Subject') }}</option>
+          {% for cat in paper_categories %}
+          <option value="{{ cat }}" {% if category_filter==cat %}selected{% endif %}>{{ cat }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Date Filter -->
+      <div class="mb-4">
+        <label for="date" class="form-label text-uppercase text-muted fw-bold"
+          style="font-size: 11px; letter-spacing: 0.5px;">{{ _('Date') }}</label>
+        <input type="text" class="form-control form-control-sm shadow-none" id="date" name="date"
+          value="{{ date_filter }}" placeholder="e.g. 2023" onblur="this.form.submit()">
+      </div>
+
+      <!-- Language -->
+      <div class="mb-4">
+        <label for="language" class="form-label text-uppercase text-muted fw-bold"
+          style="font-size: 11px; letter-spacing: 0.5px;">{{ _('Language') }}</label>
+        <select class="form-select form-select-sm shadow-none" id="language" name="language"
+          onchange="this.form.submit()">
+          <option value="">{{ _('Any Language') }}</option>
+          <option value="zh" {% if language_filter=='zh' %}selected{% endif %}>{{ _('Chinese') }}</option>
+          <option value="en" {% if language_filter=='en' %}selected{% endif %}>{{ _('English') }}</option>
+        </select>
+      </div>
+    </form>
+
+    <div class="mt-5">
+      {% if user %}
+      <a class="text-decoration-none text-muted small" href="{{ url_for('dashboard') }}">&larr; {{ _('Back to
+        Dashboard') }}</a>
+      {% else %}
+      <a class="text-decoration-none text-muted small" href="{{ url_for('index') }}">&larr; {{ _('Back to Home') }}</a>
+      {% endif %}
     </div>
-    <div class="d-flex gap-2 flex-wrap">
-      {% if pagination.has_next %}
+
+  </div>
+
+  <!-- Right Side: Results -->
+  <div class="col-lg-9 ps-lg-4">
+
+    <!-- Top Result Info -->
+    <div class="d-flex justify-content-between align-items-end mb-4 border-bottom pb-3 mt-1">
+      <h2 class="fs-3 fw-medium mb-0" style="font-family: 'Source Serif 4', Georgia, serif;">
+        {{ ngettext('%(count)s result', '%(count)s results', total_matches, count=total_matches) }}
+      </h2>
+    </div>
+
+    <!-- Items -->
+    {% if records %}
+    <div class="d-flex flex-column gap-5">
+      {% for paper in records %}
+      <div class="row gx-4 result-item">
+        <!-- Item left side text -->
+        <div class="col-lg-9">
+          <div class="text-muted small text-uppercase fw-bold mb-2 d-flex align-items-center"
+            style="letter-spacing: 0.5px; font-size: 10px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="currentColor"
+              class="bi bi-journal-text me-1" viewBox="0 0 16 16">
+              <path
+                d="M5 10.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5" />
+              <path
+                d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2" />
+              <path
+                d="M1 5v-.5a.5.5 0 0 1 1 0V5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1zm0 3v-.5a.5.5 0 0 1 1 0V8h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1z" />
+            </svg>
+            {% if paper.journal and journal_id_map.get(paper.journal) %}
+            <a href="{{ url_for('journal_detail', journal_id=journal_id_map[paper.journal]) }}"
+              class="text-decoration-none" style="color: inherit;">{{ paper.journal }}</a>
+            {% else %}
+            {{ paper.journal or _('Journal Article') }}
+            {% endif %}
+          </div>
+          <h3 class="fs-5 fw-normal mb-2" style="font-family: 'Source Serif 4', Georgia, serif; line-height: 1.4;">
+            <a href="{{ url_for('preview_paper', filename=paper.filename, q=query, page=pagination.page) }}"
+              class="text-decoration-none" style="color: #2b457a;">
+              {{ paper.title or _('Untitled Paper') }}
+            </a>
+          </h3>
+          <div class="mb-1" style="font-size: 14px;">
+            <span class="text-decoration-underline text-dark">{{ paper.author_name or _('Not specified') }}</span>
+          </div>
+          <div class="text-muted fst-italic mb-3" style="font-size: 13px;">
+            {{ paper.author_school or _('Not specified') }} · {{ paper.published_at or _('Not specified') }}
+          </div>
+          <p class="text-muted" style="font-size: 12.5px; line-height: 1.5; margin-bottom: 0;">
+            {% if paper.abstract %}
+            {{ paper.abstract[:200] ~ '...' if paper.abstract|length > 200 else paper.abstract }}
+            {% else %}
+            {{ _('No abstract available.') }}
+            {% endif %}
+          </p>
+        </div>
+        <!-- Item right side buttons -->
+        <div class="col-lg-3 d-flex flex-column gap-2 align-items-end justify-content-start">
+          {% if is_guest %}
+          <a href="{{ url_for('login') }}"
+            class="btn btn-danger btn-sm w-100 fw-medium shadow-none text-start text-center rounded-0"
+            style="background-color: #a4101e; border-color: #a4101e; font-size: 13px;">
+            {{ _('Sign in to Download') }}
+          </a>
+          {% else %}
+          <a href="{{ url_for('download', filename=paper.filename) }}"
+            class="btn btn-danger btn-sm w-100 fw-medium shadow-none text-start d-flex align-items-center justify-content-center gap-1 rounded-0"
+            style="background-color: #a4101e; border-color: #a4101e; font-size: 13px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-download"
+              viewBox="0 0 16 16">
+              <path
+                d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5" />
+              <path
+                d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z" />
+            </svg>
+            {{ _('Download') }}
+          </a>
+          <a href="{{ url_for('preview_paper', filename=paper.filename, q=query, page=pagination.page) }}"
+            class="btn btn-outline-secondary btn-sm w-100 fw-medium shadow-none text-start d-flex align-items-center justify-content-center gap-1 rounded-0 bg-light"
+            style="font-size: 13px;">
+            {{ _('View') }}
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+    <div class="mt-5 pt-3 border-top d-flex justify-content-between align-items-center">
+      <div class="d-flex gap-2">
+        {% if pagination.has_prev %}
         <form method="get" class="d-inline">
           <input type="hidden" name="q" value="{{ query }}">
-          <input type="hidden" name="page" value="{{ pagination.next_page }}">
-          <button type="submit" class="btn btn-outline-primary btn-sm">{{ _('Next Page') }}</button>
+          <input type="hidden" name="category" value="{{ category_filter }}">
+          <input type="hidden" name="language" value="{{ language_filter }}">
+          <input type="hidden" name="date" value="{{ date_filter }}">
+          <input type="hidden" name="page" value="{{ pagination.prev_page }}">
+          <button type="submit" class="btn btn-outline-secondary btn-sm shadow-none rounded-0">&larr; {{ _('Previous')
+            }}</button>
         </form>
-      {% endif %}
-      {% if pagination.pages > 1 %}
-        <form method="get" class="d-flex align-items-center gap-2 jump-form">
+        {% endif %}
+        {% if pagination.has_next %}
+        <form method="get" class="d-inline">
           <input type="hidden" name="q" value="{{ query }}">
-          <label class="visually-hidden" for="page-jump">{{ _('Go to page') }}</label>
-          <input type="number" class="form-control form-control-sm" id="page-jump" name="page" min="1" max="{{ pagination.pages }}" value="{{ pagination.page }}" required>
-          <button type="submit" class="btn btn-outline-secondary btn-sm">{{ _('Go') }}</button>
+          <input type="hidden" name="category" value="{{ category_filter }}">
+          <input type="hidden" name="language" value="{{ language_filter }}">
+          <input type="hidden" name="date" value="{{ date_filter }}">
+          <input type="hidden" name="page" value="{{ pagination.next_page }}">
+          <button type="submit" class="btn btn-outline-secondary btn-sm shadow-none rounded-0">{{ _('Next') }}
+            &rarr;</button>
         </form>
-      {% endif %}
-    </div>
-  </div>
-{% endif %}
-
-{% if records %}
-  <div class="card shadow-sm">
-    <div class="card-body">
-      <div class="table-responsive">
-        <table class="table table-hover align-middle paper-table">
-          <thead class="table-light">
-            <tr>
-              <th scope="col">{{ _('No.') }}</th>
-              <th scope="col">{{ _('Title') }}</th>
-              <th scope="col">{{ _('Authors') }}</th>
-              <th scope="col">{{ _('Organization') }}</th>
-              <th scope="col">{{ _('Published At') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for paper in records %}
-              <tr>
-                <td class="text-muted">{{ loop.index0 + 1 + (pagination.page - 1) * pagination.per_page }}</td>
-                <td>
-                  <a class="paper-title-link" href="{{ url_for('preview_paper', filename=paper.filename, q=query, page=pagination.page) }}">{{ paper.title or paper.filename }}</a>
-                  <div class="small text-muted">{{ paper.filename }}</div>
-                  {% if paper.keywords %}
-                    <div class="small text-muted">{{ _('Keywords') }}: {{ paper.keywords }}</div>
-                  {% endif %}
-                </td>
-                <td>{{ paper.authors or _('Not specified') }}</td>
-                <td>{{ paper.organization or _('Not specified') }}</td>
-                <td>{{ paper.published_at or _('Not specified') }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+        {% endif %}
+      </div>
+      <div class="text-muted small">
+        {{ _('Page %(current)d of %(total)d', current=pagination.page, total=pagination.pages) }}
       </div>
     </div>
+    {% endif %}
+
+    {% else %}
+    <div class="py-5 text-center text-muted">
+      {{ _('No papers match your search criteria. Try adjusting your filters.') }}
+    </div>
+    {% endif %}
+
   </div>
-{% elif query %}
-  <div class="alert alert-info">{{ _('No papers matched "%(query)s". Try refining your terms.', query=query) }}</div>
-{% else %}
-  <div class="alert alert-info">{{ _('No papers are available.') }}</div>
-{% endif %}
+</div>
 {% endblock %}
