@@ -74,21 +74,35 @@
           required>{{ form_data.abstract }}</textarea>
       </div>
 
-      <!-- First Author Information -->
+      <!-- Author Information -->
       <div class="mb-3">
-        <label class="form-label">{{ _('First Author Information') }}</label>
-        <div class="row g-3">
-          <div class="col-md-4">
-            <input type="text" class="form-control" id="author_name" name="author_name"
-              value="{{ form_data.author_name }}" placeholder="{{ _('Name') }}" required>
-          </div>
-          <div class="col-md-4">
-            <input type="email" class="form-control" id="author_email" name="author_email"
-              value="{{ form_data.author_email }}" placeholder="{{ _('Email') }}" required>
-          </div>
-          <div class="col-md-4">
-            <input type="text" class="form-control" id="author_school" name="author_school"
-              value="{{ form_data.author_school }}" placeholder="{{ _('School') }}" required>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <label class="form-label mb-0">{{ _('Author Information') }}</label>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="addAuthorBtn"><i class="bi bi-plus"></i> {{
+            _('Add Author') }}</button>
+        </div>
+
+        <div id="authorsContainer">
+          <div class="row g-2 mb-2 author-row">
+            <div class="col-md-3">
+              <input type="text" class="form-control" name="author_name"
+                value="{{ form_data.author_name.split(', ')[0] if form_data.author_name else '' }}"
+                placeholder="{{ _('Name') }}" required>
+            </div>
+            <div class="col-md-4">
+              <input type="email" class="form-control" name="author_email"
+                value="{{ form_data.author_email.split(', ')[0] if form_data.author_email else '' }}"
+                placeholder="{{ _('Email') }}" required>
+            </div>
+            <div class="col-md-4">
+              <input type="text" class="form-control" name="author_school"
+                value="{{ form_data.author_school.split(', ')[0] if form_data.author_school else '' }}"
+                placeholder="{{ _('School') }}" required>
+            </div>
+            <div class="col-md-1 d-flex align-items-center">
+              <button type="button" class="btn btn-outline-danger btn-sm remove-author w-100"
+                style="display: none;">&times;</button>
+            </div>
           </div>
         </div>
       </div>
@@ -107,4 +121,29 @@
     </form>
   </div>
 </div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const container = document.getElementById("authorsContainer");
+    const addBtn = document.getElementById("addAuthorBtn");
+
+    addBtn.addEventListener("click", function () {
+      const rows = container.querySelectorAll(".author-row");
+      const newRow = rows[0].cloneNode(true);
+
+      newRow.querySelectorAll("input").forEach(input => {
+        input.value = "";
+      });
+
+      const removeBtn = newRow.querySelector(".remove-author");
+      removeBtn.style.display = "block";
+
+      removeBtn.addEventListener("click", function () {
+        newRow.remove();
+      });
+
+      container.appendChild(newRow);
+    });
+  });
+</script>
 {% endblock %}
