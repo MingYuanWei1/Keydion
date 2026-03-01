@@ -17,8 +17,7 @@ __pycache__/
 .pytest_cache/
 
 # Environment variables
-.env
-.env.*
+# Not ignoring .env as per user request to use the same on remote server
 
 # IDEs and Editors
 .vscode/
