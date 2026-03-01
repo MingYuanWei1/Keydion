@@ -23,7 +23,7 @@ from urllib.parse import urlparse
 
 import msal
 import requests
-from sqlalchemy import Column, Date, DateTime, ForeignKey, String, Text, create_engine
+from sqlalchemy import Column, Date, DateTime, ForeignKey, String, Text, Unicode, UnicodeText, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from flask import (
     Flask,
@@ -225,83 +225,83 @@ LANGUAGE_NAMES = {
 
 class LocalUser(BASE):
     __tablename__ = "local_users"
-    username = Column(String(255), primary_key=True)
-    password = Column(String(255), nullable=False)
+    username = Column(Unicode(255), primary_key=True)
+    password = Column(Unicode(255), nullable=False)
     registration_date = Column(Date)
     expiry_date = Column(Date)
-    role = Column(String(10), nullable=False)
-    email = Column(String(255))
-    first_name = Column(String(255))
-    last_name = Column(String(255))
-    school = Column(String(255))
+    role = Column(Unicode(10), nullable=False)
+    email = Column(Unicode(255))
+    first_name = Column(Unicode(255))
+    last_name = Column(Unicode(255))
+    school = Column(Unicode(255))
 
 
 class MsUser(BASE):
     __tablename__ = "ms_users"
-    ms_id = Column(String(255), primary_key=True)
-    tenant_id = Column(String(255))
-    email = Column(String(255))
-    display_name = Column(String(255))
-    first_name = Column(String(255))
-    last_name = Column(String(255))
-    school = Column(String(255))
-    grade = Column(String(255))
-    role = Column(String(10))
+    ms_id = Column(Unicode(255), primary_key=True)
+    tenant_id = Column(Unicode(255))
+    email = Column(Unicode(255))
+    display_name = Column(Unicode(255))
+    first_name = Column(Unicode(255))
+    last_name = Column(Unicode(255))
+    school = Column(Unicode(255))
+    grade = Column(Unicode(255))
+    role = Column(Unicode(10))
     created_at = Column(DateTime)
     updated_at = Column(DateTime)
 
 class JournalModel(BASE):
     __tablename__ = "journals"
-    id = Column(String(255), primary_key=True)
-    name = Column(String(255))
-    cover_image = Column(String(255))
-    introduction = Column(Text)
-    created_at = Column(String(255))
+    id = Column(Unicode(255), primary_key=True)
+    name = Column(Unicode(255))
+    cover_image = Column(Unicode(255))
+    introduction = Column(UnicodeText)
+    created_at = Column(Unicode(255))
 
 class PaperMetadataModel(BASE):
     __tablename__ = "papers_metadata"
-    filename = Column(String(255), primary_key=True)
-    title = Column(String(255))
-    journal = Column(String(255))
-    category = Column(String(255))
-    language = Column(String(255))
-    keywords = Column(Text)
-    abstract = Column(Text)
-    author_name = Column(String(255))
-    author_email = Column(String(255))
-    author_school = Column(String(255))
-    published_at = Column(String(255))
+    filename = Column(Unicode(255), primary_key=True)
+    title = Column(Unicode(255))
+    journal = Column(Unicode(255))
+    category = Column(Unicode(255))
+    language = Column(Unicode(255))
+    keywords = Column(UnicodeText)
+    abstract = Column(UnicodeText)
+    author_name = Column(Unicode(255))
+    author_email = Column(Unicode(255))
+    author_school = Column(Unicode(255))
+    published_at = Column(Unicode(255))
 
 class NewsArticleModel(BASE):
     __tablename__ = "news_articles"
-    id = Column(String(255), primary_key=True)
-    title = Column(String(255))
-    category = Column(String(255))
-    abstract = Column(Text)
-    body = Column(Text)
-    author = Column(String(255))
-    image_url = Column(String(255))
-    published_at = Column(String(255))
+    id = Column(Unicode(255), primary_key=True)
+    title = Column(Unicode(255))
+    category = Column(Unicode(255))
+    abstract = Column(UnicodeText)
+    body = Column(UnicodeText)
+    author = Column(Unicode(255))
+    image_url = Column(Unicode(255))
+    published_at = Column(Unicode(255))
 
 class SubmissionModel(BASE):
     __tablename__ = "submissions"
-    id = Column(String(255), primary_key=True)
-    pdf_filename = Column(String(255))
-    pending_filename = Column(String(255))
-    title = Column(String(255))
-    author_name = Column(String(255))
-    author_email = Column(String(255))
-    author_school = Column(String(255))
-    status = Column(String(50))
-    submitted_at = Column(String(255))
-    feedback = Column(Text)
-    abstract = Column(Text)
-    keywords = Column(Text)
-    journal = Column(String(255))
-    category = Column(String(255))
-    language = Column(String(255))
-    submitted_by = Column(String(255))
-    original_filename = Column(String(255))
+    id = Column(Unicode(255), primary_key=True)
+    pdf_filename = Column(Unicode(255))
+    pending_filename = Column(Unicode(255))
+    title = Column(Unicode(255))
+    author_name = Column(Unicode(255))
+    author_email = Column(Unicode(255))
+    author_school = Column(Unicode(255))
+    status = Column(Unicode(50))
+    submitted_at = Column(Unicode(255))
+    feedback = Column(UnicodeText)
+    abstract = Column(UnicodeText)
+    keywords = Column(UnicodeText)
+    journal = Column(Unicode(255))
+    category = Column(Unicode(255))
+    language = Column(Unicode(255))
+    submitted_by = Column(Unicode(255))
+    original_filename = Column(Unicode(255))
 
 
 
