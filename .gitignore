@@ -1,6 +1,7 @@
 # Database and uploaded files (DO NOT COMMIT THESE)
 data/
 static/uploads/
+papers/
 
 # Python environments and cache
 venv_new/
