@@ -1227,12 +1227,21 @@ def create_app() -> Flask:
                     "email": emails[i].strip() if i < len(emails) else "",
                     "school": schools[i].strip() if i < len(schools) else ""
                 })
+        
+        # Deduplicate schools
+        unique_schools = []
+        for s in schools:
+            s_clean = s.strip()
+            if s_clean and s_clean not in unique_schools:
+                unique_schools.append(s_clean)
+        unique_schools_str = ", ".join(unique_schools) if unique_schools else ""
 
         return render_template(
             "preview.html",
             user=user,
             paper=paper,
             parsed_authors=parsed_authors,
+            unique_schools_str=unique_schools_str,
             related_papers=related_papers,
             source_query=source_query,
             source_page=source_page,
