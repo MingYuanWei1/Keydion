@@ -133,6 +133,10 @@
 
       newRow.querySelectorAll("input").forEach(input => {
         input.value = "";
+        // Only the first author requires email and school. Subsequent authors only need a name.
+        if (input.name === "author_email" || input.name === "author_school") {
+          input.removeAttribute("required");
+        }
       });
 
       const removeBtn = newRow.querySelector(".remove-author");
