@@ -192,6 +192,7 @@ MS_USER_FIELDS = [
     "school",
     "grade",
     "role",
+    "password",
     "created_at",
     "updated_at",
 ]
@@ -247,6 +248,7 @@ class MsUser(BASE):
     school = Column(Unicode(255))
     grade = Column(Unicode(255))
     role = Column(Unicode(10))
+    password = Column(Unicode(255))
     created_at = Column(DateTime)
     updated_at = Column(DateTime)
 
@@ -361,6 +363,17 @@ def init_db() -> None:
         _ENGINE = create_engine(DB_URL, pool_pre_ping=True)
         _SESSION_LOCAL = sessionmaker(bind=_ENGINE)
         BASE.metadata.create_all(_ENGINE)
+        # Migrate: add password column to ms_users if it doesn't exist
+        try:
+            with _ENGINE.connect() as conn:
+                from sqlalchemy import text, inspect as sa_inspect
+                inspector = sa_inspect(_ENGINE)
+                columns = [c["name"] for c in inspector.get_columns("ms_users")]
+                if "password" not in columns:
+                    conn.execute(text("ALTER TABLE ms_users ADD COLUMN password VARCHAR(255)"))
+                    conn.commit()
+        except Exception:
+            pass  # Column already exists or DB doesn't support inspection
 
 
 @contextmanager
@@ -484,54 +497,54 @@ def create_app() -> Flask:
         if request.method == "POST":
             email = request.form.get("email", "").strip()
             password = request.form.get("password", "").strip()
-            # Look up by email first, then fall back to username for legacy accounts
+
+            # 1. Try local user by email
             user_record = get_local_user_by_email(email)
             if not user_record:
+                # 2. Try local user by username (for admin accounts like "admin")
                 user_record = get_local_user(email)
+
             if user_record:
                 user = authenticate(user_record.get("username", ""), password)
+                if user:
+                    allowed, warning = ensure_login_available(user["username"])
+                    if not allowed:
+                        flash(warning, "warning")
+                        return render_template("login.html", ms_enabled=is_ms_configured())
+                    display = user_record.get("first_name", "") or user_record.get("email", "") or user["username"]
+                    start_local_session(
+                        user,
+                        display_name=display,
+                        email=user_record.get("email", ""),
+                    )
+                    flash(_("Welcome back, %(username)s!", username=display), "success")
+                    next_url = session.pop("next", None)
+                    if not next_url:
+                        next_url = url_for("index")
+                    return redirect(next_url)
             else:
-                user = None
-            if user:
-                allowed, warning = ensure_login_available(user["username"])
-                if not allowed:
-                    flash(warning, "warning")
-                    return render_template("login.html", ms_enabled=is_ms_configured())
-                display = user_record.get("first_name", "") or user_record.get("email", "") or user["username"]
-                start_local_session(
-                    user,
-                    display_name=display,
-                    email=user_record.get("email", ""),
-                )
-                flash(_("Welcome back, %(username)s!", username=display), "success")
-                next_url = session.pop("next", None)
-                if not next_url:
-                    next_url = url_for("index")
-                return redirect(next_url)
+                # 3. Try MS user by email (if they have set a password)
+                ms_record = get_ms_user_by_email(email)
+                if ms_record and ms_record.get("password"):
+                    if verify_password(password, ms_record["password"]):
+                        allowed, warning = ensure_login_available(ms_record["ms_id"])
+                        if not allowed:
+                            flash(warning, "warning")
+                            return render_template("login.html", ms_enabled=is_ms_configured())
+                        start_ms_session(ms_record)
+                        display = ms_record.get("display_name", "") or ms_record.get("email", "")
+                        flash(_("Welcome back, %(username)s!", username=display), "success")
+                        next_url = session.pop("next", None)
+                        if not next_url:
+                            next_url = url_for("index")
+                        return redirect(next_url)
+
             flash(_("Invalid email or password"), "danger")
             return render_template("login.html", ms_enabled=is_ms_configured())
 
         if not is_ms_configured():
             flash(_("Microsoft sign-in is not configured. Please contact the administrator."), "warning")
         return render_template("login.html", ms_enabled=is_ms_configured())
-
-    @app.route("/admin/login", methods=["GET", "POST"])
-    def admin_login():
-        if request.method == "POST":
-            username = request.form.get("username", "").strip()
-            password = request.form.get("password", "").strip()
-            user = authenticate(username, password)
-            if user:
-                allowed, warning = ensure_login_available(user["username"])
-                if not allowed:
-                    flash(warning, "warning")
-                    return render_template("admin_login.html")
-                start_local_session(user)
-                flash(_("Welcome back, %(username)s!", username=user["username"]), "success")
-                return redirect(url_for("index"))
-            flash(_("Invalid username or password"), "danger")
-            return render_template("admin_login.html")
-        return render_template("admin_login.html")
 
     @app.route("/register", methods=["GET", "POST"])
     def register():
@@ -698,6 +711,47 @@ def create_app() -> Flask:
         )
 
 
+    @app.route("/account/change-password", methods=["GET", "POST"])
+    def change_password():
+        user = require_login()
+        if not user:
+            return redirect(url_for("login"))
+
+        is_ms_user = not user.get("is_local", True)
+        ms_id = user.get("ms_id") or user.get("username", "")
+
+        if request.method == "POST":
+            new_password = request.form.get("new_password", "").strip()
+            confirm_password = request.form.get("confirm_password", "").strip()
+
+            if not new_password:
+                flash(_("Please enter a new password."), "warning")
+                return redirect(url_for("change_password"))
+            if new_password != confirm_password:
+                flash(_("Passwords do not match."), "warning")
+                return redirect(url_for("change_password"))
+            if len(new_password) < 6:
+                flash(_("Password must be at least 6 characters."), "warning")
+                return redirect(url_for("change_password"))
+
+            if is_ms_user:
+                success = update_ms_user_password(ms_id, new_password)
+            else:
+                success = update_local_user_password(user.get("username", ""), new_password)
+
+            if success:
+                flash(_("Password updated successfully."), "success")
+            else:
+                flash(_("Unable to update password."), "danger")
+            return redirect(url_for("dashboard"))
+
+        # Determine if the user already has a password set
+        has_password = True
+        if is_ms_user:
+            ms_record = get_ms_user(ms_id)
+            has_password = bool(ms_record and ms_record.get("password"))
+
+        return render_template("change_password.html", user=user, has_password=has_password)
 
     @app.route("/admin/users")
     def admin_users():
@@ -2422,9 +2476,63 @@ def get_ms_user(ms_id: str) -> Optional[Dict[str, str]]:
             "school": user.school or "",
             "grade": user.grade or "",
             "role": user.role or "1",
+            "password": user.password or "",
             "created_at": user.created_at.isoformat() if user.created_at else "",
             "updated_at": user.updated_at.isoformat() if user.updated_at else "",
         }
+
+
+def get_ms_user_by_email(email: str) -> Optional[Dict[str, str]]:
+    """Look up a Microsoft user by email address."""
+    if not email:
+        return None
+    if not db_enabled():
+        for row in read_csv_rows(MS_USERS_CSV, MS_USER_FIELDS):
+            if (row.get("email") or "").lower() == email.lower():
+                return row
+        return None
+    with db_session() as db:
+        user = db.query(MsUser).filter(MsUser.email == email).first()
+        if not user:
+            return None
+        return {
+            "ms_id": user.ms_id,
+            "tenant_id": user.tenant_id or "",
+            "email": user.email or "",
+            "display_name": user.display_name or "",
+            "first_name": user.first_name or "",
+            "last_name": user.last_name or "",
+            "school": user.school or "",
+            "grade": user.grade or "",
+            "role": user.role or "1",
+            "password": user.password or "",
+            "created_at": user.created_at.isoformat() if user.created_at else "",
+            "updated_at": user.updated_at.isoformat() if user.updated_at else "",
+        }
+
+
+def update_ms_user_password(ms_id: str, password: str) -> bool:
+    """Set or update the password for an MS user."""
+    hashed = hash_password(password)
+    if not db_enabled():
+        rows = read_csv_rows(MS_USERS_CSV, MS_USER_FIELDS)
+        updated = False
+        for row in rows:
+            if row.get("ms_id") == ms_id:
+                row["password"] = hashed
+                row["updated_at"] = datetime.utcnow().isoformat()
+                updated = True
+                break
+        if updated:
+            write_csv_rows(MS_USERS_CSV, MS_USER_FIELDS, rows)
+        return updated
+    with db_session() as db:
+        user = db.get(MsUser, ms_id)
+        if not user:
+            return False
+        user.password = hashed
+        user.updated_at = datetime.utcnow()
+        return True
 
 
 def upsert_ms_user(profile: Dict[str, str]) -> Dict[str, str]:
