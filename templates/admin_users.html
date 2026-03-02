@@ -94,9 +94,20 @@
               </select>
             </td>
             <td>
-              <form method="post" action="{{ url_for('admin_delete_ms_user', ms_id=entry.ms_id) }}">
-                <button class="btn btn-outline-danger btn-sm" type="submit">{{ _('Delete') }}</button>
-              </form>
+              <div class="d-flex flex-wrap gap-2">
+                <form method="post" action="{{ url_for('admin_set_ms_password', ms_id=entry.ms_id) }}">
+                  <div class="input-group input-group-sm">
+                    <input class="form-control" name="password" type="password" placeholder="{{ _('New password') }}"
+                      required>
+                    <button class="btn btn-outline-secondary" type="submit">
+                      {% if entry.password %}{{ _('Reset Password') }}{% else %}{{ _('Set Password') }}{% endif %}
+                    </button>
+                  </div>
+                </form>
+                <form method="post" action="{{ url_for('admin_delete_ms_user', ms_id=entry.ms_id) }}">
+                  <button class="btn btn-outline-danger btn-sm" type="submit">{{ _('Delete') }}</button>
+                </form>
+              </div>
             </td>
           </tr>
           {% else %}
