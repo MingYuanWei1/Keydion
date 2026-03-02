@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Keydion 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-27 12:44+0800\n"
+"POT-Creation-Date: 2026-03-02 18:43+0800\n"
 "PO-Revision-Date: 2025-10-11 00:00+0000\n"
 "Last-Translator: \n"
 "Language: zh\n"
@@ -14,394 +14,381 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
+#: app.py:218
+msgid "Reader - View & Download"
+msgstr "读者 - 查看与下载"
+
+#: app.py:219
+msgid "Contributor - Upload Enabled"
+msgstr "贡献者 - 可上传"
+
+#: app.py:220
+msgid "Curator - Full Access"
+msgstr "管理员 - 完全权限"
+
+# ==================== LANGUAGE ====================
+#: app.py:223 templates/paper_modify.html:62 templates/search.html:56
+#: templates/upload.html:63
+msgid "English"
+msgstr "英语"
+
+#: app.py:224 templates/paper_modify.html:60 templates/search.html:55
+#: templates/upload.html:62
+msgid "Chinese"
+msgstr "中文"
+
 # ==================== AUTH FLASH MESSAGES ====================
-#: app.py:427 app.py:448 app_old.py:134
+#: app.py:517 app.py:533
 #, python-format
 msgid "Welcome back, %(username)s!"
 msgstr "欢迎回来，%(username)s！"
 
-#: app.py:429
+#: app.py:539
 #, fuzzy
 msgid "Invalid email or password"
 msgstr "用户名或密码错误"
 
-#: app.py:433 app.py:506 app.py:522
+#: app.py:543 app.py:597 app.py:613
 msgid "Microsoft sign-in is not configured. Please contact the administrator."
 msgstr "Microsoft 登录尚未配置，请联系管理员。"
 
-#: app.py:450
-msgid "Invalid username or password"
-msgstr "用户名或密码错误"
-
-#: app.py:465
+#: app.py:556
 msgid "Email, password, first name, and last name are required."
 msgstr "需要提供邮箱、密码、名字和姓氏。"
 
-#: app.py:469
+#: app.py:560 app.py:728
 msgid "Passwords do not match."
 msgstr "两次密码输入不一致。"
 
-#: app.py:473 app.py:488
+#: app.py:564 app.py:579
 msgid "An account with this email already exists."
 msgstr "此邮箱已被注册。"
 
-#: app.py:495
+#: app.py:586
 #, python-format
 msgid "Account created successfully. Welcome, %(name)s!"
 msgstr "账号创建成功。欢迎，%(name)s！"
 
-#: app.py:497
+#: app.py:588
 msgid "Account created. Please sign in."
 msgstr "账号已创建。请登录。"
 
-#: app.py:525
+#: app.py:616
 #, fuzzy
 msgid "Login session expired. Please try again."
 msgstr "会话已过期，请重新登录。"
 
-#: app.py:531 app.py:546
+#: app.py:622 app.py:637
 #, python-format
 msgid "Microsoft sign-in failed: %(reason)s"
 msgstr "Microsoft 登录失败：%(reason)s"
 
-#: app.py:536
-#, fuzzy
+#: app.py:627
 msgid "Microsoft sign-in failed. Please try again."
-msgstr "Microsoft 登录尚未配置，请联系管理员。"
+msgstr "Microsoft 登录失败，请重试。"
 
-#: app.py:551
-#, fuzzy
+#: app.py:642
 msgid "Microsoft sign-in did not return a valid profile."
-msgstr "微软登录尚未配置。"
+msgstr "Microsoft 登录未返回有效的个人资料。"
 
-#: app.py:577 app_old.py:146
+#: app.py:669
 msgid "Signed out successfully."
 msgstr "已成功退出登录。"
 
-#: app.py:588
-#, fuzzy
+#: app.py:680
 msgid "Unable to load your profile. Please sign in again."
-msgstr "会话已超时，请重新登录。"
+msgstr "无法加载您的个人资料，请重新登录。"
 
-#: app.py:601
-#, fuzzy
+#: app.py:688
 msgid "Please enter your first and last name."
-msgstr "请输入作者姓名"
+msgstr "请输入您的名字和姓氏。"
 
-#: app.py:603
-#, fuzzy
-msgid "Please select a school from the list."
-msgstr "请选择类别..."
-
-#: app.py:605
-#, fuzzy
-msgid "Please select your grade."
-msgstr "请选择类别..."
-
-#: app.py:620
-#, fuzzy
+#: app.py:701
 msgid "Profile saved successfully."
-msgstr "已成功退出登录。"
+msgstr "个人资料保存成功。"
 
-#: app.py:662
+#: app.py:725
+msgid "Please enter a new password."
+msgstr "请输入新密码。"
+
+#: app.py:731
+msgid "Password must be at least 6 characters."
+msgstr "密码长度至少为6个字符。"
+
+#: app.py:740
+msgid "Password updated successfully."
+msgstr "密码更新成功。"
+
+#: app.py:742
+msgid "Unable to update password."
+msgstr "无法重置密码。"
+
+#: app.py:783
 msgid "Role updates saved."
 msgstr "角色更改已保存。"
 
-#: app.py:674
+#: app.py:795
 msgid "Username and password are required."
 msgstr "用户名和密码为必填项。"
 
-#: app.py:677
+#: app.py:798
 msgid "That username is already taken."
 msgstr "此用户名已被占用。"
 
-#: app.py:680
+#: app.py:801
 msgid "Local user created."
 msgstr "本地用户已创建。"
 
-#: app.py:690 app.py:728
+#: app.py:811 app.py:849
 msgid "Role updated."
 msgstr "角色已更新。"
 
-#: app.py:692 app.py:730
+#: app.py:813 app.py:851
 msgid "Unable to update role."
 msgstr "无法更新角色。"
 
-#: app.py:702
+#: app.py:823 app.py:872
 msgid "Password is required."
 msgstr "密码为必填项。"
 
-#: app.py:705
+#: app.py:826
 msgid "Password reset successfully."
 msgstr "密码重置成功。"
 
-#: app.py:707
+#: app.py:828
 msgid "Unable to reset password."
 msgstr "无法重置密码。"
 
-#: app.py:716
+#: app.py:837
 msgid "Local user deleted."
 msgstr "本地用户已删除。"
 
-#: app.py:718
+#: app.py:839
 msgid "Unable to delete user."
 msgstr "无法删除用户。"
 
-#: app.py:739
+#: app.py:860
 msgid "Microsoft user deleted."
 msgstr "微软用户已删除。"
 
-#: app.py:741
+#: app.py:862
 msgid "Unable to delete Microsoft user."
 msgstr "无法删除微软用户。"
 
+#: app.py:875
+msgid "Password set successfully."
+msgstr "密码设置成功。"
+
+#: app.py:877
+msgid "Unable to set password."
+msgstr "无法设置密码。"
+
 # ==================== SEARCH ====================
-#: app.py:766 app_old.py:165
+#: app.py:902
 msgid "Enter a keyword to search."
 msgstr "请输入搜索关键词。"
 
-#: app.py:814 app_old.py:179
+#: app.py:950
 msgid "No matching papers found."
 msgstr "未找到匹配的论文。"
 
-#: app.py:858
+#: app.py:1017
 msgid "Please enter the paper title"
 msgstr "请输入论文标题"
 
-#: app.py:861
+#: app.py:1020
 msgid "Please select a subject category"
 msgstr "请选择学科类别"
 
-#: app.py:864
+#: app.py:1023
 msgid "Please select a language"
 msgstr "请选择语言"
 
-#: app.py:867
+#: app.py:1026
 msgid "Please enter keywords"
 msgstr "请输入关键词"
 
-#: app.py:870
+#: app.py:1029
 msgid "Please enter the abstract"
 msgstr "请输入摘要"
 
-#: app.py:873
+#: app.py:1032
 msgid "Please enter the author name"
 msgstr "请输入作者姓名"
 
-#: app.py:876
+#: app.py:1035
 msgid "Please enter the contact email"
 msgstr "请输入联系邮箱"
 
-#: app.py:879
+#: app.py:1038
 msgid "Please enter the school name"
 msgstr "请输入学校名称"
 
-#: app.py:890
+#: app.py:1049
 msgid "Please select a file to upload"
 msgstr "请选择要上传的文件"
 
-#: app.py:894
+#: app.py:1055
 msgid "Only PDF files are supported"
 msgstr "仅支持 PDF 文件"
 
-#: app.py:901
+#: app.py:1071
 msgid "A file with this name already exists"
 msgstr "已存在同名文件"
 
-#: app.py:919
+#: app.py:1090
 #, python-format
 msgid "Paper %(filename)s uploaded successfully!"
 msgstr "论文 %(filename)s 上传成功！"
 
-#: app.py:1025 app.py:1061 app.py:1095 app_old.py:310
+#: app.py:1197 app.py:1282 app.py:1316
 msgid "Paper not found."
 msgstr "未找到论文。"
 
-#: app.py:1047
+#: app.py:1233
+#, fuzzy
+msgid "A file with the new name already exists, unable to rename."
+msgstr "已存在同名文件"
+
+#: app.py:1253
 msgid "Paper information updated."
 msgstr "论文信息已更新。"
 
-#: app.py:1066 app_old.py:274
+#: app.py:1287
 #, python-format
 msgid "Deleted %(filename)s."
 msgstr "已删除 %(filename)s。"
 
-#: app.py:1072 app_old.py:282
+#: app.py:1293
 msgid "Language not supported."
 msgstr "不支持此语言。"
 
-#: app.py:1202 app.py:1281
+#: app.py:1447 app.py:1526
 #, fuzzy
 msgid "Please enter a title."
 msgstr "请输入论文标题"
 
-#: app.py:1204 app.py:1283
+#: app.py:1449 app.py:1528
 #, fuzzy
 msgid "Please select a category."
 msgstr "请选择类别..."
 
-#: app.py:1206 app.py:1285
+#: app.py:1451 app.py:1530
 #, fuzzy
 msgid "Please enter an abstract."
 msgstr "请输入摘要"
 
-#: app.py:1208 app.py:1287
+#: app.py:1453 app.py:1532
 #, fuzzy
 msgid "Please write the article body."
 msgstr "请输入论文标题"
 
-#: app.py:1222 app.py:1299
+#: app.py:1467 app.py:1544
 msgid "Cover image must be PNG, JPG, GIF, or WebP."
 msgstr "封面图片格式必须为 PNG、JPG、GIF 或 WebP。"
 
-#: app.py:1240
+#: app.py:1485
 #, fuzzy
 msgid "Article published successfully."
 msgstr "已成功退出登录。"
 
-#: app.py:1259 app.py:1328 app.py:1602
+#: app.py:1504 app.py:1573 app.py:1856
 #, fuzzy
 msgid "Article not found."
 msgstr "未找到论文。"
 
-#: app.py:1310
+#: app.py:1555
 #, fuzzy
 msgid "Article updated."
 msgstr "角色已更新。"
 
-#: app.py:1326
+#: app.py:1571
 #, fuzzy
 msgid "Article deleted."
 msgstr "本地用户已删除。"
 
-#: app.py:1347 app.py:1390 app.py:1416 app.py:1459
+#: app.py:1592 app.py:1644 app.py:1670 app.py:1713
 #, fuzzy
 msgid "Category name is required."
 msgstr "请输入期刊名称。"
 
-#: app.py:1350 app.py:1419
+#: app.py:1595 app.py:1673
 #, fuzzy
 msgid "Category already exists."
 msgstr "该期刊已存在。"
 
-#: app.py:1364 app.py:1433
+#: app.py:1609 app.py:1687
 msgid "Both old and new names are required."
-msgstr ""
+msgstr "旧名称和新名称都为必填项。"
 
-#: app.py:1367 app.py:1393 app.py:1436 app.py:1462
+#: app.py:1612 app.py:1647 app.py:1690 app.py:1716
 #, fuzzy
 msgid "Category not found."
 msgstr "未找到论文。"
 
-#: app.py:1369 app.py:1438
+#: app.py:1614 app.py:1692
 #, fuzzy
 msgid "A category with that name already exists."
 msgstr "已存在同名期刊。"
 
-#: app.py:1474 app.py:1534
+#: app.py:1728 app.py:1788
 msgid "Journal name is required."
 msgstr "请输入期刊名称。"
 
-#: app.py:1478
+#: app.py:1732
 msgid "Journal already exists."
 msgstr "该期刊已存在。"
 
-#: app.py:1498
+#: app.py:1752
 msgid "Journal ID is required."
 msgstr "请提供期刊ID。"
 
-#: app.py:1502 app.py:1525 app.py:1587
+#: app.py:1756 app.py:1779 app.py:1841
 msgid "Journal not found."
 msgstr "未找到该期刊。"
 
-#: app.py:1567
+#: app.py:1821
 msgid "Journal updated."
 msgstr "期刊已更新。"
 
-#: app.py:1661 app.py:1720
+#: app.py:1962 app.py:2021
 msgid "Submission not found."
 msgstr "未找到该投稿。"
 
-#: app.py:1732 app.py:1779
+#: app.py:2033 app.py:2082
 msgid "Submission not found or already reviewed."
 msgstr "未找到该投稿或已被审核。"
 
-#: app.py:1769
+#: app.py:2072
 msgid "Paper accepted and published."
 msgstr "论文已接受并发布。"
 
-#: app.py:1796
+#: app.py:2099
 msgid "Paper rejected."
 msgstr "论文已拒绝。"
 
-#: app.py:2351 app_old.py:382
+#: app.py:2713
 msgid "Please sign in first."
 msgstr "请先登录。"
 
-#: app.py:2357 app_old.py:388
+#: app.py:2718
 msgid "Session expired. Please sign in again."
 msgstr "会话已过期，请重新登录。"
 
-#: app.py:2361 app_old.py:392
+#: app.py:2721
 msgid "Session timed out. Please sign in again."
 msgstr "会话已超时，请重新登录。"
 
-#: app.py:2368 app_old.py:399
+#: app.py:2727
 msgid "You do not have access to that action."
 msgstr "您没有权限执行此操作。"
 
-#: app.py:2590 app_old.py:603
+#: app.py:3000
 #, python-format
 msgid ""
 "This account is already signed in. Please sign out from the other session"
 " or wait %(minutes)d minutes."
 msgstr "此账号已在其他地方登录。请先退出或等待 %(minutes)d 分钟。"
-
-#: app_old.py:136
-msgid "Invalid credentials or access expired."
-msgstr "凭据无效或访问已过期。"
-
-#: app_old.py:213
-#, fuzzy
-msgid "Title is required."
-msgstr "邮箱为必填项。"
-
-#: app_old.py:216
-#, fuzzy
-msgid "Author field is required."
-msgstr "密码为必填项。"
-
-# ==================== UPLOAD ====================
-#: app_old.py:229
-msgid "Select a PDF file to upload."
-msgstr "请选择要上传的 PDF 文件。"
-
-#: app_old.py:233
-msgid "Only PDF files are accepted."
-msgstr "仅接受 PDF 文件。"
-
-#: app_old.py:237
-msgid "A paper with this filename already exists. Rename your file and try again."
-msgstr "已存在同名文件，请重命名后重试。"
-
-#: app_old.py:250
-#, python-format
-msgid "Uploaded %(filename)s."
-msgstr "已上传 %(filename)s。"
-
-# ==================== DELETE ====================
-#: app_old.py:268
-msgid "Select a valid paper to delete."
-msgstr "请选择要删除的论文。"
-
-#: app_old.py:270
-msgid "Type the filename exactly to confirm deletion."
-msgstr "请准确输入文件名以确认删除。"
-
-#: app_old.py:286
-#, python-format
-msgid "Language switched to %(language)s."
-msgstr "语言已切换为 %(language)s。"
 
 #: templates/FAQ.html:7
 msgid "High School English Paper Club"
@@ -411,39 +398,39 @@ msgstr "中学英文论文社团"
 msgid ""
 "Q. I missed the registration deadline. May I still register or submit an "
 "essay?"
-msgstr ""
+msgstr "问：我错过了报名截止日期。我还可以报名或提交论文吗？"
 
 #: templates/FAQ.html:124
 msgid ""
 "A. No. Only candidates who registered before 31 May will be able to "
 "submit an essay."
-msgstr ""
+msgstr "答：不可以。只有在5月31日之前完成注册的候选人才能提交论文。"
 
 #: templates/FAQ.html:129
 msgid ""
 "Q. Are footnotes, endnotes, a bibliography or references counted towards "
 "the word\n"
 "        limit?"
-msgstr ""
+msgstr "问：脚注、尾注、参考文献目录是否计入字数限制？"
 
 #: templates/FAQ.html:131
 msgid "A. No. Only the body of the essay is counted."
-msgstr ""
+msgstr "答：不计入。只有正文部分计入字数。"
 
 #: templates/FAQ.html:135
 msgid "Q. Are in-text citations counted towards the word limit?"
-msgstr ""
+msgstr "问：文内引用是否计入字数限制？"
 
 #: templates/FAQ.html:136
 msgid ""
 "A. If you are using an in-text based referencing format, such as APA, "
 "your in-text\n"
 "        citations are included in the word limit."
-msgstr ""
+msgstr "答：如果您使用的是文内引用格式（如APA），则文内引用计入字数限制。"
 
 #: templates/FAQ.html:141
 msgid "Q. Is it necessary to include footnotes or endnotes in an essay?"
-msgstr ""
+msgstr "问：论文中是否必须包含脚注或尾注？"
 
 #: templates/FAQ.html:142
 msgid ""
@@ -452,13 +439,13 @@ msgid ""
 "        or endnotes. You should give your sources of any factual claims "
 "you make, and you should acknowledge any other\n"
 "        authors on whom you rely."
-msgstr ""
+msgstr "答：<strong>不可以</strong>包含脚注，但可以包含文内引用或尾注。您应注明事实性主张的来源，并致谢您所引用的其他作者。"
 
 #: templates/FAQ.html:148
 msgid ""
 "Q. I am interested in a question that seems ambiguous. How should I "
 "interpret it?"
-msgstr ""
+msgstr "问：我对一个似乎有歧义的问题感兴趣。我应该如何理解它？"
 
 #: templates/FAQ.html:150
 msgid ""
@@ -466,7 +453,7 @@ msgid ""
 "interpretation if\n"
 "        necessary. Having done so, you must answer the question as "
 "directly as possible."
-msgstr ""
+msgstr "答：您可以按照您认为合适的方式理解该问题，必要时请说明您的理解。在此基础上，您必须尽可能直接地回答问题。"
 
 #: templates/FAQ.html:155 templates/news.html:662 templates/search.html:66
 msgid "Back to Home"
@@ -493,12 +480,12 @@ msgid "We will use your Microsoft email as the username."
 msgstr "我们将使用您的微软邮箱作为用户名。"
 
 #: templates/account_register.html:16 templates/admin_login.html:19
-#: templates/admin_users.html:127 templates/login.html:25
-#: templates/register.html:39
+#: templates/admin_users.html:138 templates/login.html:24
+#: templates/register.html:35
 msgid "Password"
 msgstr "密码"
 
-#: templates/account_register.html:20 templates/register.html:44
+#: templates/account_register.html:20 templates/register.html:40
 msgid "Confirm password"
 msgstr "确认密码"
 
@@ -528,9 +515,9 @@ msgstr "用户名"
 msgid "e.g. admin"
 msgstr "例如 admin"
 
-#: templates/admin_login.html:22 templates/base.html:47 templates/login.html:28
+#: templates/admin_login.html:22 templates/base.html:47 templates/login.html:27
 #: templates/news.html:536 templates/news_article.html:603
-#: templates/register.html:53
+#: templates/register.html:49
 msgid "Sign in"
 msgstr "登录"
 
@@ -551,7 +538,7 @@ msgstr "用户管理"
 msgid "Manage local and Microsoft users and roles."
 msgstr "管理本地用户和微软用户的角色。"
 
-#: templates/admin_users.html:14 templates/admin_users.html:117
+#: templates/admin_users.html:14 templates/admin_users.html:128
 msgid "Add Local User"
 msgstr "添加本地用户"
 
@@ -563,12 +550,12 @@ msgstr "保存角色更改"
 msgid "Local Users"
 msgstr "本地用户"
 
-#: templates/admin_users.html:27 templates/admin_users.html:123
+#: templates/admin_users.html:27 templates/admin_users.html:134
 msgid "Username / Email"
 msgstr "用户名 / 邮箱"
 
 #: templates/admin_users.html:28 templates/admin_users.html:79
-#: templates/admin_users.html:131
+#: templates/admin_users.html:142
 msgid "Role"
 msgstr "角色"
 
@@ -577,7 +564,7 @@ msgstr "角色"
 msgid "Actions"
 msgstr "操作"
 
-#: templates/admin_users.html:48
+#: templates/admin_users.html:48 templates/admin_users.html:100
 msgid "New password"
 msgstr "新密码"
 
@@ -585,7 +572,7 @@ msgstr "新密码"
 msgid "Reset"
 msgstr "重置"
 
-#: templates/admin_users.html:54 templates/admin_users.html:98
+#: templates/admin_users.html:54 templates/admin_users.html:108
 #: templates/delete.html:298 templates/delete.html:358
 #: templates/news_article.html:685 templates/news_manage.html:485
 #: templates/news_manage.html:595 templates/news_manage.html:608
@@ -607,9 +594,9 @@ msgid "Display Name"
 msgstr "显示名称"
 
 #: templates/admin_users.html:78 templates/delete.html:334
-#: templates/login.html:20 templates/paper_modify.html:88
-#: templates/register.html:14 templates/review_paper.html:39
-#: templates/submission_detail.html:39 templates/upload.html:87
+#: templates/paper_modify.html:94 templates/register.html:14
+#: templates/review_paper.html:39 templates/submission_detail.html:39
+#: templates/upload.html:95
 msgid "Email"
 msgstr "邮箱"
 
@@ -619,16 +606,25 @@ msgstr "邮箱"
 msgid "Unknown"
 msgstr "未知"
 
-#: templates/admin_users.html:104
+#: templates/admin_users.html:103
+msgid "Reset Password"
+msgstr "重置密码"
+
+#: templates/admin_users.html:103 templates/change_password.html:18
+#: templates/change_password.html:43
+msgid "Set Password"
+msgstr "设置密码"
+
+#: templates/admin_users.html:115
 msgid "No Microsoft users found."
 msgstr "未找到微软用户。"
 
-#: templates/admin_users.html:118 templates/admin_users.html:140
+#: templates/admin_users.html:129 templates/admin_users.html:151
 #: templates/news_manage.html:507
 msgid "Close"
 msgstr "关闭"
 
-#: templates/admin_users.html:141 templates/news_manage.html:522
+#: templates/admin_users.html:152 templates/news_manage.html:522
 #: templates/paper_manage.html:143 templates/paper_manage.html:194
 msgid "Add"
 msgstr "添加"
@@ -744,6 +740,57 @@ msgstr "管理"
 msgid "Sign out"
 msgstr "退出登录"
 
+# ==================== PAPER MANAGEMENT ====================
+#: templates/change_password.html:2
+msgid "Change Password · Keydion"
+msgstr "修改密码 · Keydion"
+
+#: templates/change_password.html:8 templates/my_submissions.html:11
+#: templates/paper_manage.html:100 templates/review_list.html:11
+#: templates/upload.html:11
+msgid "Back to Dashboard"
+msgstr "返回控制面板"
+
+#: templates/change_password.html:15 templates/dashboard.html:101
+msgid "Change Password"
+msgstr "修改密码"
+
+#: templates/change_password.html:16
+msgid "Set a new password for your account."
+msgstr "为您的账户设置新密码。"
+
+#: templates/change_password.html:19
+msgid ""
+"Set a password so you can sign in with email and password in the\n"
+"                    future."
+msgstr "设置密码后，您将可以通过邮箱和密码登录。"
+
+#: templates/change_password.html:25
+msgid "New Password"
+msgstr "新密码"
+
+#: templates/change_password.html:27
+msgid "At least 6 characters"
+msgstr "至少6个字符"
+
+#: templates/change_password.html:30
+msgid "Confirm Password"
+msgstr "确认密码"
+
+#: templates/change_password.html:32
+msgid "Re-enter your password"
+msgstr "请再次输入密码"
+
+#: templates/change_password.html:43
+msgid "Update Password"
+msgstr "更新密码"
+
+#: templates/change_password.html:45 templates/delete.html:357
+#: templates/news_manage.html:607 templates/news_publish.html:969
+#: templates/paper_modify.html:125 templates/upload.html:119
+msgid "Cancel"
+msgstr "取消"
+
 #: templates/dashboard.html:2
 msgid "User Menu · Keydion"
 msgstr "用户菜单 · Keydion"
@@ -852,6 +899,16 @@ msgid ""
 " the submission forms."
 msgstr "添加、重命名或删除投稿表单中使用的论文学科分类和期刊名称。"
 
+#: templates/dashboard.html:99
+msgid "Account Security"
+msgstr "账户安全"
+
+#: templates/dashboard.html:100
+msgid ""
+"Set or change your account password. This allows you to sign in with your"
+" email and password."
+msgstr "设置或更改您的账户密码，以便通过邮箱和密码登录。"
+
 # ==================== PAPER MANAGEMENT ====================
 #: templates/delete.html:2
 msgid "Manage Papers · Keydion"
@@ -872,14 +929,14 @@ msgstr "上传您的第一篇论文"
 # ==================== PAPER METADATA ====================
 #: templates/delete.html:261 templates/delete.html:324
 #: templates/news_manage.html:460 templates/news_publish.html:983
-#: templates/paper_modify.html:27 templates/preview.html:122
+#: templates/paper_modify.html:27 templates/preview.html:132
 #: templates/review_paper.html:24 templates/submission_detail.html:24
 msgid "Title"
 msgstr "标题"
 
 #: templates/delete.html:262 templates/delete.html:326
 #: templates/news_manage.html:461 templates/news_publish.html:988
-#: templates/paper_modify.html:45 templates/preview.html:124
+#: templates/paper_modify.html:45 templates/preview.html:134
 #: templates/review_paper.html:27 templates/submission_detail.html:27
 #, fuzzy
 msgid "Category"
@@ -893,7 +950,7 @@ msgid "Author"
 msgstr "作者"
 
 #: templates/delete.html:264 templates/delete.html:338
-#: templates/news_manage.html:463 templates/paper_modify.html:101
+#: templates/news_manage.html:463 templates/paper_modify.html:110
 #, fuzzy
 msgid "Published"
 msgstr "发表时间"
@@ -902,26 +959,26 @@ msgstr "发表时间"
 msgid "Modify"
 msgstr "修改"
 
-#: templates/delete.html:314 templates/paper_modify.html:127
+#: templates/delete.html:314 templates/paper_modify.html:136
 #: templates/review_paper.html:102 templates/submission_detail.html:89
 msgid "Paper Preview"
 msgstr "论文预览"
 
 #: templates/delete.html:328 templates/paper_modify.html:67
-#: templates/preview.html:126 templates/review_paper.html:30
+#: templates/preview.html:136 templates/review_paper.html:30
 #: templates/submission_detail.html:30 templates/upload.html:39
 msgid "Keywords"
 msgstr "关键词"
 
 #: templates/delete.html:330 templates/paper_modify.html:73
-#: templates/preview.html:98 templates/review_paper.html:33
+#: templates/preview.html:108 templates/review_paper.html:33
 #: templates/submission_detail.html:33 templates/upload.html:70
 msgid "Abstract"
 msgstr "摘要"
 
-#: templates/delete.html:336 templates/profile_setup.html:24
+#: templates/delete.html:336 templates/paper_modify.html:98
 #: templates/review_paper.html:42 templates/submission_detail.html:42
-#: templates/upload.html:91
+#: templates/upload.html:100
 msgid "School"
 msgstr "学校"
 
@@ -941,12 +998,6 @@ msgstr "？"
 #: templates/delete.html:354
 msgid "This action cannot be undone."
 msgstr "此操作无法撤销。"
-
-#: templates/delete.html:357 templates/news_manage.html:607
-#: templates/news_publish.html:969 templates/paper_modify.html:116
-#: templates/upload.html:105
-msgid "Cancel"
-msgstr "取消"
 
 #: templates/journal_detail.html:158
 msgid "All Papers"
@@ -1005,7 +1056,7 @@ msgid "Write the journal introduction..."
 msgstr "撰写期刊简介..."
 
 #: templates/journal_edit.html:78 templates/news_publish.html:971
-#: templates/paper_modify.html:114
+#: templates/paper_modify.html:123
 msgid "Save Changes"
 msgstr "保存更改"
 
@@ -1078,7 +1129,7 @@ msgstr "搜索论文"
 
 #: templates/landing.html:1110
 msgid "关于我们"
-msgstr ""
+msgstr "关于我们"
 
 #: templates/landing.html:1111
 msgid ""
@@ -1101,51 +1152,45 @@ msgstr ""
 
 # ==================== ADMIN LOGIN PAGE ====================
 #: templates/login.html:2
-#, fuzzy
 msgid "Sign in · Keydion"
-msgstr "管理员登录 · Keydion"
+msgstr "登录 · Keydion"
 
 # ==================== LOGIN PAGE ====================
 #: templates/login.html:8
 msgid "Keydion Portal"
 msgstr "登录"
 
-#: templates/login.html:11
+#: templates/login.html:10
 msgid "Sign in with Microsoft"
 msgstr "使用微软账号登录"
 
-#: templates/login.html:12
+#: templates/login.html:11
 msgid "or sign in with email"
 msgstr "或使用邮箱登录"
 
-#: templates/login.html:15
+#: templates/login.html:14
 msgid "Microsoft sign-in is not configured yet."
 msgstr "微软登录尚未配置。"
 
-#: templates/login.html:22 templates/register.html:17
+#: templates/login.html:19
+msgid "Email / Username"
+msgstr "邮箱 / 用户名"
+
+#: templates/login.html:21 templates/register.html:17
 msgid "e.g. user@example.com"
 msgstr "例如 user@example.com"
 
-#: templates/login.html:31
+#: templates/login.html:30
 msgid "Don't have an account?"
 msgstr "还没有账号？"
 
-#: templates/login.html:32
+#: templates/login.html:31
 msgid "Register now"
 msgstr "立即注册"
-
-#: templates/login.html:35
-msgid "Admin login"
-msgstr "管理员登录"
 
 #: templates/my_submissions.html:2
 msgid "My Submissions · Keydion"
 msgstr "我的投稿 · Keydion"
-
-#: templates/my_submissions.html:11 templates/paper_manage.html:100
-#: templates/review_list.html:11 templates/upload.html:11
-msgid "Back to Dashboard"
-msgstr "返回控制面板"
 
 #: templates/my_submissions.html:14
 msgid "Submit a New Paper"
@@ -1164,7 +1209,7 @@ msgstr "提交时间"
 #: templates/my_submissions.html:27 templates/review_list.html:53
 #: templates/review_paper.html:52 templates/submission_detail.html:49
 msgid "Status"
-msgstr ""
+msgstr "状态"
 
 #: templates/my_submissions.html:28 templates/submission_detail.html:61
 msgid "Reviewer"
@@ -1239,11 +1284,11 @@ msgstr "暂无新闻文章"
 msgid "Check back later for updates from Keydion."
 msgstr "稍后查看 Keydion 的更新。"
 
-#: templates/news.html:620 templates/search.html:170
+#: templates/news.html:620 templates/search.html:171
 msgid "Previous"
 msgstr "上一页"
 
-#: templates/news.html:631 templates/search.html:181
+#: templates/news.html:631 templates/search.html:182
 msgid "Next"
 msgstr "下一页"
 
@@ -1329,7 +1374,7 @@ msgstr "重命名"
 msgid ""
 "Delete this category? Articles using it will keep their current category "
 "label."
-msgstr ""
+msgstr "删除此分类？使用该分类的文章将保留当前分类标签。"
 
 #: templates/news_manage.html:654
 #, fuzzy
@@ -1364,7 +1409,7 @@ msgstr "发表时间"
 
 #: templates/news_publish.html:965
 msgid "Block Editor"
-msgstr ""
+msgstr "块编辑器"
 
 #: templates/news_publish.html:971
 msgid "Publish Article"
@@ -1420,40 +1465,39 @@ msgstr "摘要保持在1-2句话，概括要点。"
 
 #: templates/news_publish.html:1035
 msgid "Text blocks"
-msgstr ""
+msgstr "文本块"
 
 #: templates/news_publish.html:1035
 msgid ""
 "Each block becomes a paragraph. Use multiple\n"
 "                            blocks for clear structure."
-msgstr ""
+msgstr "每个块会成为一个段落。使用多个块实现清晰的结构。"
 
 #: templates/news_publish.html:1037
 msgid "Image blocks"
-msgstr ""
+msgstr "图片块"
 
 #: templates/news_publish.html:1037
 msgid ""
 "Insert images anywhere in the article with\n"
 "                            optional captions."
-msgstr ""
+msgstr "在文章任意位置插入图片，可选添加图片说明。"
 
 #: templates/news_publish.html:1039
 msgid "Reorder blocks with the arrow buttons that appear on hover."
-msgstr ""
+msgstr "将鼠标悬停在块上，使用箭头按钮调整顺序。"
 
 #: templates/news_publish.html:1045
 msgid "Shortcuts"
-msgstr ""
+msgstr "快捷键"
 
 #: templates/news_publish.html:1047
-#, fuzzy
 msgid "Publish / Save"
-msgstr "发表时间"
+msgstr "发布 / 保存"
 
 #: templates/news_publish.html:1048
 msgid "Next block"
-msgstr ""
+msgstr "下一个块"
 
 #: templates/news_publish.html:1064
 #, fuzzy
@@ -1472,43 +1516,43 @@ msgstr "管理"
 
 #: templates/news_publish.html:1088 templates/news_publish.html:1317
 msgid "Divider"
-msgstr ""
+msgstr "分割线"
 
 #: templates/news_publish.html:1098
 msgid "Font Family"
-msgstr ""
+msgstr "字体"
 
 #: templates/news_publish.html:1114
 msgid "Font Size"
-msgstr ""
+msgstr "字号"
 
 #: templates/news_publish.html:1139 templates/news_publish.html:1583
 msgid "Font Color"
-msgstr ""
+msgstr "字体颜色"
 
 #: templates/news_publish.html:1145 templates/news_publish.html:1161
 msgid "More Colors"
-msgstr ""
+msgstr "更多颜色"
 
 #: templates/news_publish.html:1154
 msgid "Highlight"
-msgstr ""
+msgstr "高亮"
 
 #: templates/news_publish.html:1172
 msgid "Align Left"
-msgstr ""
+msgstr "左对齐"
 
 #: templates/news_publish.html:1180
 msgid "Align Center"
-msgstr ""
+msgstr "居中对齐"
 
 #: templates/news_publish.html:1188
 msgid "Align Right"
-msgstr ""
+msgstr "右对齐"
 
 #: templates/news_publish.html:1196
 msgid "Justify"
-msgstr ""
+msgstr "两端对齐"
 
 #: templates/news_publish.html:1216
 #, fuzzy
@@ -1522,62 +1566,55 @@ msgstr "封面图片"
 
 #: templates/news_publish.html:1230
 msgid "Add Divider"
-msgstr ""
+msgstr "添加分割线"
 
 #: templates/news_publish.html:1236 templates/news_publish.html:1507
-#, fuzzy
 msgid "characters"
-msgstr "最多 300 字"
+msgstr "字符"
 
 #: templates/news_publish.html:1237
-#, fuzzy
 msgid "Ready"
-msgstr "创建时间"
+msgstr "就绪"
 
 #: templates/news_publish.html:1370
 msgid "Write your paragraph here…"
-msgstr ""
+msgstr "在此输入段落内容…"
 
 #: templates/news_publish.html:1393
-#, fuzzy
 msgid "Uploading…"
-msgstr "上传"
+msgstr "上传中…"
 
 #: templates/news_publish.html:1399
-#, fuzzy
 msgid "Add image caption (optional)"
-msgstr "作者姓名（可选）"
+msgstr "添加图片说明（可选）"
 
 #: templates/news_publish.html:1406
 msgid "Click or drag to upload"
-msgstr ""
+msgstr "点击或拖拽上传"
 
 #: templates/news_publish.html:1479
-#, fuzzy
 msgid "Image upload failed. Please try again."
-msgstr "Microsoft 登录尚未配置，请联系管理员。"
+msgstr "图片上传失败，请重试。"
 
 #: templates/news_publish.html:1508
-#, fuzzy
 msgid "text"
-msgstr "下一页"
+msgstr "文本"
 
 #: templates/news_publish.html:1508
-#, fuzzy
 msgid "images"
-msgstr "管理"
+msgstr "图片"
 
 #: templates/news_publish.html:1508
 msgid "dividers"
-msgstr ""
+msgstr "分割线"
 
 #: templates/news_publish.html:1560
 msgid "Please add at least one content block with text or an image."
-msgstr ""
+msgstr "请至少添加一个包含文本或图片的内容块。"
 
 #: templates/news_publish.html:1583
 msgid "Highlight Color"
-msgstr ""
+msgstr "高亮颜色"
 
 #: templates/paper_manage.html:2
 #, fuzzy
@@ -1655,17 +1692,6 @@ msgstr "语言"
 msgid "Select a language"
 msgstr "请选择语言"
 
-#: templates/paper_modify.html:60 templates/search.html:55
-#: templates/upload.html:62
-msgid "Chinese"
-msgstr "中文"
-
-# ==================== LANGUAGE ====================
-#: templates/paper_modify.html:62 templates/search.html:56
-#: templates/upload.html:63
-msgid "English"
-msgstr "英语"
-
 #: templates/paper_modify.html:69
 msgid "Comma-separated keywords"
 msgstr "以逗号分隔的关键词"
@@ -1674,19 +1700,20 @@ msgstr "以逗号分隔的关键词"
 msgid "Brief summary of the paper"
 msgstr "论文的简要摘要"
 
-#: templates/paper_modify.html:79
+#: templates/paper_modify.html:80 templates/upload.html:80
 msgid "Author Information"
 msgstr "作者信息"
 
-#: templates/paper_modify.html:82
-msgid "Author Name"
-msgstr "作者姓名"
+#: templates/paper_modify.html:82 templates/upload.html:82
+#, fuzzy
+msgid "Add Author"
+msgstr "作者"
 
-#: templates/paper_modify.html:94
-msgid "School/Institution"
-msgstr "学校/机构"
+#: templates/paper_modify.html:90 templates/upload.html:90
+msgid "Name"
+msgstr "姓名"
 
-#: templates/paper_modify.html:103
+#: templates/paper_modify.html:112
 msgid "Submission date cannot be modified."
 msgstr "投稿日期不可修改。"
 
@@ -1709,57 +1736,62 @@ msgstr "登录以下载"
 msgid "Open in new tab"
 msgstr "在新标签页打开"
 
-#: templates/preview.html:42 templates/search.html:146
+#: templates/preview.html:41 templates/search.html:147
 msgid "Download"
 msgstr "下载"
 
-#: templates/preview.html:65 templates/search.html:104
+#: templates/preview.html:64 templates/search.html:104
 msgid "Journal Article"
 msgstr "期刊文献"
 
-#: templates/preview.html:69 templates/preview.html:153
-#: templates/preview.html:185 templates/search.html:110
+#: templates/preview.html:68 templates/preview.html:163
+#: templates/preview.html:196 templates/search.html:110
 msgid "Untitled Paper"
 msgstr "无标题论文"
 
-#: templates/preview.html:71 templates/preview.html:75
-#: templates/preview.html:123 templates/preview.html:125
-#: templates/preview.html:127 templates/preview.html:129
-#: templates/preview.html:155 templates/search.html:114
-#: templates/search.html:117
+#: templates/preview.html:75
+#, fuzzy
+msgid "Search this author"
+msgstr "在结果中搜索"
+
+#: templates/preview.html:80 templates/preview.html:85
+#: templates/preview.html:133 templates/preview.html:135
+#: templates/preview.html:137 templates/preview.html:139
+#: templates/preview.html:165 templates/search.html:114
+#: templates/search.html:117 templates/search.html:118
 msgid "Not specified"
 msgstr "未指定"
 
 # ==================== PREVIEW / GUEST ====================
-#: templates/preview.html:81
+#: templates/preview.html:91
 msgid "Guest preview is limited to the first two pages of each paper."
 msgstr "访客预览仅限每篇论文的前两页。"
 
-#: templates/preview.html:82
+#: templates/preview.html:92
 msgid "Sign in to view full papers"
 msgstr "登录以查看完整论文"
 
-#: templates/preview.html:104 templates/search.html:123
+#: templates/preview.html:114 templates/search.html:124
 msgid "No abstract available."
 msgstr "暂无摘要。"
 
-#: templates/preview.html:115
+#: templates/preview.html:125
 msgid "About this issue"
 msgstr "文献信息"
 
-#: templates/preview.html:128
+#: templates/preview.html:138
 msgid "Organization"
 msgstr "机构"
 
-#: templates/preview.html:141
+#: templates/preview.html:151
 msgid "Related text"
 msgstr "相关文献"
 
-#: templates/preview.html:160
+#: templates/preview.html:170
 msgid "No related texts found in this category."
 msgstr "未找到此分类下的相关文献。"
 
-#: templates/preview.html:180
+#: templates/preview.html:190
 msgid "PDF Preview"
 msgstr "文稿预览"
 
@@ -1783,21 +1815,7 @@ msgstr "名"
 msgid "Last name"
 msgstr "姓"
 
-#: templates/profile_setup.html:26
-#, fuzzy
-msgid "Select a school"
-msgstr "选择 PDF 文件"
-
-#: templates/profile_setup.html:35
-msgid "Grade"
-msgstr "年级"
-
-#: templates/profile_setup.html:37
-#, fuzzy
-msgid "Select a grade"
-msgstr "选择 PDF 文件"
-
-#: templates/profile_setup.html:47
+#: templates/profile_setup.html:25
 #, fuzzy
 msgid "Save profile"
 msgstr "保存角色更改"
@@ -1815,19 +1833,11 @@ msgstr "创建您的账号"
 msgid "Fill in the details below to register a new Keydion account."
 msgstr "请填写以下信息以注册新的 Keydion 账号。"
 
-#: templates/register.html:34
-msgid "School name"
-msgstr "学校名称"
-
-#: templates/register.html:36
-msgid "Optional"
-msgstr "可选"
-
-#: templates/register.html:49
+#: templates/register.html:45
 msgid "Create account"
 msgstr "创建账号"
 
-#: templates/register.html:52
+#: templates/register.html:48
 msgid "Already have an account?"
 msgstr "已有账号？"
 
@@ -1950,20 +1960,20 @@ msgid "%(count)s result"
 msgid_plural "%(count)s results"
 msgstr[0] "%(count)s 条结果"
 
-#: templates/search.html:133
+#: templates/search.html:134
 msgid "Sign in to Download"
 msgstr "登录并下载"
 
-#: templates/search.html:151
+#: templates/search.html:152
 msgid "View"
 msgstr "查看"
 
-#: templates/search.html:187
+#: templates/search.html:188
 #, python-format
 msgid "Page %(current)d of %(total)d"
 msgstr "第 %(current)d 页，共 %(total)d 页"
 
-#: templates/search.html:194
+#: templates/search.html:195
 msgid "No papers match your search criteria. Try adjusting your filters."
 msgstr "没有论文匹配您的搜索条件，请尝试调整过滤选项。"
 
@@ -2052,23 +2062,11 @@ msgid ""
 "conclusions..."
 msgstr "请简要描述您的研究背景、方法和结论..."
 
-#: templates/upload.html:79
-msgid "First Author Information"
-msgstr "第一作者信息"
-
-#: templates/upload.html:83
-msgid "Name"
-msgstr "姓名"
-
-#: templates/upload.html:98
+#: templates/upload.html:112
 msgid "File Upload"
 msgstr "文件上传"
 
-#: templates/upload.html:98
-msgid "max 20MB"
-msgstr "最大 20MB"
-
-#: templates/upload.html:104
+#: templates/upload.html:118
 msgid "Submit Paper"
 msgstr "提交论文"
 
@@ -2891,4 +2889,78 @@ msgstr[0] ""
 
 #~ msgid "International Academy Research Hub"
 #~ msgstr "Keydion"
+
+#~ msgid "Invalid username or password"
+#~ msgstr "用户名或密码错误"
+
+#~ msgid "Please select a school from the list."
+#~ msgstr "请选择类别..."
+
+#~ msgid "Please select your grade."
+#~ msgstr "请选择类别..."
+
+#~ msgid "Invalid credentials or access expired."
+#~ msgstr "凭据无效或访问已过期。"
+
+#~ msgid "Title is required."
+#~ msgstr "邮箱为必填项。"
+
+#~ msgid "Author field is required."
+#~ msgstr "密码为必填项。"
+
+# ==================== UPLOAD ====================
+#~ msgid "Select a PDF file to upload."
+#~ msgstr "请选择要上传的 PDF 文件。"
+
+#~ msgid "Only PDF files are accepted."
+#~ msgstr "仅接受 PDF 文件。"
+
+#~ msgid ""
+#~ "A paper with this filename already "
+#~ "exists. Rename your file and try "
+#~ "again."
+#~ msgstr "已存在同名文件，请重命名后重试。"
+
+#~ msgid "Uploaded %(filename)s."
+#~ msgstr "已上传 %(filename)s。"
+
+# ==================== DELETE ====================
+#~ msgid "Select a valid paper to delete."
+#~ msgstr "请选择要删除的论文。"
+
+#~ msgid "Type the filename exactly to confirm deletion."
+#~ msgstr "请准确输入文件名以确认删除。"
+
+#~ msgid "Language switched to %(language)s."
+#~ msgstr "语言已切换为 %(language)s。"
+
+#~ msgid "Admin login"
+#~ msgstr "管理员登录"
+
+#~ msgid "Author Name"
+#~ msgstr "作者姓名"
+
+#~ msgid "School/Institution"
+#~ msgstr "学校/机构"
+
+#~ msgid "Select a school"
+#~ msgstr "选择 PDF 文件"
+
+#~ msgid "Grade"
+#~ msgstr "年级"
+
+#~ msgid "Select a grade"
+#~ msgstr "选择 PDF 文件"
+
+#~ msgid "School name"
+#~ msgstr "学校名称"
+
+#~ msgid "Optional"
+#~ msgstr "可选"
+
+#~ msgid "First Author Information"
+#~ msgstr "第一作者信息"
+
+#~ msgid "max 20MB"
+#~ msgstr "最大 20MB"
 
