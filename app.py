@@ -862,6 +862,21 @@ def create_app() -> Flask:
             flash(_("Unable to delete Microsoft user."), "warning")
         return redirect(url_for("admin_users"))
 
+    @app.route("/admin/ms-users/<path:ms_id>/set-password", methods=["POST"])
+    def admin_set_ms_password(ms_id: str):
+        user = require_login(level=3)
+        if not user:
+            return redirect(url_for("login"))
+        new_password = request.form.get("password", "").strip()
+        if not new_password:
+            flash(_("Password is required."), "warning")
+            return redirect(url_for("admin_users"))
+        if update_ms_user_password(ms_id, new_password):
+            flash(_("Password set successfully."), "success")
+        else:
+            flash(_("Unable to set password."), "warning")
+        return redirect(url_for("admin_users"))
+
     @app.route("/dashboard")
     def dashboard():
         user = require_login()
