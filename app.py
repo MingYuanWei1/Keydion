@@ -504,7 +504,10 @@ def create_app() -> Flask:
                     email=user_record.get("email", ""),
                 )
                 flash(_("Welcome back, %(username)s!", username=display), "success")
-                return redirect(url_for("index"))
+                next_url = session.pop("next", None)
+                if not next_url:
+                    next_url = url_for("index")
+                return redirect(next_url)
             flash(_("Invalid email or password"), "danger")
             return render_template("login.html", ms_enabled=is_ms_configured())
 
@@ -639,7 +642,8 @@ def create_app() -> Flask:
 
         if not is_profile_complete(user_record):
             return redirect(url_for("profile_setup"))
-        destination = url_for("index")
+        next_url = session.pop("next", None)
+        destination = next_url or url_for("index")
         return redirect(destination)
 
     @app.route("/logout")
@@ -685,7 +689,8 @@ def create_app() -> Flask:
                     session["user"]["last_name"] = updated.get("last_name", "")
                     session["user"]["display_name"] = updated.get("display_name") or session["user"].get("display_name", "")
                 flash(_("Profile saved successfully."), "success")
-                return redirect(url_for("index"))
+                next_url = session.pop("next", None)
+                return redirect(next_url or url_for("index"))
 
         return render_template(
             "profile_setup.html",
@@ -2577,19 +2582,23 @@ def get_active_user() -> Optional[Dict[str, str]]:
 
 def require_login(level: int = 1) -> Optional[Dict[str, str]]:
     user = session.get("user")
-    if not user:
-        flash(_("Please sign in first."), "warning")
+    
+    def _fail_login(msg):
+        if request.method == "GET":
+            session["next"] = request.url
+        flash(msg, "warning")
         return None
+
+    if not user:
+        return _fail_login(_("Please sign in first."))
     username = user.get("username", "")
     token = session.get("session_token")
     if not username or not token:
         session.clear()
-        flash(_("Session expired. Please sign in again."), "warning")
-        return None
+        return _fail_login(_("Session expired. Please sign in again."))
     if not refresh_session(username, token):
         session.clear()
-        flash(_("Session timed out. Please sign in again."), "warning")
-        return None
+        return _fail_login(_("Session timed out. Please sign in again."))
     try:
         role = int(user.get("role", "1"))
     except ValueError:
