@@ -1157,7 +1157,7 @@ def create_app() -> Flask:
                     remove_paper_metadata(filename)
                     filename = new_filename
 
-            set_pdf_metadata(PAPERS_DIR / filename, title, author_name)
+            set_pdf_metadata(PAPERS_DIR / filename, title, final_author_name)
 
             upsert_paper_metadata(filename, {
                 "title": title,
