@@ -2588,13 +2588,25 @@ def search_papers(keyword: str) -> List[Dict[str, str]]:
     normalized = keyword.lower()
 
     for pdf_path in PAPERS_DIR.glob("*.pdf"):
+        record = build_paper_record(pdf_path.name, metadata_index)
+        
+        # Check metadata first: title, author, keys
+        title_str = (record.get("title") or "").lower()
+        author_str = (record.get("author_name") or "").lower()
+        keywords_str = (record.get("keywords") or "").lower()
+        
+        if normalized in title_str or normalized in author_str or normalized in keywords_str:
+            matches.append(record)
+            continue
+
+        # Fall back to full-text PDF search
         try:
             text = extract_pdf_text(pdf_path)
+            if normalized in text.lower():
+                matches.append(record)
         except Exception as exc:  # pragma: no cover - logging placeholder
             print(f"Failed to read {pdf_path.name}: {exc}")
             continue
-        if normalized in text.lower():
-            matches.append(build_paper_record(pdf_path.name, metadata_index))
 
     matches.sort(key=lambda row: row.get("published_at") or "", reverse=True)
     return matches[:MAX_SEARCH_RESULTS]
