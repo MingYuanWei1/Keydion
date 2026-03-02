@@ -366,14 +366,11 @@ def init_db() -> None:
         # Migrate: add password column to ms_users if it doesn't exist
         try:
             with _ENGINE.connect() as conn:
-                from sqlalchemy import text, inspect as sa_inspect
-                inspector = sa_inspect(_ENGINE)
-                columns = [c["name"] for c in inspector.get_columns("ms_users")]
-                if "password" not in columns:
-                    conn.execute(text("ALTER TABLE ms_users ADD COLUMN password VARCHAR(255)"))
-                    conn.commit()
+                from sqlalchemy import text
+                conn.execute(text("ALTER TABLE ms_users ADD password NVARCHAR(255) NULL"))
+                conn.commit()
         except Exception:
-            pass  # Column already exists or DB doesn't support inspection
+            pass  # Column already exists
 
 
 @contextmanager
