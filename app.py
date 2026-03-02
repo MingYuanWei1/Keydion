@@ -959,10 +959,20 @@ def create_app() -> Flask:
                 flash(_("Please select a file to upload"), "warning")
             else:
                 original_filename = secure_filename(file.filename)
+                if not original_filename:
+                    original_filename = f"{uuid4().hex[:8]}.pdf"
                 if not allowed_file(original_filename):
                     flash(_("Only PDF files are supported"), "danger")
                 else:
-                    filename = secure_filename(f"{form_data['title']}_{form_data['author_name']}.pdf")
+                    # Build a safe filename: try title+author first, fall back to UUID
+                    safe_title = secure_filename(form_data['title'])
+                    safe_author = secure_filename(form_data['author_name'])
+                    if safe_title and safe_author:
+                        filename = f"{safe_title}_{safe_author}.pdf"
+                    elif safe_title:
+                        filename = f"{safe_title}.pdf"
+                    else:
+                        filename = f"{uuid4().hex[:12]}.pdf"
                     role = int(user.get("role", "1"))
                     if role >= 2:
                         # Moderator / Admin: publish directly
