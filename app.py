@@ -1126,9 +1126,27 @@ def create_app() -> Flask:
 
         if request.method == "POST":
             title = request.form.get("title", "").strip()
-            author_name = request.form.get("author_name", "").strip()
 
-            new_filename = secure_filename(f"{title}_{author_name}.pdf")
+            raw_names = request.form.getlist("author_name")
+            raw_emails = request.form.getlist("author_email")
+            raw_schools = request.form.getlist("author_school")
+
+            author_names = []
+            author_emails = []
+            author_schools = []
+            for i, name in enumerate(raw_names):
+                if name.strip():
+                    author_names.append(name.strip())
+                    author_emails.append(raw_emails[i].strip() if i < len(raw_emails) else "")
+                    author_schools.append(raw_schools[i].strip() if i < len(raw_schools) else "")
+
+            final_author_name = ", ".join(author_names)
+            final_author_email = ", ".join(author_emails)
+            final_author_school = ", ".join(author_schools)
+
+            # We use the raw first author for the filename
+            primary_author = author_names[0] if author_names else "author"
+            new_filename = secure_filename(f"{title}_{primary_author}.pdf")
             if new_filename != filename:
                 new_paper_path = PAPERS_DIR / new_filename
                 if new_paper_path.exists():
@@ -1148,15 +1166,30 @@ def create_app() -> Flask:
                 "language": request.form.get("language", "").strip(),
                 "keywords": request.form.get("keywords", "").strip(),
                 "abstract": request.form.get("abstract", "").strip(),
-                "author_name": author_name,
-                "author_email": request.form.get("author_email", "").strip(),
-                "author_school": request.form.get("author_school", "").strip(),
+                "author_name": final_author_name,
+                "author_email": final_author_email,
+                "author_school": final_author_school,
             })
             flash(_("Paper information updated."), "success")
             return redirect(url_for("delete"))
 
+        names = meta.get("author_name", "").split(", ")
+        emails = meta.get("author_email", "").split(", ")
+        schools = meta.get("author_school", "").split(", ")
+        
+        parsed_authors = []
+        for i, name in enumerate(names):
+            if name.strip():
+                parsed_authors.append({
+                    "name": name.strip(),
+                    "email": emails[i].strip() if i < len(emails) else "",
+                    "school": schools[i].strip() if i < len(schools) else ""
+                })
+        if not parsed_authors:
+            parsed_authors = [{"name": "", "email": "", "school": ""}]
+
         return render_template("paper_modify.html", user=user, filename=filename, meta=meta,
-                               categories=load_paper_categories(), journals=get_journal_names())
+                               parsed_authors=parsed_authors, categories=load_paper_categories(), journals=get_journal_names())
 
     @app.route("/paper/<path:filename>/delete", methods=["POST"])
     def paper_delete(filename):

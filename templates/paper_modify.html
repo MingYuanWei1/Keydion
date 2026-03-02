@@ -76,24 +76,33 @@
                     </div>
 
                     <hr>
-                    <h6 class="text-muted text-uppercase small mb-3">{{ _('Author Information') }}</h6>
-
-                    <div class="mb-3">
-                        <label for="author_name" class="form-label fw-semibold">{{ _('Author Name') }}</label>
-                        <input type="text" class="form-control" id="author_name" name="author_name"
-                            value="{{ meta.get('author_name', '') }}">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-muted text-uppercase small mb-0">{{ _('Author Information') }}</h6>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="addAuthorBtn"><i
+                                class="bi bi-plus"></i> {{ _('Add Author') }}</button>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="author_email" class="form-label fw-semibold">{{ _('Email') }}</label>
-                        <input type="email" class="form-control" id="author_email" name="author_email"
-                            value="{{ meta.get('author_email', '') }}">
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="author_school" class="form-label fw-semibold">{{ _('School/Institution') }}</label>
-                        <input type="text" class="form-control" id="author_school" name="author_school"
-                            value="{{ meta.get('author_school', '') }}">
+                    <div id="authorsContainer">
+                        {% for author in parsed_authors %}
+                        <div class="row g-2 mb-2 author-row">
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" name="author_name" value="{{ author.name }}"
+                                    placeholder="{{ _('Name') }}" required>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="email" class="form-control" name="author_email" value="{{ author.email }}"
+                                    placeholder="{{ _('Email') }}" {% if loop.index0==0 %}required{% endif %}>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" class="form-control" name="author_school" value="{{ author.school }}"
+                                    placeholder="{{ _('School') }}" {% if loop.index0==0 %}required{% endif %}>
+                            </div>
+                            <div class="col-md-1 d-flex align-items-center">
+                                <button type="button" class="btn btn-outline-danger btn-sm remove-author w-100"
+                                    style="display: {{ 'none' if loop.index0 == 0 else 'block' }};">&times;</button>
+                            </div>
+                        </div>
+                        {% endfor %}
                     </div>
 
                     {% if meta.get('published_at', '') %}
@@ -134,4 +143,39 @@
     </div>
 </div>
 
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const container = document.getElementById("authorsContainer");
+        const addBtn = document.getElementById("addAuthorBtn");
+
+        // Attach event listeners to initial remove buttons
+        container.querySelectorAll(".remove-author").forEach(btn => {
+            btn.addEventListener("click", function () {
+                btn.closest(".author-row").remove();
+            });
+        });
+
+        addBtn.addEventListener("click", function () {
+            const rows = container.querySelectorAll(".author-row");
+            const newRow = rows[0].cloneNode(true);
+
+            newRow.querySelectorAll("input").forEach(input => {
+                input.value = "";
+                // Only the first author requires email and school. Subsequent authors only need a name.
+                if (input.name === "author_email" || input.name === "author_school") {
+                    input.removeAttribute("required");
+                }
+            });
+
+            const removeBtn = newRow.querySelector(".remove-author");
+            removeBtn.style.display = "block";
+
+            removeBtn.addEventListener("click", function () {
+                newRow.remove();
+            });
+
+            container.appendChild(newRow);
+        });
+    });
+</script>
 {% endblock %}
