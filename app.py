@@ -998,7 +998,7 @@ def create_app() -> Flask:
                         set_pdf_metadata(pending_path, form_data["title"], form_data["author_name"])
                         submission = {
                             "id": sub_id,
-                            "filename": filename,
+                            "pdf_filename": filename,
                             "pending_filename": pending_filename,
                             "submitter": user.get("username", ""),
                             "submitter_name": user.get("display_name", "") or user.get("first_name", "") or user.get("username", ""),
@@ -1878,7 +1878,9 @@ def create_app() -> Flask:
 
         # Move file from pending to published
         pending_path = PENDING_PAPERS_DIR / sub.get("pending_filename", "")
-        filename = sub.get("filename", "")
+        filename = sub.get("pdf_filename") or sub.get("filename")
+        if not filename:
+            filename = secure_filename(f"{sub.get('title', 'paper')}_{sub.get('author_name', 'author')}.pdf")
         publish_path = PAPERS_DIR / filename
         if publish_path.exists():
             # Add sub_id prefix to avoid collision
