@@ -93,5 +93,14 @@
   </div>
   {% endif %}
 
+  {# Change/Set Password — visible to all users #}
+  <div class="col-md-6">
+    <div class="feature-card feature-card--teal h-100">
+      <h2>{{ _('Account Security') }}</h2>
+      <p>{{ _('Set or change your account password. This allows you to sign in with your email and password.') }}</p>
+      <a class="btn btn-outline-primary" href="{{ url_for('change_password') }}">{{ _('Change Password') }}</a>
+    </div>
+  </div>
+
 </div>
 {% endblock %}
