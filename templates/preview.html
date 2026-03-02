@@ -77,8 +77,8 @@
     </a>{% if not loop.last %}, {% endif %}
     {% endfor %}
     {% else %}
-    <u>{{ paper.author_name or _('Not specified') }}</u>{% if paper.author_school %} <span class="text-muted">({{
-      paper.author_school }})</span>{% endif %}
+    <u>{{ paper.author_name or _('Not specified') }}</u>{% if unique_schools_str %} <span class="text-muted">({{
+      unique_schools_str }})</span>{% endif %}
     {% endif %}
   </div>
   <div class="text-muted" style="font-size: 13px;">
@@ -136,7 +136,7 @@
               <dt class="fw-semibold text-dark">{{ _('Keywords') }}</dt>
               <dd class="mb-3">{{ paper.keywords or _('Not specified') }}</dd>
               <dt class="fw-semibold text-dark">{{ _('Organization') }}</dt>
-              <dd class="mb-0">{{ paper.author_school or _('Not specified') }}</dd>
+              <dd class="mb-0">{{ unique_schools_str or _('Not specified') }}</dd>
             </dl>
           </div>
         </div>
