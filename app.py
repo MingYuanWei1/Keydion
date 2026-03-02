@@ -879,6 +879,15 @@ def create_app() -> Flask:
             flash(_("No matching papers found."), "info")
 
         pagination = paginate_records(record_pool, page, per_page)
+        
+        for p in pagination["items"]:
+            if p.get("author_school"):
+                unique_schools = []
+                for s in p["author_school"].split(","):
+                    s_clean = s.strip()
+                    if s_clean and s_clean not in unique_schools:
+                        unique_schools.append(s_clean)
+                p["author_school_deduped"] = ", ".join(unique_schools) if unique_schools else p["author_school"]
 
         return render_template(
             "search.html",

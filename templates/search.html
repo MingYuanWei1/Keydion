@@ -114,7 +114,8 @@
             <span class="text-decoration-underline text-dark">{{ paper.author_name or _('Not specified') }}</span>
           </div>
           <div class="text-muted fst-italic mb-3" style="font-size: 13px;">
-            {{ paper.author_school or _('Not specified') }} · {{ paper.published_at or _('Not specified') }}
+            {{ paper.get('author_school_deduped') or paper.author_school or _('Not specified') }} · {{
+            paper.published_at or _('Not specified') }}
           </div>
           <p class="text-muted" style="font-size: 12.5px; line-height: 1.5; margin-bottom: 0;">
             {% if paper.abstract %}
