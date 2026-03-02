@@ -66,9 +66,20 @@
   </div>
   <h1 class="mb-2" style="font-family: 'Source Serif 4', Georgia, serif; font-size: 28px; line-height: 1.3;">{{
     paper.title or _('Untitled Paper') }}</h1>
-  <div class="mb-1" style="font-size: 15px;">
+  <div class="mb-2" style="font-size: 15px;">
+    {% if parsed_authors %}
+    {% for author in parsed_authors %}
+    <a tabindex="0" class="text-decoration-none text-dark fw-medium"
+      style="cursor: pointer; border-bottom: 1px dotted #6c757d;" role="button" data-bs-toggle="popover"
+      data-bs-placement="bottom" data-bs-trigger="focus" data-bs-html="true"
+      data-bs-content="<div style='font-size: 14px; min-width: 200px;'><strong>{{ author.name }}</strong>{% if author.school %}<br><span class='text-muted' style='font-size: 13px;'>{{ author.school }}</span>{% endif %}{% if author.email %}<br><a href='mailto:{{ author.email }}' style='font-size: 13px;'>{{ author.email }}</a>{% endif %}</div>">
+      {{ author.name }}
+    </a>{% if not loop.last %}, {% endif %}
+    {% endfor %}
+    {% else %}
     <u>{{ paper.author_name or _('Not specified') }}</u>{% if paper.author_school %} <span class="text-muted">({{
       paper.author_school }})</span>{% endif %}
+    {% endif %}
   </div>
   <div class="text-muted" style="font-size: 13px;">
     {{ paper.published_at or _('Not specified') }}
@@ -223,4 +234,12 @@
     text-decoration: underline !important;
   }
 </style>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+    var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+      return new bootstrap.Popover(popoverTriggerEl)
+    })
+  });
+</script>
 {% endblock %}

@@ -904,9 +904,19 @@ def create_app() -> Flask:
             return redirect(target)
 
         today = datetime.utcnow().date().isoformat()
-        author_names = [n.strip() for n in request.form.getlist("author_name") if n.strip()]
-        author_emails = [e.strip() for e in request.form.getlist("author_email") if e.strip()]
-        author_schools = [s.strip() for s in request.form.getlist("author_school") if s.strip()]
+        raw_names = request.form.getlist("author_name")
+        raw_emails = request.form.getlist("author_email")
+        raw_schools = request.form.getlist("author_school")
+        
+        author_names = []
+        author_emails = []
+        author_schools = []
+        for i, name in enumerate(raw_names):
+            if name.strip():
+                author_names.append(name.strip())
+                author_emails.append(raw_emails[i].strip() if i < len(raw_emails) else "")
+                author_schools.append(raw_schools[i].strip() if i < len(raw_schools) else "")
+
 
         form_data = {
             "title": request.form.get("title", "").strip(),
@@ -1204,10 +1214,25 @@ def create_app() -> Flask:
             ][:5]
 
         pdf_url = url_for("paper_preview", filename=filename) if is_guest else url_for("paper_file", filename=filename)
+        
+        # Parse authors
+        names = paper.get("author_name", "").split(", ")
+        emails = paper.get("author_email", "").split(", ")
+        schools = paper.get("author_school", "").split(", ")
+        parsed_authors = []
+        for i, name in enumerate(names):
+            if name.strip():
+                parsed_authors.append({
+                    "name": name.strip(),
+                    "email": emails[i].strip() if i < len(emails) else "",
+                    "school": schools[i].strip() if i < len(schools) else ""
+                })
+
         return render_template(
             "preview.html",
             user=user,
             paper=paper,
+            parsed_authors=parsed_authors,
             related_papers=related_papers,
             source_query=source_query,
             source_page=source_page,
