@@ -1131,8 +1131,8 @@ def create_app() -> Flask:
         submitted_at = datetime.utcnow().strftime("%Y.%m.%d %H:%M:%S")
         return render_template("upload_success.html", user=user, title=title, submitted_at=submitted_at)
 
-    @app.route("/delete")
-    def delete():
+    @app.route("/manage")
+    def manage():
         user = require_login(level=3)
         if not user:
             target = url_for("login") if not session.get("user") else url_for("dashboard")

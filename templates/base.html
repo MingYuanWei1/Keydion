@@ -28,7 +28,7 @@
           <li class="nav-item"><a class="nav-link" href="{{ url_for('review_list') }}">{{ _('Review') }}</a></li>
           {% endif %}
           {% if session.get('user', {}).get('role', '1')|int >= 3 %}
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('delete') }}">{{ _('Manage') }}</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('manage') }}">{{ _('Manage') }}</a></li>
           {% endif %}
           <li class="nav-item ms-lg-3 d-grid d-lg-inline-block">
             <a class="btn btn-outline-light nav-signout d-inline-flex align-items-center justify-content-center w-100"
@@ -40,7 +40,7 @@
           <li class="nav-item"><a class="nav-link" href="{{ url_for('search') }}">{{ _('Search') }}</a></li>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('news_list') }}">{{ _('News') }}</a></li>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('upload') }}">{{ _('Upload') }}</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('delete') }}">{{ _('Manage') }}</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('manage') }}">{{ _('Manage') }}</a></li>
           <li class="nav-item ms-lg-3 d-grid d-lg-inline-block">
             <a class="btn btn-outline-light d-inline-flex align-items-center justify-content-center w-100"
               href="{{ url_for('login') }}">
