@@ -964,7 +964,7 @@
       <nav>
         <a class="nav-link" href="{{ url_for('upload') }}">{{ _('Upload') }}</a>
         {% if session.get('user', {}).get('role', '1')|int >= 3 %}
-        <a class="nav-link" href="{{ url_for('delete') }}">{{ _('Manage') }}</a>
+        <a class="nav-link" href="{{ url_for('manage') }}">{{ _('Manage') }}</a>
         {% endif %}
         {% if session.get('user') %}
         {% set nav_name = session.get('user', {}).get('display_name') or session.get('user', {}).get('username', '') %}
