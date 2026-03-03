@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-02-27 12:44+0800\n"
+"POT-Creation-Date: 2026-03-02 18:43+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,366 +17,362 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: app.py:427 app.py:448 app_old.py:134
+#: app.py:218
+msgid "Reader - View & Download"
+msgstr ""
+
+#: app.py:219
+msgid "Contributor - Upload Enabled"
+msgstr ""
+
+#: app.py:220
+msgid "Curator - Full Access"
+msgstr ""
+
+#: app.py:223 templates/paper_modify.html:62 templates/search.html:56
+#: templates/upload.html:63
+msgid "English"
+msgstr ""
+
+#: app.py:224 templates/paper_modify.html:60 templates/search.html:55
+#: templates/upload.html:62
+msgid "Chinese"
+msgstr ""
+
+#: app.py:517 app.py:533
 #, python-format
 msgid "Welcome back, %(username)s!"
 msgstr ""
 
-#: app.py:429
+#: app.py:539
 msgid "Invalid email or password"
 msgstr ""
 
-#: app.py:433 app.py:506 app.py:522
+#: app.py:543 app.py:597 app.py:613
 msgid "Microsoft sign-in is not configured. Please contact the administrator."
 msgstr ""
 
-#: app.py:450
-msgid "Invalid username or password"
-msgstr ""
-
-#: app.py:465
+#: app.py:556
 msgid "Email, password, first name, and last name are required."
 msgstr ""
 
-#: app.py:469
+#: app.py:560 app.py:728
 msgid "Passwords do not match."
 msgstr ""
 
-#: app.py:473 app.py:488
+#: app.py:564 app.py:579
 msgid "An account with this email already exists."
 msgstr ""
 
-#: app.py:495
+#: app.py:586
 #, python-format
 msgid "Account created successfully. Welcome, %(name)s!"
 msgstr ""
 
-#: app.py:497
+#: app.py:588
 msgid "Account created. Please sign in."
 msgstr ""
 
-#: app.py:525
+#: app.py:616
 msgid "Login session expired. Please try again."
 msgstr ""
 
-#: app.py:531 app.py:546
+#: app.py:622 app.py:637
 #, python-format
 msgid "Microsoft sign-in failed: %(reason)s"
 msgstr ""
 
-#: app.py:536
+#: app.py:627
 msgid "Microsoft sign-in failed. Please try again."
 msgstr ""
 
-#: app.py:551
+#: app.py:642
 msgid "Microsoft sign-in did not return a valid profile."
 msgstr ""
 
-#: app.py:577 app_old.py:146
+#: app.py:669
 msgid "Signed out successfully."
 msgstr ""
 
-#: app.py:588
+#: app.py:680
 msgid "Unable to load your profile. Please sign in again."
 msgstr ""
 
-#: app.py:601
+#: app.py:688
 msgid "Please enter your first and last name."
 msgstr ""
 
-#: app.py:603
-msgid "Please select a school from the list."
-msgstr ""
-
-#: app.py:605
-msgid "Please select your grade."
-msgstr ""
-
-#: app.py:620
+#: app.py:701
 msgid "Profile saved successfully."
 msgstr ""
 
-#: app.py:662
+#: app.py:725
+msgid "Please enter a new password."
+msgstr ""
+
+#: app.py:731
+msgid "Password must be at least 6 characters."
+msgstr ""
+
+#: app.py:740
+msgid "Password updated successfully."
+msgstr ""
+
+#: app.py:742
+msgid "Unable to update password."
+msgstr ""
+
+#: app.py:783
 msgid "Role updates saved."
 msgstr ""
 
-#: app.py:674
+#: app.py:795
 msgid "Username and password are required."
 msgstr ""
 
-#: app.py:677
+#: app.py:798
 msgid "That username is already taken."
 msgstr ""
 
-#: app.py:680
+#: app.py:801
 msgid "Local user created."
 msgstr ""
 
-#: app.py:690 app.py:728
+#: app.py:811 app.py:849
 msgid "Role updated."
 msgstr ""
 
-#: app.py:692 app.py:730
+#: app.py:813 app.py:851
 msgid "Unable to update role."
 msgstr ""
 
-#: app.py:702
+#: app.py:823 app.py:872
 msgid "Password is required."
 msgstr ""
 
-#: app.py:705
+#: app.py:826
 msgid "Password reset successfully."
 msgstr ""
 
-#: app.py:707
+#: app.py:828
 msgid "Unable to reset password."
 msgstr ""
 
-#: app.py:716
+#: app.py:837
 msgid "Local user deleted."
 msgstr ""
 
-#: app.py:718
+#: app.py:839
 msgid "Unable to delete user."
 msgstr ""
 
-#: app.py:739
+#: app.py:860
 msgid "Microsoft user deleted."
 msgstr ""
 
-#: app.py:741
+#: app.py:862
 msgid "Unable to delete Microsoft user."
 msgstr ""
 
-#: app.py:766 app_old.py:165
+#: app.py:875
+msgid "Password set successfully."
+msgstr ""
+
+#: app.py:877
+msgid "Unable to set password."
+msgstr ""
+
+#: app.py:902
 msgid "Enter a keyword to search."
 msgstr ""
 
-#: app.py:814 app_old.py:179
+#: app.py:950
 msgid "No matching papers found."
 msgstr ""
 
-#: app.py:858
+#: app.py:1017
 msgid "Please enter the paper title"
 msgstr ""
 
-#: app.py:861
+#: app.py:1020
 msgid "Please select a subject category"
 msgstr ""
 
-#: app.py:864
+#: app.py:1023
 msgid "Please select a language"
 msgstr ""
 
-#: app.py:867
+#: app.py:1026
 msgid "Please enter keywords"
 msgstr ""
 
-#: app.py:870
+#: app.py:1029
 msgid "Please enter the abstract"
 msgstr ""
 
-#: app.py:873
+#: app.py:1032
 msgid "Please enter the author name"
 msgstr ""
 
-#: app.py:876
+#: app.py:1035
 msgid "Please enter the contact email"
 msgstr ""
 
-#: app.py:879
+#: app.py:1038
 msgid "Please enter the school name"
 msgstr ""
 
-#: app.py:890
+#: app.py:1049
 msgid "Please select a file to upload"
 msgstr ""
 
-#: app.py:894
+#: app.py:1055
 msgid "Only PDF files are supported"
 msgstr ""
 
-#: app.py:901
+#: app.py:1071
 msgid "A file with this name already exists"
 msgstr ""
 
-#: app.py:919
+#: app.py:1090
 #, python-format
 msgid "Paper %(filename)s uploaded successfully!"
 msgstr ""
 
-#: app.py:1025 app.py:1061 app.py:1095 app_old.py:310
+#: app.py:1197 app.py:1282 app.py:1316
 msgid "Paper not found."
 msgstr ""
 
-#: app.py:1047
+#: app.py:1233
+msgid "A file with the new name already exists, unable to rename."
+msgstr ""
+
+#: app.py:1253
 msgid "Paper information updated."
 msgstr ""
 
-#: app.py:1066 app_old.py:274
+#: app.py:1287
 #, python-format
 msgid "Deleted %(filename)s."
 msgstr ""
 
-#: app.py:1072 app_old.py:282
+#: app.py:1293
 msgid "Language not supported."
 msgstr ""
 
-#: app.py:1202 app.py:1281
+#: app.py:1447 app.py:1526
 msgid "Please enter a title."
 msgstr ""
 
-#: app.py:1204 app.py:1283
+#: app.py:1449 app.py:1528
 msgid "Please select a category."
 msgstr ""
 
-#: app.py:1206 app.py:1285
+#: app.py:1451 app.py:1530
 msgid "Please enter an abstract."
 msgstr ""
 
-#: app.py:1208 app.py:1287
+#: app.py:1453 app.py:1532
 msgid "Please write the article body."
 msgstr ""
 
-#: app.py:1222 app.py:1299
+#: app.py:1467 app.py:1544
 msgid "Cover image must be PNG, JPG, GIF, or WebP."
 msgstr ""
 
-#: app.py:1240
+#: app.py:1485
 msgid "Article published successfully."
 msgstr ""
 
-#: app.py:1259 app.py:1328 app.py:1602
+#: app.py:1504 app.py:1573 app.py:1856
 msgid "Article not found."
 msgstr ""
 
-#: app.py:1310
+#: app.py:1555
 msgid "Article updated."
 msgstr ""
 
-#: app.py:1326
+#: app.py:1571
 msgid "Article deleted."
 msgstr ""
 
-#: app.py:1347 app.py:1390 app.py:1416 app.py:1459
+#: app.py:1592 app.py:1644 app.py:1670 app.py:1713
 msgid "Category name is required."
 msgstr ""
 
-#: app.py:1350 app.py:1419
+#: app.py:1595 app.py:1673
 msgid "Category already exists."
 msgstr ""
 
-#: app.py:1364 app.py:1433
+#: app.py:1609 app.py:1687
 msgid "Both old and new names are required."
 msgstr ""
 
-#: app.py:1367 app.py:1393 app.py:1436 app.py:1462
+#: app.py:1612 app.py:1647 app.py:1690 app.py:1716
 msgid "Category not found."
 msgstr ""
 
-#: app.py:1369 app.py:1438
+#: app.py:1614 app.py:1692
 msgid "A category with that name already exists."
 msgstr ""
 
-#: app.py:1474 app.py:1534
+#: app.py:1728 app.py:1788
 msgid "Journal name is required."
 msgstr ""
 
-#: app.py:1478
+#: app.py:1732
 msgid "Journal already exists."
 msgstr ""
 
-#: app.py:1498
+#: app.py:1752
 msgid "Journal ID is required."
 msgstr ""
 
-#: app.py:1502 app.py:1525 app.py:1587
+#: app.py:1756 app.py:1779 app.py:1841
 msgid "Journal not found."
 msgstr ""
 
-#: app.py:1567
+#: app.py:1821
 msgid "Journal updated."
 msgstr ""
 
-#: app.py:1661 app.py:1720
+#: app.py:1962 app.py:2021
 msgid "Submission not found."
 msgstr ""
 
-#: app.py:1732 app.py:1779
+#: app.py:2033 app.py:2082
 msgid "Submission not found or already reviewed."
 msgstr ""
 
-#: app.py:1769
+#: app.py:2072
 msgid "Paper accepted and published."
 msgstr ""
 
-#: app.py:1796
+#: app.py:2099
 msgid "Paper rejected."
 msgstr ""
 
-#: app.py:2351 app_old.py:382
+#: app.py:2713
 msgid "Please sign in first."
 msgstr ""
 
-#: app.py:2357 app_old.py:388
+#: app.py:2718
 msgid "Session expired. Please sign in again."
 msgstr ""
 
-#: app.py:2361 app_old.py:392
+#: app.py:2721
 msgid "Session timed out. Please sign in again."
 msgstr ""
 
-#: app.py:2368 app_old.py:399
+#: app.py:2727
 msgid "You do not have access to that action."
 msgstr ""
 
-#: app.py:2590 app_old.py:603
+#: app.py:3000
 #, python-format
 msgid ""
 "This account is already signed in. Please sign out from the other session"
 " or wait %(minutes)d minutes."
-msgstr ""
-
-#: app_old.py:136
-msgid "Invalid credentials or access expired."
-msgstr ""
-
-#: app_old.py:213
-msgid "Title is required."
-msgstr ""
-
-#: app_old.py:216
-msgid "Author field is required."
-msgstr ""
-
-#: app_old.py:229
-msgid "Select a PDF file to upload."
-msgstr ""
-
-#: app_old.py:233
-msgid "Only PDF files are accepted."
-msgstr ""
-
-#: app_old.py:237
-msgid "A paper with this filename already exists. Rename your file and try again."
-msgstr ""
-
-#: app_old.py:250
-#, python-format
-msgid "Uploaded %(filename)s."
-msgstr ""
-
-#: app_old.py:268
-msgid "Select a valid paper to delete."
-msgstr ""
-
-#: app_old.py:270
-msgid "Type the filename exactly to confirm deletion."
-msgstr ""
-
-#: app_old.py:286
-#, python-format
-msgid "Language switched to %(language)s."
 msgstr ""
 
 #: templates/FAQ.html:7
@@ -465,12 +461,12 @@ msgid "We will use your Microsoft email as the username."
 msgstr ""
 
 #: templates/account_register.html:16 templates/admin_login.html:19
-#: templates/admin_users.html:127 templates/login.html:25
-#: templates/register.html:39
+#: templates/admin_users.html:138 templates/login.html:24
+#: templates/register.html:35
 msgid "Password"
 msgstr ""
 
-#: templates/account_register.html:20 templates/register.html:44
+#: templates/account_register.html:20 templates/register.html:40
 msgid "Confirm password"
 msgstr ""
 
@@ -498,9 +494,9 @@ msgstr ""
 msgid "e.g. admin"
 msgstr ""
 
-#: templates/admin_login.html:22 templates/base.html:47 templates/login.html:28
+#: templates/admin_login.html:22 templates/base.html:47 templates/login.html:27
 #: templates/news.html:536 templates/news_article.html:603
-#: templates/register.html:53
+#: templates/register.html:49
 msgid "Sign in"
 msgstr ""
 
@@ -520,7 +516,7 @@ msgstr ""
 msgid "Manage local and Microsoft users and roles."
 msgstr ""
 
-#: templates/admin_users.html:14 templates/admin_users.html:117
+#: templates/admin_users.html:14 templates/admin_users.html:128
 msgid "Add Local User"
 msgstr ""
 
@@ -532,12 +528,12 @@ msgstr ""
 msgid "Local Users"
 msgstr ""
 
-#: templates/admin_users.html:27 templates/admin_users.html:123
+#: templates/admin_users.html:27 templates/admin_users.html:134
 msgid "Username / Email"
 msgstr ""
 
 #: templates/admin_users.html:28 templates/admin_users.html:79
-#: templates/admin_users.html:131
+#: templates/admin_users.html:142
 msgid "Role"
 msgstr ""
 
@@ -546,7 +542,7 @@ msgstr ""
 msgid "Actions"
 msgstr ""
 
-#: templates/admin_users.html:48
+#: templates/admin_users.html:48 templates/admin_users.html:100
 msgid "New password"
 msgstr ""
 
@@ -554,7 +550,7 @@ msgstr ""
 msgid "Reset"
 msgstr ""
 
-#: templates/admin_users.html:54 templates/admin_users.html:98
+#: templates/admin_users.html:54 templates/admin_users.html:108
 #: templates/delete.html:298 templates/delete.html:358
 #: templates/news_article.html:685 templates/news_manage.html:485
 #: templates/news_manage.html:595 templates/news_manage.html:608
@@ -576,9 +572,9 @@ msgid "Display Name"
 msgstr ""
 
 #: templates/admin_users.html:78 templates/delete.html:334
-#: templates/login.html:20 templates/paper_modify.html:88
-#: templates/register.html:14 templates/review_paper.html:39
-#: templates/submission_detail.html:39 templates/upload.html:87
+#: templates/paper_modify.html:94 templates/register.html:14
+#: templates/review_paper.html:39 templates/submission_detail.html:39
+#: templates/upload.html:95
 msgid "Email"
 msgstr ""
 
@@ -588,16 +584,25 @@ msgstr ""
 msgid "Unknown"
 msgstr ""
 
-#: templates/admin_users.html:104
+#: templates/admin_users.html:103
+msgid "Reset Password"
+msgstr ""
+
+#: templates/admin_users.html:103 templates/change_password.html:18
+#: templates/change_password.html:43
+msgid "Set Password"
+msgstr ""
+
+#: templates/admin_users.html:115
 msgid "No Microsoft users found."
 msgstr ""
 
-#: templates/admin_users.html:118 templates/admin_users.html:140
+#: templates/admin_users.html:129 templates/admin_users.html:151
 #: templates/news_manage.html:507
 msgid "Close"
 msgstr ""
 
-#: templates/admin_users.html:141 templates/news_manage.html:522
+#: templates/admin_users.html:152 templates/news_manage.html:522
 #: templates/paper_manage.html:143 templates/paper_manage.html:194
 msgid "Add"
 msgstr ""
@@ -712,6 +717,56 @@ msgstr ""
 msgid "Sign out"
 msgstr ""
 
+#: templates/change_password.html:2
+msgid "Change Password · Keydion"
+msgstr ""
+
+#: templates/change_password.html:8 templates/my_submissions.html:11
+#: templates/paper_manage.html:100 templates/review_list.html:11
+#: templates/upload.html:11
+msgid "Back to Dashboard"
+msgstr ""
+
+#: templates/change_password.html:15 templates/dashboard.html:101
+msgid "Change Password"
+msgstr ""
+
+#: templates/change_password.html:16
+msgid "Set a new password for your account."
+msgstr ""
+
+#: templates/change_password.html:19
+msgid ""
+"Set a password so you can sign in with email and password in the\n"
+"                    future."
+msgstr ""
+
+#: templates/change_password.html:25
+msgid "New Password"
+msgstr ""
+
+#: templates/change_password.html:27
+msgid "At least 6 characters"
+msgstr ""
+
+#: templates/change_password.html:30
+msgid "Confirm Password"
+msgstr ""
+
+#: templates/change_password.html:32
+msgid "Re-enter your password"
+msgstr ""
+
+#: templates/change_password.html:43
+msgid "Update Password"
+msgstr ""
+
+#: templates/change_password.html:45 templates/delete.html:357
+#: templates/news_manage.html:607 templates/news_publish.html:969
+#: templates/paper_modify.html:125 templates/upload.html:119
+msgid "Cancel"
+msgstr ""
+
 #: templates/dashboard.html:2
 msgid "User Menu · Keydion"
 msgstr ""
@@ -820,6 +875,16 @@ msgid ""
 " the submission forms."
 msgstr ""
 
+#: templates/dashboard.html:99
+msgid "Account Security"
+msgstr ""
+
+#: templates/dashboard.html:100
+msgid ""
+"Set or change your account password. This allows you to sign in with your"
+" email and password."
+msgstr ""
+
 #: templates/delete.html:2
 msgid "Manage Papers · Keydion"
 msgstr ""
@@ -838,14 +903,14 @@ msgstr ""
 
 #: templates/delete.html:261 templates/delete.html:324
 #: templates/news_manage.html:460 templates/news_publish.html:983
-#: templates/paper_modify.html:27 templates/preview.html:122
+#: templates/paper_modify.html:27 templates/preview.html:132
 #: templates/review_paper.html:24 templates/submission_detail.html:24
 msgid "Title"
 msgstr ""
 
 #: templates/delete.html:262 templates/delete.html:326
 #: templates/news_manage.html:461 templates/news_publish.html:988
-#: templates/paper_modify.html:45 templates/preview.html:124
+#: templates/paper_modify.html:45 templates/preview.html:134
 #: templates/review_paper.html:27 templates/submission_detail.html:27
 msgid "Category"
 msgstr ""
@@ -857,7 +922,7 @@ msgid "Author"
 msgstr ""
 
 #: templates/delete.html:264 templates/delete.html:338
-#: templates/news_manage.html:463 templates/paper_modify.html:101
+#: templates/news_manage.html:463 templates/paper_modify.html:110
 msgid "Published"
 msgstr ""
 
@@ -865,26 +930,26 @@ msgstr ""
 msgid "Modify"
 msgstr ""
 
-#: templates/delete.html:314 templates/paper_modify.html:127
+#: templates/delete.html:314 templates/paper_modify.html:136
 #: templates/review_paper.html:102 templates/submission_detail.html:89
 msgid "Paper Preview"
 msgstr ""
 
 #: templates/delete.html:328 templates/paper_modify.html:67
-#: templates/preview.html:126 templates/review_paper.html:30
+#: templates/preview.html:136 templates/review_paper.html:30
 #: templates/submission_detail.html:30 templates/upload.html:39
 msgid "Keywords"
 msgstr ""
 
 #: templates/delete.html:330 templates/paper_modify.html:73
-#: templates/preview.html:98 templates/review_paper.html:33
+#: templates/preview.html:108 templates/review_paper.html:33
 #: templates/submission_detail.html:33 templates/upload.html:70
 msgid "Abstract"
 msgstr ""
 
-#: templates/delete.html:336 templates/profile_setup.html:24
+#: templates/delete.html:336 templates/paper_modify.html:98
 #: templates/review_paper.html:42 templates/submission_detail.html:42
-#: templates/upload.html:91
+#: templates/upload.html:100
 msgid "School"
 msgstr ""
 
@@ -903,12 +968,6 @@ msgstr ""
 
 #: templates/delete.html:354
 msgid "This action cannot be undone."
-msgstr ""
-
-#: templates/delete.html:357 templates/news_manage.html:607
-#: templates/news_publish.html:969 templates/paper_modify.html:116
-#: templates/upload.html:105
-msgid "Cancel"
 msgstr ""
 
 #: templates/journal_detail.html:158
@@ -968,7 +1027,7 @@ msgid "Write the journal introduction..."
 msgstr ""
 
 #: templates/journal_edit.html:78 templates/news_publish.html:971
-#: templates/paper_modify.html:114
+#: templates/paper_modify.html:123
 msgid "Save Changes"
 msgstr ""
 
@@ -1062,41 +1121,36 @@ msgstr ""
 msgid "Keydion Portal"
 msgstr ""
 
-#: templates/login.html:11
+#: templates/login.html:10
 msgid "Sign in with Microsoft"
 msgstr ""
 
-#: templates/login.html:12
+#: templates/login.html:11
 msgid "or sign in with email"
 msgstr ""
 
-#: templates/login.html:15
+#: templates/login.html:14
 msgid "Microsoft sign-in is not configured yet."
 msgstr ""
 
-#: templates/login.html:22 templates/register.html:17
+#: templates/login.html:19
+msgid "Email / Username"
+msgstr ""
+
+#: templates/login.html:21 templates/register.html:17
 msgid "e.g. user@example.com"
 msgstr ""
 
-#: templates/login.html:31
+#: templates/login.html:30
 msgid "Don't have an account?"
 msgstr ""
 
-#: templates/login.html:32
+#: templates/login.html:31
 msgid "Register now"
-msgstr ""
-
-#: templates/login.html:35
-msgid "Admin login"
 msgstr ""
 
 #: templates/my_submissions.html:2
 msgid "My Submissions · Keydion"
-msgstr ""
-
-#: templates/my_submissions.html:11 templates/paper_manage.html:100
-#: templates/review_list.html:11 templates/upload.html:11
-msgid "Back to Dashboard"
 msgstr ""
 
 #: templates/my_submissions.html:14
@@ -1191,11 +1245,11 @@ msgstr ""
 msgid "Check back later for updates from Keydion."
 msgstr ""
 
-#: templates/news.html:620 templates/search.html:170
+#: templates/news.html:620 templates/search.html:171
 msgid "Previous"
 msgstr ""
 
-#: templates/news.html:631 templates/search.html:181
+#: templates/news.html:631 templates/search.html:182
 msgid "Next"
 msgstr ""
 
@@ -1572,16 +1626,6 @@ msgstr ""
 msgid "Select a language"
 msgstr ""
 
-#: templates/paper_modify.html:60 templates/search.html:55
-#: templates/upload.html:62
-msgid "Chinese"
-msgstr ""
-
-#: templates/paper_modify.html:62 templates/search.html:56
-#: templates/upload.html:63
-msgid "English"
-msgstr ""
-
 #: templates/paper_modify.html:69
 msgid "Comma-separated keywords"
 msgstr ""
@@ -1590,19 +1634,19 @@ msgstr ""
 msgid "Brief summary of the paper"
 msgstr ""
 
-#: templates/paper_modify.html:79
+#: templates/paper_modify.html:80 templates/upload.html:80
 msgid "Author Information"
 msgstr ""
 
-#: templates/paper_modify.html:82
-msgid "Author Name"
+#: templates/paper_modify.html:82 templates/upload.html:82
+msgid "Add Author"
 msgstr ""
 
-#: templates/paper_modify.html:94
-msgid "School/Institution"
+#: templates/paper_modify.html:90 templates/upload.html:90
+msgid "Name"
 msgstr ""
 
-#: templates/paper_modify.html:103
+#: templates/paper_modify.html:112
 msgid "Submission date cannot be modified."
 msgstr ""
 
@@ -1623,56 +1667,60 @@ msgstr ""
 msgid "Open in new tab"
 msgstr ""
 
-#: templates/preview.html:42 templates/search.html:146
+#: templates/preview.html:41 templates/search.html:147
 msgid "Download"
 msgstr ""
 
-#: templates/preview.html:65 templates/search.html:104
+#: templates/preview.html:64 templates/search.html:104
 msgid "Journal Article"
 msgstr ""
 
-#: templates/preview.html:69 templates/preview.html:153
-#: templates/preview.html:185 templates/search.html:110
+#: templates/preview.html:68 templates/preview.html:163
+#: templates/preview.html:196 templates/search.html:110
 msgid "Untitled Paper"
 msgstr ""
 
-#: templates/preview.html:71 templates/preview.html:75
-#: templates/preview.html:123 templates/preview.html:125
-#: templates/preview.html:127 templates/preview.html:129
-#: templates/preview.html:155 templates/search.html:114
-#: templates/search.html:117
+#: templates/preview.html:75
+msgid "Search this author"
+msgstr ""
+
+#: templates/preview.html:80 templates/preview.html:85
+#: templates/preview.html:133 templates/preview.html:135
+#: templates/preview.html:137 templates/preview.html:139
+#: templates/preview.html:165 templates/search.html:114
+#: templates/search.html:117 templates/search.html:118
 msgid "Not specified"
 msgstr ""
 
-#: templates/preview.html:81
+#: templates/preview.html:91
 msgid "Guest preview is limited to the first two pages of each paper."
 msgstr ""
 
-#: templates/preview.html:82
+#: templates/preview.html:92
 msgid "Sign in to view full papers"
 msgstr ""
 
-#: templates/preview.html:104 templates/search.html:123
+#: templates/preview.html:114 templates/search.html:124
 msgid "No abstract available."
 msgstr ""
 
-#: templates/preview.html:115
+#: templates/preview.html:125
 msgid "About this issue"
 msgstr ""
 
-#: templates/preview.html:128
+#: templates/preview.html:138
 msgid "Organization"
 msgstr ""
 
-#: templates/preview.html:141
+#: templates/preview.html:151
 msgid "Related text"
 msgstr ""
 
-#: templates/preview.html:160
+#: templates/preview.html:170
 msgid "No related texts found in this category."
 msgstr ""
 
-#: templates/preview.html:180
+#: templates/preview.html:190
 msgid "PDF Preview"
 msgstr ""
 
@@ -1696,19 +1744,7 @@ msgstr ""
 msgid "Last name"
 msgstr ""
 
-#: templates/profile_setup.html:26
-msgid "Select a school"
-msgstr ""
-
-#: templates/profile_setup.html:35
-msgid "Grade"
-msgstr ""
-
-#: templates/profile_setup.html:37
-msgid "Select a grade"
-msgstr ""
-
-#: templates/profile_setup.html:47
+#: templates/profile_setup.html:25
 msgid "Save profile"
 msgstr ""
 
@@ -1724,19 +1760,11 @@ msgstr ""
 msgid "Fill in the details below to register a new Keydion account."
 msgstr ""
 
-#: templates/register.html:34
-msgid "School name"
-msgstr ""
-
-#: templates/register.html:36
-msgid "Optional"
-msgstr ""
-
-#: templates/register.html:49
+#: templates/register.html:45
 msgid "Create account"
 msgstr ""
 
-#: templates/register.html:52
+#: templates/register.html:48
 msgid "Already have an account?"
 msgstr ""
 
@@ -1858,20 +1886,20 @@ msgid_plural "%(count)s results"
 msgstr[0] ""
 msgstr[1] ""
 
-#: templates/search.html:133
+#: templates/search.html:134
 msgid "Sign in to Download"
 msgstr ""
 
-#: templates/search.html:151
+#: templates/search.html:152
 msgid "View"
 msgstr ""
 
-#: templates/search.html:187
+#: templates/search.html:188
 #, python-format
 msgid "Page %(current)d of %(total)d"
 msgstr ""
 
-#: templates/search.html:194
+#: templates/search.html:195
 msgid "No papers match your search criteria. Try adjusting your filters."
 msgstr ""
 
@@ -1955,23 +1983,11 @@ msgid ""
 "conclusions..."
 msgstr ""
 
-#: templates/upload.html:79
-msgid "First Author Information"
-msgstr ""
-
-#: templates/upload.html:83
-msgid "Name"
-msgstr ""
-
-#: templates/upload.html:98
+#: templates/upload.html:112
 msgid "File Upload"
 msgstr ""
 
-#: templates/upload.html:98
-msgid "max 20MB"
-msgstr ""
-
-#: templates/upload.html:104
+#: templates/upload.html:118
 msgid "Submit Paper"
 msgstr ""
 
