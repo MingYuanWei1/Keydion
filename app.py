@@ -360,14 +360,14 @@ def init_db() -> None:
         return
     global _ENGINE, _SESSION_LOCAL
     if _ENGINE is None:
-        _ENGINE = create_engine(DB_URL, pool_pre_ping=True)
+        _ENGINE = create_engine(DB_URL, pool_pre_ping=True, pool_recycle=3600)
         _SESSION_LOCAL = sessionmaker(bind=_ENGINE)
         BASE.metadata.create_all(_ENGINE)
         # Migrate: add password column to ms_users if it doesn't exist
         try:
             with _ENGINE.connect() as conn:
                 from sqlalchemy import text
-                conn.execute(text("ALTER TABLE ms_users ADD password NVARCHAR(255) NULL"))
+                conn.execute(text("ALTER TABLE ms_users ADD COLUMN password VARCHAR(255) NULL"))
                 conn.commit()
         except Exception:
             pass  # Column already exists
