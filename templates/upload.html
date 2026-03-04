@@ -106,7 +106,8 @@
 
       <div class="d-flex gap-2">
         <button type="submit" class="btn btn-primary">{{ _('Submit Paper') }}</button>
-        <button type="submit" name="save_draft" value="1" class="btn btn-outline-secondary">{{ _('Save as Draft')
+        <button type="submit" name="save_draft" value="1" formnovalidate class="btn btn-outline-secondary">{{ _('Save as
+          Draft')
           }}</button>
         <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">{{ _('Cancel') }}</a>
       </div>
