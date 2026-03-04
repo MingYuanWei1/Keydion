@@ -83,7 +83,7 @@
         <tbody>
           {% for entry in ms_users %}
           <tr>
-            <td>{{ entry.display_name or _('Unknown') }}</td>
+            <td>{{ (entry.first_name ~ ' ' ~ entry.last_name)|trim or entry.display_name or _('Unknown') }}</td>
             <td>{{ entry.email or '-' }}</td>
             <td>
               <input type="hidden" name="ms_id" value="{{ entry.ms_id }}" form="role-update-form">
