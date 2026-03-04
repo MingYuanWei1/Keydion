@@ -697,7 +697,9 @@ def create_app() -> Flask:
                 if updated:
                     session["user"]["first_name"] = updated.get("first_name", "")
                     session["user"]["last_name"] = updated.get("last_name", "")
-                    session["user"]["display_name"] = updated.get("display_name") or session["user"].get("display_name", "")
+                    # Prefer user-entered name over MS display_name
+                    entered_name = f"{updated.get('first_name', '').strip()} {updated.get('last_name', '').strip()}".strip()
+                    session["user"]["display_name"] = entered_name or session["user"].get("display_name", "")
                 flash(_("Profile saved successfully."), "success")
                 next_url = session.pop("next", None)
                 return redirect(next_url or url_for("index"))
@@ -2552,9 +2554,13 @@ def fetch_ms_profile(token_result: Dict[str, str]) -> Dict[str, str]:
 def build_session_user(record: Dict[str, str]) -> Dict[str, str]:
     email = record.get("email", "")
     username = record.get("ms_id", "")
-    display_name = (record.get("display_name", "") or "").strip()
-    if not display_name:
-        display_name = f"{record.get('first_name', '').strip()} {record.get('last_name', '').strip()}".strip()
+    # Prefer user-entered first/last name over MS-provided display_name
+    first = record.get("first_name", "").strip()
+    last = record.get("last_name", "").strip()
+    if first or last:
+        display_name = f"{first} {last}".strip()
+    else:
+        display_name = (record.get("display_name", "") or "").strip()
     return {
         "username": username,
         "ms_id": record.get("ms_id", ""),
