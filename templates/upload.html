@@ -22,24 +22,11 @@
           placeholder="{{ _('Please enter the complete paper title') }}" required>
       </div>
 
-      <!-- Journal (optional) & Keywords -->
-      <div class="row g-3 mb-3">
-        <div class="col-md-6">
-          <label for="journal" class="form-label">{{ _('Journal') }} <small class="text-muted">({{ _('optional')
-              }})</small></label>
-          <select class="form-select" id="journal" name="journal">
-            <option value="" {% if not form_data.journal %}selected{% endif %}>{{ _('No journal (leave blank)') }}
-            </option>
-            {% for j in journals %}
-            <option value="{{ j }}" {% if form_data.journal==j %}selected{% endif %}>{{ j }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="col-md-6">
-          <label for="keywords" class="form-label">{{ _('Keywords') }}</label>
-          <input type="text" class="form-control" id="keywords" name="keywords" value="{{ form_data.keywords }}"
-            placeholder="{{ _('Enter keywords, separated by commas') }}" required>
-        </div>
+      <!-- Keywords -->
+      <div class="mb-3">
+        <label for="keywords" class="form-label">{{ _('Keywords') }}</label>
+        <input type="text" class="form-control" id="keywords" name="keywords" value="{{ form_data.keywords }}"
+          placeholder="{{ _('Enter keywords, separated by commas') }}" required>
       </div>
 
       <!-- Subject Category & Language -->
@@ -67,8 +54,7 @@
 
       <!-- Abstract -->
       <div class="mb-3">
-        <label for="abstract" class="form-label">{{ _('Abstract') }} <small class="text-muted">({{ _('300 characters
-            max') }})</small></label>
+        <label for="abstract" class="form-label">{{ _('Abstract') }}</label>
         <textarea class="form-control" id="abstract" name="abstract" rows="5"
           placeholder="{{ _('Please briefly describe your research background, methods, and conclusions...') }}"
           required>{{ form_data.abstract }}</textarea>
