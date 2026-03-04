@@ -2053,6 +2053,29 @@ def create_app() -> Flask:
         subs.sort(key=lambda s: s.get("submitted_at", ""), reverse=True)
         return render_template("my_submissions.html", user=user, submissions=subs)
 
+    @app.route("/my-submissions/<sub_id>/delete", methods=["POST"])
+    def delete_submission(sub_id):
+        user = require_login()
+        if not user:
+            return redirect(url_for("login"))
+        username = user.get("username", "")
+        sub = _get_submission(sub_id)
+        if not sub or sub.get("submitter") != username:
+            flash(_("Submission not found."), "warning")
+            return redirect(url_for("my_submissions"))
+        # Remove pending PDF file if it exists
+        pending_file = sub.get("pending_filename", "")
+        if pending_file:
+            pending_path = PENDING_PAPERS_DIR / pending_file
+            if pending_path.exists():
+                pending_path.unlink()
+        # Remove submission record
+        subs = _load_submissions()
+        subs = [s for s in subs if s.get("id") != sub_id]
+        _write_submissions(subs)
+        flash(_("Submission deleted."), "success")
+        return redirect(url_for("my_submissions"))
+
     @app.route("/my-submissions/<sub_id>")
     def submission_detail(sub_id):
         user = require_login()

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-04 10:52+0800\n"
+"POT-Creation-Date: 2026-03-04 10:58+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -30,12 +30,12 @@ msgid "Curator - Full Access"
 msgstr ""
 
 #: app.py:223 templates/paper_modify.html:62 templates/search.html:56
-#: templates/upload.html:63
+#: templates/upload.html:50
 msgid "English"
 msgstr ""
 
 #: app.py:224 templates/paper_modify.html:60 templates/search.html:55
-#: templates/upload.html:62
+#: templates/upload.html:49
 msgid "Chinese"
 msgstr ""
 
@@ -344,39 +344,43 @@ msgstr ""
 msgid "Journal updated."
 msgstr ""
 
-#: app.py:2063 app.py:2122
+#: app.py:2064 app.py:2086 app.py:2145
 msgid "Submission not found."
 msgstr ""
 
-#: app.py:2134 app.py:2183
+#: app.py:2076
+msgid "Submission deleted."
+msgstr ""
+
+#: app.py:2157 app.py:2206
 msgid "Submission not found or already reviewed."
 msgstr ""
 
-#: app.py:2173
+#: app.py:2196
 msgid "Paper accepted and published."
 msgstr ""
 
-#: app.py:2200
+#: app.py:2223
 msgid "Paper rejected."
 msgstr ""
 
-#: app.py:2814
+#: app.py:2837
 msgid "Please sign in first."
 msgstr ""
 
-#: app.py:2819
+#: app.py:2842
 msgid "Session expired. Please sign in again."
 msgstr ""
 
-#: app.py:2822
+#: app.py:2845
 msgid "Session timed out. Please sign in again."
 msgstr ""
 
-#: app.py:2828
+#: app.py:2851
 msgid "You do not have access to that action."
 msgstr ""
 
-#: app.py:3101
+#: app.py:3124
 #, python-format
 msgid ""
 "This account is already signed in. Please sign out from the other session"
@@ -546,7 +550,8 @@ msgid "Role"
 msgstr ""
 
 #: templates/admin_users.html:29 templates/admin_users.html:80
-#: templates/delete.html:265 templates/news_manage.html:464
+#: templates/delete.html:265 templates/my_submissions.html:28
+#: templates/news_manage.html:464
 msgid "Actions"
 msgstr ""
 
@@ -560,10 +565,10 @@ msgstr ""
 
 #: templates/admin_users.html:54 templates/admin_users.html:108
 #: templates/delete.html:298 templates/delete.html:358
-#: templates/news_article.html:685 templates/news_manage.html:485
-#: templates/news_manage.html:595 templates/news_manage.html:608
-#: templates/paper_manage.html:124 templates/paper_manage.html:175
-#: templates/paper_manage.html:223
+#: templates/my_submissions.html:62 templates/news_article.html:685
+#: templates/news_manage.html:485 templates/news_manage.html:595
+#: templates/news_manage.html:608 templates/paper_manage.html:124
+#: templates/paper_manage.html:175 templates/paper_manage.html:223
 msgid "Delete"
 msgstr ""
 
@@ -582,7 +587,7 @@ msgstr ""
 #: templates/admin_users.html:78 templates/delete.html:334
 #: templates/paper_modify.html:94 templates/register.html:14
 #: templates/review_paper.html:39 templates/submission_detail.html:39
-#: templates/upload.html:95
+#: templates/upload.html:81
 msgid "Email"
 msgstr ""
 
@@ -771,7 +776,7 @@ msgstr ""
 
 #: templates/change_password.html:45 templates/delete.html:357
 #: templates/news_manage.html:607 templates/news_publish.html:969
-#: templates/paper_modify.html:125 templates/upload.html:125
+#: templates/paper_modify.html:125 templates/upload.html:111
 msgid "Cancel"
 msgstr ""
 
@@ -804,7 +809,7 @@ msgid ""
 msgstr ""
 
 #: templates/dashboard.html:33 templates/delete.html:245
-#: templates/my_submissions.html:81
+#: templates/my_submissions.html:80
 msgid "Upload a Paper"
 msgstr ""
 
@@ -945,19 +950,19 @@ msgstr ""
 
 #: templates/delete.html:328 templates/paper_modify.html:67
 #: templates/preview.html:136 templates/review_paper.html:30
-#: templates/submission_detail.html:30 templates/upload.html:39
+#: templates/submission_detail.html:30 templates/upload.html:27
 msgid "Keywords"
 msgstr ""
 
 #: templates/delete.html:330 templates/paper_modify.html:73
 #: templates/preview.html:108 templates/review_paper.html:33
-#: templates/submission_detail.html:33 templates/upload.html:70
+#: templates/submission_detail.html:33 templates/upload.html:57
 msgid "Abstract"
 msgstr ""
 
 #: templates/delete.html:336 templates/paper_modify.html:98
 #: templates/review_paper.html:42 templates/submission_detail.html:42
-#: templates/upload.html:100
+#: templates/upload.html:86
 msgid "School"
 msgstr ""
 
@@ -1180,77 +1185,65 @@ msgstr ""
 msgid "Status"
 msgstr ""
 
-#: templates/my_submissions.html:28 templates/submission_detail.html:61
-msgid "Reviewer"
-msgstr ""
-
-#: templates/my_submissions.html:29
-msgid "Comment"
-msgstr ""
-
-#: templates/my_submissions.html:46
+#: templates/my_submissions.html:45
 msgid "Draft"
 msgstr ""
 
-#: templates/my_submissions.html:48 templates/review_paper.html:55
+#: templates/my_submissions.html:47 templates/review_paper.html:55
 #: templates/submission_detail.html:52
 msgid "Pending Review"
 msgstr ""
 
-#: templates/my_submissions.html:50 templates/review_list.html:26
+#: templates/my_submissions.html:49 templates/review_list.html:26
 #: templates/review_list.html:75 templates/review_paper.html:57
 #: templates/submission_detail.html:54
 msgid "Accepted"
 msgstr ""
 
-#: templates/my_submissions.html:52 templates/review_list.html:32
+#: templates/my_submissions.html:51 templates/review_list.html:32
 #: templates/review_list.html:77 templates/review_paper.html:59
 #: templates/submission_detail.html:56
 msgid "Rejected"
 msgstr ""
 
-#: templates/my_submissions.html:61 templates/news_article.html:676
+#: templates/my_submissions.html:58 templates/news_article.html:676
 #: templates/news_manage.html:482 templates/paper_manage.html:168
 msgid "Edit"
 msgstr ""
 
-#: templates/my_submissions.html:63
-msgid "Yes"
+#: templates/my_submissions.html:61
+msgid "Are you sure you want to delete this submission?"
 msgstr ""
 
-#: templates/my_submissions.html:65
-msgid "No"
-msgstr ""
-
-#: templates/my_submissions.html:78
+#: templates/my_submissions.html:77
 msgid "No submissions yet"
 msgstr ""
 
-#: templates/my_submissions.html:79
+#: templates/my_submissions.html:78
 msgid ""
 "Upload a paper to get started. Your submission will be reviewed by a "
 "moderator."
 msgstr ""
 
-#: templates/my_submissions.html:88
+#: templates/my_submissions.html:87
 msgid "How the review process works"
 msgstr ""
 
-#: templates/my_submissions.html:90
+#: templates/my_submissions.html:89
 msgid ""
 "After you submit a paper, it enters the <strong>Pending Review</strong> "
 "queue."
 msgstr ""
 
-#: templates/my_submissions.html:91
+#: templates/my_submissions.html:90
 msgid "A moderator or administrator will review your paper."
 msgstr ""
 
-#: templates/my_submissions.html:92
+#: templates/my_submissions.html:91
 msgid "If <strong>Accepted</strong>, your paper becomes available in the library."
 msgstr ""
 
-#: templates/my_submissions.html:93
+#: templates/my_submissions.html:92
 msgid "If <strong>Rejected</strong>, you will see the reviewer's comments here."
 msgstr ""
 
@@ -1617,11 +1610,11 @@ msgstr ""
 msgid "Paper Details"
 msgstr ""
 
-#: templates/paper_modify.html:34 templates/upload.html:28
+#: templates/paper_modify.html:34
 msgid "Journal"
 msgstr ""
 
-#: templates/paper_modify.html:36 templates/upload.html:31
+#: templates/paper_modify.html:36
 msgid "No journal (leave blank)"
 msgstr ""
 
@@ -1630,7 +1623,7 @@ msgid "Select a category"
 msgstr ""
 
 #: templates/paper_modify.html:56 templates/search.html:51
-#: templates/upload.html:58
+#: templates/upload.html:45
 msgid "Language"
 msgstr ""
 
@@ -1646,15 +1639,15 @@ msgstr ""
 msgid "Brief summary of the paper"
 msgstr ""
 
-#: templates/paper_modify.html:80 templates/upload.html:80
+#: templates/paper_modify.html:80 templates/upload.html:66
 msgid "Author Information"
 msgstr ""
 
-#: templates/paper_modify.html:82 templates/upload.html:82
+#: templates/paper_modify.html:82 templates/upload.html:68
 msgid "Add Author"
 msgstr ""
 
-#: templates/paper_modify.html:90 templates/upload.html:90
+#: templates/paper_modify.html:90 templates/upload.html:76
 msgid "Name"
 msgstr ""
 
@@ -1927,6 +1920,10 @@ msgstr ""
 msgid "Back to My Submissions"
 msgstr ""
 
+#: templates/submission_detail.html:61
+msgid "Reviewer"
+msgstr ""
+
 #: templates/submission_detail.html:66
 msgid "Reviewed"
 msgstr ""
@@ -1959,51 +1956,41 @@ msgstr ""
 msgid "Please enter the complete paper title"
 msgstr ""
 
-#: templates/upload.html:28
-msgid "optional"
-msgstr ""
-
-#: templates/upload.html:41
+#: templates/upload.html:29
 msgid "Enter keywords, separated by commas"
 msgstr ""
 
-#: templates/upload.html:48
+#: templates/upload.html:35
 msgid "Subject Category"
 msgstr ""
 
-#: templates/upload.html:50
+#: templates/upload.html:37
 msgid ""
 "Please select a\n"
 "              category..."
 msgstr ""
 
-#: templates/upload.html:60
+#: templates/upload.html:47
 msgid ""
 "Please select a\n"
 "              language..."
 msgstr ""
 
-#: templates/upload.html:70
-msgid ""
-"300 characters\n"
-"            max"
-msgstr ""
-
-#: templates/upload.html:73
+#: templates/upload.html:59
 msgid ""
 "Please briefly describe your research background, methods, and "
 "conclusions..."
 msgstr ""
 
-#: templates/upload.html:112
+#: templates/upload.html:98
 msgid "File Upload"
 msgstr ""
 
-#: templates/upload.html:122
+#: templates/upload.html:108
 msgid "Submit Paper"
 msgstr ""
 
-#: templates/upload.html:123
+#: templates/upload.html:109
 msgid "Save as Draft"
 msgstr ""
 

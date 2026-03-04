@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Keydion 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-04 10:52+0800\n"
+"POT-Creation-Date: 2026-03-04 10:58+0800\n"
 "PO-Revision-Date: 2025-10-11 00:00+0000\n"
 "Last-Translator: \n"
 "Language: zh\n"
@@ -28,12 +28,12 @@ msgstr "管理员 - 完全权限"
 
 # ==================== LANGUAGE ====================
 #: app.py:223 templates/paper_modify.html:62 templates/search.html:56
-#: templates/upload.html:63
+#: templates/upload.html:50
 msgid "English"
 msgstr "英语"
 
 #: app.py:224 templates/paper_modify.html:60 templates/search.html:55
-#: templates/upload.html:62
+#: templates/upload.html:49
 msgid "Chinese"
 msgstr "中文"
 
@@ -359,39 +359,43 @@ msgstr "未找到该期刊。"
 msgid "Journal updated."
 msgstr "期刊已更新。"
 
-#: app.py:2063 app.py:2122
+#: app.py:2064 app.py:2086 app.py:2145
 msgid "Submission not found."
 msgstr "未找到该投稿。"
 
-#: app.py:2134 app.py:2183
+#: app.py:2076
+msgid "Submission deleted."
+msgstr "投稿已删除。"
+
+#: app.py:2157 app.py:2206
 msgid "Submission not found or already reviewed."
 msgstr "未找到该投稿或已被审核。"
 
-#: app.py:2173
+#: app.py:2196
 msgid "Paper accepted and published."
 msgstr "论文已接受并发布。"
 
-#: app.py:2200
+#: app.py:2223
 msgid "Paper rejected."
 msgstr "论文已拒绝。"
 
-#: app.py:2814
+#: app.py:2837
 msgid "Please sign in first."
 msgstr "请先登录。"
 
-#: app.py:2819
+#: app.py:2842
 msgid "Session expired. Please sign in again."
 msgstr "会话已过期，请重新登录。"
 
-#: app.py:2822
+#: app.py:2845
 msgid "Session timed out. Please sign in again."
 msgstr "会话已超时，请重新登录。"
 
-#: app.py:2828
+#: app.py:2851
 msgid "You do not have access to that action."
 msgstr "您没有权限执行此操作。"
 
-#: app.py:3101
+#: app.py:3124
 #, python-format
 msgid ""
 "This account is already signed in. Please sign out from the other session"
@@ -568,7 +572,8 @@ msgid "Role"
 msgstr "角色"
 
 #: templates/admin_users.html:29 templates/admin_users.html:80
-#: templates/delete.html:265 templates/news_manage.html:464
+#: templates/delete.html:265 templates/my_submissions.html:28
+#: templates/news_manage.html:464
 msgid "Actions"
 msgstr "操作"
 
@@ -582,10 +587,10 @@ msgstr "重置"
 
 #: templates/admin_users.html:54 templates/admin_users.html:108
 #: templates/delete.html:298 templates/delete.html:358
-#: templates/news_article.html:685 templates/news_manage.html:485
-#: templates/news_manage.html:595 templates/news_manage.html:608
-#: templates/paper_manage.html:124 templates/paper_manage.html:175
-#: templates/paper_manage.html:223
+#: templates/my_submissions.html:62 templates/news_article.html:685
+#: templates/news_manage.html:485 templates/news_manage.html:595
+#: templates/news_manage.html:608 templates/paper_manage.html:124
+#: templates/paper_manage.html:175 templates/paper_manage.html:223
 msgid "Delete"
 msgstr "删除"
 
@@ -604,7 +609,7 @@ msgstr "显示名称"
 #: templates/admin_users.html:78 templates/delete.html:334
 #: templates/paper_modify.html:94 templates/register.html:14
 #: templates/review_paper.html:39 templates/submission_detail.html:39
-#: templates/upload.html:95
+#: templates/upload.html:81
 msgid "Email"
 msgstr "邮箱"
 
@@ -795,7 +800,7 @@ msgstr "更新密码"
 
 #: templates/change_password.html:45 templates/delete.html:357
 #: templates/news_manage.html:607 templates/news_publish.html:969
-#: templates/paper_modify.html:125 templates/upload.html:125
+#: templates/paper_modify.html:125 templates/upload.html:111
 msgid "Cancel"
 msgstr "取消"
 
@@ -828,7 +833,7 @@ msgid ""
 msgstr "上传 PDF 格式的新论文，分享学术成果。"
 
 #: templates/dashboard.html:33 templates/delete.html:245
-#: templates/my_submissions.html:81
+#: templates/my_submissions.html:80
 msgid "Upload a Paper"
 msgstr "上传论文"
 
@@ -974,19 +979,19 @@ msgstr "论文预览"
 
 #: templates/delete.html:328 templates/paper_modify.html:67
 #: templates/preview.html:136 templates/review_paper.html:30
-#: templates/submission_detail.html:30 templates/upload.html:39
+#: templates/submission_detail.html:30 templates/upload.html:27
 msgid "Keywords"
 msgstr "关键词"
 
 #: templates/delete.html:330 templates/paper_modify.html:73
 #: templates/preview.html:108 templates/review_paper.html:33
-#: templates/submission_detail.html:33 templates/upload.html:70
+#: templates/submission_detail.html:33 templates/upload.html:57
 msgid "Abstract"
 msgstr "摘要"
 
 #: templates/delete.html:336 templates/paper_modify.html:98
 #: templates/review_paper.html:42 templates/submission_detail.html:42
-#: templates/upload.html:100
+#: templates/upload.html:86
 msgid "School"
 msgstr "学校"
 
@@ -1219,77 +1224,65 @@ msgstr "提交时间"
 msgid "Status"
 msgstr "状态"
 
-#: templates/my_submissions.html:28 templates/submission_detail.html:61
-msgid "Reviewer"
-msgstr "审核人"
-
-#: templates/my_submissions.html:29
-msgid "Comment"
-msgstr "评论"
-
-#: templates/my_submissions.html:46
+#: templates/my_submissions.html:45
 msgid "Draft"
 msgstr "草稿"
 
-#: templates/my_submissions.html:48 templates/review_paper.html:55
+#: templates/my_submissions.html:47 templates/review_paper.html:55
 #: templates/submission_detail.html:52
 msgid "Pending Review"
 msgstr "待审核"
 
-#: templates/my_submissions.html:50 templates/review_list.html:26
+#: templates/my_submissions.html:49 templates/review_list.html:26
 #: templates/review_list.html:75 templates/review_paper.html:57
 #: templates/submission_detail.html:54
 msgid "Accepted"
 msgstr "已接受"
 
-#: templates/my_submissions.html:52 templates/review_list.html:32
+#: templates/my_submissions.html:51 templates/review_list.html:32
 #: templates/review_list.html:77 templates/review_paper.html:59
 #: templates/submission_detail.html:56
 msgid "Rejected"
 msgstr "已拒绝"
 
-#: templates/my_submissions.html:61 templates/news_article.html:676
+#: templates/my_submissions.html:58 templates/news_article.html:676
 #: templates/news_manage.html:482 templates/paper_manage.html:168
 msgid "Edit"
 msgstr "编辑"
 
-#: templates/my_submissions.html:63
-msgid "Yes"
-msgstr "有"
+#: templates/my_submissions.html:61
+msgid "Are you sure you want to delete this submission?"
+msgstr "您确定要删除这条投稿吗？"
 
-#: templates/my_submissions.html:65
-msgid "No"
-msgstr "无"
-
-#: templates/my_submissions.html:78
+#: templates/my_submissions.html:77
 msgid "No submissions yet"
 msgstr "暂无投稿"
 
-#: templates/my_submissions.html:79
+#: templates/my_submissions.html:78
 msgid ""
 "Upload a paper to get started. Your submission will be reviewed by a "
 "moderator."
 msgstr "上传一篇论文以开始。您的投稿将由审核人员审核。"
 
-#: templates/my_submissions.html:88
+#: templates/my_submissions.html:87
 msgid "How the review process works"
 msgstr "审核流程说明"
 
-#: templates/my_submissions.html:90
+#: templates/my_submissions.html:89
 msgid ""
 "After you submit a paper, it enters the <strong>Pending Review</strong> "
 "queue."
 msgstr "提交论文后，它将进入<strong>待审核</strong>队列。"
 
-#: templates/my_submissions.html:91
+#: templates/my_submissions.html:90
 msgid "A moderator or administrator will review your paper."
 msgstr "审核人员或管理员将审核您的论文。"
 
-#: templates/my_submissions.html:92
+#: templates/my_submissions.html:91
 msgid "If <strong>Accepted</strong>, your paper becomes available in the library."
 msgstr "如果<strong>被接受</strong>，您的论文将发布到文库中。"
 
-#: templates/my_submissions.html:93
+#: templates/my_submissions.html:92
 msgid "If <strong>Rejected</strong>, you will see the reviewer's comments here."
 msgstr "如果<strong>被拒绝</strong>，您可以在此处查看审核人员的意见。"
 
@@ -1682,11 +1675,11 @@ msgstr "返回论文管理"
 msgid "Paper Details"
 msgstr "论文标题"
 
-#: templates/paper_modify.html:34 templates/upload.html:28
+#: templates/paper_modify.html:34
 msgid "Journal"
 msgstr "期刊"
 
-#: templates/paper_modify.html:36 templates/upload.html:31
+#: templates/paper_modify.html:36
 msgid "No journal (leave blank)"
 msgstr "不选择期刊（留空）"
 
@@ -1695,7 +1688,7 @@ msgid "Select a category"
 msgstr "选择分类"
 
 #: templates/paper_modify.html:56 templates/search.html:51
-#: templates/upload.html:58
+#: templates/upload.html:45
 msgid "Language"
 msgstr "语言"
 
@@ -1712,16 +1705,16 @@ msgstr "以逗号分隔的关键词"
 msgid "Brief summary of the paper"
 msgstr "论文的简要摘要"
 
-#: templates/paper_modify.html:80 templates/upload.html:80
+#: templates/paper_modify.html:80 templates/upload.html:66
 msgid "Author Information"
 msgstr "作者信息"
 
-#: templates/paper_modify.html:82 templates/upload.html:82
+#: templates/paper_modify.html:82 templates/upload.html:68
 #, fuzzy
 msgid "Add Author"
 msgstr "作者"
 
-#: templates/paper_modify.html:90 templates/upload.html:90
+#: templates/paper_modify.html:90 templates/upload.html:76
 msgid "Name"
 msgstr "姓名"
 
@@ -2001,6 +1994,10 @@ msgstr "查看您投稿的详细信息和当前状态。"
 msgid "Back to My Submissions"
 msgstr "返回我的投稿"
 
+#: templates/submission_detail.html:61
+msgid "Reviewer"
+msgstr "审核人"
+
 #: templates/submission_detail.html:66
 msgid "Reviewed"
 msgstr "审核时间"
@@ -2035,54 +2032,43 @@ msgstr "请填写以下信息并上传您的研究论文"
 msgid "Please enter the complete paper title"
 msgstr "请输入完整论文标题"
 
-#: templates/upload.html:28
-msgid "optional"
-msgstr "可选"
-
-#: templates/upload.html:41
+#: templates/upload.html:29
 msgid "Enter keywords, separated by commas"
 msgstr "输入关键词，用逗号分隔"
 
-#: templates/upload.html:48
+#: templates/upload.html:35
 msgid "Subject Category"
 msgstr "学科类别"
 
-#: templates/upload.html:50
+#: templates/upload.html:37
 #, fuzzy
 msgid ""
 "Please select a\n"
 "              category..."
 msgstr "请选择类别..."
 
-#: templates/upload.html:60
+#: templates/upload.html:47
 #, fuzzy
 msgid ""
 "Please select a\n"
 "              language..."
 msgstr "请选择语言"
 
-#: templates/upload.html:70
-#, fuzzy
-msgid ""
-"300 characters\n"
-"            max"
-msgstr "最多 300 字"
-
-#: templates/upload.html:73
+#: templates/upload.html:59
 msgid ""
 "Please briefly describe your research background, methods, and "
 "conclusions..."
 msgstr "请简要描述您的研究背景、方法和结论..."
 
-#: templates/upload.html:112
+#: templates/upload.html:98
 msgid "File Upload"
 msgstr "文件上传"
 
-#: templates/upload.html:122
+#: templates/upload.html:108
 msgid "Submit Paper"
 msgstr "提交论文"
 
-#: templates/upload.html:123
+#: templates/upload.html:109
 msgid "Save as Draft"
 msgstr "保存草稿"
 
@@ -2976,4 +2962,21 @@ msgstr[0] ""
 
 #~ msgid "First Author Information"
 #~ msgstr "第一作者信息"
+
+#~ msgid "Comment"
+#~ msgstr "评论"
+
+#~ msgid "Yes"
+#~ msgstr "有"
+
+#~ msgid "No"
+#~ msgstr "无"
+
+#~ msgid "optional"
+#~ msgstr "可选"
+
+#~ msgid ""
+#~ "300 characters\n"
+#~ "            max"
+#~ msgstr "最多 300 字"
 
