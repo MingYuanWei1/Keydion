@@ -32,7 +32,7 @@
                 <tbody>
                     {% for sub in submissions %}
                     <tr style="cursor: pointer;"
-                        onclick="window.location='{{ url_for('submission_detail', sub_id=sub.id) }}'">
+                        onclick="window.location='{% if sub.status == 'draft' %}{{ url_for('upload', draft=sub.id) }}{% else %}{{ url_for('submission_detail', sub_id=sub.id) }}{% endif %}'">
                         <td>
                             <strong class="text-primary">{{ sub.title }}</strong>
                             <br>
@@ -42,7 +42,9 @@
                             <small>{{ sub.submitted_at[:10] if sub.submitted_at else '-' }}</small>
                         </td>
                         <td>
-                            {% if sub.status == 'pending' %}
+                            {% if sub.status == 'draft' %}
+                            <span class="badge bg-secondary">{{ _('Draft') }}</span>
+                            {% elif sub.status == 'pending' %}
                             <span class="badge bg-warning text-dark">{{ _('Pending Review') }}</span>
                             {% elif sub.status == 'accepted' %}
                             <span class="badge bg-success">{{ _('Accepted') }}</span>
@@ -54,7 +56,10 @@
                             <small>{{ sub.reviewer or '-' }}</small>
                         </td>
                         <td>
-                            {% if sub.comment %}
+                            {% if sub.status == 'draft' %}
+                            <a href="{{ url_for('upload', draft=sub.id) }}" class="btn btn-sm btn-outline-primary"
+                                onclick="event.stopPropagation()">{{ _('Edit') }}</a>
+                            {% elif sub.comment %}
                             <span class="badge bg-secondary">{{ _('Yes') }}</span>
                             {% else %}
                             <span class="text-muted">{{ _('No') }}</span>

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Keydion 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-02 18:43+0800\n"
+"POT-Creation-Date: 2026-03-04 10:52+0800\n"
 "PO-Revision-Date: 2025-10-11 00:00+0000\n"
 "Last-Translator: \n"
 "Language: zh\n"
@@ -12,7 +12,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 #: app.py:218
 msgid "Reader - View & Download"
@@ -192,198 +192,206 @@ msgstr "请输入搜索关键词。"
 msgid "No matching papers found."
 msgstr "未找到匹配的论文。"
 
-#: app.py:1017
+#: app.py:1041
+msgid "Please enter at least a paper title to save a draft."
+msgstr "请至少输入论文标题才能保存草稿。"
+
+#: app.py:1090
+msgid "Draft saved successfully."
+msgstr "草稿保存成功。"
+
+#: app.py:1095
 msgid "Please enter the paper title"
 msgstr "请输入论文标题"
 
-#: app.py:1020
+#: app.py:1099
 msgid "Please select a subject category"
 msgstr "请选择学科类别"
 
-#: app.py:1023
+#: app.py:1103
 msgid "Please select a language"
 msgstr "请选择语言"
 
-#: app.py:1026
+#: app.py:1107
 msgid "Please enter keywords"
 msgstr "请输入关键词"
 
-#: app.py:1029
+#: app.py:1110
 msgid "Please enter the abstract"
 msgstr "请输入摘要"
 
-#: app.py:1032
+#: app.py:1113
 msgid "Please enter the author name"
 msgstr "请输入作者姓名"
 
-#: app.py:1035
+#: app.py:1116
 msgid "Please enter the contact email"
 msgstr "请输入联系邮箱"
 
-#: app.py:1038
+#: app.py:1119
 msgid "Please enter the school name"
 msgstr "请输入学校名称"
 
-#: app.py:1049
+#: app.py:1130
 msgid "Please select a file to upload"
 msgstr "请选择要上传的文件"
 
-#: app.py:1055
+#: app.py:1136
 msgid "Only PDF files are supported"
 msgstr "仅支持 PDF 文件"
 
-#: app.py:1071
+#: app.py:1152
 msgid "A file with this name already exists"
 msgstr "已存在同名文件"
 
-#: app.py:1090
+#: app.py:1171
 #, python-format
 msgid "Paper %(filename)s uploaded successfully!"
 msgstr "论文 %(filename)s 上传成功！"
 
-#: app.py:1197 app.py:1282 app.py:1316
+#: app.py:1298 app.py:1383 app.py:1417
 msgid "Paper not found."
 msgstr "未找到论文。"
 
-#: app.py:1233
+#: app.py:1334
 #, fuzzy
 msgid "A file with the new name already exists, unable to rename."
 msgstr "已存在同名文件"
 
-#: app.py:1253
+#: app.py:1354
 msgid "Paper information updated."
 msgstr "论文信息已更新。"
 
-#: app.py:1287
+#: app.py:1388
 #, python-format
 msgid "Deleted %(filename)s."
 msgstr "已删除 %(filename)s。"
 
-#: app.py:1293
+#: app.py:1394
 msgid "Language not supported."
 msgstr "不支持此语言。"
 
-#: app.py:1447 app.py:1526
+#: app.py:1548 app.py:1627
 #, fuzzy
 msgid "Please enter a title."
 msgstr "请输入论文标题"
 
-#: app.py:1449 app.py:1528
+#: app.py:1550 app.py:1629
 #, fuzzy
 msgid "Please select a category."
 msgstr "请选择类别..."
 
-#: app.py:1451 app.py:1530
+#: app.py:1552 app.py:1631
 #, fuzzy
 msgid "Please enter an abstract."
 msgstr "请输入摘要"
 
-#: app.py:1453 app.py:1532
+#: app.py:1554 app.py:1633
 #, fuzzy
 msgid "Please write the article body."
 msgstr "请输入论文标题"
 
-#: app.py:1467 app.py:1544
+#: app.py:1568 app.py:1645
 msgid "Cover image must be PNG, JPG, GIF, or WebP."
 msgstr "封面图片格式必须为 PNG、JPG、GIF 或 WebP。"
 
-#: app.py:1485
+#: app.py:1586
 #, fuzzy
 msgid "Article published successfully."
 msgstr "已成功退出登录。"
 
-#: app.py:1504 app.py:1573 app.py:1856
+#: app.py:1605 app.py:1674 app.py:1957
 #, fuzzy
 msgid "Article not found."
 msgstr "未找到论文。"
 
-#: app.py:1555
+#: app.py:1656
 #, fuzzy
 msgid "Article updated."
 msgstr "角色已更新。"
 
-#: app.py:1571
+#: app.py:1672
 #, fuzzy
 msgid "Article deleted."
 msgstr "本地用户已删除。"
 
-#: app.py:1592 app.py:1644 app.py:1670 app.py:1713
+#: app.py:1693 app.py:1745 app.py:1771 app.py:1814
 #, fuzzy
 msgid "Category name is required."
 msgstr "请输入期刊名称。"
 
-#: app.py:1595 app.py:1673
+#: app.py:1696 app.py:1774
 #, fuzzy
 msgid "Category already exists."
 msgstr "该期刊已存在。"
 
-#: app.py:1609 app.py:1687
+#: app.py:1710 app.py:1788
 msgid "Both old and new names are required."
 msgstr "旧名称和新名称都为必填项。"
 
-#: app.py:1612 app.py:1647 app.py:1690 app.py:1716
+#: app.py:1713 app.py:1748 app.py:1791 app.py:1817
 #, fuzzy
 msgid "Category not found."
 msgstr "未找到论文。"
 
-#: app.py:1614 app.py:1692
+#: app.py:1715 app.py:1793
 #, fuzzy
 msgid "A category with that name already exists."
 msgstr "已存在同名期刊。"
 
-#: app.py:1728 app.py:1788
+#: app.py:1829 app.py:1889
 msgid "Journal name is required."
 msgstr "请输入期刊名称。"
 
-#: app.py:1732
+#: app.py:1833
 msgid "Journal already exists."
 msgstr "该期刊已存在。"
 
-#: app.py:1752
+#: app.py:1853
 msgid "Journal ID is required."
 msgstr "请提供期刊ID。"
 
-#: app.py:1756 app.py:1779 app.py:1841
+#: app.py:1857 app.py:1880 app.py:1942
 msgid "Journal not found."
 msgstr "未找到该期刊。"
 
-#: app.py:1821
+#: app.py:1922
 msgid "Journal updated."
 msgstr "期刊已更新。"
 
-#: app.py:1962 app.py:2021
+#: app.py:2063 app.py:2122
 msgid "Submission not found."
 msgstr "未找到该投稿。"
 
-#: app.py:2033 app.py:2082
+#: app.py:2134 app.py:2183
 msgid "Submission not found or already reviewed."
 msgstr "未找到该投稿或已被审核。"
 
-#: app.py:2072
+#: app.py:2173
 msgid "Paper accepted and published."
 msgstr "论文已接受并发布。"
 
-#: app.py:2099
+#: app.py:2200
 msgid "Paper rejected."
 msgstr "论文已拒绝。"
 
-#: app.py:2713
+#: app.py:2814
 msgid "Please sign in first."
 msgstr "请先登录。"
 
-#: app.py:2718
+#: app.py:2819
 msgid "Session expired. Please sign in again."
 msgstr "会话已过期，请重新登录。"
 
-#: app.py:2721
+#: app.py:2822
 msgid "Session timed out. Please sign in again."
 msgstr "会话已超时，请重新登录。"
 
-#: app.py:2727
+#: app.py:2828
 msgid "You do not have access to that action."
 msgstr "您没有权限执行此操作。"
 
-#: app.py:3000
+#: app.py:3101
 #, python-format
 msgid ""
 "This account is already signed in. Please sign out from the other session"
@@ -787,7 +795,7 @@ msgstr "更新密码"
 
 #: templates/change_password.html:45 templates/delete.html:357
 #: templates/news_manage.html:607 templates/news_publish.html:969
-#: templates/paper_modify.html:125 templates/upload.html:119
+#: templates/paper_modify.html:125 templates/upload.html:125
 msgid "Cancel"
 msgstr "取消"
 
@@ -820,7 +828,7 @@ msgid ""
 msgstr "上传 PDF 格式的新论文，分享学术成果。"
 
 #: templates/dashboard.html:33 templates/delete.html:245
-#: templates/my_submissions.html:76
+#: templates/my_submissions.html:81
 msgid "Upload a Paper"
 msgstr "上传论文"
 
@@ -1219,60 +1227,69 @@ msgstr "审核人"
 msgid "Comment"
 msgstr "评论"
 
-#: templates/my_submissions.html:46 templates/review_paper.html:55
+#: templates/my_submissions.html:46
+msgid "Draft"
+msgstr "草稿"
+
+#: templates/my_submissions.html:48 templates/review_paper.html:55
 #: templates/submission_detail.html:52
 msgid "Pending Review"
 msgstr "待审核"
 
-#: templates/my_submissions.html:48 templates/review_list.html:26
+#: templates/my_submissions.html:50 templates/review_list.html:26
 #: templates/review_list.html:75 templates/review_paper.html:57
 #: templates/submission_detail.html:54
 msgid "Accepted"
 msgstr "已接受"
 
-#: templates/my_submissions.html:50 templates/review_list.html:32
+#: templates/my_submissions.html:52 templates/review_list.html:32
 #: templates/review_list.html:77 templates/review_paper.html:59
 #: templates/submission_detail.html:56
 msgid "Rejected"
 msgstr "已拒绝"
 
-#: templates/my_submissions.html:58
+#: templates/my_submissions.html:61 templates/news_article.html:676
+#: templates/news_manage.html:482 templates/paper_manage.html:168
+msgid "Edit"
+msgstr "编辑"
+
+#: templates/my_submissions.html:63
 msgid "Yes"
 msgstr "有"
 
-#: templates/my_submissions.html:60
+#: templates/my_submissions.html:65
 msgid "No"
 msgstr "无"
 
-#: templates/my_submissions.html:73
+#: templates/my_submissions.html:78
 msgid "No submissions yet"
 msgstr "暂无投稿"
 
-#: templates/my_submissions.html:74
+#: templates/my_submissions.html:79
 msgid ""
 "Upload a paper to get started. Your submission will be reviewed by a "
 "moderator."
 msgstr "上传一篇论文以开始。您的投稿将由审核人员审核。"
 
-#: templates/my_submissions.html:83
+#: templates/my_submissions.html:88
 msgid "How the review process works"
 msgstr "审核流程说明"
 
-#: templates/my_submissions.html:85
+#: templates/my_submissions.html:90
 msgid ""
 "After you submit a paper, it enters the <strong>Pending Review</strong> "
 "queue."
 msgstr "提交论文后，它将进入<strong>待审核</strong>队列。"
 
-#: templates/my_submissions.html:86
+#: templates/my_submissions.html:91
 msgid "A moderator or administrator will review your paper."
 msgstr "审核人员或管理员将审核您的论文。"
 
-#: templates/my_submissions.html:87
+#: templates/my_submissions.html:92
 msgid "If <strong>Accepted</strong>, your paper becomes available in the library."
 msgstr "如果<strong>被接受</strong>，您的论文将发布到文库中。"
 
-#: templates/my_submissions.html:88
+#: templates/my_submissions.html:93
 msgid "If <strong>Rejected</strong>, you will see the reviewer's comments here."
 msgstr "如果<strong>被拒绝</strong>，您可以在此处查看审核人员的意见。"
 
@@ -1307,11 +1324,6 @@ msgstr "复制链接"
 #: templates/news_article.html:658
 msgid "Print"
 msgstr "打印"
-
-#: templates/news_article.html:676 templates/news_manage.html:482
-#: templates/paper_manage.html:168
-msgid "Edit"
-msgstr "编辑"
 
 #: templates/news_article.html:679 templates/news_manage.html:484
 msgid "Are you sure you want to delete this article?"
@@ -1921,7 +1933,7 @@ msgstr "拒绝"
 # ==================== SEARCH PAGE ====================
 #: templates/search.html:2
 msgid "Search Papers · Keydion"
-msgstr "检索论文 · Keydion"
+msgstr "检索论文"
 
 #: templates/search.html:7
 msgid "Refine Results"
@@ -2009,7 +2021,7 @@ msgstr "文件在拒绝后已被移除。"
 #: templates/upload.html:2
 #, fuzzy
 msgid "Paper Submission · Keydion"
-msgstr "论文投稿 · Keydion"
+msgstr "论文投稿"
 
 #: templates/upload.html:5
 msgid "Paper Submission Portal"
@@ -2066,9 +2078,13 @@ msgstr "请简要描述您的研究背景、方法和结论..."
 msgid "File Upload"
 msgstr "文件上传"
 
-#: templates/upload.html:118
+#: templates/upload.html:122
 msgid "Submit Paper"
 msgstr "提交论文"
+
+#: templates/upload.html:123
+msgid "Save as Draft"
+msgstr "保存草稿"
 
 #: templates/upload_success.html:7
 msgid "Upload Success"
@@ -2960,7 +2976,4 @@ msgstr[0] ""
 
 #~ msgid "First Author Information"
 #~ msgstr "第一作者信息"
-
-#~ msgid "max 20MB"
-#~ msgstr "最大 20MB"
 
