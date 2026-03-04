@@ -984,6 +984,28 @@ def create_app() -> Flask:
             return redirect(target)
 
         today = datetime.utcnow().date().isoformat()
+        draft_id = request.args.get("draft", "")
+
+        # If editing an existing draft, pre-fill form data
+        if request.method == "GET" and draft_id:
+            draft = _get_submission(draft_id)
+            if draft and draft.get("status") == "draft" and draft.get("submitter") == user.get("username", ""):
+                form_data = {
+                    "title": draft.get("title", ""),
+                    "journal": draft.get("journal", ""),
+                    "category": draft.get("category", ""),
+                    "language": draft.get("language", ""),
+                    "keywords": draft.get("keywords", ""),
+                    "abstract": draft.get("abstract", ""),
+                    "author_name": draft.get("author_name", ""),
+                    "author_email": draft.get("author_email", ""),
+                    "author_school": draft.get("author_school", ""),
+                    "published_at": today,
+                }
+                return render_template("upload.html", user=user, form_data=form_data,
+                    journals=get_journal_names(), paper_categories=load_paper_categories(),
+                    draft_id=draft_id)
+
         raw_names = request.form.getlist("author_name")
         raw_emails = request.form.getlist("author_email")
         raw_schools = request.form.getlist("author_school")
@@ -1012,16 +1034,75 @@ def create_app() -> Flask:
         }
 
         if request.method == "POST":
+            # Handle "Save as Draft"
+            draft_id = request.form.get("draft_id", "").strip()
+            if "save_draft" in request.form:
+                if not form_data["title"]:
+                    flash(_("Please enter at least a paper title to save a draft."), "warning")
+                    return render_template("upload.html", user=user, form_data=form_data,
+                        journals=get_journal_names(), paper_categories=load_paper_categories(),
+                        draft_id=draft_id)
+                # Format keywords
+                if form_data["keywords"]:
+                    form_data["keywords"] = ", ".join(
+                        [kw.strip() for kw in form_data["keywords"].split(",") if kw.strip()]
+                    )
+                now = datetime.utcnow().isoformat()
+                if draft_id:
+                    # Update existing draft
+                    _update_submission(draft_id, {
+                        "title": form_data["title"],
+                        "journal": form_data["journal"],
+                        "category": form_data["category"],
+                        "language": form_data["language"],
+                        "keywords": form_data["keywords"],
+                        "abstract": form_data["abstract"],
+                        "author_name": form_data["author_name"],
+                        "author_email": form_data["author_email"],
+                        "author_school": form_data["author_school"],
+                        "submitted_at": now,
+                    })
+                else:
+                    # Create new draft
+                    sub_id = uuid4().hex[:12]
+                    submission = {
+                        "id": sub_id,
+                        "pdf_filename": "",
+                        "pending_filename": "",
+                        "submitter": user.get("username", ""),
+                        "submitter_name": user.get("display_name", "") or user.get("first_name", "") or user.get("username", ""),
+                        "status": "draft",
+                        "submitted_at": now,
+                        "reviewed_at": "",
+                        "reviewer": "",
+                        "comment": "",
+                        "title": form_data["title"],
+                        "journal": form_data["journal"],
+                        "category": form_data["category"],
+                        "language": form_data["language"],
+                        "keywords": form_data["keywords"],
+                        "abstract": form_data["abstract"],
+                        "author_name": form_data["author_name"],
+                        "author_email": form_data["author_email"],
+                        "author_school": form_data["author_school"],
+                    }
+                    _save_submission(submission)
+                flash(_("Draft saved successfully."), "success")
+                return redirect(url_for("my_submissions"))
+
             # 验证必填字段
             if not form_data["title"]:
                 flash(_("Please enter the paper title"), "danger")
-                return render_template("upload.html", user=user, form_data=form_data)
+                return render_template("upload.html", user=user, form_data=form_data,
+                    journals=get_journal_names(), paper_categories=load_paper_categories(), draft_id=draft_id)
             if not form_data["category"]:
                 flash(_("Please select a subject category"), "danger")
-                return render_template("upload.html", user=user, form_data=form_data)
+                return render_template("upload.html", user=user, form_data=form_data,
+                    journals=get_journal_names(), paper_categories=load_paper_categories(), draft_id=draft_id)
             if not form_data["language"]:
                 flash(_("Please select a language"), "danger")
-                return render_template("upload.html", user=user, form_data=form_data)
+                return render_template("upload.html", user=user, form_data=form_data,
+                    journals=get_journal_names(), paper_categories=load_paper_categories(), draft_id=draft_id)
             if not form_data["keywords"]:
                 flash(_("Please enter keywords"), "danger")
                 return render_template("upload.html", user=user, form_data=form_data)
@@ -1091,36 +1172,56 @@ def create_app() -> Flask:
                             return redirect(url_for("upload"))
                     else:
                         # Reader: save to pending review queue
-                        sub_id = uuid4().hex[:12]
+                        if draft_id:
+                            sub_id = draft_id
+                        else:
+                            sub_id = uuid4().hex[:12]
                         pending_filename = f"{sub_id}_{filename}"
                         pending_path = PENDING_PAPERS_DIR / pending_filename
                         file.save(pending_path)
                         set_pdf_metadata(pending_path, form_data["title"], form_data["author_name"])
-                        submission = {
-                            "id": sub_id,
-                            "pdf_filename": filename,
-                            "pending_filename": pending_filename,
-                            "submitter": user.get("username", ""),
-                            "submitter_name": user.get("display_name", "") or user.get("first_name", "") or user.get("username", ""),
-                            "status": "pending",
-                            "submitted_at": datetime.utcnow().isoformat(),
-                            "reviewed_at": "",
-                            "reviewer": "",
-                            "comment": "",
-                            "title": form_data["title"],
-                            "journal": form_data["journal"],
-                            "category": form_data["category"],
-                            "language": form_data["language"],
-                            "keywords": form_data["keywords"],
-                            "abstract": form_data["abstract"],
-                            "author_name": form_data["author_name"],
-                            "author_email": form_data["author_email"],
-                            "author_school": form_data["author_school"],
-                        }
-                        _save_submission(submission)
+                        if draft_id:
+                            _update_submission(draft_id, {
+                                "pdf_filename": filename,
+                                "pending_filename": pending_filename,
+                                "status": "pending",
+                                "submitted_at": datetime.utcnow().isoformat(),
+                                "title": form_data["title"],
+                                "journal": form_data["journal"],
+                                "category": form_data["category"],
+                                "language": form_data["language"],
+                                "keywords": form_data["keywords"],
+                                "abstract": form_data["abstract"],
+                                "author_name": form_data["author_name"],
+                                "author_email": form_data["author_email"],
+                                "author_school": form_data["author_school"],
+                            })
+                        else:
+                            submission = {
+                                "id": sub_id,
+                                "pdf_filename": filename,
+                                "pending_filename": pending_filename,
+                                "submitter": user.get("username", ""),
+                                "submitter_name": user.get("display_name", "") or user.get("first_name", "") or user.get("username", ""),
+                                "status": "pending",
+                                "submitted_at": datetime.utcnow().isoformat(),
+                                "reviewed_at": "",
+                                "reviewer": "",
+                                "comment": "",
+                                "title": form_data["title"],
+                                "journal": form_data["journal"],
+                                "category": form_data["category"],
+                                "language": form_data["language"],
+                                "keywords": form_data["keywords"],
+                                "abstract": form_data["abstract"],
+                                "author_name": form_data["author_name"],
+                                "author_email": form_data["author_email"],
+                                "author_school": form_data["author_school"],
+                            }
+                            _save_submission(submission)
                         return redirect(url_for("upload_success", title=form_data["title"]))
 
-        return render_template("upload.html", user=user, form_data=form_data, journals=get_journal_names(), paper_categories=load_paper_categories())
+        return render_template("upload.html", user=user, form_data=form_data, journals=get_journal_names(), paper_categories=load_paper_categories(), draft_id=request.args.get("draft", ""))
 
     @app.route("/upload/success")
     def upload_success():

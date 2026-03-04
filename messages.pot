@@ -8,14 +8,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-02 18:43+0800\n"
+"POT-Creation-Date: 2026-03-04 10:52+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 #: app.py:218
 msgid "Reader - View & Download"
@@ -190,185 +190,193 @@ msgstr ""
 msgid "No matching papers found."
 msgstr ""
 
-#: app.py:1017
-msgid "Please enter the paper title"
-msgstr ""
-
-#: app.py:1020
-msgid "Please select a subject category"
-msgstr ""
-
-#: app.py:1023
-msgid "Please select a language"
-msgstr ""
-
-#: app.py:1026
-msgid "Please enter keywords"
-msgstr ""
-
-#: app.py:1029
-msgid "Please enter the abstract"
-msgstr ""
-
-#: app.py:1032
-msgid "Please enter the author name"
-msgstr ""
-
-#: app.py:1035
-msgid "Please enter the contact email"
-msgstr ""
-
-#: app.py:1038
-msgid "Please enter the school name"
-msgstr ""
-
-#: app.py:1049
-msgid "Please select a file to upload"
-msgstr ""
-
-#: app.py:1055
-msgid "Only PDF files are supported"
-msgstr ""
-
-#: app.py:1071
-msgid "A file with this name already exists"
+#: app.py:1041
+msgid "Please enter at least a paper title to save a draft."
 msgstr ""
 
 #: app.py:1090
+msgid "Draft saved successfully."
+msgstr ""
+
+#: app.py:1095
+msgid "Please enter the paper title"
+msgstr ""
+
+#: app.py:1099
+msgid "Please select a subject category"
+msgstr ""
+
+#: app.py:1103
+msgid "Please select a language"
+msgstr ""
+
+#: app.py:1107
+msgid "Please enter keywords"
+msgstr ""
+
+#: app.py:1110
+msgid "Please enter the abstract"
+msgstr ""
+
+#: app.py:1113
+msgid "Please enter the author name"
+msgstr ""
+
+#: app.py:1116
+msgid "Please enter the contact email"
+msgstr ""
+
+#: app.py:1119
+msgid "Please enter the school name"
+msgstr ""
+
+#: app.py:1130
+msgid "Please select a file to upload"
+msgstr ""
+
+#: app.py:1136
+msgid "Only PDF files are supported"
+msgstr ""
+
+#: app.py:1152
+msgid "A file with this name already exists"
+msgstr ""
+
+#: app.py:1171
 #, python-format
 msgid "Paper %(filename)s uploaded successfully!"
 msgstr ""
 
-#: app.py:1197 app.py:1282 app.py:1316
+#: app.py:1298 app.py:1383 app.py:1417
 msgid "Paper not found."
 msgstr ""
 
-#: app.py:1233
+#: app.py:1334
 msgid "A file with the new name already exists, unable to rename."
 msgstr ""
 
-#: app.py:1253
+#: app.py:1354
 msgid "Paper information updated."
 msgstr ""
 
-#: app.py:1287
+#: app.py:1388
 #, python-format
 msgid "Deleted %(filename)s."
 msgstr ""
 
-#: app.py:1293
+#: app.py:1394
 msgid "Language not supported."
 msgstr ""
 
-#: app.py:1447 app.py:1526
+#: app.py:1548 app.py:1627
 msgid "Please enter a title."
 msgstr ""
 
-#: app.py:1449 app.py:1528
+#: app.py:1550 app.py:1629
 msgid "Please select a category."
 msgstr ""
 
-#: app.py:1451 app.py:1530
+#: app.py:1552 app.py:1631
 msgid "Please enter an abstract."
 msgstr ""
 
-#: app.py:1453 app.py:1532
+#: app.py:1554 app.py:1633
 msgid "Please write the article body."
 msgstr ""
 
-#: app.py:1467 app.py:1544
+#: app.py:1568 app.py:1645
 msgid "Cover image must be PNG, JPG, GIF, or WebP."
 msgstr ""
 
-#: app.py:1485
+#: app.py:1586
 msgid "Article published successfully."
 msgstr ""
 
-#: app.py:1504 app.py:1573 app.py:1856
+#: app.py:1605 app.py:1674 app.py:1957
 msgid "Article not found."
 msgstr ""
 
-#: app.py:1555
+#: app.py:1656
 msgid "Article updated."
 msgstr ""
 
-#: app.py:1571
+#: app.py:1672
 msgid "Article deleted."
 msgstr ""
 
-#: app.py:1592 app.py:1644 app.py:1670 app.py:1713
+#: app.py:1693 app.py:1745 app.py:1771 app.py:1814
 msgid "Category name is required."
 msgstr ""
 
-#: app.py:1595 app.py:1673
+#: app.py:1696 app.py:1774
 msgid "Category already exists."
 msgstr ""
 
-#: app.py:1609 app.py:1687
+#: app.py:1710 app.py:1788
 msgid "Both old and new names are required."
 msgstr ""
 
-#: app.py:1612 app.py:1647 app.py:1690 app.py:1716
+#: app.py:1713 app.py:1748 app.py:1791 app.py:1817
 msgid "Category not found."
 msgstr ""
 
-#: app.py:1614 app.py:1692
+#: app.py:1715 app.py:1793
 msgid "A category with that name already exists."
 msgstr ""
 
-#: app.py:1728 app.py:1788
+#: app.py:1829 app.py:1889
 msgid "Journal name is required."
 msgstr ""
 
-#: app.py:1732
+#: app.py:1833
 msgid "Journal already exists."
 msgstr ""
 
-#: app.py:1752
+#: app.py:1853
 msgid "Journal ID is required."
 msgstr ""
 
-#: app.py:1756 app.py:1779 app.py:1841
+#: app.py:1857 app.py:1880 app.py:1942
 msgid "Journal not found."
 msgstr ""
 
-#: app.py:1821
+#: app.py:1922
 msgid "Journal updated."
 msgstr ""
 
-#: app.py:1962 app.py:2021
+#: app.py:2063 app.py:2122
 msgid "Submission not found."
 msgstr ""
 
-#: app.py:2033 app.py:2082
+#: app.py:2134 app.py:2183
 msgid "Submission not found or already reviewed."
 msgstr ""
 
-#: app.py:2072
+#: app.py:2173
 msgid "Paper accepted and published."
 msgstr ""
 
-#: app.py:2099
+#: app.py:2200
 msgid "Paper rejected."
 msgstr ""
 
-#: app.py:2713
+#: app.py:2814
 msgid "Please sign in first."
 msgstr ""
 
-#: app.py:2718
+#: app.py:2819
 msgid "Session expired. Please sign in again."
 msgstr ""
 
-#: app.py:2721
+#: app.py:2822
 msgid "Session timed out. Please sign in again."
 msgstr ""
 
-#: app.py:2727
+#: app.py:2828
 msgid "You do not have access to that action."
 msgstr ""
 
-#: app.py:3000
+#: app.py:3101
 #, python-format
 msgid ""
 "This account is already signed in. Please sign out from the other session"
@@ -763,7 +771,7 @@ msgstr ""
 
 #: templates/change_password.html:45 templates/delete.html:357
 #: templates/news_manage.html:607 templates/news_publish.html:969
-#: templates/paper_modify.html:125 templates/upload.html:119
+#: templates/paper_modify.html:125 templates/upload.html:125
 msgid "Cancel"
 msgstr ""
 
@@ -796,7 +804,7 @@ msgid ""
 msgstr ""
 
 #: templates/dashboard.html:33 templates/delete.html:245
-#: templates/my_submissions.html:76
+#: templates/my_submissions.html:81
 msgid "Upload a Paper"
 msgstr ""
 
@@ -1180,60 +1188,69 @@ msgstr ""
 msgid "Comment"
 msgstr ""
 
-#: templates/my_submissions.html:46 templates/review_paper.html:55
+#: templates/my_submissions.html:46
+msgid "Draft"
+msgstr ""
+
+#: templates/my_submissions.html:48 templates/review_paper.html:55
 #: templates/submission_detail.html:52
 msgid "Pending Review"
 msgstr ""
 
-#: templates/my_submissions.html:48 templates/review_list.html:26
+#: templates/my_submissions.html:50 templates/review_list.html:26
 #: templates/review_list.html:75 templates/review_paper.html:57
 #: templates/submission_detail.html:54
 msgid "Accepted"
 msgstr ""
 
-#: templates/my_submissions.html:50 templates/review_list.html:32
+#: templates/my_submissions.html:52 templates/review_list.html:32
 #: templates/review_list.html:77 templates/review_paper.html:59
 #: templates/submission_detail.html:56
 msgid "Rejected"
 msgstr ""
 
-#: templates/my_submissions.html:58
+#: templates/my_submissions.html:61 templates/news_article.html:676
+#: templates/news_manage.html:482 templates/paper_manage.html:168
+msgid "Edit"
+msgstr ""
+
+#: templates/my_submissions.html:63
 msgid "Yes"
 msgstr ""
 
-#: templates/my_submissions.html:60
+#: templates/my_submissions.html:65
 msgid "No"
 msgstr ""
 
-#: templates/my_submissions.html:73
+#: templates/my_submissions.html:78
 msgid "No submissions yet"
 msgstr ""
 
-#: templates/my_submissions.html:74
+#: templates/my_submissions.html:79
 msgid ""
 "Upload a paper to get started. Your submission will be reviewed by a "
 "moderator."
 msgstr ""
 
-#: templates/my_submissions.html:83
+#: templates/my_submissions.html:88
 msgid "How the review process works"
 msgstr ""
 
-#: templates/my_submissions.html:85
+#: templates/my_submissions.html:90
 msgid ""
 "After you submit a paper, it enters the <strong>Pending Review</strong> "
 "queue."
 msgstr ""
 
-#: templates/my_submissions.html:86
+#: templates/my_submissions.html:91
 msgid "A moderator or administrator will review your paper."
 msgstr ""
 
-#: templates/my_submissions.html:87
+#: templates/my_submissions.html:92
 msgid "If <strong>Accepted</strong>, your paper becomes available in the library."
 msgstr ""
 
-#: templates/my_submissions.html:88
+#: templates/my_submissions.html:93
 msgid "If <strong>Rejected</strong>, you will see the reviewer's comments here."
 msgstr ""
 
@@ -1267,11 +1284,6 @@ msgstr ""
 
 #: templates/news_article.html:658
 msgid "Print"
-msgstr ""
-
-#: templates/news_article.html:676 templates/news_manage.html:482
-#: templates/paper_manage.html:168
-msgid "Edit"
 msgstr ""
 
 #: templates/news_article.html:679 templates/news_manage.html:484
@@ -1987,8 +1999,12 @@ msgstr ""
 msgid "File Upload"
 msgstr ""
 
-#: templates/upload.html:118
+#: templates/upload.html:122
 msgid "Submit Paper"
+msgstr ""
+
+#: templates/upload.html:123
+msgid "Save as Draft"
 msgstr ""
 
 #: templates/upload_success.html:7
