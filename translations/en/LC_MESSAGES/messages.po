@@ -1109,6 +1109,59 @@ msgstr ""
 "that academic exploration is no longer just a one-off assignment but a "
 "knowledge asset that can be continuously accumulated and developed."
 
+# ==================== LANDING PAGE - SECTIONS & FOOTER ====================
+#: templates/landing.html
+msgid "Latest Updates"
+msgstr "Latest Updates"
+
+#: templates/landing.html
+msgid "View All"
+msgstr "View All"
+
+#: templates/landing.html
+msgid "Research Projects"
+msgstr "Research Projects"
+
+#: templates/landing.html
+msgid "Journal Archives"
+msgstr "Journal Archives"
+
+#: templates/landing.html
+msgid "Dedicated to cultivating academic research skills for young scholars, providing a platform for academic writing and paper publication."
+msgstr "Dedicated to cultivating academic research skills for young scholars, providing a platform for academic writing and paper publication."
+
+#: templates/landing.html
+msgid "Navigation"
+msgstr "Navigation"
+
+#: templates/landing.html
+msgid "Home"
+msgstr "Home"
+
+#: templates/landing.html
+msgid "About Us"
+msgstr "About Us"
+
+#: templates/landing.html
+msgid "Resources"
+msgstr "Resources"
+
+#: templates/landing.html
+msgid "Submission Guide"
+msgstr "Submission Guide"
+
+#: templates/landing.html
+msgid "Writing Resources"
+msgstr "Writing Resources"
+
+#: templates/landing.html
+msgid "FAQ"
+msgstr "FAQ"
+
+#: templates/landing.html
+msgid "Contact Us"
+msgstr "Contact Us"
+
 # ==================== ADMIN LOGIN PAGE ====================
 #: templates/login.html:2
 #, fuzzy

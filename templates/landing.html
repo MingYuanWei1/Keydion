@@ -973,7 +973,7 @@
         <a class="btn-submit btn-user" href="{{ url_for('dashboard') }}" title="{{ nav_name }}">{{ nav_initial|upper
           }}</a>
         {% else %}
-        <button class="btn-submit" onclick="location.href='{{ url_for('login') }}'">登录</button>
+        <button class="btn-submit" onclick="location.href='{{ url_for('login') }}'">{{ _('Sign in') }}</button>
         {% endif %}
         <div class="lang-switch">
           {% if current_locale == 'zh' %}
@@ -1019,8 +1019,8 @@
   <section class="section" id="articles">
     <div class="container">
       <div class="section-header">
-        <h2>最新动态</h2>
-        <a href="{{ url_for('news_list') }}" class="view-all">查看全部 →</a>
+        <h2>{{ _('Latest Updates') }}</h2>
+        <a href="{{ url_for('news_list') }}" class="view-all">{{ _('View All') }} →</a>
       </div>
       <div class="articles-grid">
         {% if latest_news and latest_news|length > 0 %}
@@ -1088,13 +1088,13 @@
     <div class="container">
       <div class="projects-section">
         <div class="projects-column">
-          <h3>研究项目</h3>
+          <h3>{{ _('Research Projects') }}</h3>
           <div class="project-item">
             <span style="color: #888;">TBD</span>
           </div>
         </div>
         <div class="projects-column">
-          <h3>期刊存档</h3>
+          <h3>{{ _('Journal Archives') }}</h3>
           <div class="project-item">
             <span style="color: #888;">TBD</span>
           </div>
@@ -1124,7 +1124,8 @@
       <div class="footer-grid">
         <div class="footer-brand">
           <h4>Keydion</h4>
-          <p>致力于培养青年学术研究能力，为中学生提供学术写作训练与论文发表平台。</p>
+          <p>{{ _('Dedicated to cultivating academic research skills for young scholars, providing a platform for
+            academic writing and paper publication.') }}</p>
           <!-- <div class="partner-logos">
             <div class="partner-logo">合作方</div>
             <div class="partner-logo">合作方</div>
@@ -1132,25 +1133,25 @@
           </div> -->
         </div>
         <div class="footer-col">
-          <h5>导航</h5>
+          <h5>{{ _('Navigation') }}</h5>
           <ul>
-            <li><a href="#home">首页</a></li>
-            <li><a href="#articles">最新动态</a></li>
-            <li><a href="#projects">研究项目</a></li>
-            <li><a href="#about">关于我们</a></li>
+            <li><a href="#home">{{ _('Home') }}</a></li>
+            <li><a href="#articles">{{ _('Latest Updates') }}</a></li>
+            <li><a href="#projects">{{ _('Research Projects') }}</a></li>
+            <li><a href="#about">{{ _('About Us') }}</a></li>
           </ul>
         </div>
         <div class="footer-col">
-          <h5>资源</h5>
+          <h5>{{ _('Resources') }}</h5>
           <ul>
-            <li><a href="#">期刊存档</a></li>
-            <li><a href="#">投递指南</a></li>
-            <li><a href="#">写作资源</a></li>
-            <li><a href="{{ url_for('faq') }}">常见问题</a></li>
+            <li><a href="#">{{ _('Journal Archives') }}</a></li>
+            <li><a href="#">{{ _('Submission Guide') }}</a></li>
+            <li><a href="#">{{ _('Writing Resources') }}</a></li>
+            <li><a href="{{ url_for('faq') }}">{{ _('FAQ') }}</a></li>
           </ul>
         </div>
         <div class="footer-col">
-          <h5>联系我们</h5>
+          <h5>{{ _('Contact Us') }}</h5>
           <ul>
             <li><a href="mailto:28heqiwen@huijia.edu.cn">28heqiwen@huijia.edu.cn</a></li>
           </ul>

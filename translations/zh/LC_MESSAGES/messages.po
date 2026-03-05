@@ -1138,6 +1138,59 @@ msgstr ""
 "Keydion "
 "同样致力于维护学术诚信，避免撞题以及学术不端误判。我们希望为每一所学校留存这些珍贵的学术成果，让优秀的学生研究经验得以传承，使学术探索不再只是一次性的作业，而成为可以持续积累与发展的知识资产。"
 
+# ==================== LANDING PAGE - SECTIONS & FOOTER ====================
+#: templates/landing.html
+msgid "Latest Updates"
+msgstr "最新动态"
+
+#: templates/landing.html
+msgid "View All"
+msgstr "查看全部"
+
+#: templates/landing.html
+msgid "Research Projects"
+msgstr "研究项目"
+
+#: templates/landing.html
+msgid "Journal Archives"
+msgstr "期刊存档"
+
+#: templates/landing.html
+msgid "Dedicated to cultivating academic research skills for young scholars, providing a platform for academic writing and paper publication."
+msgstr "致力于培养青年学术研究能力，为中学生提供学术写作训练与论文发表平台。"
+
+#: templates/landing.html
+msgid "Navigation"
+msgstr "导航"
+
+#: templates/landing.html
+msgid "Home"
+msgstr "首页"
+
+#: templates/landing.html
+msgid "About Us"
+msgstr "关于我们"
+
+#: templates/landing.html
+msgid "Resources"
+msgstr "资源"
+
+#: templates/landing.html
+msgid "Submission Guide"
+msgstr "投递指南"
+
+#: templates/landing.html
+msgid "Writing Resources"
+msgstr "写作资源"
+
+#: templates/landing.html
+msgid "FAQ"
+msgstr "常见问题"
+
+#: templates/landing.html
+msgid "Contact Us"
+msgstr "联系我们"
+
 # ==================== ADMIN LOGIN PAGE ====================
 #: templates/login.html:2
 msgid "Sign in · Keydion"
