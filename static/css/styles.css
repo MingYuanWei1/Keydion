@@ -388,6 +388,7 @@ footer {
 
 /* ── Search Query Banner ── */
 .search-query-banner {
+  padding: 1.15rem 0;
   margin-bottom: 1rem;
 }
 
