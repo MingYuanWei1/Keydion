@@ -136,6 +136,15 @@
             text-decoration: none;
         }
 
+        .lang-switch {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 12px;
+            color: var(--ink-light);
+            font-size: 13px;
+        }
+
         /* ==================== ARTICLE PAGE ==================== */
         .page-body {
             margin-top: 64px;
@@ -603,6 +612,15 @@
                 {% else %}
                 <button class="btn-submit" onclick="location.href='{{ url_for('login') }}'">{{ _('Sign in') }}</button>
                 {% endif %}
+                <div class="lang-switch">
+                    {% if current_locale == 'zh' %}
+                    <a href="{{ url_for('set_language', locale_code='en', next=request.full_path) }}"
+                        style="color: inherit; text-decoration: none;">English</a>
+                    {% else %}
+                    <a href="{{ url_for('set_language', locale_code='zh', next=request.full_path) }}"
+                        style="color: inherit; text-decoration: none;">中文</a>
+                    {% endif %}
+                </div>
             </nav>
         </div>
     </header>
