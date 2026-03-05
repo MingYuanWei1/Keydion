@@ -1932,6 +1932,14 @@ msgstr "检索论文"
 msgid "Refine Results"
 msgstr "筛选结果"
 
+#: templates/search.html:22
+msgid "Searching for"
+msgstr "当前检索"
+
+#: templates/search.html:24
+msgid "Enter keywords to search papers..."
+msgstr "输入关键词检索论文..."
+
 #: templates/search.html:14
 msgid "Search Within Results"
 msgstr "在结果中搜索"
