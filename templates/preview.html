@@ -72,7 +72,7 @@
     <a tabindex="0" class="text-decoration-none text-dark fw-medium"
       style="cursor: pointer; border-bottom: 1px dotted #6c757d;" role="button" data-bs-toggle="popover"
       data-bs-placement="bottom" data-bs-trigger="focus" data-bs-html="true"
-      data-bs-content="<div style='font-size: 14px; min-width: 200px;'><strong>{{ author.name }}</strong>{% if author.school %}<br><span class='text-muted' style='font-size: 13px;'>{{ author.school }}</span>{% endif %}{% if author.email %}<br><a href='mailto:{{ author.email }}' style='font-size: 13px;'>{{ author.email }}</a>{% endif %}<hr class='my-2'><a href='{{ url_for('search', q=author.name) }}' class='btn btn-sm btn-outline-primary w-100' style='font-size: 12px;'>{{ _('Search this author') }}</a></div>">
+      data-bs-content="<div style='font-size: 14px; min-width: 200px;'><strong>{{ author.name }}</strong>{% if author.school %}<br><span class='text-muted' style='font-size: 13px;'>{{ author.school }}</span>{% endif %}{% if author.email %}<br><a href='mailto:{{ author.email }}' style='font-size: 13px;'>{{ author.email }}</a>{% endif %}<hr class='my-2'><a href='{{ url_for('search', author=author.name) }}' class='btn btn-sm btn-outline-primary w-100' style='font-size: 12px;'>{{ _('Search this author') }}</a></div>">
       {{ author.name }}
     </a>{% if not loop.last %}, {% endif %}
     {% endfor %}
