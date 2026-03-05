@@ -388,15 +388,7 @@ footer {
 
 /* ── Search Query Banner ── */
 .search-query-banner {
-  margin: -1.5rem -0.75rem 0;
-  padding: 1.15rem 0;
-  position: relative;
-}
-
-.search-query-banner__inner {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 0 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .search-query-banner__form {
