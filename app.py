@@ -1298,7 +1298,7 @@ def create_app() -> Flask:
         paper_path = PAPERS_DIR / filename
         if not paper_path.exists():
             flash(_("Paper not found."), "warning")
-            return redirect(url_for("delete"))
+            return redirect(url_for("manage"))
 
         meta_rows = load_paper_metadata()
         meta = {}
@@ -1354,7 +1354,7 @@ def create_app() -> Flask:
                 "author_school": final_author_school,
             })
             flash(_("Paper information updated."), "success")
-            return redirect(url_for("delete"))
+            return redirect(url_for("manage"))
 
         names = meta.get("author_name", "").split(", ")
         emails = meta.get("author_email", "").split(", ")
@@ -1383,12 +1383,12 @@ def create_app() -> Flask:
         paper_path = PAPERS_DIR / filename
         if not paper_path.exists():
             flash(_("Paper not found."), "warning")
-            return redirect(url_for("delete"))
+            return redirect(url_for("manage"))
 
         remove_paper_metadata(filename)
         paper_path.unlink(missing_ok=True)
         flash(_("Deleted %(filename)s.", filename=filename), "success")
-        return redirect(url_for("delete"))
+        return redirect(url_for("manage"))
 
     @app.route("/set-language/<locale_code>")
     def set_language(locale_code: str):
