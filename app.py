@@ -517,7 +517,10 @@ def create_app() -> Flask:
                     flash(_("Welcome back, %(username)s!", username=display), "success")
                     next_url = session.pop("next", None)
                     if not next_url:
-                        next_url = url_for("index")
+                        if int(user_record.get("role", 1)) > 1:
+                            next_url = url_for("dashboard")
+                        else:
+                            next_url = url_for("index")
                     return redirect(next_url)
             else:
                 # 3. Try MS user by email (if they have set a password)
@@ -533,7 +536,10 @@ def create_app() -> Flask:
                         flash(_("Welcome back, %(username)s!", username=display), "success")
                         next_url = session.pop("next", None)
                         if not next_url:
-                            next_url = url_for("index")
+                            if int(ms_record.get("role", 1)) > 1:
+                                next_url = url_for("dashboard")
+                            else:
+                                next_url = url_for("index")
                         return redirect(next_url)
 
             flash(_("Invalid email or password"), "danger")
@@ -653,8 +659,12 @@ def create_app() -> Flask:
         if not is_profile_complete(user_record):
             return redirect(url_for("profile_setup"))
         next_url = session.pop("next", None)
-        destination = next_url or url_for("index")
-        return redirect(destination)
+        if not next_url:
+            if int(user_record.get("role", 1)) > 1:
+                next_url = url_for("dashboard")
+            else:
+                next_url = url_for("index")
+        return redirect(next_url)
 
     @app.route("/logout")
     def logout():
