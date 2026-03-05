@@ -402,70 +402,45 @@ msgid ""
 " or wait %(minutes)d minutes."
 msgstr "此账号已在其他地方登录。请先退出或等待 %(minutes)d 分钟。"
 
-#: templates/FAQ.html:7
-msgid "High School English Paper Club"
-msgstr "中学英文论文社团"
+#: templates/FAQ.html
+msgid "faq_q1"
+msgstr "问：我可以直接将 Keydion 上的文章用于商业用途吗？"
 
-#: templates/FAQ.html:123
-msgid ""
-"Q. I missed the registration deadline. May I still register or submit an "
-"essay?"
-msgstr "问：我错过了报名截止日期。我还可以报名或提交论文吗？"
+#: templates/FAQ.html
+msgid "faq_a1"
+msgstr "答：不可以。只有在获得原作者许可的情况下，才可以将 Keydion 上的文章用于商业用途。Keydion 不直接保障相关权利。"
 
-#: templates/FAQ.html:124
-msgid ""
-"A. No. Only candidates who registered before 31 May will be able to "
-"submit an essay."
-msgstr "答：不可以。只有在5月31日之前完成注册的候选人才能提交论文。"
+#: templates/FAQ.html
+msgid "faq_q2"
+msgstr "问：我不是来自正在使用 Keydion 的学校，还可以投稿吗？"
 
-#: templates/FAQ.html:129
-msgid ""
-"Q. Are footnotes, endnotes, a bibliography or references counted towards "
-"the word\n"
-"        limit?"
-msgstr "问：脚注、尾注、参考文献目录是否计入字数限制？"
+#: templates/FAQ.html
+msgid "faq_a2"
+msgstr "答：可以。Keydion 向所有学校和学生开放。欢迎提交你的文章，为学术界做出贡献，并获得更多关注。"
 
-#: templates/FAQ.html:131
-msgid "A. No. Only the body of the essay is counted."
-msgstr "答：不计入。只有正文部分计入字数。"
+#: templates/FAQ.html
+msgid "faq_q3"
+msgstr "问：我想加入或与 Keydion 合作，该怎么做？"
 
-#: templates/FAQ.html:135
-msgid "Q. Are in-text citations counted towards the word limit?"
-msgstr "问：文内引用是否计入字数限制？"
+#: templates/FAQ.html
+msgid "faq_a3"
+msgstr "答：我们始终欢迎学生或机构与我们合作或加入。请通过主页底部提供的联系方式与我们联系。"
 
-#: templates/FAQ.html:136
-msgid ""
-"A. If you are using an in-text based referencing format, such as APA, "
-"your in-text\n"
-"        citations are included in the word limit."
-msgstr "答：如果您使用的是文内引用格式（如APA），则文内引用计入字数限制。"
+#: templates/FAQ.html
+msgid "faq_q4"
+msgstr "问：我的文章未经许可出现在 Keydion 上，我应该怎么办？"
 
-#: templates/FAQ.html:141
-msgid "Q. Is it necessary to include footnotes or endnotes in an essay?"
-msgstr "问：论文中是否必须包含脚注或尾注？"
+#: templates/FAQ.html
+msgid "faq_a4"
+msgstr "答：Keydion 非常重视你的权益。请尽快通过主页底部提供的联系方式与我们联系，我们会尽最大努力提供协助。"
 
-#: templates/FAQ.html:142
-msgid ""
-"A. You <strong>may not</strong> include footnotes, but you may include "
-"in-text citations\n"
-"        or endnotes. You should give your sources of any factual claims "
-"you make, and you should acknowledge any other\n"
-"        authors on whom you rely."
-msgstr "答：<strong>不可以</strong>包含脚注，但可以包含文内引用或尾注。您应注明事实性主张的来源，并致谢您所引用的其他作者。"
+#: templates/FAQ.html
+msgid "faq_q5"
+msgstr "问：我发现 Keydion 存在问题，可以怎么做？"
 
-#: templates/FAQ.html:148
-msgid ""
-"Q. I am interested in a question that seems ambiguous. How should I "
-"interpret it?"
-msgstr "问：我对一个似乎有歧义的问题感兴趣。我应该如何理解它？"
-
-#: templates/FAQ.html:150
-msgid ""
-"A. You may interpret a question as you deem appropriate, clarifying your "
-"interpretation if\n"
-"        necessary. Having done so, you must answer the question as "
-"directly as possible."
-msgstr "答：您可以按照您认为合适的方式理解该问题，必要时请说明您的理解。在此基础上，您必须尽可能直接地回答问题。"
+#: templates/FAQ.html
+msgid "faq_a5"
+msgstr "答：你可以通过主页底部提供的联系方式与我们联系。我们可能会提供奖励。"
 
 #: templates/FAQ.html:155 templates/news.html:662 templates/search.html:66
 msgid "Back to Home"

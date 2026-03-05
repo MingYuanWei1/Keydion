@@ -405,70 +405,45 @@ msgstr "Type the filename exactly to confirm deletion."
 msgid "Language switched to %(language)s."
 msgstr "Language switched to %(language)s."
 
-#: templates/FAQ.html:7
-msgid "High School English Paper Club"
-msgstr "High School English Paper Club"
+#: templates/FAQ.html
+msgid "faq_q1"
+msgstr "Q. Can I directly use essays from Keydion commercially?"
 
-#: templates/FAQ.html:123
-msgid ""
-"Q. I missed the registration deadline. May I still register or submit an "
-"essay?"
-msgstr ""
+#: templates/FAQ.html
+msgid "faq_a1"
+msgstr "A. No. Only with the permission from the original author can one commercially use essays from Keydion. Keydion does not grant users the rights directly."
 
-#: templates/FAQ.html:124
-msgid ""
-"A. No. Only candidates who registered before 31 May will be able to "
-"submit an essay."
-msgstr ""
+#: templates/FAQ.html
+msgid "faq_q2"
+msgstr "Q. I am not from a school currently running Keydion. Can I submit?"
 
-#: templates/FAQ.html:129
-msgid ""
-"Q. Are footnotes, endnotes, a bibliography or references counted towards "
-"the word\n"
-"        limit?"
-msgstr ""
+#: templates/FAQ.html
+msgid "faq_a2"
+msgstr "A. Yes. Keydion is open to all schools and feel free to submit your essays to make a contribution to the academia and gain more attentions from others."
 
-#: templates/FAQ.html:131
-msgid "A. No. Only the body of the essay is counted."
-msgstr ""
+#: templates/FAQ.html
+msgid "faq_q3"
+msgstr "Q. I want to join or collaborate with Keydion, how can I?"
 
-#: templates/FAQ.html:135
-msgid "Q. Are in-text citations counted towards the word limit?"
-msgstr ""
+#: templates/FAQ.html
+msgid "faq_a3"
+msgstr "A. We always welcome either students or institutions to collaborate or join with us. Please contact us with the info given in the bottom of the main page."
 
-#: templates/FAQ.html:136
-msgid ""
-"A. If you are using an in-text based referencing format, such as APA, "
-"your in-text\n"
-"        citations are included in the word limit."
-msgstr ""
+#: templates/FAQ.html
+msgid "faq_q4"
+msgstr "Q. My essay appeared in Keydion without permission, what shall I do?"
 
-#: templates/FAQ.html:141
-msgid "Q. Is it necessary to include footnotes or endnotes in an essay?"
-msgstr ""
+#: templates/FAQ.html
+msgid "faq_a4"
+msgstr "A. Keydion absolutely prioritizes your rights. Please contact us ASAP with the info given in the bottom of the main page. We will try our best to provide assistance."
 
-#: templates/FAQ.html:142
-msgid ""
-"A. You <strong>may not</strong> include footnotes, but you may include "
-"in-text citations\n"
-"        or endnotes. You should give your sources of any factual claims "
-"you make, and you should acknowledge any other\n"
-"        authors on whom you rely."
-msgstr ""
+#: templates/FAQ.html
+msgid "faq_q5"
+msgstr "Q. I found an issue of Keydion, what can I do?"
 
-#: templates/FAQ.html:148
-msgid ""
-"Q. I am interested in a question that seems ambiguous. How should I "
-"interpret it?"
-msgstr ""
-
-#: templates/FAQ.html:150
-msgid ""
-"A. You may interpret a question as you deem appropriate, clarifying your "
-"interpretation if\n"
-"        necessary. Having done so, you must answer the question as "
-"directly as possible."
-msgstr ""
+#: templates/FAQ.html
+msgid "faq_a5"
+msgstr "A. You may contact us with the info given in the bottom of the main page. Awards may be given."
 
 #: templates/FAQ.html:155 templates/news.html:662 templates/search.html:66
 msgid "Back to Home"
