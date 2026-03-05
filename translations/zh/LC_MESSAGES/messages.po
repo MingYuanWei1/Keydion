@@ -1156,7 +1156,10 @@ msgid "Journal Archives"
 msgstr "期刊存档"
 
 #: templates/landing.html
-msgid "Dedicated to cultivating academic research skills for young scholars, providing a platform for academic writing and paper publication."
+msgid ""
+"Dedicated to cultivating academic research skills for young scholars, "
+"providing a platform for\n"
+"            academic writing and paper publication."
 msgstr "致力于培养青年学术研究能力，为中学生提供学术写作训练与论文发表平台。"
 
 #: templates/landing.html
