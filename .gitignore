@@ -1,7 +1,6 @@
 # Database and uploaded files (DO NOT COMMIT THESE)
 data/
 static/uploads/
-papers/
 *.db
 *.sqlite3
 *.sqlite
