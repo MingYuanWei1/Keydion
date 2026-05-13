@@ -1,9 +1,18 @@
 services:
-  paperquery:
+  web:
     build: .
+    container_name: keydion-web
+    restart: unless-stopped
     ports:
       - "127.0.0.1:5000:5000"
+    env_file:
+      - .env
     environment:
-      PAPERQUERY_SECRET: dev-secret-key
+      # Override the DB URL to point to the host's local MySQL service
+      PAPERQUERY_DATABASE_URL: "mysql+pymysql://keydion:keydion_local@host.docker.internal:3306/Keydion_db?charset=utf8mb4"
+      HOST: "0.0.0.0"
+      PORT: "5000"
     volumes:
-      - ./:/app
+      - ./papers:/app/papers
+      - ./data:/app/data
+      - ./static/uploads:/app/static/uploads

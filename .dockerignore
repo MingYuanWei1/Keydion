@@ -2,7 +2,12 @@ __pycache__/
 .git/
 .github/
 .venv/
+venv/
+venv_new/
 .mypy_cache/
 .pytest_cache/
 .DS_Store
-papers/
+*.pyc
+*.pyo
+.idea/
+.vscode/
