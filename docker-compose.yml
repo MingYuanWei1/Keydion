@@ -15,4 +15,6 @@ services:
     volumes:
       - ./papers:/app/papers
       - ./data:/app/data
-      - ./static/uploads:/app/static/uploads
+      - ./static:/app/static
+      - ./templates:/app/templates
+      - ./app.py:/app/app.py

@@ -57,12 +57,7 @@
       <path
         d="M1 5v-.5a.5.5 0 0 1 1 0V5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1zm0 3v-.5a.5.5 0 0 1 1 0V8h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1z" />
     </svg>
-    {% if paper.journal and journal_id_map.get(paper.journal) %}
-    <a href="{{ url_for('journal_detail', journal_id=journal_id_map[paper.journal]) }}" class="text-decoration-none"
-      style="color: inherit;">{{ paper.journal }}</a>
-    {% else %}
-    {{ paper.journal or _('Journal Article') }}
-    {% endif %}
+    {{ paper.category or _('Uncategorized') }}
   </div>
   <h1 class="mb-2" style="font-family: 'Source Serif 4', Georgia, serif; font-size: 28px; line-height: 1.3;">{{
     paper.title or _('Untitled Paper') }}</h1>
@@ -98,6 +93,106 @@
   <!-- Left Sidebar -->
   <div class="col-lg-3">
     <div class="accordion accordion-flush bg-transparent border-0" id="previewAccordion">
+
+      <!-- ===== IB EE Section (on top of all other sections) ===== -->
+      {% if ib_ee_info and ib_ee_info.is_ib_ee %}
+      <div class="accordion-item bg-transparent">
+        <h2 class="accordion-header" id="headingIbEe">
+          <button class="accordion-button px-2 shadow-none bg-transparent fw-semibold" type="button"
+            data-bs-toggle="collapse" data-bs-target="#collapseIbEe" aria-expanded="true"
+            aria-controls="collapseIbEe" style="font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">
+            <span class="me-2">🎓</span> {{ _('IB Extended Essay') }}
+          </button>
+        </h2>
+        <div id="collapseIbEe" class="accordion-collapse collapse show" aria-labelledby="headingIbEe"
+          data-bs-parent="#previewAccordion">
+          <div class="accordion-body px-2 pt-1 pb-4" style="font-size: 14px;">
+
+            <!-- Overall Grade Display -->
+            <div class="ib-ee-grade-badge text-center mb-3">
+              <div class="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-3"
+                style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border: 1px solid #dee2e6;">
+                <span class="fw-bold" style="font-size: 28px; color: #212529;">
+                  {{ ib_ee_info.total_grade_letter or '—' }}
+                </span>
+                <div class="text-start" style="line-height: 1.2;">
+                  <div class="fw-semibold" style="font-size: 16px; color: #495057;">
+                    {{ ib_ee_info.total_grade_number or '—' }} / 30
+                  </div>
+                  <div class="text-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
+                    {{ _('Total Score') }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Criterion Scores (collapsible per criterion) -->
+            <div class="ib-criteria-list">
+              {% set criteria_order = ['A', 'B', 'C', 'D', 'E'] %}
+              {% set has_comments = [] %}
+              {% for letter in criteria_order %}
+                {% if ib_ee_info.criteria[letter].comment %}
+                  {% if has_comments.append(true) %}{% endif %}
+                {% endif %}
+              {% endfor %}
+
+              {% for letter in criteria_order %}
+              {% set crit = ib_ee_info.criteria[letter] %}
+              <div class="ib-crit-item border-bottom py-2">
+                <div class="d-flex justify-content-between align-items-center ib-crit-header"
+                  {% if has_comments %}style="cursor: pointer;"{% endif %}
+                  {% if has_comments %}data-bs-toggle="collapse" data-bs-target="#ibCrit{{ letter }}"{% endif %}>
+                  <div class="d-flex align-items-center gap-2">
+                    {% if has_comments %}
+                    <svg class="ib-crit-chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16" style="transition: transform 0.2s;">
+                      <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708"/>
+                    </svg>
+                    {% endif %}
+                    <span class="fw-semibold" style="font-size: 13px;">{{ _('Crit.') }} {{ letter }}</span>
+                  </div>
+                  <span class="badge rounded-pill"
+                    style="font-size: 12px; min-width: 48px; background-color: {% if crit.score >= crit.max * 0.8 %}#198754{% elif crit.score >= crit.max * 0.5 %}#ffc107; color: #212529{% else %}#dc3545{% endif %};">
+                    {{ crit.score }} / {{ crit.max }}
+                  </span>
+                </div>
+                {% if has_comments %}
+                <div class="collapse" id="ibCrit{{ letter }}">
+                  <div class="pt-2 ps-4">
+                    <div class="text-muted mb-1" style="font-size: 12px; font-weight: 600;">{{ crit.label }}</div>
+                    {% if crit.comment %}
+                    <div class="text-muted" style="font-size: 13px; line-height: 1.5;">{{ crit.comment }}</div>
+                    {% else %}
+                    <div class="text-muted fst-italic" style="font-size: 13px;">{{ _('No commentary provided.') }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+              {% endfor %}
+            </div>
+
+            <!-- Holistic Commentary -->
+            {% if ib_ee_info.holistic_comment %}
+            <div class="ib-holistic-section mt-3">
+              <div class="ib-holistic-header d-flex align-items-center gap-2 py-2"
+                style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#ibHolistic">
+                <svg class="ib-crit-chevron" xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16" style="transition: transform 0.2s;">
+                  <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708"/>
+                </svg>
+                <span class="fw-semibold" style="font-size: 13px;">{{ _('Holistic Commentary') }}</span>
+              </div>
+              <div class="collapse" id="ibHolistic">
+                <div class="ps-4 pt-1 pb-2 text-muted" style="font-size: 13px; line-height: 1.6;">
+                  {{ ib_ee_info.holistic_comment }}
+                </div>
+              </div>
+            </div>
+            {% endif %}
+
+          </div>
+        </div>
+      </div>
+      {% endif %}
 
       <!-- Abstract Accordion -->
       <div class="accordion-item bg-transparent">
@@ -233,6 +328,27 @@
     color: var(--brand-dark);
     text-decoration: underline !important;
   }
+
+  /* IB EE specific styles */
+  .ib-crit-header:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+    border-radius: 4px;
+  }
+
+  .ib-holistic-header:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+    border-radius: 4px;
+  }
+
+  .ib-crit-item:last-child {
+    border-bottom: none !important;
+  }
+
+  /* Rotate chevron when expanded */
+  [data-bs-toggle="collapse"][aria-expanded="true"] .ib-crit-chevron,
+  .ib-crit-header:not(.collapsed) .ib-crit-chevron {
+    transform: rotate(90deg);
+  }
 </style>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
@@ -240,6 +356,22 @@
     var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
       return new bootstrap.Popover(popoverTriggerEl)
     })
+
+    // Rotate chevrons for IB criteria collapsibles
+    document.querySelectorAll('.ib-crit-header[data-bs-toggle="collapse"], .ib-holistic-header[data-bs-toggle="collapse"]').forEach(function(header) {
+      var targetId = header.getAttribute('data-bs-target');
+      var target = document.querySelector(targetId);
+      if (target) {
+        target.addEventListener('show.bs.collapse', function() {
+          var chevron = header.querySelector('.ib-crit-chevron');
+          if (chevron) chevron.style.transform = 'rotate(90deg)';
+        });
+        target.addEventListener('hide.bs.collapse', function() {
+          var chevron = header.querySelector('.ib-crit-chevron');
+          if (chevron) chevron.style.transform = 'rotate(0deg)';
+        });
+      }
+    });
   });
 </script>
 {% endblock %}
