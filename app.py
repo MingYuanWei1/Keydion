@@ -5,7 +5,7 @@ load_dotenv()
 
 import base64
 import binascii
-import csv
+
 import hashlib
 import hmac
 import json
@@ -45,14 +45,7 @@ from werkzeug.utils import secure_filename
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = Path(os.environ.get("PAPERQUERY_DATA_DIR", BASE_DIR / "data")).resolve()
 PAPERS_DIR = Path(os.environ.get("PAPERQUERY_UPLOAD_DIR", BASE_DIR / "papers")).resolve()
-USERS_CSV_ENV = os.environ.get("PAPERQUERY_USERS_CSV")
-USERS_CSV = Path(USERS_CSV_ENV).resolve() if USERS_CSV_ENV else DATA_DIR / "users.csv"
 LOCAL_USER_FIELDS = ["username", "password", "registration_date", "expiry_date", "role", "email", "first_name", "last_name", "school"]
-METADATA_CSV = DATA_DIR / "papers_metadata.csv"
-MS_USERS_CSV = DATA_DIR / "ms_users.csv"
-ACCOUNT_LINKS_CSV = DATA_DIR / "account_links.csv"
-ACCOUNT_LINK_FIELDS = ["username", "ms_id", "linked_at"]
-NEWS_CSV = DATA_DIR / "news.csv"
 NEWS_FIELDS = ["id", "title", "category", "abstract", "body", "author", "image_url", "published_at"]
 _DEFAULT_NEWS_CATEGORIES = [
     "活动回顾", "期刊发布", "讲座预告", "成果展示",
@@ -62,7 +55,6 @@ CATEGORIES_JSON = DATA_DIR / "news_categories.json"
 JOURNALS_JSON = DATA_DIR / "paper_journals.json"
 _DEFAULT_PAPER_CATEGORIES = ["literature", "natural-science", "social-science", "humanities"]
 _DEFAULT_PAPER_JOURNALS: list = []
-SUBMISSIONS_JSON = DATA_DIR / "submissions.json"
 PENDING_PAPERS_DIR = DATA_DIR / "pending_papers"
 
 
@@ -102,29 +94,6 @@ def save_paper_categories(cats: list) -> None:
 
 def load_journals() -> list:
     """Load journals as list of dicts from JSON."""
-    if not db_enabled():
-        if JOURNALS_JSON.exists():
-            try:
-                data = json.loads(JOURNALS_JSON.read_text(encoding="utf-8"))
-                # Migration: convert old string-based list to rich objects
-                if data and isinstance(data[0], str):
-                    from uuid import uuid4
-                    migrated = []
-                    for name in data:
-                        migrated.append({
-                            "id": uuid4().hex[:12],
-                            "name": name,
-                            "cover_image": "",
-                            "introduction": "",
-                            "created_at": datetime.utcnow().date().isoformat(),
-                        })
-                    save_journals(migrated)
-                    return migrated
-                return data
-            except (json.JSONDecodeError, OSError):
-                pass
-        save_journals([])
-        return []
     with db_session() as db:
         journals = db.query(JournalModel).all()
         return [{
@@ -137,11 +106,6 @@ def load_journals() -> list:
 
 
 def save_journals(journals: list) -> None:
-    if not db_enabled():
-        JOURNALS_JSON.parent.mkdir(parents=True, exist_ok=True)
-        JOURNALS_JSON.write_text(json.dumps(journals, ensure_ascii=False, indent=2), encoding="utf-8")
-        return
-
     with db_session() as db:
         db.query(JournalModel).delete()
         for j in journals:
@@ -202,7 +166,6 @@ MS_REDIRECT_URI = os.environ.get("PAPERQUERY_MS_REDIRECT_URI", "http://127.0.0.1
 MS_AUTHORITY = os.environ.get("PAPERQUERY_MS_AUTHORITY", "https://login.microsoftonline.com/common")
 MS_SCOPES = ["User.Read"]
 MS_GRAPH_ME_URL = "https://graph.microsoft.com/v1.0/me"
-USE_CSV = os.environ.get("PAPERQUERY_USE_CSV", "").strip().lower() in ("1", "true", "yes")
 DB_URL = os.environ.get("PAPERQUERY_DATABASE_URL")
 BASE = declarative_base()
 _ENGINE = None
@@ -309,57 +272,7 @@ class SubmissionModel(BASE):
 
 
 
-def db_enabled() -> bool:
-    return bool(DB_URL) and not USE_CSV
-
-
-def ensure_csv_file(path: Path, fieldnames: List[str]) -> None:
-    if path.exists():
-        return
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", newline="", encoding="utf-8") as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-
-
-def read_csv_rows(path: Path, fieldnames: List[str]) -> List[Dict[str, str]]:
-    ensure_csv_file(path, fieldnames)
-    with path.open(newline="", encoding="utf-8") as csvfile:
-        reader = csv.DictReader(csvfile)
-        rows = []
-        for row in reader:
-            rows.append({field: row.get(field, "") or "" for field in fieldnames})
-        return rows
-
-
-def write_csv_rows(path: Path, fieldnames: List[str], rows: List[Dict[str, str]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", newline="", encoding="utf-8") as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-        for row in rows:
-            writer.writerow({field: row.get(field, "") or "" for field in fieldnames})
-
-
-def ensure_user_csv() -> None:
-    ensure_csv_file(USERS_CSV, LOCAL_USER_FIELDS)
-
-
-def ensure_ms_users_csv() -> None:
-    ensure_csv_file(MS_USERS_CSV, MS_USER_FIELDS)
-
-
-def ensure_account_links_csv() -> None:
-    ensure_csv_file(ACCOUNT_LINKS_CSV, ACCOUNT_LINK_FIELDS)
-
-
-def ensure_news_csv() -> None:
-    ensure_csv_file(NEWS_CSV, NEWS_FIELDS)
-
-
 def init_db() -> None:
-    if not db_enabled():
-        return
     global _ENGINE, _SESSION_LOCAL
     if _ENGINE is None:
         _ENGINE = create_engine(DB_URL, pool_pre_ping=True, pool_recycle=3600)
@@ -377,8 +290,6 @@ def init_db() -> None:
 
 @contextmanager
 def db_session():
-    if not db_enabled():
-        raise RuntimeError("Database is disabled or not configured.")
     if _SESSION_LOCAL is None:
         init_db()
     session = _SESSION_LOCAL()
@@ -416,14 +327,7 @@ def create_app() -> Flask:
     SESSION_FILE.parent.mkdir(parents=True, exist_ok=True)
     if not SESSION_FILE.exists():
         SESSION_FILE.write_text("{}", encoding="utf-8")
-    ensure_metadata_file()
-    if db_enabled():
-        init_db()
-    else:
-        ensure_user_csv()
-        ensure_ms_users_csv()
-        ensure_account_links_csv()
-    ensure_news_csv()
+    init_db()
     babel.init_app(app, locale_selector=select_locale)
 
     @app.context_processor
@@ -1783,16 +1687,13 @@ def create_app() -> Flask:
                 art["category"] = new_name
                 changed = True
         if changed:
-            if not db_enabled():
-                write_csv_rows(NEWS_CSV, NEWS_FIELDS, articles)
-            else:
-                with db_session() as db:
-                    for art in articles:
-                        if art.get("category") == new_name:
-                            db_art = db.query(NewsArticleModel).filter_by(id=art.get("id")).first()
-                            if db_art:
-                                db_art.category = new_name
-                    db.commit()
+            with db_session() as db:
+                for art in articles:
+                    if art.get("category") == new_name:
+                        db_art = db.query(NewsArticleModel).filter_by(id=art.get("id")).first()
+                        if db_art:
+                            db_art.category = new_name
+                db.commit()
         return jsonify(categories=cats)
 
     @app.route("/news/categories/delete", methods=["POST"])
@@ -2023,13 +1924,6 @@ def create_app() -> Flask:
     # ---- Submission review helpers ----
 
     def _load_submissions():
-        if not db_enabled():
-            if not SUBMISSIONS_JSON.exists():
-                return []
-            try:
-                return json.loads(SUBMISSIONS_JSON.read_text(encoding="utf-8"))
-            except (json.JSONDecodeError, OSError):
-                return []
         with db_session() as db:
             subs = db.query(SubmissionModel).all()
             return [{
@@ -2054,10 +1948,6 @@ def create_app() -> Flask:
             } for s in subs]
 
     def _write_submissions(subs):
-        if not db_enabled():
-            SUBMISSIONS_JSON.parent.mkdir(parents=True, exist_ok=True)
-            SUBMISSIONS_JSON.write_text(json.dumps(subs, ensure_ascii=False, indent=2), encoding="utf-8")
-            return
         with db_session() as db:
             db.query(SubmissionModel).delete()
             for s in subs:
@@ -2299,8 +2189,6 @@ def create_app() -> Flask:
 
 
 def load_users() -> List[Dict[str, str]]:
-    if not db_enabled():
-        return read_csv_rows(USERS_CSV, LOCAL_USER_FIELDS)
     with db_session() as db:
         users = db.query(LocalUser).order_by(LocalUser.username.asc()).all()
         return [
@@ -2320,11 +2208,6 @@ def load_users() -> List[Dict[str, str]]:
 
 
 def get_local_user(username: str) -> Optional[Dict[str, str]]:
-    if not db_enabled():
-        for row in read_csv_rows(USERS_CSV, LOCAL_USER_FIELDS):
-            if row.get("username") == username:
-                return row
-        return None
     with db_session() as db:
         user = db.get(LocalUser, username)
         if not user:
@@ -2345,11 +2228,6 @@ def get_local_user(username: str) -> Optional[Dict[str, str]]:
 def get_local_user_by_email(email: str) -> Optional[Dict[str, str]]:
     """Look up a local user by email address."""
     if not email:
-        return None
-    if not db_enabled():
-        for row in read_csv_rows(USERS_CSV, LOCAL_USER_FIELDS):
-            if row.get("email", "").lower() == email.lower():
-                return row
         return None
     with db_session() as db:
         user = db.query(LocalUser).filter(LocalUser.email == email).first()
@@ -2386,24 +2264,6 @@ def create_local_user(
     last_name: str = "",
     school: str = "",
 ) -> Dict[str, str]:
-    if not db_enabled():
-        rows = read_csv_rows(USERS_CSV, LOCAL_USER_FIELDS)
-        if any(row.get("username") == username for row in rows):
-            raise ValueError("Username already exists.")
-        record = {
-            "username": username,
-            "password": hash_password(password),
-            "registration_date": datetime.utcnow().date().isoformat(),
-            "expiry_date": "",
-            "role": role,
-            "email": email,
-            "first_name": first_name,
-            "last_name": last_name,
-            "school": school,
-        }
-        rows.append(record)
-        write_csv_rows(USERS_CSV, LOCAL_USER_FIELDS, rows)
-        return record
     with db_session() as db:
         if db.get(LocalUser, username):
             raise ValueError("Username already exists.")
@@ -2433,17 +2293,6 @@ def create_local_user(
 
 
 def update_local_user_role(username: str, role: str) -> bool:
-    if not db_enabled():
-        rows = read_csv_rows(USERS_CSV, LOCAL_USER_FIELDS)
-        updated = False
-        for row in rows:
-            if row.get("username") == username:
-                row["role"] = role
-                updated = True
-                break
-        if updated:
-            write_csv_rows(USERS_CSV, LOCAL_USER_FIELDS, rows)
-        return updated
     with db_session() as db:
         user = db.get(LocalUser, username)
         if not user:
@@ -2453,17 +2302,6 @@ def update_local_user_role(username: str, role: str) -> bool:
 
 
 def update_local_user_password(username: str, password: str) -> bool:
-    if not db_enabled():
-        rows = read_csv_rows(USERS_CSV, LOCAL_USER_FIELDS)
-        updated = False
-        for row in rows:
-            if row.get("username") == username:
-                row["password"] = hash_password(password)
-                updated = True
-                break
-        if updated:
-            write_csv_rows(USERS_CSV, LOCAL_USER_FIELDS, rows)
-        return updated
     with db_session() as db:
         user = db.get(LocalUser, username)
         if not user:
@@ -2473,13 +2311,6 @@ def update_local_user_password(username: str, password: str) -> bool:
 
 
 def delete_local_user(username: str) -> bool:
-    if not db_enabled():
-        rows = read_csv_rows(USERS_CSV, LOCAL_USER_FIELDS)
-        new_rows = [row for row in rows if row.get("username") != username]
-        if len(new_rows) == len(rows):
-            return False
-        write_csv_rows(USERS_CSV, LOCAL_USER_FIELDS, new_rows)
-        return True
     with db_session() as db:
         user = db.get(LocalUser, username)
         if not user:
@@ -2636,8 +2467,6 @@ def build_session_user(record: Dict[str, str]) -> Dict[str, str]:
 
 
 def load_ms_users() -> List[Dict[str, str]]:
-    if not db_enabled():
-        return read_csv_rows(MS_USERS_CSV, MS_USER_FIELDS)
     with db_session() as db:
         users = db.query(MsUser).order_by(MsUser.ms_id.asc()).all()
         return [
@@ -2661,11 +2490,6 @@ def load_ms_users() -> List[Dict[str, str]]:
 
 def get_ms_user(ms_id: str) -> Optional[Dict[str, str]]:
     if not ms_id:
-        return None
-    if not db_enabled():
-        for row in read_csv_rows(MS_USERS_CSV, MS_USER_FIELDS):
-            if row.get("ms_id") == ms_id:
-                return row
         return None
     with db_session() as db:
         user = db.get(MsUser, ms_id)
@@ -2691,11 +2515,6 @@ def get_ms_user_by_email(email: str) -> Optional[Dict[str, str]]:
     """Look up a Microsoft user by email address."""
     if not email:
         return None
-    if not db_enabled():
-        for row in read_csv_rows(MS_USERS_CSV, MS_USER_FIELDS):
-            if (row.get("email") or "").lower() == email.lower():
-                return row
-        return None
     with db_session() as db:
         user = db.query(MsUser).filter(MsUser.email == email).first()
         if not user:
@@ -2719,18 +2538,6 @@ def get_ms_user_by_email(email: str) -> Optional[Dict[str, str]]:
 def update_ms_user_password(ms_id: str, password: str) -> bool:
     """Set or update the password for an MS user."""
     hashed = hash_password(password)
-    if not db_enabled():
-        rows = read_csv_rows(MS_USERS_CSV, MS_USER_FIELDS)
-        updated = False
-        for row in rows:
-            if row.get("ms_id") == ms_id:
-                row["password"] = hashed
-                row["updated_at"] = datetime.utcnow().isoformat()
-                updated = True
-                break
-        if updated:
-            write_csv_rows(MS_USERS_CSV, MS_USER_FIELDS, rows)
-        return updated
     with db_session() as db:
         user = db.get(MsUser, ms_id)
         if not user:
@@ -2743,32 +2550,6 @@ def update_ms_user_password(ms_id: str, password: str) -> bool:
 def upsert_ms_user(profile: Dict[str, str]) -> Dict[str, str]:
     ms_id = profile.get("ms_id", "")
     now = datetime.utcnow()
-    if not db_enabled():
-        rows = read_csv_rows(MS_USERS_CSV, MS_USER_FIELDS)
-        record = next((row for row in rows if row.get("ms_id") == ms_id), None)
-        if not record:
-            record = {
-                "ms_id": ms_id,
-                "tenant_id": profile.get("tenant_id", ""),
-                "email": profile.get("email", ""),
-                "display_name": profile.get("display_name", ""),
-                "first_name": profile.get("first_name", ""),
-                "last_name": profile.get("last_name", ""),
-                "school": profile.get("school", ""),
-                "grade": profile.get("grade", ""),
-                "role": profile.get("role", "1") or "1",
-                "created_at": now.isoformat(),
-                "updated_at": now.isoformat(),
-            }
-            rows.append(record)
-        else:
-            record["tenant_id"] = profile.get("tenant_id", "") or record.get("tenant_id", "")
-            record["email"] = profile.get("email", "") or record.get("email", "")
-            record["display_name"] = profile.get("display_name", "") or record.get("display_name", "")
-            record["role"] = record.get("role", "1") or "1"
-            record["updated_at"] = now.isoformat()
-        write_csv_rows(MS_USERS_CSV, MS_USER_FIELDS, rows)
-        return record
     with db_session() as db:
         user = db.get(MsUser, ms_id)
         if not user:
@@ -2795,19 +2576,6 @@ def upsert_ms_user(profile: Dict[str, str]) -> Dict[str, str]:
 
 
 def update_ms_user(ms_id: str, updates: Dict[str, str]) -> Optional[Dict[str, str]]:
-    if not db_enabled():
-        rows = read_csv_rows(MS_USERS_CSV, MS_USER_FIELDS)
-        record = next((row for row in rows if row.get("ms_id") == ms_id), None)
-        if not record:
-            return None
-        for key, value in updates.items():
-            if key in MS_USER_FIELDS:
-                record[key] = value
-        if record.get("first_name") or record.get("last_name"):
-            record["display_name"] = f"{(record.get('first_name') or '').strip()} {(record.get('last_name') or '').strip()}".strip()
-        record["updated_at"] = datetime.utcnow().isoformat()
-        write_csv_rows(MS_USERS_CSV, MS_USER_FIELDS, rows)
-        return record
     with db_session() as db:
         user = db.get(MsUser, ms_id)
         if not user:
@@ -2834,18 +2602,6 @@ def update_ms_user(ms_id: str, updates: Dict[str, str]) -> Optional[Dict[str, st
 
 
 def update_ms_user_role(ms_id: str, role: str) -> bool:
-    if not db_enabled():
-        rows = read_csv_rows(MS_USERS_CSV, MS_USER_FIELDS)
-        updated = False
-        for row in rows:
-            if row.get("ms_id") == ms_id:
-                row["role"] = role
-                row["updated_at"] = datetime.utcnow().isoformat()
-                updated = True
-                break
-        if updated:
-            write_csv_rows(MS_USERS_CSV, MS_USER_FIELDS, rows)
-        return updated
     with db_session() as db:
         user = db.get(MsUser, ms_id)
         if not user:
@@ -2856,13 +2612,6 @@ def update_ms_user_role(ms_id: str, role: str) -> bool:
 
 
 def delete_ms_user(ms_id: str) -> bool:
-    if not db_enabled():
-        rows = read_csv_rows(MS_USERS_CSV, MS_USER_FIELDS)
-        new_rows = [row for row in rows if row.get("ms_id") != ms_id]
-        if len(new_rows) == len(rows):
-            return False
-        write_csv_rows(MS_USERS_CSV, MS_USER_FIELDS, new_rows)
-        return True
     with db_session() as db:
         user = db.get(MsUser, ms_id)
         if not user:
@@ -3042,38 +2791,13 @@ def build_preview_pdf(pdf_path: Path, *, max_pages: int = 2) -> BytesIO:
     return buffer
 
 
-def ensure_metadata_file() -> None:
-    if not METADATA_CSV.exists():
-        METADATA_CSV.parent.mkdir(parents=True, exist_ok=True)
-        with METADATA_CSV.open("w", newline="", encoding="utf-8") as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=METADATA_FIELDS)
-            writer.writeheader()
-
-
 def load_paper_metadata() -> List[Dict[str, str]]:
-    if not db_enabled():
-        ensure_metadata_file()
-        with METADATA_CSV.open(newline="", encoding="utf-8") as csvfile:
-            reader = csv.DictReader(csvfile)
-            rows: List[Dict[str, str]] = []
-            for raw_row in reader:
-                normalized = {field: (raw_row.get(field, "") or "").strip() for field in METADATA_FIELDS}
-                rows.append(normalized)
-            return rows
     with db_session() as db:
         papers = db.query(PaperMetadataModel).all()
         return [{field: (getattr(p, field) or "") for field in METADATA_FIELDS} for p in papers]
 
 
 def save_paper_metadata(rows: List[Dict[str, str]]) -> None:
-    if not db_enabled():
-        ensure_metadata_file()
-        with METADATA_CSV.open("w", newline="", encoding="utf-8") as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=METADATA_FIELDS)
-            writer.writeheader()
-            for row in rows:
-                writer.writerow({field: row.get(field, "") for field in METADATA_FIELDS})
-        return
     with db_session() as db:
         db.query(PaperMetadataModel).delete()
         for r in rows:
@@ -3242,10 +2966,6 @@ def refresh_session(username: str, token: str) -> bool:
 
 def load_news_articles() -> List[Dict[str, str]]:
     """Return all news articles sorted by published_at descending."""
-    if not db_enabled():
-        rows = read_csv_rows(NEWS_CSV, NEWS_FIELDS)
-        rows.sort(key=lambda r: r.get("published_at", ""), reverse=True)
-        return rows
     with db_session() as db:
         articles = db.query(NewsArticleModel).all()
         rows = [{field: (getattr(a, field) or "") for field in NEWS_FIELDS} for a in articles]
@@ -3254,11 +2974,6 @@ def load_news_articles() -> List[Dict[str, str]]:
 
 
 def get_news_article(article_id: str) -> Optional[Dict[str, str]]:
-    if not db_enabled():
-        for row in read_csv_rows(NEWS_CSV, NEWS_FIELDS):
-            if row.get("id") == article_id:
-                return row
-        return None
     with db_session() as db:
         article = db.query(NewsArticleModel).filter_by(id=article_id).first()
         if article:
@@ -3267,29 +2982,12 @@ def get_news_article(article_id: str) -> Optional[Dict[str, str]]:
 
 
 def save_news_article(article: Dict[str, str]) -> None:
-    if not db_enabled():
-        rows = read_csv_rows(NEWS_CSV, NEWS_FIELDS)
-        rows.append(article)
-        write_csv_rows(NEWS_CSV, NEWS_FIELDS, rows)
-        return
     with db_session() as db:
         db.add(NewsArticleModel(**{field: article.get(field, "") for field in NEWS_FIELDS}))
         db.commit()
 
 
 def update_news_article(article_id: str, data: Dict[str, str]) -> bool:
-    if not db_enabled():
-        rows = read_csv_rows(NEWS_CSV, NEWS_FIELDS)
-        for row in rows:
-            if row.get("id") == article_id:
-                for field in NEWS_FIELDS:
-                    if field in ("id", "published_at"):
-                        continue
-                    if field in data:
-                        row[field] = data[field]
-                write_csv_rows(NEWS_CSV, NEWS_FIELDS, rows)
-                return True
-        return False
     with db_session() as db:
         article = db.query(NewsArticleModel).filter_by(id=article_id).first()
         if article:
@@ -3304,13 +3002,6 @@ def update_news_article(article_id: str, data: Dict[str, str]) -> bool:
 
 
 def delete_news_article(article_id: str) -> bool:
-    if not db_enabled():
-        rows = read_csv_rows(NEWS_CSV, NEWS_FIELDS)
-        filtered = [r for r in rows if r.get("id") != article_id]
-        if len(filtered) != len(rows):
-            write_csv_rows(NEWS_CSV, NEWS_FIELDS, filtered)
-            return True
-        return False
     with db_session() as db:
         article = db.query(NewsArticleModel).filter_by(id=article_id).first()
         if article:
