@@ -181,7 +181,7 @@ SUPPORTED_LOCALES = ("en", "zh")
 SESSION_FILE = DATA_DIR / "active_sessions.json"
 SESSION_TIMEOUT_SECONDS = int(os.environ.get("PAPERQUERY_SESSION_TIMEOUT", "600"))
 SESSION_TIMEOUT = timedelta(seconds=SESSION_TIMEOUT_SECONDS)
-METADATA_FIELDS = ["filename", "title", "journal", "category", "language", "keywords", "abstract", "author_name", "author_email", "author_school", "published_at"]
+METADATA_FIELDS = ["filename", "title", "journal", "category", "language", "keywords", "abstract", "author_name", "author_email", "author_school", "published_at", "ib_ee_data"]
 MS_USER_FIELDS = [
     "ms_id",
     "tenant_id",
@@ -273,6 +273,7 @@ class PaperMetadataModel(BASE):
     author_email = Column(Unicode(255))
     author_school = Column(Unicode(255))
     published_at = Column(Unicode(255))
+    ib_ee_data = Column(UnicodeText)
 
 class NewsArticleModel(BASE):
     __tablename__ = "news_articles"
@@ -304,6 +305,7 @@ class SubmissionModel(BASE):
     language = Column(Unicode(255))
     submitted_by = Column(Unicode(255))
     original_filename = Column(Unicode(255))
+    ib_ee_data = Column(UnicodeText)
 
 
 
@@ -1045,6 +1047,37 @@ def create_app() -> Flask:
             "published_at": today,
         }
 
+        # ---- IB EE data processing ----
+        is_ib_ee = request.form.get("is_ib_ee") == "1"
+        if is_ib_ee:
+            ib_criteria_defs = [
+                ("A", "Framework for the essay", 6),
+                ("B", "Knowledge and understanding", 6),
+                ("C", "Analysis and line of argument", 6),
+                ("D", "Discussion and evaluation", 8),
+                ("E", "Reflection", 4),
+            ]
+            criteria = {}
+            for letter, label, max_mark in ib_criteria_defs:
+                score_raw = request.form.get(f"ib_crit_{letter}_score", "").strip()
+                comment = request.form.get(f"ib_crit_{letter}_comment", "").strip()
+                criteria[letter] = {
+                    "label": label,
+                    "max": max_mark,
+                    "score": int(score_raw) if score_raw.isdigit() else 0,
+                    "comment": comment,
+                }
+            ib_ee_obj = {
+                "is_ib_ee": True,
+                "total_grade_letter": request.form.get("ib_total_grade_letter", "").strip(),
+                "total_grade_number": request.form.get("ib_total_grade_number", "").strip(),
+                "criteria": criteria,
+                "holistic_comment": request.form.get("ib_holistic_comment", "").strip(),
+            }
+            form_data["ib_ee_data"] = json.dumps(ib_ee_obj, ensure_ascii=False)
+        else:
+            form_data["ib_ee_data"] = ""
+
         if request.method == "POST":
             # Handle "Save as Draft"
             draft_id = request.form.get("draft_id", "").strip()
@@ -1072,6 +1105,7 @@ def create_app() -> Flask:
                         "author_name": form_data["author_name"],
                         "author_email": form_data["author_email"],
                         "author_school": form_data["author_school"],
+                        "ib_ee_data": form_data.get("ib_ee_data", ""),
                         "submitted_at": now,
                     })
                 else:
@@ -1097,6 +1131,7 @@ def create_app() -> Flask:
                         "author_name": form_data["author_name"],
                         "author_email": form_data["author_email"],
                         "author_school": form_data["author_school"],
+                        "ib_ee_data": form_data.get("ib_ee_data", ""),
                     }
                     _save_submission(submission)
                 flash(_("Draft saved successfully."), "success")
@@ -1178,6 +1213,7 @@ def create_app() -> Flask:
                                     "author_email": form_data["author_email"],
                                     "author_school": form_data["author_school"],
                                     "published_at": form_data["published_at"],
+                                    "ib_ee_data": form_data.get("ib_ee_data", ""),
                                 },
                             )
                             flash(_("Paper %(filename)s uploaded successfully!", filename=filename), "success")
@@ -1207,6 +1243,7 @@ def create_app() -> Flask:
                                 "author_name": form_data["author_name"],
                                 "author_email": form_data["author_email"],
                                 "author_school": form_data["author_school"],
+                                "ib_ee_data": form_data.get("ib_ee_data", ""),
                             })
                         else:
                             submission = {
@@ -1229,6 +1266,7 @@ def create_app() -> Flask:
                                 "author_name": form_data["author_name"],
                                 "author_email": form_data["author_email"],
                                 "author_school": form_data["author_school"],
+                                "ib_ee_data": form_data.get("ib_ee_data", ""),
                             }
                             _save_submission(submission)
                         return redirect(url_for("upload_success", title=form_data["title"]))
@@ -1462,6 +1500,15 @@ def create_app() -> Flask:
                 unique_schools.append(s_clean)
         unique_schools_str = ", ".join(unique_schools) if unique_schools else ""
 
+        # Parse IB EE data if present
+        ib_ee_info = None
+        raw_ib = paper.get("ib_ee_data", "")
+        if raw_ib:
+            try:
+                ib_ee_info = json.loads(raw_ib)
+            except (json.JSONDecodeError, TypeError):
+                pass
+
         return render_template(
             "preview.html",
             user=user,
@@ -1474,6 +1521,7 @@ def create_app() -> Flask:
             is_guest=is_guest,
             pdf_url=pdf_url,
             journal_id_map=get_journal_id_map(),
+            ib_ee_info=ib_ee_info,
         )
 
     @app.route("/papers/preview/<path:filename>")
@@ -2001,7 +2049,8 @@ def create_app() -> Flask:
                 "category": s.category,
                 "language": s.language,
                 "submitter": s.submitted_by,
-                "original_filename": s.original_filename
+                "original_filename": s.original_filename,
+                "ib_ee_data": s.ib_ee_data
             } for s in subs]
 
     def _write_submissions(subs):
@@ -2029,7 +2078,8 @@ def create_app() -> Flask:
                     category=s.get("category"),
                     language=s.get("language"),
                     submitted_by=s.get("submitter"),
-                    original_filename=s.get("original_filename")
+                    original_filename=s.get("original_filename"),
+                    ib_ee_data=s.get("ib_ee_data")
                 ))
             db.commit()
 
@@ -2189,13 +2239,16 @@ def create_app() -> Flask:
             filename,
             {
                 "title": sub.get("title", ""),
+                "journal": sub.get("journal", ""),
                 "category": sub.get("category", ""),
+                "language": sub.get("language", ""),
                 "keywords": sub.get("keywords", ""),
                 "abstract": sub.get("abstract", ""),
                 "author_name": sub.get("author_name", ""),
                 "author_email": sub.get("author_email", ""),
                 "author_school": sub.get("author_school", ""),
                 "published_at": today,
+                "ib_ee_data": sub.get("ib_ee_data", ""),
             },
         )
 

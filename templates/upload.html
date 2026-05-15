@@ -93,6 +93,178 @@
         </div>
       </div>
 
+      <!-- ========== IB Extended Essay Section ========== -->
+      <div class="mb-4 ib-ee-section">
+        <div class="border rounded p-3" style="border-color: #dee2e6 !important;">
+          <div class="form-check mb-0">
+            <input class="form-check-input" type="checkbox" id="ibEeCheckbox" name="is_ib_ee" value="1"
+              {% if form_data.get('ib_ee_data') %}checked{% endif %}>
+            <label class="form-check-label fw-semibold" for="ibEeCheckbox">
+              {{ _('This is an IB Extended Essay (EE)') }}
+            </label>
+            <div class="text-muted small mt-1">{{ _('Check this box to provide IB EE grading information') }}</div>
+          </div>
+
+          <!-- IB EE Details (hidden by default) -->
+          <div id="ibEeDetails" class="ib-ee-details mt-3" style="display: none;">
+            <hr class="my-3">
+
+            <!-- Total Grade -->
+            <h6 class="fw-bold text-uppercase small mb-3" style="letter-spacing: 0.5px; color: #495057;">
+              {{ _('Overall Grade') }}
+            </h6>
+            <div class="row g-3 mb-4">
+              <div class="col-md-4">
+                <label for="ibTotalGradeLetter" class="form-label">{{ _('Letter Grade') }}</label>
+                <select class="form-select" id="ibTotalGradeLetter" name="ib_total_grade_letter">
+                  <option value="" disabled selected>{{ _('Select grade...') }}</option>
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="C">C</option>
+                  <option value="D">D</option>
+                  <option value="E">E</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label for="ibTotalGradeNumber" class="form-label">{{ _('Numeric Grade') }}</label>
+                <div class="input-group">
+                  <input type="number" class="form-control" id="ibTotalGradeNumber" name="ib_total_grade_number"
+                    min="0" max="30" placeholder="0">
+                  <span class="input-group-text">/ 30</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Criterion Scores -->
+            <h6 class="fw-bold text-uppercase small mb-3" style="letter-spacing: 0.5px; color: #495057;">
+              {{ _('Criterion Scores') }}
+            </h6>
+            <div class="table-responsive mb-3">
+              <table class="table table-bordered align-middle mb-0" id="ibCriteriaTable">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width: 50px;">{{ _('Crit.') }}</th>
+                    <th>{{ _('Criterion Name') }}</th>
+                    <th style="width: 140px;">{{ _('Score') }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="fw-bold text-center">A</td>
+                    <td>{{ _('Framework for the essay') }}</td>
+                    <td>
+                      <div class="input-group input-group-sm">
+                        <input type="number" class="form-control ib-crit-score" name="ib_crit_A_score"
+                          min="0" max="6" placeholder="0">
+                        <span class="input-group-text">/ 6</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="fw-bold text-center">B</td>
+                    <td>{{ _('Knowledge and understanding') }}</td>
+                    <td>
+                      <div class="input-group input-group-sm">
+                        <input type="number" class="form-control ib-crit-score" name="ib_crit_B_score"
+                          min="0" max="6" placeholder="0">
+                        <span class="input-group-text">/ 6</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="fw-bold text-center">C</td>
+                    <td>{{ _('Analysis and line of argument') }}</td>
+                    <td>
+                      <div class="input-group input-group-sm">
+                        <input type="number" class="form-control ib-crit-score" name="ib_crit_C_score"
+                          min="0" max="6" placeholder="0">
+                        <span class="input-group-text">/ 6</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="fw-bold text-center">D</td>
+                    <td>{{ _('Discussion and evaluation') }}</td>
+                    <td>
+                      <div class="input-group input-group-sm">
+                        <input type="number" class="form-control ib-crit-score" name="ib_crit_D_score"
+                          min="0" max="8" placeholder="0">
+                        <span class="input-group-text">/ 8</span>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="fw-bold text-center">E</td>
+                    <td>{{ _('Reflection') }}</td>
+                    <td>
+                      <div class="input-group input-group-sm">
+                        <input type="number" class="form-control ib-crit-score" name="ib_crit_E_score"
+                          min="0" max="4" placeholder="0">
+                        <span class="input-group-text">/ 4</span>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Criterion Commentaries (Optional) -->
+            <div class="mb-4">
+              <div class="d-flex align-items-center mb-3">
+                <h6 class="fw-bold text-uppercase small mb-0" style="letter-spacing: 0.5px; color: #495057;">
+                  {{ _('Criterion-based Commentaries') }}
+                </h6>
+                <span class="badge bg-secondary ms-2">{{ _('Optional') }}</span>
+              </div>
+              <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="ibCommentToggle">
+                <label class="form-check-label" for="ibCommentToggle">
+                  {{ _('Include commentaries for all criteria') }}
+                </label>
+              </div>
+              <div id="ibCommentFields" style="display: none;">
+                <div class="mb-2">
+                  <label class="form-label small fw-semibold">{{ _('Crit. A — Framework for the essay') }}</label>
+                  <textarea class="form-control form-control-sm ib-crit-comment" name="ib_crit_A_comment" rows="2"
+                    placeholder="{{ _('Commentary for Criterion A...') }}"></textarea>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label small fw-semibold">{{ _('Crit. B — Knowledge and understanding') }}</label>
+                  <textarea class="form-control form-control-sm ib-crit-comment" name="ib_crit_B_comment" rows="2"
+                    placeholder="{{ _('Commentary for Criterion B...') }}"></textarea>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label small fw-semibold">{{ _('Crit. C — Analysis and line of argument') }}</label>
+                  <textarea class="form-control form-control-sm ib-crit-comment" name="ib_crit_C_comment" rows="2"
+                    placeholder="{{ _('Commentary for Criterion C...') }}"></textarea>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label small fw-semibold">{{ _('Crit. D — Discussion and evaluation') }}</label>
+                  <textarea class="form-control form-control-sm ib-crit-comment" name="ib_crit_D_comment" rows="2"
+                    placeholder="{{ _('Commentary for Criterion D...') }}"></textarea>
+                </div>
+                <div class="mb-4">
+                  <label class="form-label small fw-semibold">{{ _('Crit. E — Reflection') }}</label>
+                  <textarea class="form-control form-control-sm ib-crit-comment" name="ib_crit_E_comment" rows="2"
+                    placeholder="{{ _('Commentary for Criterion E...') }}"></textarea>
+                </div>
+                <!-- Holistic Commentary (Optional) -->
+                <div class="mb-2">
+                  <div class="d-flex align-items-center mb-3">
+                    <h6 class="fw-bold text-uppercase small mb-0" style="letter-spacing: 0.5px; color: #495057;">
+                      {{ _('Holistic Commentary') }}
+                    </h6>
+                    <span class="badge bg-secondary ms-2">{{ _('Optional') }}</span>
+                  </div>
+                  <textarea class="form-control" name="ib_holistic_comment" id="ibHolisticComment" rows="3"
+                    placeholder="{{ _('Provide an overall holistic commentary for the essay...') }}"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- File Upload -->
       <div class="mb-4">
         <label for="paper" class="form-label">{{ _('File Upload') }}
@@ -115,8 +287,29 @@
   </div>
 </div>
 
+<style>
+  .ib-ee-details {
+    overflow: hidden;
+    transition: max-height 0.4s ease, opacity 0.3s ease;
+  }
+  .ib-ee-details.collapsing-out {
+    max-height: 0 !important;
+    opacity: 0;
+    overflow: hidden;
+  }
+  .ib-ee-section .form-check-input:checked + .form-check-label {
+    color: #0d6efd;
+  }
+  #ibCriteriaTable th {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+</style>
+
 <script>
   document.addEventListener("DOMContentLoaded", function () {
+    // ---- Author add/remove ----
     const container = document.getElementById("authorsContainer");
     const addBtn = document.getElementById("addAuthorBtn");
 
@@ -141,6 +334,49 @@
 
       container.appendChild(newRow);
     });
+
+    // ---- IB EE toggle ----
+    const ibCheckbox = document.getElementById("ibEeCheckbox");
+    const ibDetails = document.getElementById("ibEeDetails");
+    const ibCommentToggle = document.getElementById("ibCommentToggle");
+    const ibCommentFields = document.getElementById("ibCommentFields");
+
+    function toggleIbSection() {
+      if (ibCheckbox.checked) {
+        ibDetails.style.display = "block";
+        // Make IB fields required
+        document.getElementById("ibTotalGradeLetter").setAttribute("required", "");
+        document.getElementById("ibTotalGradeNumber").setAttribute("required", "");
+        document.querySelectorAll(".ib-crit-score").forEach(el => el.setAttribute("required", ""));
+      } else {
+        ibDetails.style.display = "none";
+        // Remove required from IB fields
+        document.getElementById("ibTotalGradeLetter").removeAttribute("required");
+        document.getElementById("ibTotalGradeNumber").removeAttribute("required");
+        document.querySelectorAll(".ib-crit-score").forEach(el => el.removeAttribute("required"));
+        document.querySelectorAll(".ib-crit-comment").forEach(el => el.removeAttribute("required"));
+      }
+    }
+
+    function toggleCommentFields() {
+      if (ibCommentToggle.checked) {
+        ibCommentFields.style.display = "block";
+      } else {
+        ibCommentFields.style.display = "none";
+        // Clear all comment fields when unchecked
+        document.querySelectorAll(".ib-crit-comment").forEach(el => {
+          el.value = "";
+        });
+        document.getElementById("ibHolisticComment").value = "";
+      }
+    }
+
+    ibCheckbox.addEventListener("change", toggleIbSection);
+    ibCommentToggle.addEventListener("change", toggleCommentFields);
+
+    // Initialize state on page load
+    toggleIbSection();
+    toggleCommentFields();
   });
 </script>
 {% endblock %}

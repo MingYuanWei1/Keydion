@@ -4,6 +4,7 @@ static/uploads/
 *.db
 *.sqlite3
 *.sqlite
+papers/
 
 # Python environments and cache
 venv/
@@ -33,3 +34,5 @@ __pycache__/
 Dockerfile*
 docker-compose*.yml
 .dockerignore
+update_db.py
+docker-compose.yml
