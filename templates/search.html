@@ -161,6 +161,26 @@
             </span>
             {% endif %}
           </div>
+          {% elif paper.get('cp_global_context') %}
+          <div class="d-flex flex-wrap gap-1 mb-2">
+            <span class="badge rounded-pill" style="font-size: 12px; background: linear-gradient(135deg, #198754 0%, #0a5c3a 100%); border: 1px solid #198754;">
+              {{ _('CP Paper') }}
+            </span>
+            <span class="badge rounded-pill" style="font-size: 12px; background-color: #fff; color: #212529; border: 1px solid #dee2e6;">
+              {{ paper.cp_global_context }}
+            </span>
+            {% for action in paper.get('cp_action_types', []) %}
+            <span class="badge rounded-pill" style="font-size: 12px; background-color: #e9ecef; color: #495057; border: 1px solid #dee2e6;">
+              {{ action }}
+            </span>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="d-flex flex-wrap gap-1 mb-2">
+            <span class="badge rounded-pill" style="font-size: 12px; background-color: #e9ecef; color: #495057; border: 1px solid #dee2e6;">
+              {{ _('Extracurricular Activity') }}
+            </span>
+          </div>
           {% endif %}
           <p class="text-muted" style="font-size: 12.5px; line-height: 1.5; margin-bottom: 0;">
             {% if paper.abstract %}

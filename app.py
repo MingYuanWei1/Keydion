@@ -242,7 +242,7 @@ PASSWORD_SCHEME = "pbkdf2_sha256"
 SUPPORTED_LOCALES = ("en", "zh")
 SESSION_TIMEOUT_SECONDS = int(os.environ.get("PAPERQUERY_SESSION_TIMEOUT", "600"))
 SESSION_TIMEOUT = timedelta(seconds=SESSION_TIMEOUT_SECONDS)
-METADATA_FIELDS = ["filename", "title", "journal", "category", "language", "keywords", "abstract", "author_name", "author_email", "author_school", "published_at", "ib_ee_data", "is_ib_sample"]
+METADATA_FIELDS = ["filename", "title", "journal", "category", "language", "keywords", "abstract", "author_name", "author_email", "author_school", "published_at", "ib_ee_data", "is_ib_sample", "cp_data"]
 MS_USER_FIELDS = [
     "ms_id",
     "tenant_id",
@@ -271,6 +271,23 @@ ROLE_OPTIONS = [
     ("1", "Reader"),
     ("2", "Moderator"),
     ("3", "Admin"),
+]
+
+# CP Paper (MYP Community Project) constants
+CP_GLOBAL_CONTEXTS = [
+    "Identities and Relationships",
+    "Orientation in Space and Time",
+    "Personal and Cultural Expression",
+    "Scientific and Technical Innovation",
+    "Globalization and Sustainability",
+    "Fairness and Development",
+]
+CP_ACTION_TYPES = ["Direct Service", "Indirect Service", "Research", "Advocacy"]
+CP_CRITERIA_DEFS = [
+    ("A", "Investigating", 8),
+    ("B", "Planning", 8),
+    ("C", "Taking Action", 8),
+    ("D", "Reflecting", 8),
 ]
 
 babel = Babel()
@@ -335,6 +352,7 @@ class PaperMetadataModel(BASE):
     published_at = Column(Unicode(255))
     ib_ee_data = Column(UnicodeText)
     is_ib_sample = Column(Unicode(10))
+    cp_data = Column(UnicodeText)
 
 class NewsArticleModel(BASE):
     __tablename__ = "news_articles"
@@ -368,6 +386,7 @@ class SubmissionModel(BASE):
     original_filename = Column(Unicode(255))
     ib_ee_data = Column(UnicodeText)
     is_ib_sample = Column(Unicode(10))
+    cp_data = Column(UnicodeText)
 
 
 class SessionModel(BASE):
@@ -405,6 +424,22 @@ def init_db() -> None:
             with _ENGINE.connect() as conn:
                 from sqlalchemy import text
                 conn.execute(text("ALTER TABLE submissions ADD COLUMN is_ib_sample VARCHAR(10) DEFAULT ''"))
+                conn.commit()
+        except Exception:
+            pass
+        # Migrate: add cp_data column to papers_metadata if it doesn't exist
+        try:
+            with _ENGINE.connect() as conn:
+                from sqlalchemy import text
+                conn.execute(text("ALTER TABLE papers_metadata ADD COLUMN cp_data TEXT"))
+                conn.commit()
+        except Exception:
+            pass
+        # Migrate: add cp_data column to submissions if it doesn't exist
+        try:
+            with _ENGINE.connect() as conn:
+                from sqlalchemy import text
+                conn.execute(text("ALTER TABLE submissions ADD COLUMN cp_data TEXT"))
                 conn.commit()
         except Exception:
             pass
@@ -1003,12 +1038,25 @@ def create_app() -> Flask:
                     if s_clean and s_clean not in unique_schools:
                         unique_schools.append(s_clean)
                 p["author_school_deduped"] = ", ".join(unique_schools) if unique_schools else p["author_school"]
-            # Parse IB EE data for display
+            # Parse paper type for display (CP > EE > Extracurricular)
+            p["paper_type"] = "Extracurricular Activity"
+            raw_cp = p.get("cp_data", "")
+            if raw_cp:
+                try:
+                    cp_info = json.loads(raw_cp)
+                    if cp_info.get("is_cp_paper"):
+                        p["paper_type"] = "CP Paper"
+                        p["cp_global_context"] = cp_info.get("global_context", "")
+                        p["cp_action_types"] = cp_info.get("action_types", [])
+                        p["cp_total_score"] = cp_info.get("total_score", 0)
+                except (json.JSONDecodeError, TypeError):
+                    pass
             raw_ib = p.get("ib_ee_data", "")
-            if raw_ib:
+            if raw_ib and p["paper_type"] == "Extracurricular Activity":
                 try:
                     ib_info = json.loads(raw_ib)
                     if ib_info.get("is_ib_ee"):
+                        p["paper_type"] = "EE Paper"
                         p["ee_core_subject"] = ib_info.get("core_subject", "")
                         p["ee_interdisciplinary_subject"] = ib_info.get("interdisciplinary_subject", "")
                 except (json.JSONDecodeError, TypeError):
@@ -1058,7 +1106,7 @@ def create_app() -> Flask:
                 }
                 return render_template("upload.html", user=user, form_data=form_data,
                     journals=get_journal_names(), paper_categories=load_paper_categories(),
-                    ee_subjects=load_ee_subjects(), draft_id=draft_id)
+                    ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES, draft_id=draft_id)
 
         raw_names = request.form.getlist("author_name")
         raw_emails = request.form.getlist("author_email")
@@ -1128,6 +1176,34 @@ def create_app() -> Flask:
         else:
             form_data["ib_ee_data"] = ""
 
+        # ---- CP Paper data processing ----
+        is_cp_paper = request.form.get("is_cp_paper") == "1"
+        if is_cp_paper:
+            cp_criteria_defs = CP_CRITERIA_DEFS
+            cp_criteria = {}
+            for letter, label, max_mark in cp_criteria_defs:
+                score_raw = request.form.get(f"cp_crit_{letter}_score", "").strip()
+                comment = request.form.get(f"cp_crit_{letter}_comment", "").strip()
+                cp_criteria[letter] = {
+                    "label": label,
+                    "max": max_mark,
+                    "score": int(score_raw) if score_raw.isdigit() else 0,
+                    "comment": comment,
+                }
+            # Auto-calculate total score: round((A+B+C+D)/4)
+            total_float = sum(cp_criteria[c]["score"] for c in ["A", "B", "C", "D"]) / 4.0
+            cp_total_score = int(round(total_float))
+            cp_obj = {
+                "is_cp_paper": True,
+                "global_context": request.form.get("cp_global_context", "").strip(),
+                "action_types": request.form.getlist("cp_action_type"),
+                "criteria": cp_criteria,
+                "total_score": cp_total_score,
+            }
+            form_data["cp_data"] = json.dumps(cp_obj, ensure_ascii=False)
+        else:
+            form_data["cp_data"] = ""
+
         if request.method == "POST":
             # Handle "Save as Draft"
             draft_id = request.form.get("draft_id", "").strip()
@@ -1156,6 +1232,7 @@ def create_app() -> Flask:
                         "author_email": form_data["author_email"],
                         "author_school": form_data["author_school"],
                         "ib_ee_data": form_data.get("ib_ee_data", ""),
+                        "cp_data": form_data.get("cp_data", ""),
                         "submitted_at": now,
                     })
                 else:
@@ -1182,6 +1259,7 @@ def create_app() -> Flask:
                         "author_email": form_data["author_email"],
                         "author_school": form_data["author_school"],
                         "ib_ee_data": form_data.get("ib_ee_data", ""),
+                        "cp_data": form_data.get("cp_data", ""),
                     }
                     _save_submission(submission)
                 flash(_("Draft saved successfully."), "success")
@@ -1191,45 +1269,65 @@ def create_app() -> Flask:
             if not form_data["title"]:
                 flash(_("Please enter the paper title"), "danger")
                 return render_template("upload.html", user=user, form_data=form_data,
-                    journals=get_journal_names(), paper_categories=load_paper_categories(), draft_id=draft_id)
+                    journals=get_journal_names(), paper_categories=load_paper_categories(), ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES, draft_id=draft_id)
             if not form_data["category"]:
                 flash(_("Please select a subject category"), "danger")
                 return render_template("upload.html", user=user, form_data=form_data,
-                    journals=get_journal_names(), paper_categories=load_paper_categories(), draft_id=draft_id)
+                    journals=get_journal_names(), paper_categories=load_paper_categories(), ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES, draft_id=draft_id)
             if not form_data["language"]:
                 flash(_("Please select a language"), "danger")
                 return render_template("upload.html", user=user, form_data=form_data,
-                    journals=get_journal_names(), paper_categories=load_paper_categories(), draft_id=draft_id)
+                    journals=get_journal_names(), paper_categories=load_paper_categories(), ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES, draft_id=draft_id)
             if not form_data["keywords"]:
                 flash(_("Please enter keywords"), "danger")
                 return render_template("upload.html", user=user, form_data=form_data,
-                    ee_subjects=load_ee_subjects())
+                    ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES)
             if not form_data["abstract"]:
                 flash(_("Please enter the abstract"), "danger")
                 return render_template("upload.html", user=user, form_data=form_data,
-                    ee_subjects=load_ee_subjects())
+                    ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES)
             if not is_ib_sample:
                 if not form_data["author_name"]:
                     flash(_("Please enter the author name"), "danger")
                     return render_template("upload.html", user=user, form_data=form_data,
-                        ee_subjects=load_ee_subjects())
+                        ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES)
                 if not form_data["author_email"]:
                     flash(_("Please enter the contact email"), "danger")
                     return render_template("upload.html", user=user, form_data=form_data,
-                        ee_subjects=load_ee_subjects())
+                        ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES)
                 if not form_data["author_school"]:
                     flash(_("Please enter the school name"), "danger")
                     return render_template("upload.html", user=user, form_data=form_data,
-                        ee_subjects=load_ee_subjects())
+                        ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES)
             if is_ib_ee and not form_data.get("ib_ee_data"):
                 pass  # handled below
+            if is_ib_ee and is_cp_paper:
+                flash(_("A paper cannot be both an EE Paper and a CP Paper."), "danger")
+                return render_template("upload.html", user=user, form_data=form_data,
+                    journals=get_journal_names(), paper_categories=load_paper_categories(),
+                    ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS,
+                    cp_action_types=CP_ACTION_TYPES, draft_id=draft_id)
             if is_ib_ee:
                 ib_data = json.loads(form_data["ib_ee_data"])
                 if not ib_data.get("core_subject"):
                     flash(_("Please select an EE core subject."), "danger")
                     return render_template("upload.html", user=user, form_data=form_data,
                         journals=get_journal_names(), paper_categories=load_paper_categories(),
-                        ee_subjects=load_ee_subjects(), draft_id=draft_id)
+                        ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES, draft_id=draft_id)
+            if is_cp_paper:
+                cp_data = json.loads(form_data["cp_data"])
+                if not cp_data.get("global_context"):
+                    flash(_("Please select a Global Context."), "danger")
+                    return render_template("upload.html", user=user, form_data=form_data,
+                        journals=get_journal_names(), paper_categories=load_paper_categories(),
+                        ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS,
+                        cp_action_types=CP_ACTION_TYPES, draft_id=draft_id)
+                if not cp_data.get("action_types"):
+                    flash(_("Please select at least one Type of Action."), "danger")
+                    return render_template("upload.html", user=user, form_data=form_data,
+                        journals=get_journal_names(), paper_categories=load_paper_categories(),
+                        ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS,
+                        cp_action_types=CP_ACTION_TYPES, draft_id=draft_id)
 
             # 格式化关键词
             if form_data["keywords"]:
@@ -1279,6 +1377,7 @@ def create_app() -> Flask:
                                     "author_school": form_data["author_school"],
                                     "published_at": form_data["published_at"],
                                     "ib_ee_data": form_data.get("ib_ee_data", ""),
+                        "cp_data": form_data.get("cp_data", ""),
                                 },
                             )
                             flash(_("Paper %(filename)s uploaded successfully!", filename=filename), "success")
@@ -1309,6 +1408,7 @@ def create_app() -> Flask:
                                 "author_email": form_data["author_email"],
                                 "author_school": form_data["author_school"],
                                 "ib_ee_data": form_data.get("ib_ee_data", ""),
+                        "cp_data": form_data.get("cp_data", ""),
                             })
                         else:
                             submission = {
@@ -1332,11 +1432,12 @@ def create_app() -> Flask:
                                 "author_email": form_data["author_email"],
                                 "author_school": form_data["author_school"],
                                 "ib_ee_data": form_data.get("ib_ee_data", ""),
+                        "cp_data": form_data.get("cp_data", ""),
                             }
                             _save_submission(submission)
                         return redirect(url_for("upload_success", title=form_data["title"]))
 
-        return render_template("upload.html", user=user, form_data=form_data, journals=get_journal_names(), paper_categories=load_paper_categories(), ee_subjects=load_ee_subjects(), draft_id=request.args.get("draft", ""))
+        return render_template("upload.html", user=user, form_data=form_data, journals=get_journal_names(), paper_categories=load_paper_categories(), ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES, draft_id=request.args.get("draft", ""))
 
     @app.route("/upload/success")
     def upload_success():
@@ -1428,8 +1529,9 @@ def create_app() -> Flask:
             raw_schools = request.form.getlist("author_school")
 
             is_ib_sample = request.form.get("is_ib_sample") == "1"
+            is_cp_paper = request.form.get("is_cp_paper") == "1"
 
-            if is_ib_sample:
+            if is_ib_sample or is_cp_paper:
                 author_names = ["IB SAMPLE"]
                 author_emails = [""]
                 author_schools = [""]
@@ -1473,6 +1575,14 @@ def create_app() -> Flask:
                 "author_email": final_author_email,
                 "author_school": final_author_school,
                 "is_ib_sample": "1" if is_ib_sample else "",
+                "cp_data": json.dumps({
+                    "is_cp_paper": True,
+                    "global_context": request.form.get("cp_global_context", "").strip(),
+                    "action_types": request.form.getlist("cp_action_type"),
+                    "total_score": int(round(sum(
+                        int(request.form.get(f"cp_crit_{c}_score", "0") or "0") for c in ["A","B","C","D"]
+                    ) / 4.0)),
+                }) if is_cp_paper else "",
             })
             flash(_("Paper information updated."), "success")
             return redirect(url_for("manage"))
@@ -1582,6 +1692,15 @@ def create_app() -> Flask:
             except (json.JSONDecodeError, TypeError):
                 pass
 
+        # Parse CP data if present
+        cp_info = None
+        raw_cp = paper.get("cp_data", "")
+        if raw_cp:
+            try:
+                cp_info = json.loads(raw_cp)
+            except (json.JSONDecodeError, TypeError):
+                pass
+
         return render_template(
             "preview.html",
             user=user,
@@ -1595,6 +1714,7 @@ def create_app() -> Flask:
             pdf_url=pdf_url,
             journal_id_map=get_journal_id_map(),
             ib_ee_info=ib_ee_info,
+            cp_info=cp_info,
         )
 
     @app.route("/papers/preview/<path:filename>")
@@ -1890,7 +2010,7 @@ def create_app() -> Flask:
         return render_template("paper_manage.html", user=user,
                                paper_categories=load_paper_categories(),
                                journals=load_journals(),
-                               ee_subjects=load_ee_subjects())
+                               ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES)
 
     @app.route("/admin/paper-categories/add", methods=["POST"])
     def paper_category_add():

@@ -215,6 +215,83 @@
       </div>
       {% endif %}
 
+      <!-- ===== CP Paper Section ===== -->
+      {% if cp_info and cp_info.is_cp_paper %}
+      <div class="accordion-item bg-transparent">
+        <h2 class="accordion-header" id="headingCp">
+          <button class="accordion-button px-2 shadow-none bg-transparent fw-semibold" type="button"
+            data-bs-toggle="collapse" data-bs-target="#collapseCp" aria-expanded="true"
+            aria-controls="collapseCp" style="font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">
+            <span class="me-2">&#x1F4CB;</span> {{ _('MYP Community Project') }}
+          </button>
+        </h2>
+        <div id="collapseCp" class="accordion-collapse collapse show" aria-labelledby="headingCp"
+          data-bs-parent="#previewAccordion">
+          <div class="accordion-body px-2 pt-1 pb-4" style="font-size: 14px;">
+
+            <!-- Total Score Display -->
+            <div class="ib-ee-grade-badge text-center mb-3">
+              <div class="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-3"
+                style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border: 1px solid #dee2e6;">
+                <span class="fw-bold" style="font-size: 28px; color: #212529;">
+                  {{ cp_info.total_score }}
+                </span>
+                <div class="text-start" style="line-height: 1.2;">
+                  <div class="fw-semibold" style="font-size: 16px; color: #495057;">/ 8</div>
+                  <div class="text-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
+                    {{ _('Total Score') }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Global Context & Action Types Badges -->
+            <div class="mb-3">
+              <div class="fw-semibold small text-muted text-uppercase mb-2" style="font-size: 11px; letter-spacing: 0.5px;">
+                {{ _('Global Context') }}
+              </div>
+              <div class="d-flex flex-wrap gap-2 mb-3">
+                <span class="badge rounded-pill" style="font-size: 12px; background-color: #fff; color: #212529; border: 1px solid #dee2e6;">
+                  {{ cp_info.global_context }}
+                </span>
+              </div>
+              <div class="fw-semibold small text-muted text-uppercase mb-2" style="font-size: 11px; letter-spacing: 0.5px;">
+                {{ _('Type of Action') }}
+              </div>
+              <div class="d-flex flex-wrap gap-2">
+                {% for action in cp_info.action_types %}
+                <span class="badge rounded-pill" style="font-size: 12px; background-color: #e9ecef; color: #495057; border: 1px solid #dee2e6;">
+                  {{ action }}
+                </span>
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- Criterion Scores -->
+            <div class="ib-criteria-list">
+              {% set cp_criteria_order = ['A', 'B', 'C', 'D'] %}
+              {% for letter in cp_criteria_order %}
+              {% set crit = cp_info.criteria[letter] %}
+              <div class="ib-crit-item border-bottom py-2">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="fw-semibold" style="font-size: 13px;">{{ _('Crit.') }} {{ letter }}</span>
+                    <span class="text-muted" style="font-size: 12px;">{{ crit.label }}</span>
+                  </div>
+                  <span class="badge rounded-pill"
+                    style="font-size: 12px; min-width: 48px; background-color: {% if crit.score >= crit.max * 0.8 %}#198754{% elif crit.score >= crit.max * 0.5 %}#ffc107; color: #212529{% else %}#dc3545{% endif %};">
+                    {{ crit.score }} / {{ crit.max }}
+                  </span>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
       <!-- Abstract Accordion -->
       <div class="accordion-item bg-transparent">
         <h2 class="accordion-header" id="headingAbstract">
