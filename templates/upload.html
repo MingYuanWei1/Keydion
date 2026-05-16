@@ -60,8 +60,20 @@
           required>{{ form_data.abstract }}</textarea>
       </div>
 
+      <!-- IB Sample Paper -->
+      <div class="mb-4 border rounded p-3" style="border-color: #dee2e6 !important;">
+        <div class="form-check mb-0">
+          <input class="form-check-input" type="checkbox" id="ibSampleCheckbox" name="is_ib_sample" value="1"
+            {% if form_data.get('is_ib_sample') %}checked{% endif %}>
+          <label class="form-check-label fw-semibold" for="ibSampleCheckbox">
+            {{ _('This is an IB Sample Paper') }}
+          </label>
+          <div class="text-muted small mt-1">{{ _('Author information is not required for sample papers') }}</div>
+        </div>
+      </div>
+
       <!-- Author Information -->
-      <div class="mb-3">
+      <div class="mb-3" id="authorSection">
         <div class="d-flex justify-content-between align-items-center mb-2">
           <label class="form-label mb-0">{{ _('Author Information') }}</label>
           <button type="button" class="btn btn-sm btn-outline-primary" id="addAuthorBtn"><i class="bi bi-plus"></i> {{
@@ -446,6 +458,34 @@
 
       container.appendChild(newRow);
     });
+
+    // ---- IB Sample Paper toggle ----
+    const ibSampleCheckbox = document.getElementById("ibSampleCheckbox");
+    const authorSection = document.getElementById("authorSection");
+    const addAuthorBtn = document.getElementById("addAuthorBtn");
+
+    function toggleIbSample() {
+      if (ibSampleCheckbox.checked) {
+        authorSection.style.display = "none";
+        addAuthorBtn.style.display = "none";
+        // Remove required from all author fields
+        authorSection.querySelectorAll("input").forEach(el => el.removeAttribute("required"));
+      } else {
+        authorSection.style.display = "";
+        addAuthorBtn.style.display = "";
+        // Restore required on first author row
+        const firstRow = authorSection.querySelector(".author-row");
+        if (firstRow) {
+          firstRow.querySelector("input[name='author_name']")?.setAttribute("required", "");
+          firstRow.querySelector("input[name='author_email']")?.setAttribute("required", "");
+          firstRow.querySelector("input[name='author_school']")?.setAttribute("required", "");
+        }
+      }
+    }
+
+    ibSampleCheckbox.addEventListener("change", toggleIbSample);
+    // Initialize on page load
+    toggleIbSample();
 
     // ---- IB EE toggle ----
     const ibCheckbox = document.getElementById("ibEeCheckbox");

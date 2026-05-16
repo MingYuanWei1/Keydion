@@ -189,8 +189,8 @@
                                     paper.filename }}</a>
                             </div>
                             <div class="paper-entry-meta">
-                                {{ paper.author_name or _('Unknown') }}
-                                {% if paper.author_school %} · {{ paper.author_school }}{% endif %}
+                                {% if paper.get('is_ib_sample') %}IB SAMPLE{% else %}{{ paper.author_name or _('Unknown') }}{% endif %}
+                                {% if not paper.get('is_ib_sample') and paper.author_school %} · {{ paper.author_school }}{% endif %}
                                 {% if paper.published_at %} · {{ paper.published_at }}{% endif %}
                             </div>
                         </div>
@@ -220,7 +220,7 @@
                                 <a href="{{ url_for('preview_paper', filename=paper.filename) }}">{{ paper.title or
                                     paper.filename }}</a>
                             </div>
-                            <div class="paper-entry-meta">{{ paper.author_name or _('Unknown') }}</div>
+                            <div class="paper-entry-meta">{% if paper.get('is_ib_sample') %}IB SAMPLE{% else %}{{ paper.author_name or _('Unknown') }}{% endif %}</div>
                         </div>
                         {% endfor %}
                     </div>
