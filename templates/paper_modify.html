@@ -168,6 +168,54 @@
                     </div>
                     {% endif %}
 
+                    <!-- CP Paper Section (read-only summary) -->
+                    {% set cp_data = meta.get('cp_data', '') %}
+                    {% set cp_info = (cp_data | from_json) if cp_data else None %}
+                    {% if cp_info and cp_info.is_cp_paper %}
+                    <hr>
+                    <div class="mb-3">
+                        <h6 class="text-muted text-uppercase small mb-2">{{ _('MYP Community Project') }}</h6>
+                        <div class="border rounded p-3 bg-light">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="fw-bold" style="font-size: 20px;">{{ cp_info.total_score }}</span>
+                                <span class="text-muted small">/ 8 {{ _('Total Score') }}</span>
+                            </div>
+                            {% if cp_info.global_context %}
+                            <div class="mb-2">
+                                <span class="fw-semibold small">{{ _('Global Context') }}:</span>
+                                <span class="badge rounded-pill ms-1" style="font-size: 11px; background-color: #fff; color: #212529; border: 1px solid #dee2e6;">{{ cp_info.global_context }}</span>
+                            </div>
+                            {% endif %}
+                            {% if cp_info.action_types %}
+                            <div class="mb-2">
+                                <span class="fw-semibold small">{{ _('Actions') }}:</span>
+                                {% for action in cp_info.action_types %}
+                                <span class="badge rounded-pill ms-1" style="font-size: 11px; background-color: #e9ecef; color: #495057; border: 1px solid #dee2e6;">{{ action }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            {% if cp_info.criteria %}
+                            <details class="mt-2">
+                                <summary class="small fw-semibold text-muted" style="cursor: pointer;">{{ _('Criterion Scores') }}</summary>
+                                <div class="mt-2">
+                                    {% for letter in ['A', 'B', 'C', 'D'] %}
+                                    {% if cp_info.criteria[letter] %}
+                                    {% set crit = cp_info.criteria[letter] %}
+                                    <div class="d-flex justify-content-between small py-1 border-bottom">
+                                        <span>{{ _('Crit.') }} {{ letter }} — {{ crit.label }}</span>
+                                        <span class="badge rounded-pill {% if crit.score >= crit.max * 0.8 %}bg-success{% elif crit.score >= crit.max * 0.5 %}bg-warning text-dark{% else %}bg-danger{% endif %}" style="font-size: 11px;">
+                                            {{ crit.score }} / {{ crit.max }}
+                                        </span>
+                                    </div>
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </details>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
                     {% if meta.get('published_at', '') %}
                     <div class="mb-3">
                         <label class="form-label fw-semibold text-muted">{{ _('Published') }}</label>
