@@ -37,3 +37,18 @@ docker-compose*.yml
 update_db.py
 docker-compose.yml
 
+# TLS / SSL keys (DO NOT COMMIT)
+*.key
+*.pem
+*.crt
+*.cert
+
+# Data — runtime files (keep config JSONs tracked)
+data/active_sessions.json
+data/active_sessions
+data/pending_papers/
+
+# Utility / migration scripts
+test_db.py
+remigrate_unicode.py
+update_db.py
