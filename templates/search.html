@@ -143,10 +143,25 @@
             <span class="text-decoration-underline text-dark">{{ paper.author_name or _('Not specified') }}</span>
             {% endif %}
           </div>
-          <div class="text-muted fst-italic mb-3" style="font-size: 13px;">
+          <div class="text-muted fst-italic mb-1" style="font-size: 13px;">
             {% if not paper.get('is_ib_sample') %}{{ paper.get('author_school_deduped') or paper.author_school or _('Not specified') }} · {% endif %}{{
             paper.published_at or _('Not specified') }}
           </div>
+          {% if paper.get('ee_core_subject') %}
+          <div class="d-flex flex-wrap gap-1 mb-2">
+            <span class="badge rounded-pill" style="font-size: 12px; background: linear-gradient(135deg, #0d6efd 0%, #084298 100%); border: 1px solid #0d6efd;">
+              {{ _('EE Paper') }}
+            </span>
+            <span class="badge rounded-pill" style="font-size: 12px; background-color: #fff; color: #212529; border: 1px solid #dee2e6;">
+              {{ paper.ee_core_subject }}
+            </span>
+            {% if paper.get('ee_interdisciplinary_subject') %}
+            <span class="badge rounded-pill" style="font-size: 12px; background-color: #e9ecef; color: #495057; border: 1px solid #dee2e6;">
+              {{ paper.ee_interdisciplinary_subject }}
+            </span>
+            {% endif %}
+          </div>
+          {% endif %}
           <p class="text-muted" style="font-size: 12.5px; line-height: 1.5; margin-bottom: 0;">
             {% if paper.abstract %}
             {{ paper.abstract[:200] ~ '...' if paper.abstract|length > 200 else paper.abstract }}
