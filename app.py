@@ -1038,8 +1038,8 @@ def create_app() -> Flask:
                     if s_clean and s_clean not in unique_schools:
                         unique_schools.append(s_clean)
                 p["author_school_deduped"] = ", ".join(unique_schools) if unique_schools else p["author_school"]
-            # Parse paper type for display (CP > EE > Extracurricular)
-            p["paper_type"] = "Extracurricular Activity"
+            # Parse paper type for display (CP > EE > Independent Research)
+            p["paper_type"] = "Independent Research"
             raw_cp = p.get("cp_data", "")
             if raw_cp:
                 try:
@@ -1052,7 +1052,7 @@ def create_app() -> Flask:
                 except (json.JSONDecodeError, TypeError):
                     pass
             raw_ib = p.get("ib_ee_data", "")
-            if raw_ib and p["paper_type"] == "Extracurricular Activity":
+            if raw_ib and p["paper_type"] == "Independent Research":
                 try:
                     ib_info = json.loads(raw_ib)
                     if ib_info.get("is_ib_ee"):
