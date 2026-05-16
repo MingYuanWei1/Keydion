@@ -242,7 +242,7 @@ PASSWORD_SCHEME = "pbkdf2_sha256"
 SUPPORTED_LOCALES = ("en", "zh")
 SESSION_TIMEOUT_SECONDS = int(os.environ.get("PAPERQUERY_SESSION_TIMEOUT", "600"))
 SESSION_TIMEOUT = timedelta(seconds=SESSION_TIMEOUT_SECONDS)
-METADATA_FIELDS = ["filename", "title", "journal", "category", "language", "keywords", "abstract", "author_name", "author_email", "author_school", "published_at", "ib_ee_data"]
+METADATA_FIELDS = ["filename", "title", "journal", "category", "language", "keywords", "abstract", "author_name", "author_email", "author_school", "published_at", "ib_ee_data", "is_ib_sample"]
 MS_USER_FIELDS = [
     "ms_id",
     "tenant_id",
@@ -334,6 +334,7 @@ class PaperMetadataModel(BASE):
     author_school = Column(Unicode(255))
     published_at = Column(Unicode(255))
     ib_ee_data = Column(UnicodeText)
+    is_ib_sample = Column(Unicode(10))
 
 class NewsArticleModel(BASE):
     __tablename__ = "news_articles"
@@ -366,6 +367,7 @@ class SubmissionModel(BASE):
     submitted_by = Column(Unicode(255))
     original_filename = Column(Unicode(255))
     ib_ee_data = Column(UnicodeText)
+    is_ib_sample = Column(Unicode(10))
 
 
 class SessionModel(BASE):
@@ -390,6 +392,22 @@ def init_db() -> None:
                 conn.commit()
         except Exception:
             pass  # Column already exists
+        # Migrate: add is_ib_sample column to papers_metadata if it doesn't exist
+        try:
+            with _ENGINE.connect() as conn:
+                from sqlalchemy import text
+                conn.execute(text("ALTER TABLE papers_metadata ADD COLUMN is_ib_sample VARCHAR(10) DEFAULT ''"))
+                conn.commit()
+        except Exception:
+            pass
+        # Migrate: add is_ib_sample column to submissions if it doesn't exist
+        try:
+            with _ENGINE.connect() as conn:
+                from sqlalchemy import text
+                conn.execute(text("ALTER TABLE submissions ADD COLUMN is_ib_sample VARCHAR(10) DEFAULT ''"))
+                conn.commit()
+        except Exception:
+            pass
 
 
 @contextmanager
@@ -1035,15 +1053,22 @@ def create_app() -> Flask:
         raw_names = request.form.getlist("author_name")
         raw_emails = request.form.getlist("author_email")
         raw_schools = request.form.getlist("author_school")
-        
-        author_names = []
-        author_emails = []
-        author_schools = []
-        for i, name in enumerate(raw_names):
-            if name.strip():
-                author_names.append(name.strip())
-                author_emails.append(raw_emails[i].strip() if i < len(raw_emails) else "")
-                author_schools.append(raw_schools[i].strip() if i < len(raw_schools) else "")
+
+        is_ib_sample = request.form.get("is_ib_sample") == "1"
+
+        if is_ib_sample:
+            author_names = ["IB SAMPLE"]
+            author_emails = [""]
+            author_schools = [""]
+        else:
+            author_names = []
+            author_emails = []
+            author_schools = []
+            for i, name in enumerate(raw_names):
+                if name.strip():
+                    author_names.append(name.strip())
+                    author_emails.append(raw_emails[i].strip() if i < len(raw_emails) else "")
+                    author_schools.append(raw_schools[i].strip() if i < len(raw_schools) else "")
 
 
         form_data = {
@@ -1057,6 +1082,7 @@ def create_app() -> Flask:
             "author_email": ", ".join(author_emails),
             "author_school": ", ".join(author_schools),
             "published_at": today,
+            "is_ib_sample": "1" if is_ib_sample else "",
         }
 
         # ---- IB EE data processing ----
@@ -1172,18 +1198,19 @@ def create_app() -> Flask:
                 flash(_("Please enter the abstract"), "danger")
                 return render_template("upload.html", user=user, form_data=form_data,
                     ee_subjects=load_ee_subjects())
-            if not form_data["author_name"]:
-                flash(_("Please enter the author name"), "danger")
-                return render_template("upload.html", user=user, form_data=form_data,
-                    ee_subjects=load_ee_subjects())
-            if not form_data["author_email"]:
-                flash(_("Please enter the contact email"), "danger")
-                return render_template("upload.html", user=user, form_data=form_data,
-                    ee_subjects=load_ee_subjects())
-            if not form_data["author_school"]:
-                flash(_("Please enter the school name"), "danger")
-                return render_template("upload.html", user=user, form_data=form_data,
-                    ee_subjects=load_ee_subjects())
+            if not is_ib_sample:
+                if not form_data["author_name"]:
+                    flash(_("Please enter the author name"), "danger")
+                    return render_template("upload.html", user=user, form_data=form_data,
+                        ee_subjects=load_ee_subjects())
+                if not form_data["author_email"]:
+                    flash(_("Please enter the contact email"), "danger")
+                    return render_template("upload.html", user=user, form_data=form_data,
+                        ee_subjects=load_ee_subjects())
+                if not form_data["author_school"]:
+                    flash(_("Please enter the school name"), "danger")
+                    return render_template("upload.html", user=user, form_data=form_data,
+                        ee_subjects=load_ee_subjects())
             if is_ib_ee and not form_data.get("ib_ee_data"):
                 pass  # handled below
             if is_ib_ee:
@@ -1390,14 +1417,21 @@ def create_app() -> Flask:
             raw_emails = request.form.getlist("author_email")
             raw_schools = request.form.getlist("author_school")
 
-            author_names = []
-            author_emails = []
-            author_schools = []
-            for i, name in enumerate(raw_names):
-                if name.strip():
-                    author_names.append(name.strip())
-                    author_emails.append(raw_emails[i].strip() if i < len(raw_emails) else "")
-                    author_schools.append(raw_schools[i].strip() if i < len(raw_schools) else "")
+            is_ib_sample = request.form.get("is_ib_sample") == "1"
+
+            if is_ib_sample:
+                author_names = ["IB SAMPLE"]
+                author_emails = [""]
+                author_schools = [""]
+            else:
+                author_names = []
+                author_emails = []
+                author_schools = []
+                for i, name in enumerate(raw_names):
+                    if name.strip():
+                        author_names.append(name.strip())
+                        author_emails.append(raw_emails[i].strip() if i < len(raw_emails) else "")
+                        author_schools.append(raw_schools[i].strip() if i < len(raw_schools) else "")
 
             final_author_name = ", ".join(author_names)
             final_author_email = ", ".join(author_emails)
@@ -1428,6 +1462,7 @@ def create_app() -> Flask:
                 "author_name": final_author_name,
                 "author_email": final_author_email,
                 "author_school": final_author_school,
+                "is_ib_sample": "1" if is_ib_sample else "",
             })
             flash(_("Paper information updated."), "success")
             return redirect(url_for("manage"))
