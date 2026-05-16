@@ -576,19 +576,14 @@ def create_app() -> Flask:
                         flash(warning, "warning")
                         return render_template("login.html", ms_enabled=is_ms_configured())
                     display = user_record.get("first_name", "") or user_record.get("email", "") or user["username"]
+                    saved_next = session.get("next")
                     start_local_session(
                         user,
                         display_name=display,
                         email=user_record.get("email", ""),
                     )
                     flash(_("Welcome back, %(username)s!", username=display), "success")
-                    next_url = session.pop("next", None)
-                    if not next_url:
-                        if int(user_record.get("role", 1)) > 1:
-                            next_url = url_for("dashboard")
-                        else:
-                            next_url = url_for("index")
-                    return redirect(next_url)
+                    return redirect(saved_next or url_for("index"))
             else:
                 # 3. Try MS user by email (if they have set a password)
                 ms_record = get_ms_user_by_email(email)
@@ -598,16 +593,11 @@ def create_app() -> Flask:
                         if not allowed:
                             flash(warning, "warning")
                             return render_template("login.html", ms_enabled=is_ms_configured())
+                        saved_next = session.get("next")
                         start_ms_session(ms_record)
                         display = ms_record.get("display_name", "") or ms_record.get("email", "")
                         flash(_("Welcome back, %(username)s!", username=display), "success")
-                        next_url = session.pop("next", None)
-                        if not next_url:
-                            if int(ms_record.get("role", 1)) > 1:
-                                next_url = url_for("dashboard")
-                            else:
-                                next_url = url_for("index")
-                        return redirect(next_url)
+                        return redirect(saved_next or url_for("index"))
 
             flash(_("Invalid email or password"), "danger")
             return render_template("login.html", ms_enabled=is_ms_configured())
@@ -678,17 +668,15 @@ def create_app() -> Flask:
             return redirect(url_for("login"))
 
         user_record = upsert_ms_user(profile)
+        saved_next = session.get("next")
         start_ms_session(user_record)
+        if saved_next:
+            session["next"] = saved_next
 
         if not is_profile_complete(user_record):
             return redirect(url_for("profile_setup"))
         next_url = session.pop("next", None)
-        if not next_url:
-            if int(user_record.get("role", 1)) > 1:
-                next_url = url_for("dashboard")
-            else:
-                next_url = url_for("index")
-        return redirect(next_url)
+        return redirect(next_url or url_for("index"))
 
     @app.route("/logout")
     def logout():
