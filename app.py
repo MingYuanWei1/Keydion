@@ -618,51 +618,8 @@ def create_app() -> Flask:
 
     @app.route("/register", methods=["GET", "POST"])
     def register():
-        if request.method == "POST":
-            email = request.form.get("email", "").strip().lower()
-            password = request.form.get("password", "").strip()
-            confirm_password = request.form.get("confirm_password", "").strip()
-            first_name = request.form.get("first_name", "").strip()
-            last_name = request.form.get("last_name", "").strip()
-
-            if not email or not password or not first_name or not last_name:
-                flash(_("Email, password, first name, and last name are required."), "warning")
-                return render_template("register.html",
-                    email=email, first_name=first_name, last_name=last_name)
-            if password != confirm_password:
-                flash(_("Passwords do not match."), "warning")
-                return render_template("register.html",
-                    email=email, first_name=first_name, last_name=last_name)
-            if get_local_user_by_email(email) or get_local_user(email):
-                flash(_("An account with this email already exists."), "warning")
-                return render_template("register.html",
-                    email=email, first_name=first_name, last_name=last_name)
-
-            try:
-                create_local_user(
-                    username=email,
-                    password=password,
-                    role="1",
-                    email=email,
-                    first_name=first_name,
-                    last_name=last_name,
-                    school="",
-                )
-            except ValueError:
-                flash(_("An account with this email already exists."), "warning")
-                return render_template("register.html",
-                    email=email, first_name=first_name, last_name=last_name)
-
-            user = authenticate(email, password)
-            if user:
-                start_local_session(user, display_name=first_name, email=email)
-                flash(_("Account created successfully. Welcome, %(name)s!", name=first_name), "success")
-                return redirect(url_for("index"))
-            flash(_("Account created. Please sign in."), "success")
-            return redirect(url_for("login"))
-
-        return render_template("register.html",
-            email="", first_name="", last_name="")
+        flash(_("Email-based registration is disabled. Please sign in with Microsoft."), "warning")
+        return redirect(url_for("login"))
 
     @app.route("/auth/login")
     def ms_login():

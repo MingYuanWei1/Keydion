@@ -16,7 +16,8 @@ __pycache__/
 .pytest_cache/
 
 # Environment variables
-# Not ignoring .env as per user request to use the same on remote server
+.env
+
 
 # IDEs and Editors
 .vscode/
@@ -35,3 +36,4 @@ docker-compose*.yml
 .dockerignore
 update_db.py
 docker-compose.yml
+
