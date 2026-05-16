@@ -1,5 +1,4 @@
 # Database and uploaded files (DO NOT COMMIT THESE)
-data/
 static/uploads/
 *.db
 *.sqlite3

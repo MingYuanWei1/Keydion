@@ -1,0 +1,75 @@
+{
+  "groups": [
+    {
+      "id": 1,
+      "name": "Group 1: Studies in Language and Literature",
+      "subjects": [
+        "Language A: Literature",
+        "Language A: Language and Literature",
+        "Literature and Performance"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Group 2: Language Acquisition",
+      "subjects": [
+        "Language B",
+        "Language ab initio",
+        "Classical Languages"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Group 3: Individuals and Societies",
+      "subjects": [
+        "Business Management",
+        "Economics",
+        "Geography",
+        "Global Politics",
+        "History",
+        "Information Technology in a Global Society",
+        "Philosophy",
+        "Psychology",
+        "Social and Cultural Anthropology",
+        "World Religions"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Group 4: Sciences",
+      "subjects": [
+        "Biology",
+        "Chemistry",
+        "Computer Science",
+        "Design Technology",
+        "Environmental Systems and Societies",
+        "Physics",
+        "Sports, Exercise and Health Science"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Group 5: Mathematics",
+      "subjects": [
+        "Mathematics: Analysis and Approaches",
+        "Mathematics: Applications and Interpretation"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Group 6: The Arts",
+      "subjects": [
+        "Dance",
+        "Film",
+        "Music",
+        "Theatre",
+        "Visual Arts"
+      ]
+    }
+  ],
+  "interdisciplinary_subjects": [
+    "Environmental Systems and Societies",
+    "Literature and Performance",
+    "World Studies"
+  ]
+}

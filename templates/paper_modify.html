@@ -105,6 +105,58 @@
                         {% endfor %}
                     </div>
 
+                    <!-- IB Extended Essay Section (read-only summary) -->
+                    {% set ib_ee_data = meta.get('ib_ee_data', '') %}
+                    {% set ib_ee_info = (ib_ee_data | from_json) if ib_ee_data else None %}
+                    {% if ib_ee_info and ib_ee_info.is_ib_ee %}
+                    <hr>
+                    <div class="mb-3">
+                        <h6 class="text-muted text-uppercase small mb-2">{{ _('IB Extended Essay (EE)') }}</h6>
+                        <div class="border rounded p-3 bg-light">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="badge rounded-pill" style="font-size: 12px; background-color: #198754;">
+                                    {{ ib_ee_info.total_grade_letter or '—' }}
+                                </span>
+                                <span class="text-muted small">{{ ib_ee_info.total_grade_number or '—' }} / 30</span>
+                            </div>
+                            {% if ib_ee_info.core_subject %}
+                            <div class="mb-2">
+                                <span class="fw-semibold small">{{ _('Subjects') }}:</span>
+                                <span class="badge rounded-pill ms-1" style="font-size: 11px; background-color: #0d6efd;">{{ ib_ee_info.core_subject }}</span>
+                                {% if ib_ee_info.interdisciplinary_subject %}
+                                <span class="badge rounded-pill ms-1" style="font-size: 11px; background-color: #6f42c1;">{{ ib_ee_info.interdisciplinary_subject }}</span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            {% if ib_ee_info.criteria %}
+                            <details class="mt-2">
+                                <summary class="small fw-semibold text-muted" style="cursor: pointer;">{{ _('Criterion Scores') }}</summary>
+                                <div class="mt-2">
+                                    {% set criteria_order = ['A', 'B', 'C', 'D', 'E'] %}
+                                    {% for letter in criteria_order %}
+                                    {% if ib_ee_info.criteria[letter] %}
+                                    {% set crit = ib_ee_info.criteria[letter] %}
+                                    <div class="d-flex justify-content-between small py-1 border-bottom">
+                                        <span>{{ _('Crit.') }} {{ letter }} — {{ crit.label }}</span>
+                                        <span class="badge rounded-pill {% if crit.score >= crit.max * 0.8 %}bg-success{% elif crit.score >= crit.max * 0.5 %}bg-warning text-dark{% else %}bg-danger{% endif %}" style="font-size: 11px;">
+                                            {{ crit.score }} / {{ crit.max }}
+                                        </span>
+                                    </div>
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </details>
+                            {% endif %}
+                            {% if ib_ee_info.holistic_comment %}
+                            <div class="mt-2 small text-muted">
+                                <span class="fw-semibold">{{ _('Holistic Commentary') }}:</span>
+                                <p class="mb-0 mt-1">{{ ib_ee_info.holistic_comment }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
                     {% if meta.get('published_at', '') %}
                     <div class="mb-3">
                         <label class="form-label fw-semibold text-muted">{{ _('Published') }}</label>

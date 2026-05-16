@@ -109,6 +109,74 @@
           <div id="ibEeDetails" class="ib-ee-details mt-3" style="display: none;">
             <hr class="my-3">
 
+            <!-- EE Subject Selection -->
+            <h6 class="fw-bold text-uppercase small mb-3" style="letter-spacing: 0.5px; color: #495057;">
+              {{ _('EE Subject') }} <span class="text-danger">*</span>
+            </h6>
+
+            <!-- Core Subject -->
+            <div class="mb-3 ee-subject-picker" data-picker="core">
+              <label class="form-label fw-semibold">{{ _('Core Subject') }} <span class="text-danger">*</span></label>
+              <input type="hidden" name="ib_ee_core_subject" id="ibEeCoreSubject" value="">
+              <button type="button" class="btn btn-outline-secondary btn-sm ee-subject-toggle w-100 text-start d-flex justify-content-between align-items-center"
+                data-bs-toggle="collapse" data-bs-target="#eeCoreSubjectGroups" aria-expanded="false">
+                <span class="ee-subject-placeholder text-muted">{{ _('Select a core subject...') }}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16" class="ee-subject-chevron">
+                  <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708"/>
+                </svg>
+              </button>
+              <div class="collapse mt-2" id="eeCoreSubjectGroups">
+                <div class="card card-body p-2 ee-subject-dropdown">
+                  {% for group in ee_subjects.groups %}
+                  <div class="mb-2">
+                    <div class="fw-semibold small text-muted text-uppercase mb-1 ee-group-label">
+                      {{ group.name }}
+                    </div>
+                    {% for subject in group.subjects %}
+                    <button type="button" class="btn btn-sm ee-subject-option d-block w-100 text-start mb-1"
+                      data-value="{{ subject }}">
+                      {{ subject }}
+                    </button>
+                    {% endfor %}
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+
+            <!-- Interdisciplinary Subject (optional) -->
+            <div class="mb-3 ee-subject-picker" data-picker="interdisciplinary">
+              <label class="form-label fw-semibold">
+                {{ _('Interdisciplinary Subject') }}
+                <span class="badge bg-secondary ms-1" style="font-size: 10px;">{{ _('Optional') }}</span>
+              </label>
+              <input type="hidden" name="ib_ee_interdisciplinary_subject" id="ibEeInterdisciplinarySubject" value="">
+              <button type="button" class="btn btn-outline-secondary btn-sm ee-subject-toggle w-100 text-start d-flex justify-content-between align-items-center"
+                data-bs-toggle="collapse" data-bs-target="#eeInterdisciplinaryGroups" aria-expanded="false">
+                <span class="ee-subject-placeholder text-muted">{{ _('Select an interdisciplinary subject (optional)...') }}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16" class="ee-subject-chevron">
+                  <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708"/>
+                </svg>
+              </button>
+              <div class="collapse mt-2" id="eeInterdisciplinaryGroups">
+                <div class="card card-body p-2 ee-subject-dropdown">
+                  {% for group in ee_subjects.groups %}
+                  <div class="mb-2">
+                    <div class="fw-semibold small text-muted text-uppercase mb-1 ee-group-label">
+                      {{ group.name }}
+                    </div>
+                    {% for subject in group.subjects %}
+                    <button type="button" class="btn btn-sm ee-subject-option d-block w-100 text-start mb-1"
+                      data-value="{{ subject }}">
+                      {{ subject }}
+                    </button>
+                    {% endfor %}
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+
             <!-- Total Grade -->
             <h6 class="fw-bold text-uppercase small mb-3" style="letter-spacing: 0.5px; color: #495057;">
               {{ _('Overall Grade') }}
@@ -305,6 +373,50 @@
     text-transform: uppercase;
     letter-spacing: 0.3px;
   }
+  /* EE Subject Picker */
+  .ee-subject-picker .ee-subject-toggle {
+    transition: border-color 0.15s ease-in-out;
+  }
+  .ee-subject-picker .ee-subject-toggle:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+  }
+  .ee-subject-dropdown {
+    max-height: 300px;
+    overflow-y: auto;
+    background: #fff;
+  }
+  .ee-group-label {
+    font-size: 11px;
+    letter-spacing: 0.3px;
+  }
+  .ee-subject-option {
+    border: 1px solid transparent;
+    border-radius: 4px;
+    color: #495057;
+    font-size: 13px;
+    padding: 4px 8px;
+    transition: background 0.1s, border-color 0.1s;
+  }
+  .ee-subject-option:hover {
+    background: #e9ecef;
+    border-color: #dee2e6;
+  }
+  .ee-subject-option.active {
+    background: #0d6efd;
+    border-color: #0d6efd;
+    color: #fff;
+  }
+  .ee-subject-chevron {
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+  .ee-subject-toggle[aria-expanded="true"] .ee-subject-chevron {
+    transform: rotate(180deg);
+  }
+  .ee-subject-picker.is-invalid .ee-subject-toggle {
+    border-color: #dc3545;
+  }
 </style>
 
 <script>
@@ -377,6 +489,99 @@
     // Initialize state on page load
     toggleIbSection();
     toggleCommentFields();
+
+    // ---- EE Subject Pickers ----
+    const subjectPickers = document.querySelectorAll('.ee-subject-picker');
+
+    subjectPickers.forEach(picker => {
+      const hiddenInput = picker.querySelector('input[type="hidden"]');
+      const toggle = picker.querySelector('.ee-subject-toggle');
+      const placeholder = picker.querySelector('.ee-subject-placeholder');
+      const options = picker.querySelectorAll('.ee-subject-option');
+      const collapseEl = picker.querySelector('.collapse');
+      const pickerType = picker.dataset.picker;
+
+      // Restore saved value for drafts
+      if (hiddenInput.value) {
+        placeholder.textContent = hiddenInput.value;
+        placeholder.classList.remove('text-muted');
+        placeholder.classList.add('text-dark', 'fw-medium');
+        options.forEach(o => {
+          if (o.dataset.value === hiddenInput.value) {
+            o.classList.add('active');
+          }
+        });
+      }
+
+      options.forEach(opt => {
+        opt.addEventListener('click', function() {
+          const value = this.dataset.value;
+
+          // Prevent selecting same subject in both pickers
+          if (pickerType === 'core') {
+            const interPicker = document.querySelector('.ee-subject-picker[data-picker="interdisciplinary"]');
+            const interInput = interPicker.querySelector('input[type="hidden"]');
+            if (interInput.value === value) {
+              interInput.value = '';
+              const interPlaceholder = interPicker.querySelector('.ee-subject-placeholder');
+              interPlaceholder.textContent = '{{ _("Select an interdisciplinary subject (optional)...") }}';
+              interPlaceholder.classList.remove('text-dark', 'fw-medium');
+              interPlaceholder.classList.add('text-muted');
+              interPicker.querySelectorAll('.ee-subject-option').forEach(o => o.classList.remove('active'));
+            }
+          }
+          if (pickerType === 'interdisciplinary') {
+            const corePicker = document.querySelector('.ee-subject-picker[data-picker="core"]');
+            const coreInput = corePicker.querySelector('input[type="hidden"]');
+            if (coreInput.value === value) {
+              return; // silently ignore duplicate
+            }
+          }
+
+          // Set value
+          hiddenInput.value = value;
+          placeholder.textContent = value;
+          placeholder.classList.remove('text-muted');
+          placeholder.classList.add('text-dark', 'fw-medium');
+
+          // Highlight selected
+          options.forEach(o => o.classList.remove('active'));
+          this.classList.add('active');
+
+          // Collapse
+          const bsCollapse = bootstrap.Collapse.getInstance(collapseEl);
+          if (bsCollapse) bsCollapse.hide();
+
+          // Clear error state
+          picker.classList.remove('is-invalid');
+          toggle.classList.remove('border-danger');
+        });
+      });
+
+      // Prevent collapse close when clicking inside dropdown
+      const cardBody = picker.querySelector('.card-body');
+      if (cardBody) {
+        cardBody.addEventListener('click', function(e) {
+          e.stopPropagation();
+        });
+      }
+    });
+
+    // Core subject validation on form submit
+    const uploadForm = document.querySelector('.upload-form');
+    uploadForm.addEventListener('submit', function(e) {
+      const ibChecked = document.getElementById('ibEeCheckbox').checked;
+      if (ibChecked) {
+        const coreSubject = document.getElementById('ibEeCoreSubject').value;
+        const corePicker = document.querySelector('.ee-subject-picker[data-picker="core"]');
+        if (!coreSubject) {
+          e.preventDefault();
+          corePicker.classList.add('is-invalid');
+          corePicker.querySelector('.ee-subject-toggle').classList.add('border-danger');
+          corePicker.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    });
   });
 </script>
 {% endblock %}
