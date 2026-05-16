@@ -92,6 +92,104 @@ def save_paper_categories(cats: list) -> None:
     path.write_text(json.dumps(cats, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+# ---- IB EE Subject helpers ----
+
+_EE_SUBJECTS_PATH = DATA_DIR / "ee_subjects.json"
+
+_EE_SUBJECTS_DEFAULT = {
+    "groups": [
+        {
+            "id": 1,
+            "name": "Group 1: Studies in Language and Literature",
+            "subjects": [
+                "Language A: Literature",
+                "Language A: Language and Literature",
+                "Literature and Performance"
+            ]
+        },
+        {
+            "id": 2,
+            "name": "Group 2: Language Acquisition",
+            "subjects": [
+                "Language B",
+                "Language ab initio",
+                "Classical Languages"
+            ]
+        },
+        {
+            "id": 3,
+            "name": "Group 3: Individuals and Societies",
+            "subjects": [
+                "Business Management",
+                "Economics",
+                "Geography",
+                "Global Politics",
+                "History",
+                "Information Technology in a Global Society",
+                "Philosophy",
+                "Psychology",
+                "Social and Cultural Anthropology",
+                "World Religions"
+            ]
+        },
+        {
+            "id": 4,
+            "name": "Group 4: Sciences",
+            "subjects": [
+                "Biology",
+                "Chemistry",
+                "Computer Science",
+                "Design Technology",
+                "Environmental Systems and Societies",
+                "Physics",
+                "Sports, Exercise and Health Science"
+            ]
+        },
+        {
+            "id": 5,
+            "name": "Group 5: Mathematics",
+            "subjects": [
+                "Mathematics: Analysis and Approaches",
+                "Mathematics: Applications and Interpretation"
+            ]
+        },
+        {
+            "id": 6,
+            "name": "Group 6: The Arts",
+            "subjects": [
+                "Dance",
+                "Film",
+                "Music",
+                "Theatre",
+                "Visual Arts"
+            ]
+        }
+    ],
+    "interdisciplinary_subjects": [
+        "Environmental Systems and Societies",
+        "Literature and Performance",
+        "World Studies"
+    ]
+}
+
+
+def load_ee_subjects() -> dict:
+    """Load IB EE subject groups from JSON, seeding defaults if needed."""
+    if _EE_SUBJECTS_PATH.exists():
+        try:
+            return json.loads(_EE_SUBJECTS_PATH.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            pass
+    save_ee_subjects(_EE_SUBJECTS_DEFAULT)
+    return dict(_EE_SUBJECTS_DEFAULT)
+
+
+def save_ee_subjects(data: dict) -> None:
+    """Save IB EE subject groups to JSON."""
+    _EE_SUBJECTS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _EE_SUBJECTS_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def load_journals() -> list:
     """Load journals as list of dicts from JSON."""
     with db_session() as db:
@@ -142,7 +240,6 @@ NEWS_IMAGES_DIR = BASE_DIR / "static" / "uploads" / "news"
 MAX_SEARCH_RESULTS = 20
 PASSWORD_SCHEME = "pbkdf2_sha256"
 SUPPORTED_LOCALES = ("en", "zh")
-SESSION_FILE = DATA_DIR / "active_sessions.json"
 SESSION_TIMEOUT_SECONDS = int(os.environ.get("PAPERQUERY_SESSION_TIMEOUT", "600"))
 SESSION_TIMEOUT = timedelta(seconds=SESSION_TIMEOUT_SECONDS)
 METADATA_FIELDS = ["filename", "title", "journal", "category", "language", "keywords", "abstract", "author_name", "author_email", "author_school", "published_at", "ib_ee_data"]
@@ -271,6 +368,13 @@ class SubmissionModel(BASE):
     ib_ee_data = Column(UnicodeText)
 
 
+class SessionModel(BASE):
+    __tablename__ = "sessions"
+    username = Column(Unicode(255), primary_key=True)
+    token = Column(Unicode(255))
+    last_seen = Column(Unicode(255))
+
+
 
 def init_db() -> None:
     global _ENGINE, _SESSION_LOCAL
@@ -324,9 +428,6 @@ def create_app() -> Flask:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     PAPERS_DIR.mkdir(parents=True, exist_ok=True)
     PENDING_PAPERS_DIR.mkdir(parents=True, exist_ok=True)
-    SESSION_FILE.parent.mkdir(parents=True, exist_ok=True)
-    if not SESSION_FILE.exists():
-        SESSION_FILE.write_text("{}", encoding="utf-8")
     init_db()
     babel.init_app(app, locale_selector=select_locale)
 
@@ -380,6 +481,13 @@ def create_app() -> Flask:
             pass
         # Fallback: treat plain text as paragraphs
         return [{"type": "text", "content": p.strip()} for p in body_text.split("\n") if p.strip()]
+
+    @app.template_filter("from_json")
+    def from_json_filter(value):
+        try:
+            return json.loads(value)
+        except (json.JSONDecodeError, TypeError, ValueError):
+            return None
 
     @app.route("/")
     def index():
@@ -922,7 +1030,7 @@ def create_app() -> Flask:
                 }
                 return render_template("upload.html", user=user, form_data=form_data,
                     journals=get_journal_names(), paper_categories=load_paper_categories(),
-                    draft_id=draft_id)
+                    ee_subjects=load_ee_subjects(), draft_id=draft_id)
 
         raw_names = request.form.getlist("author_name")
         raw_emails = request.form.getlist("author_email")
@@ -973,6 +1081,8 @@ def create_app() -> Flask:
                 }
             ib_ee_obj = {
                 "is_ib_ee": True,
+                "core_subject": request.form.get("ib_ee_core_subject", "").strip(),
+                "interdisciplinary_subject": request.form.get("ib_ee_interdisciplinary_subject", "").strip(),
                 "total_grade_letter": request.form.get("ib_total_grade_letter", "").strip(),
                 "total_grade_number": request.form.get("ib_total_grade_number", "").strip(),
                 "criteria": criteria,
@@ -1056,19 +1166,33 @@ def create_app() -> Flask:
                     journals=get_journal_names(), paper_categories=load_paper_categories(), draft_id=draft_id)
             if not form_data["keywords"]:
                 flash(_("Please enter keywords"), "danger")
-                return render_template("upload.html", user=user, form_data=form_data)
+                return render_template("upload.html", user=user, form_data=form_data,
+                    ee_subjects=load_ee_subjects())
             if not form_data["abstract"]:
                 flash(_("Please enter the abstract"), "danger")
-                return render_template("upload.html", user=user, form_data=form_data)
+                return render_template("upload.html", user=user, form_data=form_data,
+                    ee_subjects=load_ee_subjects())
             if not form_data["author_name"]:
                 flash(_("Please enter the author name"), "danger")
-                return render_template("upload.html", user=user, form_data=form_data)
+                return render_template("upload.html", user=user, form_data=form_data,
+                    ee_subjects=load_ee_subjects())
             if not form_data["author_email"]:
                 flash(_("Please enter the contact email"), "danger")
-                return render_template("upload.html", user=user, form_data=form_data)
+                return render_template("upload.html", user=user, form_data=form_data,
+                    ee_subjects=load_ee_subjects())
             if not form_data["author_school"]:
                 flash(_("Please enter the school name"), "danger")
-                return render_template("upload.html", user=user, form_data=form_data)
+                return render_template("upload.html", user=user, form_data=form_data,
+                    ee_subjects=load_ee_subjects())
+            if is_ib_ee and not form_data.get("ib_ee_data"):
+                pass  # handled below
+            if is_ib_ee:
+                ib_data = json.loads(form_data["ib_ee_data"])
+                if not ib_data.get("core_subject"):
+                    flash(_("Please select an EE core subject."), "danger")
+                    return render_template("upload.html", user=user, form_data=form_data,
+                        journals=get_journal_names(), paper_categories=load_paper_categories(),
+                        ee_subjects=load_ee_subjects(), draft_id=draft_id)
 
             # 格式化关键词
             if form_data["keywords"]:
@@ -1175,7 +1299,7 @@ def create_app() -> Flask:
                             _save_submission(submission)
                         return redirect(url_for("upload_success", title=form_data["title"]))
 
-        return render_template("upload.html", user=user, form_data=form_data, journals=get_journal_names(), paper_categories=load_paper_categories(), draft_id=request.args.get("draft", ""))
+        return render_template("upload.html", user=user, form_data=form_data, journals=get_journal_names(), paper_categories=load_paper_categories(), ee_subjects=load_ee_subjects(), draft_id=request.args.get("draft", ""))
 
     @app.route("/upload/success")
     def upload_success():
@@ -1720,7 +1844,8 @@ def create_app() -> Flask:
             return redirect(target)
         return render_template("paper_manage.html", user=user,
                                paper_categories=load_paper_categories(),
-                               journals=load_journals())
+                               journals=load_journals(),
+                               ee_subjects=load_ee_subjects())
 
     @app.route("/admin/paper-categories/add", methods=["POST"])
     def paper_category_add():
@@ -1779,6 +1904,48 @@ def create_app() -> Flask:
         cats.remove(name)
         save_paper_categories(cats)
         return jsonify(items=cats)
+
+    @app.route("/admin/ee-subjects/add", methods=["POST"])
+    def ee_subject_add():
+        user = require_login(level=3)
+        if not user:
+            return jsonify(error="Unauthorized"), 401
+        data = request.json or {}
+        group_id = data.get("group_id")
+        name = data.get("name", "").strip()
+        if not group_id or not name:
+            return jsonify(error=str(_("Group ID and subject name are required."))), 400
+        subjects_data = load_ee_subjects()
+        for group in subjects_data.get("groups", []):
+            if group["id"] == group_id:
+                if name in group["subjects"]:
+                    return jsonify(error=str(_("Subject already exists in this group."))), 409
+                group["subjects"].append(name)
+                save_ee_subjects(subjects_data)
+                return jsonify(groups=subjects_data["groups"])
+        return jsonify(error=str(_("Group not found."))), 404
+
+    @app.route("/admin/ee-subjects/delete", methods=["POST"])
+    def ee_subject_delete():
+        user = require_login(level=3)
+        if not user:
+            return jsonify(error="Unauthorized"), 401
+        data = request.json or {}
+        group_id = data.get("group_id")
+        name = data.get("name", "").strip()
+        if not group_id or not name:
+            return jsonify(error=str(_("Group ID and subject name are required."))), 400
+        subjects_data = load_ee_subjects()
+        for group in subjects_data.get("groups", []):
+            if group["id"] == group_id:
+                if name not in group["subjects"]:
+                    return jsonify(error=str(_("Subject not found in this group."))), 404
+                group["subjects"].remove(name)
+                if name in subjects_data.get("interdisciplinary_subjects", []):
+                    subjects_data["interdisciplinary_subjects"].remove(name)
+                save_ee_subjects(subjects_data)
+                return jsonify(groups=subjects_data["groups"])
+        return jsonify(error=str(_("Group not found."))), 404
 
     @app.route("/admin/journals/add", methods=["POST"])
     def journal_add():
@@ -2879,17 +3046,9 @@ def paginate_records(records: List[Dict[str, str]], page: int, per_page: int = 2
 
 
 def load_sessions() -> Dict[str, Dict[str, str]]:
-    if not SESSION_FILE.exists():
-        return {}
-    try:
-        return json.loads(SESSION_FILE.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return {}
-
-
-def save_sessions(data: Dict[str, Dict[str, str]]) -> None:
-    SESSION_FILE.parent.mkdir(parents=True, exist_ok=True)
-    SESSION_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    with db_session() as db:
+        rows = db.query(SessionModel).all()
+        return {r.username: {"token": r.token or "", "last_seen": r.last_seen or ""} for r in rows}
 
 
 def is_session_expired(entry: Dict[str, str]) -> bool:
@@ -2909,8 +3068,9 @@ def ensure_login_available(username: str) -> Tuple[bool, str]:
     if not entry:
         return True, ""
     if is_session_expired(entry):
-        sessions.pop(username, None)
-        save_sessions(sessions)
+        with db_session() as db:
+            db.query(SessionModel).filter(SessionModel.username == username).delete()
+            db.commit()
         return True, ""
     minutes = max(1, SESSION_TIMEOUT_SECONDS // 60)
     return False, _(
@@ -2920,47 +3080,51 @@ def ensure_login_available(username: str) -> Tuple[bool, str]:
 
 
 def register_active_session(username: str) -> str:
-    sessions = load_sessions()
     token = uuid4().hex
-    sessions[username] = {
-        "token": token,
-        "last_seen": datetime.utcnow().isoformat(),
-    }
-    save_sessions(sessions)
+    now = datetime.utcnow().isoformat()
+    with db_session() as db:
+        existing = db.query(SessionModel).filter(SessionModel.username == username).first()
+        if existing:
+            existing.token = token
+            existing.last_seen = now
+        else:
+            db.add(SessionModel(username=username, token=token, last_seen=now))
+        db.commit()
     return token
 
 
 def release_active_session(username: str, token: Optional[str]) -> None:
     if not username:
         return
-    sessions = load_sessions()
-    entry = sessions.get(username)
-    if entry and (token is None or entry.get("token") == token):
-        sessions.pop(username, None)
-        save_sessions(sessions)
+    with db_session() as db:
+        entry = db.query(SessionModel).filter(SessionModel.username == username).first()
+        if entry and (token is None or entry.token == token):
+            db.delete(entry)
+            db.commit()
 
 
 def force_release_session(username: str) -> None:
-    """强制释放用户会话，不检查 token"""
     if not username:
         return
-    sessions = load_sessions()
-    if username in sessions:
-        sessions.pop(username, None)
-        save_sessions(sessions)
+    with db_session() as db:
+        db.query(SessionModel).filter(SessionModel.username == username).delete()
+        db.commit()
 
 
 def refresh_session(username: str, token: str) -> bool:
-    sessions = load_sessions()
-    entry = sessions.get(username)
-    if not entry or entry.get("token") != token or is_session_expired(entry):
-        sessions.pop(username, None)
-        save_sessions(sessions)
-        return False
-    entry["last_seen"] = datetime.utcnow().isoformat()
-    sessions[username] = entry
-    save_sessions(sessions)
-    return True
+    with db_session() as db:
+        entry = db.query(SessionModel).filter(SessionModel.username == username).first()
+        if not entry or entry.token != token or is_session_expired({
+            "token": entry.token or "",
+            "last_seen": entry.last_seen or "",
+        }):
+            if entry:
+                db.delete(entry)
+                db.commit()
+            return False
+        entry.last_seen = datetime.utcnow().isoformat()
+        db.commit()
+        return True
 
 # ==================== NEWS HELPERS ====================
 
