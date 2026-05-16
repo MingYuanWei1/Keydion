@@ -169,16 +169,11 @@
             <span class="badge rounded-pill" style="font-size: 12px; background-color: #fff; color: #212529; border: 1px solid #dee2e6;">
               {{ paper.cp_global_context }}
             </span>
-            {% for action in paper.get('cp_action_types', []) %}
-            <span class="badge rounded-pill" style="font-size: 12px; background-color: #e9ecef; color: #495057; border: 1px solid #dee2e6;">
-              {{ action }}
-            </span>
-            {% endfor %}
           </div>
           {% else %}
           <div class="d-flex flex-wrap gap-1 mb-2">
-            <span class="badge rounded-pill" style="font-size: 12px; background-color: #e9ecef; color: #495057; border: 1px solid #dee2e6;">
-              {{ _('Extracurricular Activity') }}
+            <span class="badge rounded-pill" style="font-size: 12px; background: linear-gradient(135deg, #e0a800 0%, #b8860b 100%); color: #fff; border: 1px solid #b8860b;">
+              {{ _('Independent Research') }}
             </span>
           </div>
           {% endif %}
