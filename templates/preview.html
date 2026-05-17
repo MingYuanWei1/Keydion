@@ -106,8 +106,7 @@
             <span class="me-2">🎓</span> {{ _('IB Extended Essay') }}
           </button>
         </h2>
-        <div id="collapseIbEe" class="accordion-collapse collapse show" aria-labelledby="headingIbEe"
-          data-bs-parent="#previewAccordion">
+        <div id="collapseIbEe" class="accordion-collapse collapse show" aria-labelledby="headingIbEe">
           <div class="accordion-body px-2 pt-1 pb-4" style="font-size: 14px;">
 
             <!-- Overall Grade Display -->
@@ -225,8 +224,7 @@
             <span class="me-2">&#x1F4CB;</span> {{ _('MYP Community Project') }}
           </button>
         </h2>
-        <div id="collapseCp" class="accordion-collapse collapse show" aria-labelledby="headingCp"
-          data-bs-parent="#previewAccordion">
+        <div id="collapseCp" class="accordion-collapse collapse show" aria-labelledby="headingCp">
           <div class="accordion-body px-2 pt-1 pb-4" style="font-size: 14px;">
 
             <!-- Total Score Display -->
@@ -301,8 +299,7 @@
             {{ _('Abstract') }}
           </button>
         </h2>
-        <div id="collapseAbstract" class="accordion-collapse collapse" aria-labelledby="headingAbstract"
-          data-bs-parent="#previewAccordion">
+        <div id="collapseAbstract" class="accordion-collapse collapse" aria-labelledby="headingAbstract">
           <div class="accordion-body px-2 pt-1 pb-4 text-muted" style="font-size: 14px; line-height: 1.6;">
             {{ paper.abstract or _('No abstract available.') }}
           </div>
@@ -318,8 +315,7 @@
             {{ _('About this issue') }}
           </button>
         </h2>
-        <div id="collapseAbout" class="accordion-collapse collapse" aria-labelledby="headingAbout"
-          data-bs-parent="#previewAccordion">
+        <div id="collapseAbout" class="accordion-collapse collapse" aria-labelledby="headingAbout">
           <div class="accordion-body px-2 pt-1 pb-4 text-muted" style="font-size: 14px; line-height: 1.5;">
             <dl class="mb-0">
               <dt class="fw-semibold text-dark">{{ _('Title') }}</dt>
@@ -344,8 +340,7 @@
             {{ _('Related text') }} {% if related_papers %}({{ related_papers|length }}){% endif %}
           </button>
         </h2>
-        <div id="collapseRelated" class="accordion-collapse collapse show" aria-labelledby="headingRelated"
-          data-bs-parent="#previewAccordion">
+        <div id="collapseRelated" class="accordion-collapse collapse show" aria-labelledby="headingRelated">
           <div class="accordion-body px-2 pt-1 pb-4" style="font-size: 14px;">
             {% if related_papers %}
             <div class="d-flex flex-column gap-3">
@@ -383,7 +378,7 @@
         {{ _('PDF Preview') }}
       </div>
     </div>
-    <div class="border border-top-0 rounded-bottom" style="height: 80vh; min-height: 600px; background: #525659;"
+    <div class="border border-top-0 rounded-bottom" style="height: 90vh; min-height: 600px; background: #525659;"
       oncontextmenu="return false;">
       <iframe src="{{ pdf_url }}#toolbar=0&navpanes=0&scrollbar=0&view=FitV" class="w-100 h-100 border-0 rounded-bottom"
         title="{{ paper.title or _('Untitled Paper') }}"></iframe>
@@ -471,5 +466,6 @@
       }
     });
   });
+
 </script>
 {% endblock %}
