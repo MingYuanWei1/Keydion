@@ -47,7 +47,7 @@ docker-compose.yml
 data/active_sessions.json
 data/active_sessions
 data/pending_papers/
-
+data/papersz
 # Utility / migration scripts
 test_db.py
 remigrate_unicode.py

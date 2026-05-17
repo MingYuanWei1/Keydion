@@ -45,6 +45,19 @@
           value="{{ date_filter }}" placeholder="e.g. 2023" onblur="this.form.submit()">
       </div>
 
+      <!-- Paper Type -->
+      <div class="mb-4">
+        <label for="paper_type" class="form-label text-uppercase text-muted fw-bold"
+          style="font-size: 11px; letter-spacing: 0.5px;">{{ _('Paper Type') }}</label>
+        <select class="form-select form-select-sm shadow-none" id="paper_type" name="paper_type"
+          onchange="this.form.submit()">
+          <option value="">{{ _('Any Type') }}</option>
+          <option value="ee" {% if paper_type_filter=='ee' %}selected{% endif %}>{{ _('EE Paper') }}</option>
+          <option value="cp" {% if paper_type_filter=='cp' %}selected{% endif %}>{{ _('CP Paper') }}</option>
+          <option value="independent" {% if paper_type_filter=='independent' %}selected{% endif %}>{{ _('Independent Research') }}</option>
+        </select>
+      </div>
+
       <!-- Language -->
       <div class="mb-4">
         <label for="language" class="form-label text-uppercase text-muted fw-bold"
@@ -79,6 +92,7 @@
         <input type="hidden" name="category" value="{{ category_filter }}">
         <input type="hidden" name="language" value="{{ language_filter }}">
         <input type="hidden" name="date" value="{{ date_filter }}">
+        <input type="hidden" name="paper_type" value="{{ paper_type_filter }}">
 
         <div class="search-query-banner__icon">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
@@ -227,6 +241,7 @@
           <input type="hidden" name="category" value="{{ category_filter }}">
           <input type="hidden" name="language" value="{{ language_filter }}">
           <input type="hidden" name="date" value="{{ date_filter }}">
+        <input type="hidden" name="paper_type" value="{{ paper_type_filter }}">
           <input type="hidden" name="page" value="{{ pagination.prev_page }}">
           <button type="submit" class="btn btn-outline-secondary btn-sm shadow-none rounded-0">&larr; {{ _('Previous')
             }}</button>
@@ -238,6 +253,7 @@
           <input type="hidden" name="category" value="{{ category_filter }}">
           <input type="hidden" name="language" value="{{ language_filter }}">
           <input type="hidden" name="date" value="{{ date_filter }}">
+        <input type="hidden" name="paper_type" value="{{ paper_type_filter }}">
           <input type="hidden" name="page" value="{{ pagination.next_page }}">
           <button type="submit" class="btn btn-outline-secondary btn-sm shadow-none rounded-0">{{ _('Next') }}
             &rarr;</button>

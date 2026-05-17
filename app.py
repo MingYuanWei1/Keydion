@@ -290,6 +290,26 @@ CP_CRITERIA_DEFS = [
     ("D", "Reflecting", 8),
 ]
 
+def _is_ee_paper(record: dict) -> bool:
+    raw = record.get("ib_ee_data", "")
+    if not raw:
+        return False
+    try:
+        return bool(json.loads(raw).get("is_ib_ee"))
+    except (json.JSONDecodeError, TypeError):
+        return False
+
+
+def _is_cp_paper(record: dict) -> bool:
+    raw = record.get("cp_data", "")
+    if not raw:
+        return False
+    try:
+        return bool(json.loads(raw).get("is_cp_paper"))
+    except (json.JSONDecodeError, TypeError):
+        return False
+
+
 babel = Babel()
 ROLE_LABELS = {
     1: _l("Reader - View & Download"),
@@ -936,6 +956,7 @@ def create_app() -> Flask:
         start_year = request.args.get("start_year", "").strip()
         end_year = request.args.get("end_year", "").strip()
         journal_filters = request.args.getlist("journal[]")
+        paper_type_filter = request.args.get("paper_type", "").strip()
 
         try:
             page = int(request.args.get("page", "1"))
@@ -943,7 +964,7 @@ def create_app() -> Flask:
             page = 1
 
         per_page = 20
-        filtered = bool(query) or bool(category_filter) or bool(language_filter) or bool(date_filter) or bool(author_filter) or bool(title_filter) or bool(start_year) or bool(end_year) or bool(journal_filters)
+        filtered = bool(query) or bool(category_filter) or bool(language_filter) or bool(date_filter) or bool(author_filter) or bool(title_filter) or bool(start_year) or bool(end_year) or bool(journal_filters) or bool(paper_type_filter)
         
         # Only run full text search if 'q' is actually present
         record_pool = search_papers(query) if bool(query) else gather_paper_records()
@@ -969,6 +990,14 @@ def create_app() -> Flask:
             
         if journal_filters:
             record_pool = [r for r in record_pool if r.get("journal") in journal_filters]
+
+        if paper_type_filter:
+            if paper_type_filter == "ee":
+                record_pool = [r for r in record_pool if _is_ee_paper(r)]
+            elif paper_type_filter == "cp":
+                record_pool = [r for r in record_pool if _is_cp_paper(r)]
+            elif paper_type_filter == "independent":
+                record_pool = [r for r in record_pool if not _is_ee_paper(r) and not _is_cp_paper(r)]
 
         if filtered and not record_pool:
             flash(_("No matching papers found."), "info")
@@ -1014,6 +1043,7 @@ def create_app() -> Flask:
             category_filter=category_filter,
             language_filter=language_filter,
             date_filter=date_filter,
+            paper_type_filter=paper_type_filter,
             filtered=filtered,
             records=pagination["items"],
             pagination=pagination,
