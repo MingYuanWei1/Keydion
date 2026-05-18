@@ -125,8 +125,35 @@
       color: #fff;
       font-weight: 600;
       font-size: 14px;
-      text-decoration: none;
+      border: none;
+      cursor: pointer;
     }
+
+    .user-menu {
+      position: relative;
+      display: inline-flex;
+    }
+    .user-dropdown {
+      display: none;
+      position: absolute;
+      top: 44px;
+      right: 0;
+      background: var(--white);
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      z-index: 50;
+      min-width: 140px;
+    }
+    .user-dropdown.open { display: block; }
+    .user-dropdown a {
+      display: block;
+      padding: 10px 16px;
+      font-size: 13.5px;
+      color: var(--ink);
+      text-decoration: none;
+      transition: background 0.1s;
+    }
+    .user-dropdown a:hover { background: var(--cream-warm); }
 
     .lang-switch {
       margin-left: 14px;
@@ -573,7 +600,13 @@
         {% endif %}
         {% if session.get('user') %}
         {% set nav_name = session.get('user', {}).get('display_name') or session.get('user', {}).get('username', '') %}
-        <a class="btn-user-circle" href="{{ url_for('dashboard') }}" title="{{ nav_name }}">{{ nav_name[:1].upper() }}</a>
+        <div class="user-menu">
+          <button class="btn-user-circle" onclick="toggleUserMenu()" title="{{ nav_name }}" aria-expanded="false">{{ nav_name[:1].upper() }}</button>
+          <div class="user-dropdown" id="userDropdown">
+            <a href="{{ url_for('dashboard') }}">{{ _('Dashboard') }}</a>
+            <a href="{{ url_for('logout') }}">{{ _('Sign out') }}</a>
+          </div>
+        </div>
         {% else %}
         <button class="btn-signin" onclick="location.href='{{ url_for('login') }}'">{{ _('Sign in') }}</button>
         {% endif %}
@@ -813,6 +846,18 @@
 
     function openLoginModal() { loginModal.classList.add('active'); document.body.style.overflow = 'hidden'; }
     function closeLoginModal() { loginModal.classList.remove('active'); document.body.style.overflow = ''; }
+
+    function toggleUserMenu() {
+      document.getElementById('userDropdown').classList.toggle('open');
+    }
+
+    document.addEventListener('click', function(e) {
+      const menu = document.getElementById('userDropdown');
+      const btn = document.querySelector('.btn-user-circle');
+      if (menu && btn && !btn.contains(e.target) && !menu.contains(e.target)) {
+        menu.classList.remove('open');
+      }
+    });
 
     loginModal.addEventListener('click', (e) => { if (e.target === loginModal) closeLoginModal(); });
 

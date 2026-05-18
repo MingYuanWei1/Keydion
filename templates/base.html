@@ -8,6 +8,26 @@
   <title>{% block title %} {{ _('Keydion') }}{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <style>
+    .user-menu { position: relative; display: inline-flex; }
+    .btn-user-circle {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; margin-left: 12px; padding: 0;
+      border-radius: 50%; background: var(--accent, #8b1a1a); color: #fff;
+      font-weight: 600; font-size: 14px; border: none; cursor: pointer;
+    }
+    .user-dropdown {
+      display: none; position: absolute; top: 44px; right: 0;
+      background: #fff; border: 1px solid #e0dbd0;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08); z-index: 50; min-width: 140px;
+    }
+    .user-dropdown.open { display: block; }
+    .user-dropdown a {
+      display: block; padding: 10px 16px; font-size: 13.5px;
+      color: #1a1a1a; text-decoration: none; transition: background 0.1s;
+    }
+    .user-dropdown a:hover { background: #f5f0e8; }
+  </style>
 </head>
 
 <body class="bg-light d-flex flex-column min-vh-100">
@@ -27,7 +47,13 @@
         {% endif %}
         {% if session.get('user') %}
         {% set nav_name = session.get('user', {}).get('display_name') or session.get('user', {}).get('username', '') %}
-        <a class="btn-user-circle" href="{{ url_for('dashboard') }}" title="{{ nav_name }}">{{ nav_name[:1].upper() }}</a>
+        <div class="user-menu">
+          <button class="btn-user-circle" onclick="toggleUserMenu()" title="{{ nav_name }}" aria-expanded="false">{{ nav_name[:1].upper() }}</button>
+          <div class="user-dropdown" id="userDropdown">
+            <a href="{{ url_for('dashboard') }}">{{ _('Dashboard') }}</a>
+            <a href="{{ url_for('logout') }}">{{ _('Sign out') }}</a>
+          </div>
+        </div>
         {% else %}
         <button class="btn-signin" type="button" onclick="location.href='{{ url_for('login') }}'">{{ _('Sign in') }}</button>
         {% endif %}
@@ -63,6 +89,18 @@
   </footer>
 
   <script src="{{ url_for('static', filename='vendor/bootstrap.bundle.min.js') }}"></script>
+  <script>
+    function toggleUserMenu() {
+      document.getElementById('userDropdown').classList.toggle('open');
+    }
+    document.addEventListener('click', function(e) {
+      var menu = document.getElementById('userDropdown');
+      var btn = document.querySelector('.btn-user-circle');
+      if (menu && btn && !btn.contains(e.target) && !menu.contains(e.target)) {
+        menu.classList.remove('open');
+      }
+    });
+  </script>
 </body>
 
 </html>
