@@ -68,11 +68,25 @@
     }
 
     .logo-area {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 24px;
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      font-family: Georgia, "Times New Roman", "Noto Serif SC", serif;
       font-weight: 700;
       color: var(--ink);
-      letter-spacing: 0.3px;
+      letter-spacing: 0;
+    }
+
+    .logo-area img {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      box-shadow: 0 8px 22px rgba(20, 33, 61, 0.18);
+    }
+
+    .logo-area span {
+      font-size: 20px;
+      line-height: 1;
     }
 
     nav { display: flex; align-items: center; gap: 4px; }
@@ -545,7 +559,10 @@
   <!-- ── HEADER ── -->
   <header>
     <div class="container header-inner">
-      <a href="{{ url_for('index') }}" class="logo-area">Keydion</a>
+      <a href="{{ url_for('index') }}" class="logo-area" aria-label="{{ _('Keydion') }}">
+        <img src="{{ url_for('static', filename='K.png') }}" alt="">
+        <span>Keydion</span>
+      </a>
       <nav>
         {% if session.get('user') %}
         <a class="nav-link" href="{{ url_for('upload') }}">{{ _('Upload') }}</a>

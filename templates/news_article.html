@@ -27,6 +27,9 @@
             --brand-light: #3b82f6;
             --brand-dark: #1e3a8a;
             --footer-bg: #0f172a;
+            --cream: #faf8f5;
+            --accent: #8b1a1a;
+            --accent-hover: #6b1212;
         }
 
         * {
@@ -42,7 +45,9 @@
         body {
             font-family: "Noto Sans SC", "PingFang SC", "Microsoft Yahei", sans-serif;
             color: var(--ink);
-            background: var(--bg);
+            background: rgba(250, 248, 245, 0.92);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             line-height: 1.6;
             display: flex;
             flex-direction: column;
@@ -87,65 +92,79 @@
         .logo-area {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 11px;
+            font-family: Georgia, "Times New Roman", "Noto Serif SC", serif;
             font-weight: 700;
-            color: var(--brand);
-            letter-spacing: 0.5px;
-            font-size: 18px;
+            color: var(--ink);
+            letter-spacing: 0;
+        }
+
+        .logo-area img {
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            box-shadow: 0 8px 22px rgba(20, 33, 61, 0.18);
+        }
+
+        .logo-area span {
+            font-size: 20px;
+            line-height: 1;
         }
 
         nav {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 4px;
         }
 
         .nav-link {
-            padding: 8px 16px;
-            font-size: 14px;
+            padding: 7px 14px;
+            font-size: 13.5px;
+            font-weight: 500;
             color: var(--ink-light);
-            transition: color 0.2s;
+            transition: color 0.15s;
         }
 
         .nav-link:hover {
-            color: var(--brand);
+            color: var(--accent);
         }
 
-        .btn-submit {
-            margin-left: 16px;
-            padding: 10px 24px;
-            background: var(--brand);
+        .btn-signin {
+            margin-left: 12px;
+            padding: 8px 20px;
+            background: var(--accent);
             color: #fff;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
             border: none;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background 0.15s;
         }
 
-        .btn-submit:hover {
-            background: var(--brand-dark);
+        .btn-signin:hover {
+            background: var(--accent-hover);
         }
 
-        .btn-user {
+        .btn-user-circle {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 40px;
-            height: 40px;
+            width: 36px;
+            height: 36px;
+            margin-left: 12px;
             padding: 0;
-            border-radius: 999px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: #fff;
             font-weight: 600;
+            font-size: 14px;
             text-decoration: none;
         }
 
         .lang-switch {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            margin-left: 12px;
-            color: var(--ink-light);
-            font-size: 13px;
+            margin-left: 14px;
+            color: var(--muted);
+            font-size: 12.5px;
         }
 
         /* ==================== ARTICLE PAGE ==================== */
@@ -554,7 +573,7 @@
                 width: 100%;
             }
 
-            nav {
+            nav .nav-link {
                 display: none;
             }
         }
@@ -599,32 +618,27 @@
     <!-- ==================== HEADER ==================== -->
     <header>
         <div class="container header-inner">
-            <a class="logo-area" href="{{ url_for('index') }}">Keydion</a>
+            <a class="logo-area" href="{{ url_for('index') }}" aria-label="{{ _('Keydion') }}">
+                <img src="{{ url_for('static', filename='K.png') }}" alt="">
+                <span>Keydion</span>
+            </a>
             <nav>
-                <a class="nav-link" href="{{ url_for('search') }}">{{ _('Search') }}</a>
-                <a class="nav-link" href="{{ url_for('news_list') }}" style="color:var(--brand);font-weight:600;">{{
-                    _('News') }}</a>
-                {% if session.get('user', {}).get('role', '1')|int >= 2 %}
+                {% if session.get('user') %}
                 <a class="nav-link" href="{{ url_for('upload') }}">{{ _('Upload') }}</a>
                 {% endif %}
-                {% if session.get('user') %}
-                {% set nav_name = session.get('user', {}).get('display_name') or session.get('user', {}).get('username',
-                '') %}
-                {% set nav_initial = nav_name[:1] if nav_name else 'U' %}
-                <a class="btn-submit btn-user" href="{{ url_for('dashboard') }}" title="{{ nav_name }}">{{
-                    nav_initial|upper }}</a>
-                {% else %}
-                <button class="btn-submit" onclick="location.href='{{ url_for('login') }}'">{{ _('Sign in') }}</button>
+                <a class="nav-link" href="{{ url_for('news_list') }}">{{ _('News') }}</a>
+                {% if session.get('user', {}).get('role', '1')|int >= 3 %}
+                <a class="nav-link" href="{{ url_for('manage') }}">{{ _('Manage') }}</a>
                 {% endif %}
-                <div class="lang-switch">
-                    {% if current_locale == 'zh' %}
-                    <a href="{{ url_for('set_language', locale_code='en', next=request.full_path) }}"
-                        style="color: inherit; text-decoration: none;">English</a>
-                    {% else %}
-                    <a href="{{ url_for('set_language', locale_code='zh', next=request.full_path) }}"
-                        style="color: inherit; text-decoration: none;">中文</a>
-                    {% endif %}
-                </div>
+                {% if session.get('user') %}
+                {% set nav_name = session.get('user', {}).get('display_name') or session.get('user', {}).get('username', '') %}
+                <a class="btn-user-circle" href="{{ url_for('dashboard') }}" title="{{ nav_name }}">{{ nav_name[:1].upper() }}</a>
+                {% else %}
+                <button class="btn-signin" onclick="location.href='{{ url_for('login') }}'">{{ _('Sign in') }}</button>
+                {% endif %}
+                <a class="lang-switch" href="{{ url_for('set_language', locale_code='en' if current_locale == 'zh' else 'zh', next=request.full_path) }}">
+                    {{ 'EN' if current_locale == 'zh' else '中文' }}
+                </a>
             </nav>
         </div>
     </header>

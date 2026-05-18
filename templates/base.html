@@ -11,55 +11,32 @@
 </head>
 
 <body class="bg-light d-flex flex-column min-vh-100">
-  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-    <div class="container">
-      {% set home_route = 'index' %}
-      <a class="navbar-brand" href="{{ url_for(home_route) }}"> {{ _('Keydion') }}</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-auto align-items-lg-center">
-          {% if session.get('user') %}
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('search') }}">{{ _('Search') }}</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('news_list') }}">{{ _('News') }}</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('upload') }}">{{ _('Upload') }}</a></li>
-          {% if session.get('user', {}).get('role', '1')|int >= 2 %}
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('review_list') }}">{{ _('Review') }}</a></li>
-          {% endif %}
-          {% if session.get('user', {}).get('role', '1')|int >= 3 %}
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('manage') }}">{{ _('Manage') }}</a></li>
-          {% endif %}
-          <li class="nav-item ms-lg-3 d-grid d-lg-inline-block">
-            <a class="btn btn-outline-light nav-signout d-inline-flex align-items-center justify-content-center w-100"
-              href="{{ url_for('logout') }}">
-              {{ _('Sign out') }}
-            </a>
-          </li>
-          {% else %}
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('search') }}">{{ _('Search') }}</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('news_list') }}">{{ _('News') }}</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('upload') }}">{{ _('Upload') }}</a></li>
-          <li class="nav-item ms-lg-3 d-grid d-lg-inline-block">
-            <a class="btn btn-outline-light d-inline-flex align-items-center justify-content-center w-100"
-              href="{{ url_for('login') }}">
-              {{ _('Sign in') }}
-            </a>
-          </li>
-          {% endif %}
-          <li class="nav-item ms-lg-3">
-            {% if current_locale == 'zh' %}
-            <a class="nav-link"
-              href="{{ url_for('set_language', locale_code='en', next=request.full_path) }}">English</a>
-            {% else %}
-            <a class="nav-link" href="{{ url_for('set_language', locale_code='zh', next=request.full_path) }}">中文</a>
-            {% endif %}
-          </li>
-        </ul>
-      </div>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="{{ url_for('index') }}" class="logo-area" aria-label="{{ _('Keydion') }}">
+        <img src="{{ url_for('static', filename='K.png') }}" alt="">
+        <span>Keydion</span>
+      </a>
+      <nav aria-label="{{ _('Navigation') }}">
+        {% if session.get('user') %}
+        <a class="nav-link" href="{{ url_for('upload') }}">{{ _('Upload') }}</a>
+        {% endif %}
+        <a class="nav-link" href="{{ url_for('news_list') }}">{{ _('News') }}</a>
+        {% if session.get('user', {}).get('role', '1')|int >= 3 %}
+        <a class="nav-link" href="{{ url_for('manage') }}">{{ _('Manage') }}</a>
+        {% endif %}
+        {% if session.get('user') %}
+        {% set nav_name = session.get('user', {}).get('display_name') or session.get('user', {}).get('username', '') %}
+        <a class="btn-user-circle" href="{{ url_for('dashboard') }}" title="{{ nav_name }}">{{ nav_name[:1].upper() }}</a>
+        {% else %}
+        <button class="btn-signin" type="button" onclick="location.href='{{ url_for('login') }}'">{{ _('Sign in') }}</button>
+        {% endif %}
+        <a class="lang-switch" href="{{ url_for('set_language', locale_code='en' if current_locale == 'zh' else 'zh', next=request.full_path) }}">
+          {{ 'EN' if current_locale == 'zh' else '中文' }}
+        </a>
+      </nav>
     </div>
-  </nav>
+  </header>
 
   <main class="py-4">
     <div class="container">
