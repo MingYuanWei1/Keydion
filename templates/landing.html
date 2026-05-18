@@ -1,74 +1,61 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="{{ current_locale or 'zh-CN' }}">
 
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='K.png') }}">
-  <title>Keydion</title>
+  <title>Keydion — {{ _('Academic Paper Management') }}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700&family=Source+Serif+4:wght@600;700&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #ffffff;
-      --bg-alt: #f8f9fb;
-      --ink: #1a1a2e;
-      --ink-light: #4a4a5a;
-      --muted: #6b7280;
-      --border: #e5e7eb;
-      --brand: #1e40af;
-      --brand-light: #3b82f6;
-      --brand-dark: #1e3a8a;
-      --footer-bg: #0f172a;
+      --cream: #faf8f5;
+      --cream-warm: #f5f0e8;
+      --white: #ffffff;
+      --ink: #1a1a1a;
+      --ink-soft: #3d3d3d;
+      --muted: #6b6b6b;
+      --border: #e0dbd0;
+      --border-light: #ede8df;
+      --accent: #8b1a1a;
+      --accent-hover: #6b1212;
+      --accent-wash: #fdf6f6;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    html {
-      scroll-behavior: smooth;
-    }
+    html { scroll-behavior: smooth; }
 
     body {
-      font-family: "Noto Sans SC", "PingFang SC", "Microsoft Yahei", sans-serif;
+      font-family: 'Inter', 'Noto Sans SC', sans-serif;
       color: var(--ink);
-      background: var(--bg);
+      background: var(--cream);
       line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
       display: flex;
       flex-direction: column;
       min-height: 100vh;
     }
 
-    a {
-      color: inherit;
-      text-decoration: none;
-    }
-
-    img {
-      max-width: 100%;
-      display: block;
-    }
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; display: block; }
 
     .container {
       max-width: 1200px;
       margin: 0 auto;
-      padding: 0 24px;
+      padding: 0 28px;
     }
 
-    /* ==================== HEADER ==================== */
+    /* ── HEADER ── */
     header {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
+      top: 0; left: 0; right: 0;
       z-index: 100;
-      background: var(--bg);
+      background: rgba(250, 248, 245, 0.92);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       border-bottom: 1px solid var(--border);
       height: 64px;
     }
@@ -81,505 +68,273 @@
     }
 
     .logo-area {
-      display: flex;
-      align-items: center;
-      gap: 12px;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 24px;
       font-weight: 700;
-      color: var(--brand);
-      letter-spacing: 0.5px;
+      color: var(--ink);
+      letter-spacing: 0.3px;
     }
 
-    nav {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+    nav { display: flex; align-items: center; gap: 4px; }
 
     .nav-link {
-      padding: 8px 16px;
-      font-size: 14px;
-      color: var(--ink-light);
-      transition: color 0.2s;
+      padding: 7px 14px;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: var(--ink-soft);
+      transition: color 0.15s;
     }
+    .nav-link:hover { color: var(--accent); }
 
-    .nav-link:hover {
-      color: var(--brand);
-    }
-
-    .btn-submit {
-      margin-left: 16px;
-      padding: 10px 24px;
-      background: var(--brand);
+    .btn-signin {
+      margin-left: 12px;
+      padding: 8px 20px;
+      background: var(--accent);
       color: #fff;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 500;
       border: none;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: background 0.15s;
     }
+    .btn-signin:hover { background: var(--accent-hover); }
 
-    .btn-submit:hover {
-      background: var(--brand-dark);
-    }
-
-    .btn-user {
+    .btn-user-circle {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 40px;
-      height: 40px;
+      width: 36px; height: 36px;
+      margin-left: 12px;
       padding: 0;
-      border-radius: 999px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
       font-weight: 600;
+      font-size: 14px;
       text-decoration: none;
     }
 
     .lang-switch {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      margin-left: 12px;
-      color: var(--ink-light);
-      font-size: 13px;
+      margin-left: 14px;
+      font-size: 12.5px;
+      color: var(--muted);
+      transition: color 0.15s;
     }
+    .lang-switch:hover { color: var(--ink); }
 
-    .lang-select {
-      border: 1px solid var(--border);
-      background: var(--bg-alt);
-      color: var(--ink);
-      border-radius: 999px;
-      padding: 6px 28px 6px 14px;
-      font-size: 13px;
-      cursor: pointer;
-      appearance: none;
-      -webkit-appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%236b7280'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 10px center;
-      background-size: 10px 10px;
-      transition: all 0.2s;
-    }
-
-    .lang-select:hover {
-      background: #e5e7eb;
-      border-color: #d1d5db;
-    }
-
-    .lang-select:focus {
-      outline: none;
-      border-color: var(--brand-light);
-    }
-
-    .lang-select option {
-      color: var(--ink);
-      background: var(--bg);
-    }
-
-    /* ==================== HERO ==================== */
+    /* ── HERO ── */
     .hero {
       margin-top: 64px;
-      padding: 120px 0 100px;
-      background: var(--bg);
-      position: relative;
+      padding: 96px 0 80px;
+      text-align: center;
       border-bottom: 1px solid var(--border);
     }
 
-    .hero-inner {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      position: relative;
-      z-index: 1;
-    }
-
     .hero-content {
-      max-width: 1100px;
-    }
-
-    .hero h1 {
-      font-family: "Source Serif 4", serif;
-      font-size: 52px;
-      font-weight: 700;
-      line-height: 1.2;
-      margin-bottom: 20px;
-      letter-spacing: -1px;
-      color: var(--brand-dark);
+      max-width: 780px;
+      margin: 0 auto;
     }
 
     .hero .tagline {
-      font-family: 'Montserrat', sans-serif;
-      font-size: 38.4px;
-      font-weight: 700;
-      color: rgb(18, 19, 23);
-      margin-bottom: 40px;
-      line-height: 1.4;
-    }
-
-    html[lang="en"] .hero .tagline {
-      font-family: 'Harding', 'Montserrat', sans-serif;
-    }
-
-    .hero-actions {
-      display: flex;
-      justify-content: center;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 44px;
+      font-weight: 600;
+      line-height: 1.2;
+      color: var(--ink);
+      margin-bottom: 36px;
+      letter-spacing: -0.5px;
     }
 
     .hero-search {
-      width: min(700px, 100%);
       display: flex;
-      flex-direction: column;
+      gap: 10px;
       align-items: center;
-    }
-
-    .hero-search .search-row {
-      display: flex;
-      gap: 12px;
-      align-items: stretch;
       justify-content: center;
+      max-width: 620px;
+      margin: 0 auto;
     }
 
     .hero-search input {
-      width: 408px;
-      height: 49px;
+      flex: 1;
       padding: 14px 18px;
-      border-radius: 999px;
       border: 1px solid var(--border);
+      background: var(--white);
+      font-family: 'Inter', sans-serif;
       font-size: 15px;
+      color: var(--ink);
       outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      transition: border-color 0.2s;
     }
-
     .hero-search input:focus {
-      border-color: var(--brand);
-      box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.12);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(139, 26, 26, 0.08);
     }
+    .hero-search input::placeholder { color: var(--muted); }
 
-    .hero-search .btn-primary {
-      border-radius: 999px;
-      padding: 14px 26px;
+    .btn-search {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 14px 28px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
       white-space: nowrap;
+      transition: background 0.15s;
     }
+    .btn-search:hover { background: var(--accent-hover); }
 
-
-
-    .hero .btn-primary {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 14px 32px;
-      background: var(--brand);
-      color: #fff;
-      font-size: 15px;
-      font-weight: 500;
-      border: none;
-      cursor: pointer;
-      transition: background 0.2s, transform 0.2s;
-    }
-
-    .hero .btn-primary:hover {
-      background: var(--brand-dark);
-      transform: translateY(-2px);
-    }
-
-    .hero .btn-secondary {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 14px 32px;
-      background: transparent;
-      color: var(--ink);
-      font-size: 15px;
-      font-weight: 500;
-      border: 1px solid var(--border);
-      cursor: pointer;
-      transition: border-color 0.2s, transform 0.2s;
-    }
-
-    .hero .btn-secondary:hover {
-      border-color: var(--brand);
-      color: var(--brand);
-      transform: translateY(-2px);
-    }
-
-    /* Login Modal */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 200;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    }
-
-    .modal-overlay.active {
-      display: flex;
-    }
-
-    .login-modal {
-      width: 100%;
-      max-width: 380px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      padding: 32px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
-      animation: modalSlideIn 0.3s ease;
-    }
-
-    @keyframes modalSlideIn {
-      from {
-        opacity: 0;
-        transform: translateY(-20px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .login-modal h3 {
-      font-size: 20px;
-      font-weight: 600;
-      margin-bottom: 24px;
-      color: var(--ink);
-    }
-
-    .form-group {
-      margin-bottom: 16px;
-    }
-
-    .form-group label {
-      display: block;
+    .hero-adv-link {
+      display: inline-block;
+      margin-top: 16px;
       font-size: 13px;
-      font-weight: 500;
-      color: var(--brand);
-      margin-bottom: 6px;
-    }
-
-    .form-group input {
-      width: 100%;
-      padding: 12px 14px;
-      font-size: 14px;
-      border: 1px solid var(--border);
-      background: var(--bg);
-      outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    .form-group input:focus {
-      border-color: var(--brand);
-      box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
-    }
-
-    .form-group input::placeholder {
-      color: #9ca3af;
-    }
-
-    .btn-login {
-      width: 100%;
-      padding: 12px;
-      background: var(--brand);
-      color: #fff;
-      font-size: 14px;
-      font-weight: 500;
-      border: none;
-      cursor: pointer;
-      transition: background 0.2s, transform 0.2s;
-      margin-top: 8px;
-    }
-
-    .btn-login:hover {
-      background: var(--brand-dark);
-      transform: translateY(-1px);
-    }
-
-    .login-links {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 20px;
-      padding-top: 16px;
-      border-top: 1px solid var(--border);
-    }
-
-    .login-links a {
-      font-size: 13px;
-      color: var(--brand);
-      cursor: pointer;
-      transition: color 0.2s;
-    }
-
-    .login-links a:hover {
-      color: var(--brand-dark);
+      color: var(--muted);
       text-decoration: underline;
+      text-underline-offset: 3px;
+      transition: color 0.15s;
     }
+    .hero-adv-link:hover { color: var(--accent); }
 
-    /* ==================== CONTENT SECTION ==================== */
-    .section {
-      padding: 80px 0;
-    }
-
-    .section-alt {
-      background: var(--bg-alt);
+    /* ── SECTIONS ── */
+    .section { padding: 72px 0; }
+    .section-divider {
+      border: none;
+      border-top: 1px solid var(--border);
     }
 
     .section-header {
       display: flex;
       justify-content: space-between;
       align-items: baseline;
-      margin-bottom: 40px;
-      padding-bottom: 16px;
-      border-bottom: 2px solid var(--ink);
+      margin-bottom: 36px;
     }
-
     .section-header h2 {
-      font-family: "Source Serif 4", serif;
+      font-family: 'Cormorant Garamond', serif;
       font-size: 28px;
-      font-weight: 700;
+      font-weight: 600;
+      letter-spacing: -0.3px;
     }
-
     .section-header .view-all {
-      font-size: 14px;
-      color: var(--brand);
-      display: flex;
-      align-items: center;
-      gap: 4px;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: var(--muted);
+      transition: color 0.15s;
     }
+    .section-header .view-all:hover { color: var(--accent); }
 
-    .section-header .view-all:hover {
-      text-decoration: underline;
-    }
-
-    /* ==================== ARTICLES GRID ==================== */
+    /* ── NEWS GRID ── */
     .articles-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 24px;
+      gap: 22px;
     }
 
     .article-card {
-      display: flex;
-      flex-direction: column;
+      background: var(--white);
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      transition: all 0.2s;
+    }
+    .article-card:hover {
+      border-color: var(--border);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+      transform: translateY(-1px);
     }
 
     .article-card .thumb {
       width: 100%;
       aspect-ratio: 16/10;
-      background: var(--bg-alt);
-      border: 1px solid var(--border);
-      margin-bottom: 12px;
+      background: var(--cream-warm);
       overflow: hidden;
     }
-
     .article-card .thumb img {
-      width: 100%;
-      height: 100%;
+      width: 100%; height: 100%;
       object-fit: cover;
+      transition: transform 0.3s;
     }
+    .article-card:hover .thumb img { transform: scale(1.03); }
 
-    .article-card .category {
-      font-size: 11px;
+    .article-card-body { padding: 16px 18px 20px; }
+    .article-card .card-cat {
+      font-size: 10.5px;
       font-weight: 600;
-      color: var(--brand);
+      color: var(--accent);
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 6px;
-    }
-
-    .article-card h3 {
-      font-size: 15px;
-      font-weight: 600;
-      line-height: 1.4;
+      letter-spacing: 1px;
       margin-bottom: 8px;
     }
-
-    .article-card .date {
+    .article-card h3 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.3;
+      margin-bottom: 8px;
+    }
+    .article-card .card-date {
       font-size: 12px;
       color: var(--muted);
-      margin-top: auto;
     }
 
-    .article-card a {
-      text-decoration: none;
-      color: inherit;
-      display: block;
+    /* ── FEATURES ── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .feature-card {
+      padding: 32px 28px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      transition: all 0.2s;
+    }
+    .feature-card:hover {
+      border-color: var(--border);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    }
+    .feature-icon {
+      width: 40px; height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--accent-wash);
+      margin-bottom: 20px;
+    }
+    .feature-icon svg { width: 18px; height: 18px; stroke: var(--accent); fill: none; }
+    .feature-card h4 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 19px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .feature-card p {
+      font-size: 13.5px;
+      color: var(--muted);
+      line-height: 1.6;
     }
 
-    .article-card h3 a {
-      transition: color 0.2s;
-    }
-
-    .article-card h3 a:hover {
-      color: var(--brand);
-    }
-
-    /* ==================== PROJECTS LIST ==================== */
-    .projects-section {
+    /* ── ABOUT ── */
+    .about-inner {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 60px;
+      gap: 64px;
+      align-items: start;
     }
-
-    .projects-column h3 {
-      font-family: "Source Serif 4", serif;
-      font-size: 22px;
-      font-weight: 700;
-      margin-bottom: 24px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .project-item {
-      padding: 16px 0;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .project-item:last-child {
-      border-bottom: none;
-    }
-
-    .project-item a {
-      font-size: 15px;
-      font-weight: 500;
-      line-height: 1.5;
-      display: block;
-      margin-bottom: 4px;
-    }
-
-    .project-item a:hover {
-      color: var(--brand);
-      text-decoration: underline;
-    }
-
-    .project-item .tag {
-      font-size: 11px;
+    .about-text h2 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 28px;
       font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      margin-bottom: 20px;
     }
-
-    /* ==================== ABOUT SECTION ==================== */
-    .about-section {
-      display: block;
+    .about-text p {
+      font-size: 14.5px;
+      color: var(--ink-soft);
+      line-height: 1.75;
+      margin-bottom: 14px;
     }
-
-    .about-content h2 {
-      font-family: "Source Serif 4", serif;
-      font-size: 32px;
-      font-weight: 700;
-      margin-bottom: 24px;
-    }
-
-    .about-content p {
-      font-size: 16px;
-      color: var(--ink-light);
-      line-height: 1.8;
-      margin-bottom: 16px;
-    }
-
     .stats-row {
       display: flex;
       gap: 40px;
@@ -587,439 +342,253 @@
       padding-top: 24px;
       border-top: 1px solid var(--border);
     }
-
-    .stat-item .number {
-      font-family: "Source Serif 4", serif;
-      font-size: 36px;
+    .stat-item .stat-num {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 38px;
       font-weight: 700;
-      color: var(--brand);
+      color: var(--accent);
       line-height: 1;
+      margin-bottom: 4px;
     }
-
-    .stat-item .label {
-      font-size: 12px;
+    .stat-item .stat-label {
+      font-size: 11.5px;
       color: var(--muted);
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      margin-top: 4px;
     }
 
-
-
-    /* ==================== FOOTER ==================== */
-    footer {
-      background: var(--footer-bg);
+    /* ── CTA ── */
+    .cta-section {
+      padding: 72px 0;
+      text-align: center;
+      background: var(--ink);
       color: #fff;
-      padding: 60px 0 40px;
-      margin-top: auto;
     }
-
-    .footer-grid {
-      display: grid;
-      grid-template-columns: 1.5fr 1fr 1fr 1fr;
-      gap: 40px;
-      margin-bottom: 40px;
-    }
-
-    .footer-brand h4 {
-      font-size: 18px;
+    .cta-section h2 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 32px;
       font-weight: 600;
       margin-bottom: 12px;
     }
-
-    .footer-brand p {
+    .cta-section p { color: #a8a8a8; margin-bottom: 28px; }
+    .btn-outline-light {
+      padding: 12px 28px;
+      background: transparent;
+      color: #fff;
       font-size: 14px;
-      color: #94a3b8;
-      line-height: 1.6;
+      font-weight: 500;
+      border: 1px solid rgba(255,255,255,0.3);
+      cursor: pointer;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
+    .btn-outline-light:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.5); }
 
+    /* ── FOOTER ── */
+    footer {
+      background: #141414;
+      color: #999;
+      padding: 56px 0 32px;
+      margin-top: auto;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+    .footer-brand h4 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 20px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+    .footer-brand p { font-size: 13px; line-height: 1.7; }
     .footer-col h5 {
-      font-size: 12px;
+      font-size: 10.5px;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 1.2px;
       margin-bottom: 16px;
-      color: #94a3b8;
+      color: #666;
     }
-
-    .footer-col ul {
-      list-style: none;
-    }
-
-    .footer-col li {
-      margin-bottom: 8px;
-    }
-
-    .footer-col a {
-      font-size: 14px;
-      color: #e2e8f0;
-      transition: color 0.2s;
-    }
-
-    .footer-col a:hover {
-      color: #fff;
-    }
-
+    .footer-col ul { list-style: none; }
+    .footer-col li { margin-bottom: 8px; }
+    .footer-col a { font-size: 13px; color: #bbb; transition: color 0.15s; }
+    .footer-col a:hover { color: #fff; }
     .footer-bottom {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding-top: 24px;
-      border-top: 1px solid #334155;
-    }
-
-    .footer-bottom .copyright {
+      border-top: 1px solid #2a2a2a;
       font-size: 12px;
-      color: #64748b;
     }
-
-    .social-links {
-      display: flex;
-      gap: 16px;
-    }
-
+    .footer-bottom a { color: #666; transition: color 0.15s; }
+    .footer-bottom a:hover { color: #bbb; }
+    .social-links { display: flex; gap: 10px; }
     .social-links a {
-      width: 32px;
-      height: 32px;
-      background: #1e293b;
+      width: 32px; height: 32px;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: background 0.2s;
+      background: #2a2a2a;
+      transition: background 0.15s;
     }
+    .social-links a:hover { background: var(--accent); }
+    .social-links svg { width: 14px; height: 14px; fill: #999; }
 
-    .social-links a:hover {
-      background: var(--brand);
-    }
-
-    .social-links svg {
-      width: 16px;
-      height: 16px;
-      fill: #e2e8f0;
-    }
-
-    .partner-logos {
-      display: flex;
-      gap: 24px;
-      margin-top: 24px;
-    }
-
-    .partner-logo {
-      width: 80px;
-      height: 32px;
-      background: #1e293b;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 10px;
-      color: #64748b;
-    }
-
-    /* ==================== RESPONSIVE ==================== */
-    @media (max-width: 1024px) {
-      .articles-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .projects-section {
-        grid-template-columns: 1fr;
-        gap: 40px;
-      }
-
-      .about-section {
-        grid-template-columns: 1fr;
-      }
-
-      .footer-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
-
-    @media (max-width: 768px) {
-      .hero {
-        padding: 80px 0 60px;
-      }
-
-      .hero h1 {
-        font-size: 36px;
-      }
-
-      .hero-actions {
-        flex-direction: column;
-        align-items: center;
-      }
-
-      .hero .btn-primary,
-      .hero .btn-secondary {
-        width: 100%;
-        max-width: 280px;
-        justify-content: center;
-      }
-
-      .login-modal {
-        padding: 24px;
-        margin: 16px;
-      }
-
-      .articles-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .stats-row {
-        flex-wrap: wrap;
-        gap: 24px;
-      }
-
-      .footer-grid {
-        grid-template-columns: 1fr;
-      }
-
-      nav {
-        display: none;
-      }
-    }
-
-    .flash {
-      background: #e5f0ff;
-      border: 1px solid #bcd4ff;
-      color: #0f285c;
-      padding: 10px 14px;
-      margin-bottom: 16px;
-      border-radius: 6px;
-    }
-
-    /* ==================== FAQ MODAL ==================== */
-    .faq-overlay {
+    /* ── MODALS ── */
+    .modal-overlay {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.6);
-      z-index: 300;
+      background: rgba(0,0,0,0.5);
+      z-index: 200;
       align-items: center;
       justify-content: center;
       padding: 24px;
-      overflow-y: auto;
     }
+    .modal-overlay.active { display: flex; }
 
-    .faq-overlay.active {
-      display: flex;
+    .login-modal {
+      width: 100%; max-width: 380px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      padding: 32px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.12);
+      animation: modalIn 0.25s ease;
     }
-
-    .faq-modal {
+    @keyframes modalIn {
+      from { opacity: 0; transform: translateY(-16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .login-modal h3 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+    .btn-login {
       width: 100%;
-      max-width: 720px;
-      max-height: 90vh;
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .faq-header {
-      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+      padding: 13px;
+      background: var(--accent);
       color: #fff;
-      padding: 24px 32px;
+      font-size: 14px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-login:hover { background: var(--accent-hover); }
+    .login-links {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-light);
+    }
+    .login-links span { font-size: 12.5px; color: var(--muted); }
+    .login-links a { font-size: 13px; color: var(--accent); }
+    .login-links a:hover { text-decoration: underline; }
+
+    .flash {
+      background: var(--accent-wash);
+      border: 1px solid #f1d1d1;
+      color: var(--accent);
+      padding: 10px 14px;
+      margin-bottom: 18px;
+      font-size: 13px;
     }
 
-    .faq-header h2 {
-      font-family: "Source Serif 4", serif;
-      font-size: 24px;
-      font-weight: 700;
-      margin: 0;
-    }
-
-    .faq-close {
-      background: rgba(255, 255, 255, 0.2);
-      border: none;
-      color: #fff;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      cursor: pointer;
-      font-size: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.2s;
-    }
-
-    .faq-close:hover {
-      background: rgba(255, 255, 255, 0.3);
-    }
-
-    .faq-content {
-      padding: 32px;
-      overflow-y: auto;
-      flex: 1;
-    }
-
-    .faq-item {
-      margin-bottom: 24px;
-      border-bottom: 1px solid #e5e7eb;
-      padding-bottom: 24px;
-    }
-
-    .faq-item:last-child {
-      margin-bottom: 0;
-      border-bottom: none;
-      padding-bottom: 0;
-    }
-
-    .faq-question {
-      font-size: 16px;
-      font-weight: 600;
-      color: #1e3a8a;
-      margin-bottom: 12px;
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-    }
-
-    .faq-question::before {
-      content: 'Q';
-      background: #1e3a8a;
-      color: #fff;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      font-weight: 700;
-      flex-shrink: 0;
-    }
-
-    .faq-answer {
-      font-size: 15px;
-      color: #4b5563;
-      line-height: 1.7;
-      padding-left: 36px;
-    }
-
-    .faq-footer {
-      background: #f9fafb;
-      padding: 20px 32px;
-      text-align: center;
-      border-top: 1px solid #e5e7eb;
-    }
-
-    .faq-footer-btn {
-      background: #1e3a8a;
-      color: #fff;
-      border: none;
-      padding: 12px 32px;
-      font-size: 14px;
-      font-weight: 500;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background 0.2s, transform 0.2s;
-    }
-
-    .faq-footer-btn:hover {
-      background: #1e40af;
-      transform: translateY(-1px);
-    }
-
-    /* Typing Effect */
+    /* ── TYPING CURSOR ── */
     .typing-cursor {
       display: inline-block;
-      width: 2px;
-      height: 1.4em;
-      background-color: var(--muted);
+      width: 2px; height: 1.2em;
+      background: var(--accent);
       margin-left: 2px;
-      vertical-align: -0.2em;
+      vertical-align: -0.15em;
       animation: blink 1s step-end infinite;
     }
+    @keyframes blink { 0%,100% { opacity: 1 } 50% { opacity: 0 } }
+    .typing-char { opacity: 0; transition: opacity 0.05s; }
+    .typing-char.visible { opacity: 1; }
 
-    @keyframes blink {
-
-      0%,
-      100% {
-        opacity: 1;
-      }
-
-      50% {
-        opacity: 0;
-      }
+    /* ── RESPONSIVE ── */
+    @media (max-width: 1024px) {
+      .articles-grid { grid-template-columns: repeat(2, 1fr); }
+      .features-grid { grid-template-columns: 1fr 1fr; }
+      .about-inner { grid-template-columns: 1fr; gap: 32px; }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
     }
-
-    .typing-char {
-      opacity: 0;
-      transition: opacity 0.05s ease;
-    }
-
-    .typing-char.visible {
-      opacity: 1;
+    @media (max-width: 768px) {
+      .hero { padding: 64px 0 48px; }
+      .hero .tagline { font-size: 30px; }
+      .hero-search { flex-direction: column; }
+      .hero-search .btn-search { width: 100%; justify-content: center; }
+      .section { padding: 48px 0; }
+      .articles-grid { grid-template-columns: 1fr; }
+      .features-grid { grid-template-columns: 1fr; }
+      .stats-row { flex-wrap: wrap; gap: 24px; }
+      .footer-grid { grid-template-columns: 1fr; }
+      nav .nav-link { display: none; }
     }
   </style>
 </head>
 
 <body>
 
-  <!-- ==================== HEADER ==================== -->
+  <!-- ── HEADER ── -->
   <header>
     <div class="container header-inner">
-      <div class="logo-area">Keydion</div>
+      <a href="{{ url_for('index') }}" class="logo-area">Keydion</a>
       <nav>
         <a class="nav-link" href="{{ url_for('upload') }}">{{ _('Upload') }}</a>
+        <a class="nav-link" href="{{ url_for('news_list') }}">{{ _('News') }}</a>
         {% if session.get('user', {}).get('role', '1')|int >= 3 %}
         <a class="nav-link" href="{{ url_for('manage') }}">{{ _('Manage') }}</a>
         {% endif %}
         {% if session.get('user') %}
         {% set nav_name = session.get('user', {}).get('display_name') or session.get('user', {}).get('username', '') %}
-        {% set nav_initial = nav_name[:1] if nav_name else 'U' %}
-        <a class="btn-submit btn-user" href="{{ url_for('dashboard') }}" title="{{ nav_name }}">{{ nav_initial|upper
-          }}</a>
+        <a class="btn-user-circle" href="{{ url_for('dashboard') }}" title="{{ nav_name }}">{{ nav_name[:1].upper() }}</a>
         {% else %}
-        <button class="btn-submit" onclick="location.href='{{ url_for('login') }}'">{{ _('Sign in') }}</button>
+        <button class="btn-signin" onclick="location.href='{{ url_for('login') }}'">{{ _('Sign in') }}</button>
         {% endif %}
-        <div class="lang-switch">
-          {% if current_locale == 'zh' %}
-          <a href="{{ url_for('set_language', locale_code='en', next=request.full_path) }}"
-            style="color: inherit; text-decoration: none;">English</a>
-          {% else %}
-          <a href="{{ url_for('set_language', locale_code='zh', next=request.full_path) }}"
-            style="color: inherit; text-decoration: none;">中文</a>
-          {% endif %}
-        </div>
+        <a class="lang-switch" href="{{ url_for('set_language', locale_code='en' if current_locale == 'zh' else 'zh', next=request.full_path) }}">
+          {{ 'EN' if current_locale == 'zh' else '中文' }}
+        </a>
       </nav>
     </div>
   </header>
 
-  <!-- ==================== HERO ==================== -->
+  <!-- ── HERO ── -->
   <section class="hero" id="home">
     <div class="container">
-      <div class="hero-inner">
-        <div class="hero-content">
-          {% set hero_quotes = [_("tagline_quote_1"), _("tagline_quote_2")] %}
-          <script>window.__heroQuotes = {{ hero_quotes | tojson }};</script>
-          <p class="tagline" id="typing-tagline" style="min-height: 1.6em; visibility: hidden;">
-            <span class="typing-wrapper"></span><span class="typing-cursor"></span>
-          </p>
-          <div class="hero-actions">
-            <form class="hero-search" action="{{ url_for('search') }}" method="get">
-              <div class="search-row">
-                <input type="text" name="q" placeholder="{{ _('搜索论文标题、关键词') }}" aria-label="{{ _('搜索论文') }}">
-                <button class="btn-primary" type="submit">{{ _('Search') }}</button>
-              </div>
-              <div style="margin-top: 10px; text-align: center;">
-                <a href="{{ url_for('advanced_search') }}"
-                  style="color: #666; font-size: 0.9em; text-decoration: underline;">{{ _('Advanced Search') }}</a>
-              </div>
-            </form>
-          </div>
+      <div class="hero-content">
+        {% set hero_quotes = [_("tagline_quote_1"), _("tagline_quote_2")] %}
+        <script>window.__heroQuotes = {{ hero_quotes | tojson }};</script>
+        <p class="tagline" id="typing-tagline" style="min-height: 1.3em; visibility: hidden;">
+          <span class="typing-wrapper"></span><span class="typing-cursor"></span>
+        </p>
+        <div class="hero-actions">
+          <form class="hero-search" action="{{ url_for('search') }}" method="get">
+            <input type="text" name="q" placeholder="{{ _('Search by title, author, or keyword...') }}" aria-label="{{ _('Search papers') }}">
+            <button class="btn-search" type="submit">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              {{ _('Search') }}
+            </button>
+          </form>
         </div>
+        <a href="{{ url_for('advanced_search') }}" class="hero-adv-link">{{ _('Advanced Search') }}</a>
       </div>
     </div>
   </section>
 
-  <!-- ==================== ARTICLES SECTION ==================== -->
+  <!-- ── NEWS ── -->
   <section class="section" id="articles">
     <div class="container">
       <div class="section-header">
@@ -1030,119 +599,140 @@
         {% if latest_news and latest_news|length > 0 %}
         {% for news in latest_news %}
         <article class="article-card">
-          {% if news.image_url %}
           <div class="thumb">
             <a href="{{ url_for('news_detail', news_id=news.id) }}">
-              <img src="{{ news.image_url }}" alt="{{ news.title }}">
+              {% if news.image_url %}
+              <img src="{{ news.image_url }}" alt="{{ news.title }}" loading="lazy">
+              {% else %}
+              <img src="{{ url_for('static', filename='landing/article-' ~ (loop.index) ~ '.jpg') }}" alt="{{ news.title }}" loading="lazy">
+              {% endif %}
             </a>
           </div>
-          {% else %}
-          <div class="thumb">
-            <a href="{{ url_for('news_detail', news_id=news.id) }}">
-              <img src="{{ url_for('static', filename='landing/article-' ~ loop.index ~ '.jpg') }}"
-                alt="{{ news.title }}">
-            </a>
+          <div class="article-card-body">
+            <p class="card-cat">{{ news.category }}</p>
+            <h3><a href="{{ url_for('news_detail', news_id=news.id) }}">{{ news.title }}</a></h3>
+            <span class="card-date">{{ news.published_at }}</span>
           </div>
-          {% endif %}
-          <span class="category">{{ news.category }}</span>
-          <h3><a href="{{ url_for('news_detail', news_id=news.id) }}">{{ news.title }}</a></h3>
-          <span class="date">{{ news.published_at }}</span>
         </article>
         {% endfor %}
         {% else %}
+        {% set placeholders = [
+          ('活动回顾', '2025 春季学术写作工作坊圆满结束', 'Nov 28, 2025'),
+          ('期刊发布', '《青年研究》Vol.2 No.1 正式上线', 'Nov 15, 2025'),
+          ('讲座预告', '如何选择适合自己的研究课题？', 'Nov 08, 2025'),
+          ('成果展示', '社员论文入选国际中学生学术会议', 'Oct 30, 2025')
+        ] %}
+        {% for cat, title, date in placeholders %}
         <article class="article-card">
           <div class="thumb">
-            <img src="{{ url_for('static', filename='landing/article-1.jpg') }}" alt="学术写作工作坊">
+            <img src="{{ url_for('static', filename='landing/article-' ~ (loop.index) ~ '.jpg') }}" alt="{{ title }}" loading="lazy">
           </div>
-          <span class="category">活动回顾</span>
-          <h3>2025 春季学术写作工作坊圆满结束</h3>
-          <span class="date">Nov 28, 2025</span>
-        </article>
-        <article class="article-card">
-          <div class="thumb">
-            <img src="{{ url_for('static', filename='landing/article-2.jpg') }}" alt="期刊发布">
+          <div class="article-card-body">
+            <p class="card-cat">{{ cat }}</p>
+            <h3>{{ title }}</h3>
+            <span class="card-date">{{ date }}</span>
           </div>
-          <span class="category">期刊发布</span>
-          <h3>《青年研究》Vol.2 No.1 正式上线</h3>
-          <span class="date">Nov 15, 2025</span>
         </article>
-        <article class="article-card">
-          <div class="thumb">
-            <img src="{{ url_for('static', filename='landing/article-3.jpg') }}" alt="讲座预告">
-          </div>
-          <span class="category">讲座预告</span>
-          <h3>如何选择适合自己的研究课题？</h3>
-          <span class="date">Nov 08, 2025</span>
-        </article>
-        <article class="article-card">
-          <div class="thumb">
-            <img src="{{ url_for('static', filename='landing/article-4.jpg') }}" alt="成果展示">
-          </div>
-          <span class="category">成果展示</span>
-          <h3>社员论文入选国际中学生学术会议</h3>
-          <span class="date">Oct 30, 2025</span>
-        </article>
+        {% endfor %}
         {% endif %}
       </div>
     </div>
   </section>
 
-  <!-- ==================== PROJECTS SECTION ==================== -->
-  <section class="section section-alt" id="projects">
-    <div class="container">
-      <div class="projects-section">
-        <div class="projects-column">
-          <h3>{{ _('Research Projects') }}</h3>
-          <div class="project-item">
-            <span style="color: #888;">TBD</span>
+  <!-- ── FEATURES ── -->
+  <section class="section" style="background: var(--white);">
+    <hr class="section-divider">
+    <div class="container" style="padding-top: 72px;">
+      <div class="section-header">
+        <h2>{{ _('Platform Features') }}</h2>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="1.5" stroke-linecap="round"/></svg>
           </div>
+          <h4>{{ _('Powerful Search') }}</h4>
+          <p>{{ _('Full-text PDF search with faceted filters for subject, date, language, and paper type.') }}</p>
         </div>
-        <div class="projects-column">
-          <h3>{{ _('Journal Archives') }}</h3>
-          <div class="project-item">
-            <span style="color: #888;">TBD</span>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
+          <h4>{{ _('IB EE & CP Support') }}</h4>
+          <p>{{ _('Dedicated metadata and grading for Extended Essays and Community Projects.') }}</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          <h4>{{ _('Microsoft Auth') }}</h4>
+          <p>{{ _('Secure single sign-on via Microsoft Entra ID — your school credentials, integrated.') }}</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ==================== ABOUT SECTION ==================== -->
+  <!-- ── ABOUT ── -->
   <section class="section" id="about">
     <div class="container">
-      <div class="about-section">
-        <div class="about-content">
-          <h2>{{ _('关于我们') }}</h2>
-          <p>{{ _('Keydion 是一个专为高中设计的学术资产平台。我们聚焦于学生的科研成果，包括 IA、EE、TOK 等项目。通过本平台，学生的研究成果将不再被忽视，而是被系统性地保存于 Keydion
-            数据库中，供师生查阅与参考。同时，教师也可以更全面地了解本校科研项目的内容与整体质量。') }}</p>
-          <p>{{ _('Keydion
-            同样致力于维护学术诚信，避免撞题以及学术不端误判。我们希望为每一所学校留存这些珍贵的学术成果，让优秀的学生研究经验得以传承，使学术探索不再只是一次性的作业，而成为可以持续积累与发展的知识资产。') }}</p>
+      <div class="about-inner">
+        <div class="about-text">
+          <h2>{{ _('About Keydion') }}</h2>
+          <p>{{ _('Keydion is an academic asset platform designed for high school research. We focus on student scholarship — IA, EE, TOK, and independent projects — ensuring that excellent work is systematically preserved, searchable, and citable.') }}</p>
+          <p>{{ _('By building a living archive of student research, we help schools maintain academic integrity, prevent topic collisions, and let each cohort build on the discoveries of the last.') }}</p>
+          <div class="stats-row">
+            <div class="stat-item">
+              <div class="stat-num">100+</div>
+              <div class="stat-label">{{ _('Papers') }}</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-num">50+</div>
+              <div class="stat-label">{{ _('Authors') }}</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-num">6</div>
+              <div class="stat-label">{{ _('Categories') }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="about-text">
+          <h2>{{ _('Our Mission') }}</h2>
+          <p>{{ _('Academic exploration should not be a one-time assignment. It should become a lasting asset — accumulated, shared, and built upon by every generation of students.') }}</p>
+          <p>{{ _('We are committed to academic integrity, preventing topic collisions and misjudgments of academic misconduct. We help every school preserve its students\' valuable research achievements, enabling outstanding work to be passed down and built upon.') }}</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ==================== FOOTER ==================== -->
-  <footer id="contact">
+  <!-- ── CTA ── -->
+  <section class="cta-section">
+    <div class="container">
+      <h2>{{ _('Ready to explore?') }}</h2>
+      <p>{{ _('Browse the library, upload your research, or sign in to get started.') }}</p>
+      <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
+        <button class="btn-search" onclick="location.href='{{ url_for('search') }}'">{{ _('Search Papers') }}</button>
+        {% if not session.get('user') %}
+        <button class="btn-outline-light" onclick="openLoginModal()">{{ _('Sign in') }} →</button>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FOOTER ── -->
+  <footer>
     <div class="container">
       <div class="footer-grid">
         <div class="footer-brand">
           <h4>Keydion</h4>
-          <p>{{ _('Dedicated to cultivating academic research skills for young scholars, providing a platform for
-            academic writing and paper publication.') }}</p>
-          <!-- <div class="partner-logos">
-            <div class="partner-logo">合作方</div>
-            <div class="partner-logo">合作方</div>
-            <div class="partner-logo">合作方</div>
-          </div> -->
+          <p>{{ _('Dedicated to cultivating academic research skills for young scholars — a platform for writing, publishing, and discovery.') }}</p>
         </div>
         <div class="footer-col">
-          <h5>{{ _('Navigation') }}</h5>
+          <h5>{{ _('Navigate') }}</h5>
           <ul>
-            <li><a href="#home">{{ _('Home') }}</a></li>
-            <li><a href="#articles">{{ _('Latest Updates') }}</a></li>
-            <li><a href="#projects">{{ _('Research Projects') }}</a></li>
-            <li><a href="#about">{{ _('About Us') }}</a></li>
+            <li><a href="{{ url_for('search') }}">{{ _('Search') }}</a></li>
+            <li><a href="{{ url_for('news_list') }}">{{ _('News') }}</a></li>
+            <li><a href="{{ url_for('upload') }}">{{ _('Upload') }}</a></li>
+            <li><a href="{{ url_for('faq') }}">{{ _('FAQ') }}</a></li>
           </ul>
         </div>
         <div class="footer-col">
@@ -1151,131 +741,50 @@
             <li><a href="#">{{ _('Journal Archives') }}</a></li>
             <li><a href="#">{{ _('Submission Guide') }}</a></li>
             <li><a href="#">{{ _('Writing Resources') }}</a></li>
-            <li><a href="{{ url_for('faq') }}">{{ _('FAQ') }}</a></li>
+            <li><a href="{{ url_for('advanced_search') }}">{{ _('Advanced Search') }}</a></li>
           </ul>
         </div>
         <div class="footer-col">
-          <h5>{{ _('Contact Us') }}</h5>
+          <h5>{{ _('Contact') }}</h5>
           <ul>
             <li><a href="mailto:markus@keydion.com">markus@keydion.com</a></li>
           </ul>
         </div>
       </div>
       <div class="footer-bottom">
-        <span class="copyright">© 2026 Keydion</span>
-        <a href="https://beian.miit.gov.cn" class="copyright" target="_blank">蜀ICP备16024747号-2</a>
-        <div class="social-links" aria-label="社交链接">
-          <a href="#" title="微信">
-            <svg viewBox="0 0 24 24">
-              <path
-                d="M8.5 11a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm5 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm-8.25 4.5a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5zm6.5 0a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5zM12 2C6.477 2 2 5.813 2 10.5c0 2.614 1.4 4.94 3.6 6.48l-.9 2.72 3.24-1.62c1.28.4 2.68.62 4.06.62 5.523 0 10-3.813 10-8.5S17.523 2 12 2z" />
-            </svg>
-          </a>
-          <a href="#" title="微博">
-            <svg viewBox="0 0 24 24">
-              <path
-                d="M20.194 14.197c0 3.306-4.227 5.803-9.467 5.803-5.24 0-9.467-2.497-9.467-5.803 0-3.306 4.227-5.803 9.467-5.803.513 0 1.017.027 1.51.08-.18-.487-.28-1.01-.28-1.554 0-2.352 1.907-4.26 4.26-4.26s4.26 1.908 4.26 4.26c0 1.26-.548 2.39-1.417 3.17.707.927 1.134 2.013 1.134 3.107z" />
-            </svg>
-          </a>
-          <a href="mailto:markus@keydion.com" title="邮箱">
-            <svg viewBox="0 0 24 24">
-              <path
-                d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
-            </svg>
-          </a>
-          <a href="https://space.bilibili.com/3706954016885199" title="Bilibili">
-            <svg viewBox="0 0 24 24">
-              <path
-                d="M17.813 4.653h.854c1.51.054 2.769.578 3.773 1.574 1.004.995 1.524 2.249 1.56 3.76v7.36c-.036 1.51-.556 2.769-1.56 3.773s-2.262 1.524-3.773 1.56H5.333c-1.51-.036-2.769-.556-3.773-1.56S.036 18.858 0 17.347v-7.36c.036-1.511.556-2.765 1.56-3.76 1.004-.996 2.262-1.52 3.773-1.574h.774l-1.174-1.12a1.234 1.234 0 0 1-.373-.906c0-.356.124-.659.373-.907.249-.248.557-.372.92-.372.362 0 .662.124.906.372l2.18 2.093h5.14l2.18-2.093c.244-.248.544-.372.906-.372.363 0 .671.124.92.372.249.248.373.551.373.907 0 .355-.124.657-.373.906l-1.174 1.12zM6.12 15.6c.355 0 .66-.124.909-.373.248-.248.373-.551.373-.906V12c0-.355-.125-.66-.373-.907a1.236 1.236 0 0 0-.91-.373c-.354 0-.657.124-.906.373A1.238 1.238 0 0 0 4.84 12v2.32c0 .356.124.66.373.907.249.249.551.373.907.373zm11.76 0c.355 0 .66-.124.906-.373.249-.248.373-.551.373-.906V12c0-.355-.124-.66-.373-.907a1.238 1.238 0 0 0-.906-.373c-.356 0-.66.124-.907.373a1.236 1.236 0 0 0-.373.907v2.32c0 .356.124.66.373.907.248.249.55.373.907.373z" />
-            </svg>
-          </a>
+        <span>© 2026 Keydion</span>
+        <div class="social-links">
+          <a href="#" title="微信"><svg viewBox="0 0 24 24"><path d="M8.5 11a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm5 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM12 2C6.477 2 2 5.813 2 10.5c0 2.614 1.4 4.94 3.6 6.48l-.9 2.72 3.24-1.62c1.28.4 2.68.62 4.06.62 5.523 0 10-3.813 10-8.5S17.523 2 12 2z"/></svg></a>
+          <a href="mailto:markus@keydion.com" title="Email"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg></a>
+          <a href="https://space.bilibili.com/3706954016885199" title="Bilibili"><svg viewBox="0 0 24 24"><path d="M17.813 4.653h.854c1.51.054 2.769.578 3.773 1.574 1.004.995 1.524 2.249 1.56 3.76v7.36c-.036 1.51-.556 2.769-1.56 3.773s-2.262 1.524-3.773 1.56H5.333c-1.51-.036-2.769-.556-3.773-1.56S.036 18.858 0 17.347v-7.36c.036-1.511.556-2.765 1.56-3.76 1.004-.996 2.262-1.52 3.773-1.574h.774l-1.174-1.12a1.234 1.234 0 01-.373-.906c0-.356.124-.659.373-.907.249-.248.557-.372.92-.372.362 0 .662.124.906.372l2.18 2.093h5.14l2.18-2.093c.244-.248.544-.372.906-.372.363 0 .671.124.92.372.249.248.373.551.373.907 0 .355-.124.657-.373.906l-1.174 1.12zM6.12 15.6c.355 0 .66-.124.909-.373.248-.248.373-.551.373-.906V12c0-.355-.125-.66-.373-.907a1.236 1.236 0 00-.91-.373c-.354 0-.657.124-.906.373A1.238 1.238 0 004.84 12v2.32c0 .356.124.66.373.907.249.249.551.373.907.373zm11.76 0c.355 0 .66-.124.906-.373.249-.248.373-.551.373-.906V12c0-.355-.124-.66-.373-.907a1.238 1.238 0 00-.906-.373c-.356 0-.66.124-.907.373a1.236 1.236 0 00-.373.907v2.32c0 .356.124.66.373.907.248.249.55.373.907.373z"/></svg></a>
         </div>
+        <a href="https://beian.miit.gov.cn" target="_blank">蜀ICP备16024747号-2</a>
       </div>
     </div>
   </footer>
 
-  <!-- ==================== LOGIN MODAL ==================== -->
+  <!-- ── LOGIN MODAL ── -->
   {% set flash_messages = get_flashed_messages(with_categories=true) %}
   {% set ns = namespace(has_login_error=false) %}
   {% for category, message in flash_messages %}
-  {% if category in ['warning', 'danger'] %}
-  {% set ns.has_login_error = true %}
-  {% endif %}
+  {% if category in ['warning', 'danger'] %}{% set ns.has_login_error = true %}{% endif %}
   {% endfor %}
   <div id="loginModal" class="modal-overlay">
     <div class="login-modal">
-      {% if flash_messages %}
       {% for category, message in flash_messages %}
-      {% if category != 'info' %}
-      <div class="flash">{{ message }}</div>
-      {% endif %}
+      {% if category != 'info' %}<div class="flash">{{ message }}</div>{% endif %}
       {% endfor %}
-      {% endif %}
-      <h3>账号登录</h3>
+      <h3>{{ _('Sign in') }}</h3>
       {% if ms_enabled %}
       <form action="{{ url_for('ms_login') }}" method="get">
-        <button type="submit" class="btn-login">使用微软账号登录</button>
+        <button type="submit" class="btn-login">{{ _('Sign in with Microsoft') }}</button>
       </form>
       {% else %}
-      <div class="flash">Microsoft 登录尚未配置，请联系管理员。</div>
+      <div class="flash">Microsoft {{ _('sign-in is not configured.') }}</div>
       {% endif %}
       <div class="login-links">
-        <span style="color: #666; font-size: 13px;">如有问题请联系管理员</span>
-        <a href="#" onclick="closeLoginModal(); return false;">取消</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==================== FAQ MODAL ==================== -->
-  <div id="faqModal" class="faq-overlay">
-    <div class="faq-modal">
-      <div class="faq-header">
-        <h2>常见问题 FAQ</h2>
-        <button class="faq-close" onclick="closeFaqModal()" aria-label="关闭">&times;</button>
-      </div>
-      <div class="faq-content">
-        <div class="faq-item">
-          <div class="faq-question">如何投稿论文？</div>
-          <div class="faq-answer">
-            在导航栏点击“投稿”，登录后即可进入投稿系统。支持 PDF 格式的论文上传，请确保文件大小不超过 10MB。
-          </div>
-        </div>
-        <div class="faq-item">
-          <div class="faq-question">投稿有什么要求？</div>
-          <div class="faq-answer">
-            投稿对象为在校中学生，稿件类型包括研究论文、文献综述、调查报告等。语言中英文均可，英文优先。格式要求为 Word 或 PDF 文档，需包含摘要、关键词、正文和参考文献。
-          </div>
-        </div>
-        <div class="faq-item">
-          <div class="faq-question">如何注册账号？</div>
-          <div class="faq-answer">
-            请联系社团管理员获取账号。出于学术诚信考虑，我们采用邀请制注册，确保每位用户的真实身份。联系邮箱：club@example.edu
-          </div>
-        </div>
-        <div class="faq-item">
-          <div class="faq-question">论文审核需要多长时间？</div>
-          <div class="faq-answer">
-            通常情况下，初审结果会在 1-2 周内反馈。如需修改，修改稿的审核周期约为 1 周。最终录用通知会通过邮件发送。
-          </div>
-        </div>
-        <div class="faq-item">
-          <div class="faq-question">可以查看已发表的论文吗？</div>
-          <div class="faq-answer">
-            是的，登录系统后可以在"检索文库"功能中搜索和浏览已发表的论文。部分优秀论文也会在首页的"最新动态"中展示。
-          </div>
-        </div>
-        <div class="faq-item">
-          <div class="faq-question">如何联系社团？</div>
-          <div class="faq-answer">
-            您可以通过以下方式联系我们：<br>
-            • 邮箱：club@example.edu<br>
-            • 微信公众号：EssayClub_official<br>
-            • 线下地址：图书馆二层 · 学术社团中心
-          </div>
-        </div>
-      </div>
-      <div class="faq-footer">
-        <button class="faq-footer-btn" onclick="closeFaqModal()">返回首页</button>
+        <span>{{ _('Contact admin for access') }}</span>
+        <a href="#" onclick="closeLoginModal(); return false;">{{ _('Cancel') }}</a>
       </div>
     </div>
   </div>
@@ -1283,98 +792,45 @@
   <script>
     const loginModal = document.getElementById('loginModal');
 
-    function openLoginModal() {
-      loginModal.classList.add('active');
-      document.body.style.overflow = 'hidden';
-      // 聚焦到用户名输入框
-      setTimeout(() => {
-        document.getElementById('username').focus();
-      }, 100);
-    }
+    function openLoginModal() { loginModal.classList.add('active'); document.body.style.overflow = 'hidden'; }
+    function closeLoginModal() { loginModal.classList.remove('active'); document.body.style.overflow = ''; }
 
-    function closeLoginModal() {
-      loginModal.classList.remove('active');
-      document.body.style.overflow = '';
-    }
+    loginModal.addEventListener('click', (e) => { if (e.target === loginModal) closeLoginModal(); });
 
-    // FAQ 模态框
-    const faqModal = document.getElementById('faqModal');
-
-    function openFaqModal() {
-      faqModal.classList.add('active');
-      document.body.style.overflow = 'hidden';
-    }
-
-    function closeFaqModal() {
-      faqModal.classList.remove('active');
-      document.body.style.overflow = '';
-    }
-
-    // 点击 FAQ 遮罩层关闭
-    faqModal.addEventListener('click', (e) => {
-      if (e.target === faqModal) closeFaqModal();
-    });
-
-    // 点击遮罩层关闭
-    loginModal.addEventListener('click', (e) => {
-      if (e.target === loginModal) closeLoginModal();
-    });
-
-    // ESC 键关闭
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        if (loginModal.classList.contains('active')) closeLoginModal();
-        if (faqModal.classList.contains('active')) closeFaqModal();
-      }
+      if (e.key === 'Escape' && loginModal.classList.contains('active')) closeLoginModal();
     });
 
-    // 只有在登录相关的错误/警告消息时才自动打开登录框（不包括退出成功消息）
-    {% if ns.has_login_error %}
-    openLoginModal();
-    {% endif %}
+    {% if ns.has_login_error %} openLoginModal(); {% endif %}
 
-    // Typing Effect Logic
+    // Typing effect
     document.addEventListener('DOMContentLoaded', () => {
       const tagline = document.getElementById('typing-tagline');
-      if (tagline) {
-        // Pick a quote that rotates on each refresh
-        const quotes = window.__heroQuotes || [];
-        let idx = parseInt(sessionStorage.getItem('tagline_idx') || '0', 10);
-        if (idx >= quotes.length) idx = 0;
-        const text = quotes[idx];
-        sessionStorage.setItem('tagline_idx', String((idx + 1) % quotes.length));
+      if (!tagline) return;
+      const quotes = window.__heroQuotes || [];
+      let idx = parseInt(sessionStorage.getItem('tagline_idx') || '0', 10);
+      if (idx >= quotes.length) idx = 0;
+      const text = quotes[idx];
+      sessionStorage.setItem('tagline_idx', String((idx + 1) % quotes.length));
 
-        const wrapper = tagline.querySelector('.typing-wrapper');
-        tagline.style.visibility = 'visible';
+      const wrapper = tagline.querySelector('.typing-wrapper');
+      tagline.style.visibility = 'visible';
+      wrapper.innerHTML = '';
+      const spans = text.split('').map(char => {
+        const span = document.createElement('span');
+        span.textContent = char;
+        span.className = 'typing-char';
+        wrapper.appendChild(span);
+        return span;
+      });
 
-        // Prepare spans
-        wrapper.innerHTML = '';
-        const chars = text.split('');
-        const spans = chars.map(char => {
-          const span = document.createElement('span');
-          span.textContent = char;
-          span.className = 'typing-char';
-          wrapper.appendChild(span);
-          return span;
-        });
-
-        // Type function
-        let i = 0;
-        function typeChar() {
-          if (i < spans.length) {
-            spans[i].classList.add('visible');
-            i++;
-            setTimeout(typeChar, 50);
-          } else {
-            const cursor = tagline.querySelector('.typing-cursor');
-            if (cursor) cursor.style.display = 'none';
-          }
-        }
-
-        setTimeout(typeChar, 300);
+      let i = 0;
+      function typeChar() {
+        if (i < spans.length) { spans[i].classList.add('visible'); i++; setTimeout(typeChar, 50); }
+        else { const c = tagline.querySelector('.typing-cursor'); if (c) c.style.display = 'none'; }
       }
+      setTimeout(typeChar, 300);
     });
   </script>
 </body>
-
 </html>
