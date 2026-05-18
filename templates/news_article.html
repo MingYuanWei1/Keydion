@@ -616,6 +616,21 @@
     .user-dropdown.open { display: block; }
     .user-dropdown a { display: block; padding: 10px 16px; font-size: 13.5px; color: #1a1a1a; text-decoration: none; }
     .user-dropdown a:hover { background: #f5f0e8; }
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; padding: 24px; }
+    .modal-overlay.active { display: flex; }
+    .login-modal { width: 100%; max-width: 380px; background: #fff; border: 1px solid #e0dbd0; padding: 32px; box-shadow: 0 16px 48px rgba(0,0,0,0.12); }
+    .login-modal h3 { font-family: Georgia, serif; font-size: 22px; font-weight: 600; margin-bottom: 24px; text-align: center; }
+    .btn-login { width: 100%; padding: 13px; background: #8b1a1a; color: #fff; font-size: 14px; font-weight: 500; border: none; cursor: pointer; }
+    .btn-login:hover { background: #6b1212; }
+    .login-modal-divider { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; color: #6b6b6b; font-size: 11px; font-weight: 600; margin-bottom: 14px; }
+    .login-modal-divider::before, .login-modal-divider::after { content: ""; height: 1px; background: #e0dbd0; }
+    .field-group { margin-bottom: 14px; }
+    .field-group label { display: block; font-size: 12.5px; font-weight: 600; color: #3d3d3d; margin-bottom: 5px; }
+    .field-group input { width: 100%; padding: 11px 13px; font-size: 14px; border: 1px solid #e0dbd0; background: #fff; color: #1a1a1a; outline: none; }
+    .field-group input:focus { border-color: #8b1a1a; box-shadow: 0 0 0 2px rgba(139,26,26,0.08); }
+    .login-links { display: flex; justify-content: center; margin-top: 18px; padding-top: 16px; border-top: 1px solid #e0dbd0; }
+    .login-links a { font-size: 13px; color: #8b1a1a; cursor: pointer; }
+    .login-links a:hover { text-decoration: underline; }
     </style>
 </head>
 
@@ -646,7 +661,7 @@
                   </div>
                 </div>
                 {% else %}
-                <button class="btn-signin" onclick="location.href='{{ url_for('login') }}'">{{ _('Sign in') }}</button>
+                <button class="btn-signin" onclick="openLoginModal()">{{ _('Sign in') }}</button>
                 {% endif %}
                 <a class="lang-switch" href="{{ url_for('set_language', locale_code='en' if current_locale == 'zh' else 'zh', next=request.full_path) }}">
                     {{ 'EN' if current_locale == 'zh' else '中文' }}
@@ -807,6 +822,8 @@
     function toggleUserMenu() { document.getElementById('userDropdown').classList.toggle('open'); }
     document.addEventListener('click', function(e) { var m=document.getElementById('userDropdown'); var b=document.querySelector('.btn-user-circle'); if(m&&b&&!b.contains(e.target)&&!m.contains(e.target))m.classList.remove('open'); });
     </script>
+<div id="loginModal" class="modal-overlay"><div class="login-modal"><h3>{{ _('Sign in') }}</h3>{% if ms_enabled %}<button class="btn-login" onclick="location.href='{{ url_for('ms_login') }}'" style="background:#1a1a1a;margin-bottom:14px;">{{ _('Sign in with Microsoft') }}</button><div class="login-modal-divider"><span>{{ _('or sign in with email') }}</span></div>{% endif %}<form method="post" action="{{ url_for('login') }}"><div class="field-group"><label>{{ _('Email / Username') }}</label><input type="text" name="email" required autofocus></div><div class="field-group"><label>{{ _('Password') }}</label><input type="password" name="password" required></div><button type="submit" class="btn-login">{{ _('Sign in') }}</button></form><div class="login-links"><a onclick="closeLoginModal()">{{ _('Cancel') }}</a></div></div></div>
+<script>var lm=document.getElementById('loginModal');function openLoginModal(){if(lm){lm.classList.add('active');document.body.style.overflow='hidden';}}function closeLoginModal(){if(lm){lm.classList.remove('active');document.body.style.overflow='';}}if(lm){lm.addEventListener('click',function(e){if(e.target===lm)closeLoginModal();});}document.addEventListener('keydown',function(e){if(e.key==='Escape'&&lm&&lm.classList.contains('active'))closeLoginModal();});{% if request.args.get('login') %}openLoginModal();{% endif %}</script>
 </body>
 
 </html>

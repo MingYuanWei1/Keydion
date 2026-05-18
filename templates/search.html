@@ -202,7 +202,7 @@
         <!-- Item right side buttons -->
         <div class="col-lg-3 d-flex flex-column gap-2 align-items-end justify-content-start">
           {% if is_guest %}
-          <a href="{{ url_for('login') }}"
+          <a href="{{ url_for('index', login=1) }}"
             class="btn btn-danger btn-sm w-100 fw-medium shadow-none text-start text-center rounded-0"
             style="background-color: #a4101e; border-color: #a4101e; font-size: 13px;">
             {{ _('Sign in to Download') }}

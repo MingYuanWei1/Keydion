@@ -533,6 +533,7 @@ def create_app() -> Flask:
         return {
             "current_year": datetime.utcnow().year,
             "site_name": "Keydion",
+            "ms_enabled": is_ms_configured(),
         }
 
     # ---- Template filter: parse block-based article body ----
@@ -597,7 +598,7 @@ def create_app() -> Flask:
                     allowed, warning = ensure_login_available(user["username"])
                     if not allowed:
                         flash(warning, "warning")
-                        return render_template("login.html", ms_enabled=is_ms_configured())
+                        return redirect(url_for("index", login=1))
                     display = user_record.get("first_name", "") or user_record.get("email", "") or user["username"]
                     saved_next = session.get("next")
                     start_local_session(
@@ -615,7 +616,7 @@ def create_app() -> Flask:
                         allowed, warning = ensure_login_available(ms_record["ms_id"])
                         if not allowed:
                             flash(warning, "warning")
-                            return render_template("login.html", ms_enabled=is_ms_configured())
+                            return redirect(url_for("index", login=1))
                         saved_next = session.get("next")
                         start_ms_session(ms_record)
                         display = ms_record.get("display_name", "") or ms_record.get("email", "")
@@ -623,11 +624,11 @@ def create_app() -> Flask:
                         return redirect(saved_next or url_for("index"))
 
             flash(_("Invalid email or password"), "danger")
-            return render_template("login.html", ms_enabled=is_ms_configured())
+            return redirect(url_for("index", login=1))
 
         if not is_ms_configured():
             flash(_("Microsoft sign-in is not configured. Please contact the administrator."), "warning")
-        return render_template("login.html", ms_enabled=is_ms_configured())
+        return redirect(url_for("index", login=1))
 
     @app.route("/register", methods=["GET", "POST"])
     def register():
