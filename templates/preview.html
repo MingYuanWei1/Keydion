@@ -18,7 +18,7 @@
   </div>
   <div class="d-flex gap-2">
     {% if is_guest %}
-    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('login') }}">{{ _('Sign in to download') }}</a>
+    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('index', login=1) }}">{{ _('Sign in to download') }}</a>
     {% else %}
     <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('paper_file', filename=paper.filename) }}"
       target="_blank">
@@ -86,7 +86,7 @@
 {% if is_guest %}
 <div class="alert alert-info border-0 bg-light rounded-3 mb-4">
   {{ _('Guest preview is limited to the first two pages of each paper.') }}
-  <a href="{{ url_for('login') }}" class="alert-link text-decoration-none">{{ _('Sign in to view full papers') }}</a>
+  <a href="{{ url_for('index', login=1) }}" class="alert-link text-decoration-none">{{ _('Sign in to view full papers') }}</a>
 </div>
 {% endif %}
 
