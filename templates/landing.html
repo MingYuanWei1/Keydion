@@ -547,7 +547,9 @@
     <div class="container header-inner">
       <a href="{{ url_for('index') }}" class="logo-area">Keydion</a>
       <nav>
+        {% if session.get('user') %}
         <a class="nav-link" href="{{ url_for('upload') }}">{{ _('Upload') }}</a>
+        {% endif %}
         <a class="nav-link" href="{{ url_for('news_list') }}">{{ _('News') }}</a>
         {% if session.get('user', {}).get('role', '1')|int >= 3 %}
         <a class="nav-link" href="{{ url_for('manage') }}">{{ _('Manage') }}</a>
