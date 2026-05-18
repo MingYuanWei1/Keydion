@@ -578,6 +578,9 @@ def create_app() -> Flask:
 
     @app.route("/login", methods=["GET", "POST"])
     def login():
+        # Redirect already-logged-in users away
+        if session.get("user") and session.get("session_token"):
+            return redirect(url_for("index"))
         if request.method == "POST":
             email = request.form.get("email", "").strip()
             password = request.form.get("password", "").strip()
@@ -633,6 +636,8 @@ def create_app() -> Flask:
 
     @app.route("/auth/login")
     def ms_login():
+        if session.get("user") and session.get("session_token"):
+            return redirect(url_for("index"))
         if not is_ms_configured():
             flash(_("Microsoft sign-in is not configured. Please contact the administrator."), "danger")
             return redirect(url_for("login"))
