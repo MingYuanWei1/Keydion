@@ -1119,6 +1119,18 @@ msgstr "搜索论文"
 msgid "关于我们"
 msgstr "关于我们"
 
+#: templates/landing.html:671
+msgid "About Keydion"
+msgstr "关于 Keydion"
+
+#: templates/landing.html:702
+msgid "Keydion is an academic asset platform designed for high school research. We focus on student scholarship — IA, EE, TOK, and independent projects — ensuring that excellent work is systematically preserved, searchable, and citable."
+msgstr "Keydion 是一个专为高中设计的学术资产平台。我们聚焦于学生的科研成果，包括 IA、EE、TOK 等项目。通过本平台，学生的研究成果将不再被忽视，而是被系统性地保存于 Keydion 数据库中，供师生查阅与参考。同时，教师也可以更全面地了解本校科研项目的内容与整体质量。"
+
+#: templates/landing.html:703
+msgid "By building a living archive of student research, we help schools maintain academic integrity, prevent topic collisions, and let each cohort build on the discoveries of the last."
+msgstr "Keydion 同样致力于维护学术诚信，避免撞题以及学术不端误判。我们希望为每一所学校留存这些珍贵的学术成果，让优秀的学生研究经验得以传承，使学术探索不再只是一次性的作业，而成为可以持续积累与发展的知识资产。"
+
 #: templates/landing.html:1111
 msgid ""
 "Keydion 是一个专为高中设计的学术资产平台。我们聚焦于学生的科研成果，包括 IA、EE、TOK "
