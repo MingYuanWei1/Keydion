@@ -128,6 +128,7 @@
       border: none;
       cursor: pointer;
     }
+    .btn-user-circle:hover, .btn-user-circle:focus, .btn-user-circle:active { background: transparent; outline: none; }
 
     .user-menu {
       position: relative;
@@ -251,6 +252,8 @@
       justify-content: space-between;
       align-items: baseline;
       margin-bottom: 36px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--ink);
     }
     .section-header h2 {
       font-family: 'Cormorant Garamond', serif;
@@ -320,43 +323,6 @@
     }
 
     /* ── FEATURES ── */
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
-    }
-    .feature-card {
-      padding: 32px 28px;
-      background: var(--white);
-      border: 1px solid var(--border);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-      transition: all 0.2s;
-    }
-    .feature-card:hover {
-      border-color: var(--border);
-      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-    }
-    .feature-icon {
-      width: 40px; height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--accent-wash);
-      margin-bottom: 20px;
-    }
-    .feature-icon svg { width: 18px; height: 18px; stroke: var(--accent); fill: none; }
-    .feature-card h4 {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 19px;
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-    .feature-card p {
-      font-size: 13.5px;
-      color: var(--muted);
-      line-height: 1.6;
-    }
-
     /* ── ABOUT ── */
     .about-inner {
       display: grid;
@@ -568,7 +534,6 @@
     /* ── RESPONSIVE ── */
     @media (max-width: 1024px) {
       .articles-grid { grid-template-columns: repeat(2, 1fr); }
-      .features-grid { grid-template-columns: 1fr 1fr; }
       .about-inner { grid-template-columns: 1fr; gap: 32px; }
       .footer-grid { grid-template-columns: 1fr 1fr; }
     }
@@ -579,7 +544,6 @@
       .hero-search .btn-search { width: 100%; justify-content: center; }
       .section { padding: 48px 0; }
       .articles-grid { grid-template-columns: 1fr; }
-      .features-grid { grid-template-columns: 1fr; }
       .stats-row { flex-wrap: wrap; gap: 24px; }
       .footer-grid { grid-template-columns: 1fr; }
       nav .nav-link { display: none; }
@@ -697,38 +661,7 @@
     </div>
   </section>
 
-  <!-- ── FEATURES ── -->
-  <section class="section" style="background: var(--white);">
-    <hr class="section-divider">
-    <div class="container" style="padding-top: 72px;">
-      <div class="section-header">
-        <h2>{{ _('Platform Features') }}</h2>
-      </div>
-      <div class="features-grid">
-        <div class="feature-card">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="1.5" stroke-linecap="round"/></svg>
-          </div>
-          <h4>{{ _('Powerful Search') }}</h4>
-          <p>{{ _('Full-text PDF search with faceted filters for subject, date, language, and paper type.') }}</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-          <h4>{{ _('IB EE & CP Support') }}</h4>
-          <p>{{ _('Dedicated metadata and grading for Extended Essays and Community Projects.') }}</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke-width="1.5" stroke-linecap="round"/></svg>
-          </div>
-          <h4>{{ _('Microsoft Auth') }}</h4>
-          <p>{{ _('Secure single sign-on via Microsoft Entra ID — your school credentials, integrated.') }}</p>
-        </div>
-      </div>
-    </div>
-  </section>
+  <hr class="section-divider">
 
   <!-- ── ABOUT ── -->
   <section class="section" id="about">
