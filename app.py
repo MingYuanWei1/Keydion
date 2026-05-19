@@ -600,7 +600,7 @@ def create_app() -> Flask:
                         flash(warning, "warning")
                         return redirect(url_for("index", login=1))
                     display = user_record.get("first_name", "") or user_record.get("email", "") or user["username"]
-                    saved_next = session.get("next")
+                    saved_next = session.get("next") or request.form.get("next", "")
                     start_local_session(
                         user,
                         display_name=display,
@@ -617,7 +617,7 @@ def create_app() -> Flask:
                         if not allowed:
                             flash(warning, "warning")
                             return redirect(url_for("index", login=1))
-                        saved_next = session.get("next")
+                        saved_next = session.get("next") or request.form.get("next", "")
                         start_ms_session(ms_record)
                         display = ms_record.get("display_name", "") or ms_record.get("email", "")
                         flash(_("Welcome back, %(username)s!", username=display), "success")
