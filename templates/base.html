@@ -128,7 +128,8 @@
       </form>
       <div class="divider"><span>{{ _('or sign in with email') }}</span></div>
       {% endif %}
-      <form method="post" action="{{ url_for('login') }}">
+      <form method="post" action="{{ url_for('login') }}" id="loginForm">
+        <input type="hidden" name="next" value="" id="loginNext">
         <div class="field-group">
           <label for="loginEmail">{{ _('Email / Username') }}</label>
           <input type="text" id="loginEmail" name="email" required autofocus>
@@ -157,7 +158,7 @@
       }
     });
     var loginModal = document.getElementById('loginModal');
-    function openLoginModal() { if(loginModal){ loginModal.classList.add('active'); document.body.style.overflow = 'hidden'; } }
+    function openLoginModal() { if(loginModal){ var n=document.getElementById('loginNext'); if(n)n.value=window.location.pathname+window.location.search; loginModal.classList.add('active'); document.body.style.overflow = 'hidden'; } }
     function closeLoginModal() { if(loginModal){ loginModal.classList.remove('active'); document.body.style.overflow = ''; } }
     if(loginModal){
       loginModal.addEventListener('click', function(e) { if (e.target === loginModal) closeLoginModal(); });

@@ -768,7 +768,7 @@
       <button type="button" class="btn-login" onclick="location.href='{{ url_for('ms_login') }}'" style="background:#1a1a1a;margin-bottom:14px;">{{ _('Sign in with Microsoft') }}</button>
       <div class="login-modal-divider"><span>{{ _('or sign in with email') }}</span></div>
       {% endif %}
-      <form method="post" action="{{ url_for('login') }}">
+      <form method="post" action="{{ url_for('login') }}" id="loginForm"><input type="hidden" name="next" value="" id="loginNext">
         <div class="field-group">
           <label>{{ _('Email / Username') }}</label>
           <input type="text" name="email" required autofocus>
