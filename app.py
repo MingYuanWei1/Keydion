@@ -310,6 +310,39 @@ def _is_cp_paper(record: dict) -> bool:
         return False
 
 
+def _matches_ee_subject(record: dict, subject: str) -> bool:
+    raw = record.get("ib_ee_data", "")
+    if not raw:
+        return False
+    try:
+        ib = json.loads(raw)
+        s = subject.lower()
+        return s in (ib.get("core_subject", "") + " " + ib.get("interdisciplinary_subject", "")).lower()
+    except (json.JSONDecodeError, TypeError):
+        return False
+
+
+def _matches_cp_context(record: dict, context: str) -> bool:
+    raw = record.get("cp_data", "")
+    if not raw:
+        return False
+    try:
+        cp = json.loads(raw)
+        return context.lower() in (cp.get("global_context", "")).lower()
+    except (json.JSONDecodeError, TypeError):
+        return False
+
+
+def _get_ee_subjects_list() -> list:
+    """Return a flat sorted list of all EE subjects."""
+    data = load_ee_subjects()
+    subjects = set()
+    for group in data.get("groups", []):
+        for s in group.get("subjects", []):
+            subjects.add(s.strip())
+    return sorted(subjects)
+
+
 babel = Babel()
 ROLE_LABELS = {
     1: _l("Reader - View & Download"),
@@ -939,7 +972,8 @@ def create_app() -> Flask:
         user = get_active_user()
         is_guest = user is None
         journals = load_journals()
-        return render_template("advanced_search.html", user=user, journals=journals)
+        return render_template("advanced_search.html", user=user, journals=journals,
+                               ee_subjects_list=_get_ee_subjects_list(), cp_contexts=CP_GLOBAL_CONTEXTS)
 
     @app.route("/search", methods=["GET", "POST"])
     def search():
@@ -963,6 +997,8 @@ def create_app() -> Flask:
         end_year = request.args.get("end_year", "").strip()
         journal_filters = request.args.getlist("journal[]")
         paper_type_filter = request.args.get("paper_type", "").strip()
+        ee_subject_filter = request.args.get("ee_subject", "").strip()
+        cp_context_filter = request.args.get("cp_context", "").strip()
 
         try:
             page = int(request.args.get("page", "1"))
@@ -970,7 +1006,7 @@ def create_app() -> Flask:
             page = 1
 
         per_page = 20
-        filtered = bool(query) or bool(category_filter) or bool(language_filter) or bool(date_filter) or bool(author_filter) or bool(title_filter) or bool(start_year) or bool(end_year) or bool(journal_filters) or bool(paper_type_filter)
+        filtered = bool(query) or bool(category_filter) or bool(language_filter) or bool(date_filter) or bool(author_filter) or bool(title_filter) or bool(start_year) or bool(end_year) or bool(journal_filters) or bool(paper_type_filter) or bool(ee_subject_filter) or bool(cp_context_filter)
         
         # Only run full text search if 'q' is actually present
         record_pool = search_papers(query) if bool(query) else gather_paper_records()
@@ -1004,6 +1040,12 @@ def create_app() -> Flask:
                 record_pool = [r for r in record_pool if _is_cp_paper(r)]
             elif paper_type_filter == "independent":
                 record_pool = [r for r in record_pool if not _is_ee_paper(r) and not _is_cp_paper(r)]
+
+        if ee_subject_filter:
+            record_pool = [r for r in record_pool if _matches_ee_subject(r, ee_subject_filter)]
+
+        if cp_context_filter:
+            record_pool = [r for r in record_pool if _matches_cp_context(r, cp_context_filter)]
 
         if filtered and not record_pool:
             flash(_("No matching papers found."), "info")
@@ -1050,6 +1092,10 @@ def create_app() -> Flask:
             language_filter=language_filter,
             date_filter=date_filter,
             paper_type_filter=paper_type_filter,
+            ee_subject_filter=ee_subject_filter,
+            ee_subjects_list=_get_ee_subjects_list(),
+            cp_context_filter=cp_context_filter,
+            cp_contexts=CP_GLOBAL_CONTEXTS,
             filtered=filtered,
             records=pagination["items"],
             pagination=pagination,
@@ -3029,8 +3075,26 @@ def search_papers(keyword: str) -> List[Dict[str, str]]:
         title_str = (record.get("title") or "").lower()
         author_str = (record.get("author_name") or "").lower()
         keywords_str = (record.get("keywords") or "").lower()
-        
-        if normalized in title_str or normalized in author_str or normalized in keywords_str:
+
+        # Also search EE subjects and CP global context
+        ee_subjects_str = ""
+        raw_ib = record.get("ib_ee_data", "")
+        if raw_ib:
+            try:
+                ib = json.loads(raw_ib)
+                ee_subjects_str = (ib.get("core_subject", "") + " " + ib.get("interdisciplinary_subject", "")).lower()
+            except (json.JSONDecodeError, TypeError):
+                pass
+        cp_context_str = ""
+        raw_cp = record.get("cp_data", "")
+        if raw_cp:
+            try:
+                cp = json.loads(raw_cp)
+                cp_context_str = (cp.get("global_context", "") + " " + " ".join(cp.get("action_types", []))).lower()
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+        if normalized in title_str or normalized in author_str or normalized in keywords_str or normalized in ee_subjects_str or normalized in cp_context_str:
             matches.append(record)
             continue
 

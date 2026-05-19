@@ -27,6 +27,42 @@
 
             <h2 style="margin-bottom: 24px; font-size: 1.25rem;">{{ _('Refine your results by…') }}</h2>
 
+            <!-- Paper Type -->
+            <fieldset style="border: none; padding: 0; margin-bottom: 24px;">
+                <legend style="display: block; margin-bottom: 8px;"><b>{{ _('Paper Type') }}</b></legend>
+                <select name="paper_type" id="advPaperType"
+                    style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; width: 100%;">
+                    <option value="">{{ _('Any Type') }}</option>
+                    <option value="ee">{{ _('EE Paper') }}</option>
+                    <option value="cp">{{ _('CP Paper') }}</option>
+                    <option value="independent">{{ _('Independent Research') }}</option>
+                </select>
+            </fieldset>
+
+            <!-- EE Subject (shown when EE Paper) -->
+            <fieldset id="advEeSubject" style="border: none; padding: 0; margin-bottom: 24px; display: none;">
+                <legend style="display: block; margin-bottom: 8px;"><b>{{ _('EE Subject') }}</b></legend>
+                <select name="ee_subject"
+                    style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; width: 100%;">
+                    <option value="">{{ _('Any Subject') }}</option>
+                    {% for subj in ee_subjects_list %}
+                    <option value="{{ subj }}">{{ subj }}</option>
+                    {% endfor %}
+                </select>
+            </fieldset>
+
+            <!-- CP Context (shown when CP Paper) -->
+            <fieldset id="advCpContext" style="border: none; padding: 0; margin-bottom: 24px; display: none;">
+                <legend style="display: block; margin-bottom: 8px;"><b>{{ _('Global Context') }}</b></legend>
+                <select name="cp_context"
+                    style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; width: 100%;">
+                    <option value="">{{ _('Any Context') }}</option>
+                    {% for ctx in cp_contexts %}
+                    <option value="{{ ctx }}">{{ ctx }}</option>
+                    {% endfor %}
+                </select>
+            </fieldset>
+
             <fieldset style="border: none; padding: 0; margin-bottom: 24px;">
                 <legend style="display: block; margin-bottom: 8px;">{{ _('publication') }} <b>{{ _('date') }}</b>
                 </legend>
@@ -48,19 +84,6 @@
                 </div>
             </fieldset>
 
-            <fieldset style="border: none; padding: 0; margin-bottom: 32px;">
-                <legend style="display: block; margin-bottom: 12px;"><b>{{ _('journal(s)') }}</b></legend>
-                <div
-                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; max-height: 200px; overflow-y: auto; padding-right: 12px; border: 1px solid #eee; padding: 16px; border-radius: 4px; background: #fafafa;">
-                    {% for journal in journals %}
-                    <label style="display: flex; align-items: start; gap: 8px; cursor: pointer;">
-                        <input type="checkbox" name="journal[]" value="{{ journal.name }}" style="margin-top: 4px;">
-                        <span style="font-size: 0.95rem; line-height: 1.4;">{{ journal.name }}</span>
-                    </label>
-                    {% endfor %}
-                </div>
-            </fieldset>
-
             <div style="text-align: right;">
                 <button type="submit" class="btn-primary" style="padding: 12px 32px; font-size: 1rem;">{{ _('Search')
                     }}</button>
@@ -68,4 +91,10 @@
         </form>
     </div>
 </div>
+<script>
+document.getElementById('advPaperType').addEventListener('change', function() {
+  document.getElementById('advEeSubject').style.display = this.value === 'ee' ? '' : 'none';
+  document.getElementById('advCpContext').style.display = this.value === 'cp' ? '' : 'none';
+});
+</script>
 {% endblock %}
