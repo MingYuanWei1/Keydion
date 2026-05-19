@@ -521,32 +521,26 @@
 
         /* ==================== FOOTER ==================== */
         footer {
-            background: var(--footer-bg);
-            color: #fff;
-            padding: 40px 0;
+            background: #141414;
+            color: #999;
+            padding: 20px 0;
             margin-top: auto;
         }
-
-        .footer-inner {
+        .footer-bottom {
             display: flex;
             justify-content: space-between;
             align-items: center;
-        }
-
-        .footer-inner .copyright {
             font-size: 12px;
-            color: #64748b;
         }
-
-        .footer-inner a {
-            color: #94a3b8;
-            font-size: 13px;
-            transition: color 0.2s;
+        .footer-bottom a {
+            color: #666;
+            transition: color 0.15s;
         }
-
-        .footer-inner a:hover {
-            color: #fff;
-        }
+        .footer-bottom a:hover { color: #bbb; }
+        
+        
+        
+        
 
         /* ==================== RESPONSIVE ==================== */
         @media (max-width: 768px) {
@@ -812,8 +806,9 @@
     <!-- ==================== FOOTER ==================== -->
     <footer>
         <div class="container">
-            <div class="footer-inner" style="justify-content: center; gap: 20px;">
-                <span class="copyright">© 2026 Keydion</span>
+            <div class="footer-bottom">
+                <span>© 2026 Keydion</span>
+                
                 <a href="https://beian.miit.gov.cn" target="_blank">蜀ICP备16024747号-2</a>
             </div>
         </div>
