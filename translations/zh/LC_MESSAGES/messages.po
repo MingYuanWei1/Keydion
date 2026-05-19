@@ -2442,6 +2442,34 @@ msgid "{len_type} values are required, but {len_value} was given."
 msgid_plural "{len_type} values are required, but {len_value} were given."
 msgstr[0] ""
 
+#: templates/landing.html:title
+msgid "Academic Paper Management"
+msgstr "学术论文管理"
+
+#: templates/landing.html:hero
+msgid "Search by title, author, or keyword..."
+msgstr "搜索论文标题、作者或关键词..."
+
+#: templates/landing.html:cta
+msgid "Ready to explore?"
+msgstr "准备好开始探索了吗？"
+
+#: templates/landing.html:cta
+msgid "Browse the library, upload your research, or sign in to get started."
+msgstr "浏览文库，上传你的研究，或登录以开始使用。"
+
+#: templates/landing.html:cta
+msgid "Search Papers"
+msgstr "搜索论文"
+
+#: templates/landing.html:footer
+msgid "Navigate"
+msgstr "导航"
+
+#: templates/landing.html:footer
+msgid "Dedicated to cultivating academic research skills for young scholars — a platform for writing, publishing, and discovery."
+msgstr "致力于培养青年学者的学术研究能力——一个写作、发表与发现的平台。"
+
 #~ msgid "Please use the Microsoft button to sign in."
 #~ msgstr "请使用微软按钮登录。"
 
