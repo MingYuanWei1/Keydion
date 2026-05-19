@@ -1123,6 +1123,10 @@ msgstr "关于我们"
 msgid "About Keydion"
 msgstr "关于 Keydion"
 
+#: templates/landing.html:689
+msgid "Our Mission"
+msgstr "学术使命"
+
 #: templates/landing.html:702
 msgid "Keydion is an academic asset platform designed for high school research. We focus on student scholarship — IA, EE, TOK, and independent projects — ensuring that excellent work is systematically preserved, searchable, and citable."
 msgstr "Keydion 是一个专为高中设计的学术资产平台。我们聚焦于学生的科研成果，包括 IA、EE、TOK 等项目。通过本平台，学生的研究成果将不再被忽视，而是被系统性地保存于 Keydion 数据库中，供师生查阅与参考。同时，教师也可以更全面地了解本校科研项目的内容与整体质量。"
