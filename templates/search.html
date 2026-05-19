@@ -58,6 +58,36 @@
         </select>
       </div>
 
+      <!-- EE Subject Filter (only when EE Paper selected) -->
+      {% if paper_type_filter == 'ee' %}
+      <div class="mb-4" id="eeSubjectFilter">
+        <label for="ee_subject" class="form-label text-uppercase text-muted fw-bold"
+          style="font-size: 11px; letter-spacing: 0.5px;">{{ _('EE Subject') }}</label>
+        <select class="form-select form-select-sm shadow-none" id="ee_subject" name="ee_subject"
+          onchange="this.form.submit()">
+          <option value="">{{ _('Any Subject') }}</option>
+          {% for subj in ee_subjects_list %}
+          <option value="{{ subj }}" {% if ee_subject_filter==subj %}selected{% endif %}>{{ subj }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      <!-- CP Context Filter (only when CP Paper selected) -->
+      {% if paper_type_filter == 'cp' %}
+      <div class="mb-4" id="cpContextFilter">
+        <label for="cp_context" class="form-label text-uppercase text-muted fw-bold"
+          style="font-size: 11px; letter-spacing: 0.5px;">{{ _('Global Context') }}</label>
+        <select class="form-select form-select-sm shadow-none" id="cp_context" name="cp_context"
+          onchange="this.form.submit()">
+          <option value="">{{ _('Any Context') }}</option>
+          {% for ctx in cp_contexts %}
+          <option value="{{ ctx }}" {% if cp_context_filter==ctx %}selected{% endif %}>{{ ctx }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
       <!-- Language -->
       <div class="mb-4">
         <label for="language" class="form-label text-uppercase text-muted fw-bold"
@@ -93,6 +123,8 @@
         <input type="hidden" name="language" value="{{ language_filter }}">
         <input type="hidden" name="date" value="{{ date_filter }}">
         <input type="hidden" name="paper_type" value="{{ paper_type_filter }}">
+        <input type="hidden" name="ee_subject" value="{{ ee_subject_filter }}">
+        <input type="hidden" name="cp_context" value="{{ cp_context_filter }}">
 
         <div class="search-query-banner__icon">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
@@ -242,6 +274,8 @@
           <input type="hidden" name="language" value="{{ language_filter }}">
           <input type="hidden" name="date" value="{{ date_filter }}">
         <input type="hidden" name="paper_type" value="{{ paper_type_filter }}">
+        <input type="hidden" name="ee_subject" value="{{ ee_subject_filter }}">
+        <input type="hidden" name="cp_context" value="{{ cp_context_filter }}">
           <input type="hidden" name="page" value="{{ pagination.prev_page }}">
           <button type="submit" class="btn btn-outline-secondary btn-sm shadow-none rounded-0">&larr; {{ _('Previous')
             }}</button>
@@ -254,6 +288,8 @@
           <input type="hidden" name="language" value="{{ language_filter }}">
           <input type="hidden" name="date" value="{{ date_filter }}">
         <input type="hidden" name="paper_type" value="{{ paper_type_filter }}">
+        <input type="hidden" name="ee_subject" value="{{ ee_subject_filter }}">
+        <input type="hidden" name="cp_context" value="{{ cp_context_filter }}">
           <input type="hidden" name="page" value="{{ pagination.next_page }}">
           <button type="submit" class="btn btn-outline-secondary btn-sm shadow-none rounded-0">{{ _('Next') }}
             &rarr;</button>
