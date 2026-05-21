@@ -1078,7 +1078,7 @@ def create_app() -> Flask:
                 try:
                     ib_info = json.loads(raw_ib)
                     if ib_info.get("is_ib_ee"):
-                        p["paper_type"] = "EE Paper"
+                        p["paper_type"] = "Extended Essay"
                         p["ee_core_subject"] = ib_info.get("core_subject", "")
                         p["ee_interdisciplinary_subject"] = ib_info.get("interdisciplinary_subject", "")
                 except (json.JSONDecodeError, TypeError):
@@ -1329,7 +1329,7 @@ def create_app() -> Flask:
             if is_ib_ee and not form_data.get("ib_ee_data"):
                 pass  # handled below
             if is_ib_ee and is_cp_paper:
-                flash(_("A paper cannot be both an EE Paper and a CP Paper."), "danger")
+                flash(_("A paper cannot be both an Extended Essay and a CP Paper."), "danger")
                 return render_template("upload.html", user=user, form_data=form_data,
                     journals=get_journal_names(), paper_categories=load_paper_categories(),
                     ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS,

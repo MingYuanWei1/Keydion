@@ -125,9 +125,6 @@
                         <h6 class="text-muted text-uppercase small mb-2">{{ _('IB Extended Essay (EE)') }}</h6>
                         <div class="border rounded p-3 bg-light">
                             <div class="d-flex align-items-center gap-2 mb-2">
-                                <span class="badge rounded-pill" style="font-size: 12px; background-color: #198754;">
-                                    {{ ib_ee_info.total_grade_letter or '—' }}
-                                </span>
                                 <span class="text-muted small">{{ ib_ee_info.total_grade_number or '—' }} / 30</span>
                             </div>
                             {% if ib_ee_info.core_subject %}
