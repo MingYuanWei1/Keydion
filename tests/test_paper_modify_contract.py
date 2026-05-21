@@ -88,6 +88,18 @@ class PaperModifyContractTest(unittest.TestCase):
         self.assertIn("if is_ib_sample:", paper_modify_source)
         self.assertNotIn("if is_ib_sample or is_cp_paper:", paper_modify_source)
 
+    def test_modify_route_preserves_published_at_when_saving(self):
+        paper_modify = self._find_function("paper_modify")
+        modify_keys = {
+            key.value
+            for node in ast.walk(paper_modify)
+            if isinstance(node, ast.Dict)
+            for key in node.keys
+            if isinstance(key, ast.Constant) and isinstance(key.value, str)
+        }
+
+        self.assertIn("published_at", modify_keys)
+
     def _find_function(self, name):
         for node in ast.walk(self.app_tree):
             if isinstance(node, ast.FunctionDef) and node.name == name:
