@@ -312,13 +312,14 @@ def build_ib_ee_data_from_form(form) -> str:
             "score": _form_int(form, f"ib_crit_{letter}_score"),
             "comment": form.get(f"ib_crit_{letter}_comment", "").strip(),
         }
+    total_score = sum(criterion["score"] for criterion in criteria.values())
     return json.dumps(
         {
             "is_ib_ee": True,
             "core_subject": form.get("ib_ee_core_subject", "").strip(),
             "interdisciplinary_subject": form.get("ib_ee_interdisciplinary_subject", "").strip(),
             "total_grade_letter": form.get("ib_total_grade_letter", "").strip(),
-            "total_grade_number": form.get("ib_total_grade_number", "").strip(),
+            "total_grade_number": str(total_score),
             "criteria": criteria,
             "holistic_comment": form.get("ib_holistic_comment", "").strip(),
         },

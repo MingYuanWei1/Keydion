@@ -207,7 +207,7 @@
                 <label for="ibTotalGradeNumber" class="form-label">{{ _('Numeric Grade') }}</label>
                 <div class="input-group">
                   <input type="number" class="form-control" id="ibTotalGradeNumber" name="ib_total_grade_number"
-                    min="0" max="30" placeholder="0">
+                    min="0" max="30" value="0" readonly>
                   <span class="input-group-text">/ 30</span>
                 </div>
               </div>
@@ -639,6 +639,21 @@
     toggleIbSection();
     toggleCommentFields();
 
+    // ---- IB EE Total Score auto-calculation ----
+    function updateIbTotal() {
+      let sum = 0;
+      document.querySelectorAll(".ib-crit-score").forEach(el => {
+        const value = parseInt(el.value, 10);
+        if (!isNaN(value)) {
+          sum += value;
+        }
+      });
+      document.getElementById("ibTotalGradeNumber").value = sum;
+    }
+    document.querySelectorAll(".ib-crit-score").forEach(el => {
+      el.addEventListener("input", updateIbTotal);
+    });
+
     // ---- CP Paper toggle ----
     const cpCheckbox = document.getElementById("cpCheckbox");
     const cpDetails = document.getElementById("cpDetails");
@@ -696,6 +711,7 @@
     });
 
     // Initialize CP state on page load
+    updateIbTotal();
     toggleCpSection();
     updateMutualExclusion();
 
