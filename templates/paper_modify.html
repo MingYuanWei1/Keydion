@@ -23,6 +23,12 @@
             </div>
             <div class="card-body">
                 <form method="post">
+                    {% set ib_ee_data = meta.get('ib_ee_data', '') %}
+                    {% set ib_ee_info = (ib_ee_data | from_json) if ib_ee_data else None %}
+                    {% set cp_data = meta.get('cp_data', '') %}
+                    {% set cp_info = (cp_data | from_json) if cp_data else None %}
+                    {% set is_ib_sample_checked = meta.get('is_ib_sample') or meta.get('author_name', '') == 'IB SAMPLE' %}
+
                     <div class="mb-3">
                         <label for="title" class="form-label fw-semibold">{{ _('Title') }} <span
                                 class="text-danger">*</span></label>
@@ -80,14 +86,14 @@
                     <div class="mb-3 border rounded p-3 bg-light">
                         <div class="form-check mb-0">
                             <input class="form-check-input" type="checkbox" id="ibSampleCheckbox" name="is_ib_sample" value="1"
-                                {% if meta.get('is_ib_sample') %}checked{% endif %}>
+                                {% if is_ib_sample_checked %}checked{% endif %}>
                             <label class="form-check-label fw-semibold" for="ibSampleCheckbox">
                                 {{ _('This is an IB Sample Paper') }}
                             </label>
                             <div class="text-muted small mt-1">{{ _('Author information is not required for sample papers') }}</div>
                         </div>
                     </div>
-                    <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3" id="authorControls">
                         <h6 class="text-muted text-uppercase small mb-0">{{ _('Author Information') }}</h6>
                         <button type="button" class="btn btn-sm btn-outline-primary" id="addAuthorBtn"><i
                                 class="bi bi-plus"></i> {{ _('Add Author') }}</button>
@@ -116,102 +122,177 @@
                         {% endfor %}
                     </div>
 
-                    <!-- IB Extended Essay Section (read-only summary) -->
-                    {% set ib_ee_data = meta.get('ib_ee_data', '') %}
-                    {% set ib_ee_info = (ib_ee_data | from_json) if ib_ee_data else None %}
-                    {% if ib_ee_info and ib_ee_info.is_ib_ee %}
                     <hr>
-                    <div class="mb-3">
-                        <h6 class="text-muted text-uppercase small mb-2">{{ _('IB Extended Essay (EE)') }}</h6>
-                        <div class="border rounded p-3 bg-light">
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <span class="text-muted small">{{ ib_ee_info.total_grade_number or '—' }} / 30</span>
-                            </div>
-                            {% if ib_ee_info.core_subject %}
-                            <div class="mb-2">
-                                <span class="fw-semibold small">{{ _('Subjects') }}:</span>
-                                <span class="badge rounded-pill ms-1" style="font-size: 11px; background-color: #0d6efd;">{{ ib_ee_info.core_subject }}</span>
-                                {% if ib_ee_info.interdisciplinary_subject %}
-                                <span class="badge rounded-pill ms-1" style="font-size: 11px; background-color: #6f42c1;">{{ ib_ee_info.interdisciplinary_subject }}</span>
-                                {% endif %}
-                            </div>
-                            {% endif %}
-                            {% if ib_ee_info.criteria %}
-                            <details class="mt-2">
-                                <summary class="small fw-semibold text-muted" style="cursor: pointer;">{{ _('Criterion Scores') }}</summary>
-                                <div class="mt-2">
-                                    {% set criteria_order = ['A', 'B', 'C', 'D', 'E'] %}
-                                    {% for letter in criteria_order %}
-                                    {% if ib_ee_info.criteria[letter] %}
-                                    {% set crit = ib_ee_info.criteria[letter] %}
-                                    <div class="d-flex justify-content-between small py-1 border-bottom">
-                                        <span>{{ _('Crit.') }} {{ letter }} — {{ crit.label }}</span>
-                                        <span class="badge rounded-pill {% if crit.score >= crit.max * 0.8 %}bg-success{% elif crit.score >= crit.max * 0.5 %}bg-warning text-dark{% else %}bg-danger{% endif %}" style="font-size: 11px;">
-                                            {{ crit.score }} / {{ crit.max }}
-                                        </span>
-                                    </div>
-                                    {% endif %}
-                                    {% endfor %}
-                                </div>
-                            </details>
-                            {% endif %}
-                            {% if ib_ee_info.holistic_comment %}
-                            <div class="mt-2 small text-muted">
-                                <span class="fw-semibold">{{ _('Holistic Commentary') }}:</span>
-                                <p class="mb-0 mt-1">{{ ib_ee_info.holistic_comment }}</p>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endif %}
 
-                    <!-- CP Paper Section (read-only summary) -->
-                    {% set cp_data = meta.get('cp_data', '') %}
-                    {% set cp_info = (cp_data | from_json) if cp_data else None %}
-                    {% if cp_info and cp_info.is_cp_paper %}
-                    <hr>
-                    <div class="mb-3">
-                        <h6 class="text-muted text-uppercase small mb-2">{{ _('MYP Community Project') }}</h6>
-                        <div class="border rounded p-3 bg-light">
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <span class="fw-bold" style="font-size: 20px;">{{ cp_info.total_score }}</span>
-                                <span class="text-muted small">/ 8 {{ _('Total Score') }}</span>
-                            </div>
-                            {% if cp_info.global_context %}
-                            <div class="mb-2">
-                                <span class="fw-semibold small">{{ _('Global Context') }}:</span>
-                                <span class="badge rounded-pill ms-1" style="font-size: 11px; background-color: #fff; color: #212529; border: 1px solid #dee2e6;">{{ cp_info.global_context }}</span>
-                            </div>
-                            {% endif %}
-                            {% if cp_info.action_types %}
-                            <div class="mb-2">
-                                <span class="fw-semibold small">{{ _('Actions') }}:</span>
-                                {% for action in cp_info.action_types %}
-                                <span class="badge rounded-pill ms-1" style="font-size: 11px; background-color: #e9ecef; color: #495057; border: 1px solid #dee2e6;">{{ action }}</span>
-                                {% endfor %}
-                            </div>
-                            {% endif %}
-                            {% if cp_info.criteria %}
-                            <details class="mt-2">
-                                <summary class="small fw-semibold text-muted" style="cursor: pointer;">{{ _('Criterion Scores') }}</summary>
-                                <div class="mt-2">
-                                    {% for letter in ['A', 'B', 'C', 'D'] %}
-                                    {% if cp_info.criteria[letter] %}
-                                    {% set crit = cp_info.criteria[letter] %}
-                                    <div class="d-flex justify-content-between small py-1 border-bottom">
-                                        <span>{{ _('Crit.') }} {{ letter }} — {{ crit.label }}</span>
-                                        <span class="badge rounded-pill {% if crit.score >= crit.max * 0.8 %}bg-success{% elif crit.score >= crit.max * 0.5 %}bg-warning text-dark{% else %}bg-danger{% endif %}" style="font-size: 11px;">
-                                            {{ crit.score }} / {{ crit.max }}
-                                        </span>
-                                    </div>
-                                    {% endif %}
-                                    {% endfor %}
+                    <!-- IB Extended Essay Section -->
+                    <div class="mb-3 border rounded p-3">
+                        <div class="form-check mb-0">
+                            <input class="form-check-input" type="checkbox" id="ibEeCheckbox" name="is_ib_ee" value="1"
+                                {% if ib_ee_info and ib_ee_info.is_ib_ee %}checked{% endif %}>
+                            <label class="form-check-label fw-semibold" for="ibEeCheckbox">
+                                {{ _('This is an IB Extended Essay (EE)') }}
+                            </label>
+                        </div>
+
+                        <div id="ibEeDetails" class="mt-3" style="display: none;">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label for="ibEeCoreSubject" class="form-label fw-semibold">{{ _('Core Subject') }}</label>
+                                    <select class="form-select" id="ibEeCoreSubject" name="ib_ee_core_subject">
+                                        <option value="">{{ _('Select a core subject...') }}</option>
+                                        {% for group in ee_subjects.groups %}
+                                        <optgroup label="{{ group.name }}">
+                                            {% for subject in group.subjects %}
+                                            <option value="{{ subject }}" {% if ib_ee_info and ib_ee_info.core_subject == subject %}selected{% endif %}>{{ subject }}</option>
+                                            {% endfor %}
+                                        </optgroup>
+                                        {% endfor %}
+                                    </select>
                                 </div>
-                            </details>
-                            {% endif %}
+                                <div class="col-md-6">
+                                    <label for="ibEeInterdisciplinarySubject" class="form-label fw-semibold">{{ _('Interdisciplinary Subject') }}</label>
+                                    <select class="form-select" id="ibEeInterdisciplinarySubject" name="ib_ee_interdisciplinary_subject">
+                                        <option value="">{{ _('None') }}</option>
+                                        {% for group in ee_subjects.groups %}
+                                        <optgroup label="{{ group.name }}">
+                                            {% for subject in group.subjects %}
+                                            <option value="{{ subject }}" {% if ib_ee_info and ib_ee_info.interdisciplinary_subject == subject %}selected{% endif %}>{{ subject }}</option>
+                                            {% endfor %}
+                                        </optgroup>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="ibTotalGradeNumber" class="form-label fw-semibold">{{ _('Numeric Grade') }}</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="ibTotalGradeNumber" name="ib_total_grade_number"
+                                        min="0" max="30" value="{{ ib_ee_info.total_grade_number if ib_ee_info else '' }}">
+                                    <span class="input-group-text">/ 30</span>
+                                </div>
+                            </div>
+
+                            <div class="table-responsive mb-3">
+                                <table class="table table-bordered align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 50px;">{{ _('Crit.') }}</th>
+                                            <th>{{ _('Criterion Name') }}</th>
+                                            <th style="width: 120px;">{{ _('Score') }}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for letter, label, max_mark in ib_criteria_defs %}
+                                        {% set crit = ib_ee_info.criteria.get(letter, {}) if ib_ee_info and ib_ee_info.criteria else {} %}
+                                        <tr>
+                                            <td class="fw-bold text-center">{{ letter }}</td>
+                                            <td>{{ _(label) }}</td>
+                                            <td>
+                                                <div class="input-group input-group-sm">
+                                                    <input type="number" class="form-control ib-crit-score" name="ib_crit_{{ letter }}_score"
+                                                        min="0" max="{{ max_mark }}" value="{{ crit.get('score', '') }}">
+                                                    <span class="input-group-text">/ {{ max_mark }}</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td></td>
+                                            <td colspan="2">
+                                                <textarea class="form-control form-control-sm" name="ib_crit_{{ letter }}_comment" rows="2"
+                                                    placeholder="{{ _('Commentary for Criterion') }} {{ letter }}...">{{ crit.get('comment', '') }}</textarea>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="mb-0">
+                                <label for="ibHolisticComment" class="form-label fw-semibold">{{ _('Holistic Commentary') }}</label>
+                                <textarea class="form-control" id="ibHolisticComment" name="ib_holistic_comment" rows="3">{{ ib_ee_info.holistic_comment if ib_ee_info else '' }}</textarea>
+                            </div>
                         </div>
                     </div>
-                    {% endif %}
+
+                    <!-- CP Paper Section -->
+                    <div class="mb-3">
+                        <div class="border rounded p-3">
+                            <div class="form-check mb-0">
+                                <input class="form-check-input" type="checkbox" id="cpCheckbox" name="is_cp_paper" value="1"
+                                    {% if cp_info and cp_info.is_cp_paper %}checked{% endif %}>
+                                <label class="form-check-label fw-semibold" for="cpCheckbox">
+                                    {{ _('This is an IB Community Project Paper') }}
+                                </label>
+                            </div>
+
+                            <div id="cpDetails" class="mt-3" style="display: none;">
+                                <div class="mb-3">
+                                    <label for="cpGlobalContext" class="form-label fw-semibold">{{ _('Global Context') }}</label>
+                                    <select class="form-select" id="cpGlobalContext" name="cp_global_context">
+                                        <option value="">{{ _('Select a Global Context...') }}</option>
+                                        {% for ctx in cp_global_contexts %}
+                                        <option value="{{ ctx }}" {% if cp_info and cp_info.global_context == ctx %}selected{% endif %}>{{ ctx }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                {% set cp_actions = cp_info.action_types if cp_info and cp_info.action_types else [] %}
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">{{ _('Type of Action') }}</label>
+                                    <div>
+                                        {% for action in cp_action_types %}
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input cp-action-checkbox" type="checkbox" name="cp_action_type"
+                                                value="{{ action }}" id="cpAction{{ loop.index }}" {% if action in cp_actions %}checked{% endif %}>
+                                            <label class="form-check-label" for="cpAction{{ loop.index }}">{{ action }}</label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+
+                                <div class="table-responsive">
+                                    <table class="table table-bordered align-middle mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 50px;">{{ _('Crit.') }}</th>
+                                                <th>{{ _('Criterion Name') }}</th>
+                                                <th style="width: 120px;">{{ _('Score') }}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for letter, label, max_mark in cp_criteria_defs %}
+                                            {% set crit = cp_info.criteria.get(letter, {}) if cp_info and cp_info.criteria else {} %}
+                                            <tr>
+                                                <td class="fw-bold text-center">{{ letter }}</td>
+                                                <td>{{ _(label) }}</td>
+                                                <td>
+                                                    <div class="input-group input-group-sm">
+                                                        <input type="number" class="form-control cp-crit-score" name="cp_crit_{{ letter }}_score"
+                                                            min="0" max="{{ max_mark }}" value="{{ crit.get('score', '') }}">
+                                                        <span class="input-group-text">/ {{ max_mark }}</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                        <tfoot class="table-light">
+                                            <tr>
+                                                <td colspan="2" class="text-end fw-bold">{{ _('Total Score') }}</td>
+                                                <td>
+                                                    <div class="input-group input-group-sm">
+                                                        <input type="text" class="form-control text-center fw-bold" id="cpTotalScore"
+                                                            value="{{ cp_info.total_score if cp_info else 0 }}" readonly>
+                                                        <span class="input-group-text">/ 8</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     {% if meta.get('published_at', '') %}
                     <div class="mb-3">
@@ -288,14 +369,17 @@
         // ---- IB Sample Paper toggle ----
         const ibSampleCheckbox = document.getElementById("ibSampleCheckbox");
         const addAuthorBtn = document.getElementById("addAuthorBtn");
+        const authorControls = document.getElementById("authorControls");
         const authorContainer = document.getElementById("authorsContainer");
 
         function toggleIbSample() {
             if (ibSampleCheckbox.checked) {
+                authorControls.style.display = "none";
                 authorContainer.style.display = "none";
                 addAuthorBtn.style.display = "none";
                 authorContainer.querySelectorAll("input").forEach(el => el.removeAttribute("required"));
             } else {
+                authorControls.style.display = "";
                 authorContainer.style.display = "";
                 addAuthorBtn.style.display = "";
                 const firstRow = authorContainer.querySelector(".author-row");
@@ -309,6 +393,73 @@
 
         ibSampleCheckbox.addEventListener("change", toggleIbSample);
         toggleIbSample();
+
+        // ---- IB EE / CP toggles ----
+        const ibCheckbox = document.getElementById("ibEeCheckbox");
+        const ibDetails = document.getElementById("ibEeDetails");
+        const cpCheckbox = document.getElementById("cpCheckbox");
+        const cpDetails = document.getElementById("cpDetails");
+
+        function setRequired(container, selector, required) {
+            container.querySelectorAll(selector).forEach(el => {
+                if (required) {
+                    el.setAttribute("required", "");
+                } else {
+                    el.removeAttribute("required");
+                }
+            });
+        }
+
+        function toggleIbSection() {
+            const enabled = ibCheckbox.checked;
+            ibDetails.style.display = enabled ? "block" : "none";
+            setRequired(ibDetails, "#ibEeCoreSubject, #ibTotalGradeNumber, .ib-crit-score", enabled);
+        }
+
+        function toggleCpSection() {
+            const enabled = cpCheckbox.checked;
+            cpDetails.style.display = enabled ? "block" : "none";
+            setRequired(cpDetails, "#cpGlobalContext, .cp-crit-score", enabled);
+        }
+
+        function updateMutualExclusion() {
+            if (ibCheckbox.checked) {
+                cpCheckbox.disabled = true;
+            } else if (cpCheckbox.checked) {
+                ibCheckbox.disabled = true;
+            } else {
+                ibCheckbox.disabled = false;
+                cpCheckbox.disabled = false;
+            }
+        }
+
+        function updateCpTotal() {
+            let sum = 0;
+            document.querySelectorAll(".cp-crit-score").forEach(el => {
+                const value = parseInt(el.value, 10);
+                if (!isNaN(value)) {
+                    sum += value;
+                }
+            });
+            document.getElementById("cpTotalScore").value = Math.round(sum / 4);
+        }
+
+        ibCheckbox.addEventListener("change", function () {
+            toggleIbSection();
+            updateMutualExclusion();
+        });
+        cpCheckbox.addEventListener("change", function () {
+            toggleCpSection();
+            updateMutualExclusion();
+        });
+        document.querySelectorAll(".cp-crit-score").forEach(el => {
+            el.addEventListener("input", updateCpTotal);
+        });
+
+        toggleIbSection();
+        toggleCpSection();
+        updateMutualExclusion();
+        updateCpTotal();
     });
 </script>
 {% endblock %}
