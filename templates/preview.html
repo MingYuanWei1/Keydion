@@ -152,7 +152,7 @@
                       <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708"/>
                     </svg>
                     {% endif %}
-                    <span class="fw-semibold" style="font-size: 13px;">{{ _('Crit.') }} {{ letter }}</span>
+                    <span class="fw-semibold" style="font-size: 13px;">{{ letter }}. {{ crit.label }}</span>
                   </div>
                   <span class="badge rounded-pill"
                     style="font-size: 12px; min-width: 48px; background-color: {% if crit.score >= crit.max * 0.8 %}#198754{% elif crit.score >= crit.max * 0.5 %}#ffc107; color: #212529{% else %}#dc3545{% endif %};">
