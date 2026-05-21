@@ -274,6 +274,13 @@ ROLE_OPTIONS = [
 ]
 
 # CP Paper (MYP Community Project) constants
+IB_EE_CRITERIA_DEFS = [
+    ("A", "Framework for the essay", 6),
+    ("B", "Knowledge and understanding", 6),
+    ("C", "Analysis and line of argument", 6),
+    ("D", "Discussion and evaluation", 8),
+    ("E", "Reflection", 4),
+]
 CP_GLOBAL_CONTEXTS = [
     "Identities and Relationships",
     "Orientation in Space and Time",
@@ -289,6 +296,56 @@ CP_CRITERIA_DEFS = [
     ("C", "Taking Action", 8),
     ("D", "Reflecting", 8),
 ]
+
+
+def _form_int(form, name: str) -> int:
+    raw = form.get(name, "").strip()
+    return int(raw) if raw.isdigit() else 0
+
+
+def build_ib_ee_data_from_form(form) -> str:
+    criteria = {}
+    for letter, label, max_mark in IB_EE_CRITERIA_DEFS:
+        criteria[letter] = {
+            "label": label,
+            "max": max_mark,
+            "score": _form_int(form, f"ib_crit_{letter}_score"),
+            "comment": form.get(f"ib_crit_{letter}_comment", "").strip(),
+        }
+    return json.dumps(
+        {
+            "is_ib_ee": True,
+            "core_subject": form.get("ib_ee_core_subject", "").strip(),
+            "interdisciplinary_subject": form.get("ib_ee_interdisciplinary_subject", "").strip(),
+            "total_grade_letter": form.get("ib_total_grade_letter", "").strip(),
+            "total_grade_number": form.get("ib_total_grade_number", "").strip(),
+            "criteria": criteria,
+            "holistic_comment": form.get("ib_holistic_comment", "").strip(),
+        },
+        ensure_ascii=False,
+    )
+
+
+def build_cp_data_from_form(form) -> str:
+    criteria = {}
+    for letter, label, max_mark in CP_CRITERIA_DEFS:
+        criteria[letter] = {
+            "label": label,
+            "max": max_mark,
+            "score": _form_int(form, f"cp_crit_{letter}_score"),
+            "comment": form.get(f"cp_crit_{letter}_comment", "").strip(),
+        }
+    total_score = int(round(sum(criteria[c]["score"] for c in ["A", "B", "C", "D"]) / 4.0))
+    return json.dumps(
+        {
+            "is_cp_paper": True,
+            "global_context": form.get("cp_global_context", "").strip(),
+            "action_types": form.getlist("cp_action_type"),
+            "criteria": criteria,
+            "total_score": total_score,
+        },
+        ensure_ascii=False,
+    )
 
 def _is_ee_paper(record: dict) -> bool:
     raw = record.get("ib_ee_data", "")
@@ -1173,61 +1230,14 @@ def create_app() -> Flask:
         # ---- IB EE data processing ----
         is_ib_ee = request.form.get("is_ib_ee") == "1"
         if is_ib_ee:
-            ib_criteria_defs = [
-                ("A", "Framework for the essay", 6),
-                ("B", "Knowledge and understanding", 6),
-                ("C", "Analysis and line of argument", 6),
-                ("D", "Discussion and evaluation", 8),
-                ("E", "Reflection", 4),
-            ]
-            criteria = {}
-            for letter, label, max_mark in ib_criteria_defs:
-                score_raw = request.form.get(f"ib_crit_{letter}_score", "").strip()
-                comment = request.form.get(f"ib_crit_{letter}_comment", "").strip()
-                criteria[letter] = {
-                    "label": label,
-                    "max": max_mark,
-                    "score": int(score_raw) if score_raw.isdigit() else 0,
-                    "comment": comment,
-                }
-            ib_ee_obj = {
-                "is_ib_ee": True,
-                "core_subject": request.form.get("ib_ee_core_subject", "").strip(),
-                "interdisciplinary_subject": request.form.get("ib_ee_interdisciplinary_subject", "").strip(),
-                "total_grade_letter": request.form.get("ib_total_grade_letter", "").strip(),
-                "total_grade_number": request.form.get("ib_total_grade_number", "").strip(),
-                "criteria": criteria,
-                "holistic_comment": request.form.get("ib_holistic_comment", "").strip(),
-            }
-            form_data["ib_ee_data"] = json.dumps(ib_ee_obj, ensure_ascii=False)
+            form_data["ib_ee_data"] = build_ib_ee_data_from_form(request.form)
         else:
             form_data["ib_ee_data"] = ""
 
         # ---- CP Paper data processing ----
         is_cp_paper = request.form.get("is_cp_paper") == "1"
         if is_cp_paper:
-            cp_criteria_defs = CP_CRITERIA_DEFS
-            cp_criteria = {}
-            for letter, label, max_mark in cp_criteria_defs:
-                score_raw = request.form.get(f"cp_crit_{letter}_score", "").strip()
-                comment = request.form.get(f"cp_crit_{letter}_comment", "").strip()
-                cp_criteria[letter] = {
-                    "label": label,
-                    "max": max_mark,
-                    "score": int(score_raw) if score_raw.isdigit() else 0,
-                    "comment": comment,
-                }
-            # Auto-calculate total score: round((A+B+C+D)/4)
-            total_float = sum(cp_criteria[c]["score"] for c in ["A", "B", "C", "D"]) / 4.0
-            cp_total_score = int(round(total_float))
-            cp_obj = {
-                "is_cp_paper": True,
-                "global_context": request.form.get("cp_global_context", "").strip(),
-                "action_types": request.form.getlist("cp_action_type"),
-                "criteria": cp_criteria,
-                "total_score": cp_total_score,
-            }
-            form_data["cp_data"] = json.dumps(cp_obj, ensure_ascii=False)
+            form_data["cp_data"] = build_cp_data_from_form(request.form)
         else:
             form_data["cp_data"] = ""
 
@@ -1258,6 +1268,7 @@ def create_app() -> Flask:
                         "author_name": form_data["author_name"],
                         "author_email": form_data["author_email"],
                         "author_school": form_data["author_school"],
+                        "is_ib_sample": form_data.get("is_ib_sample", ""),
                         "ib_ee_data": form_data.get("ib_ee_data", ""),
                         "cp_data": form_data.get("cp_data", ""),
                         "submitted_at": now,
@@ -1285,6 +1296,7 @@ def create_app() -> Flask:
                         "author_name": form_data["author_name"],
                         "author_email": form_data["author_email"],
                         "author_school": form_data["author_school"],
+                        "is_ib_sample": form_data.get("is_ib_sample", ""),
                         "ib_ee_data": form_data.get("ib_ee_data", ""),
                         "cp_data": form_data.get("cp_data", ""),
                     }
@@ -1403,8 +1415,9 @@ def create_app() -> Flask:
                                     "author_email": form_data["author_email"],
                                     "author_school": form_data["author_school"],
                                     "published_at": form_data["published_at"],
+                                    "is_ib_sample": form_data.get("is_ib_sample", ""),
                                     "ib_ee_data": form_data.get("ib_ee_data", ""),
-                        "cp_data": form_data.get("cp_data", ""),
+                                    "cp_data": form_data.get("cp_data", ""),
                                 },
                             )
                             flash(_("Paper %(filename)s uploaded successfully!", filename=filename), "success")
@@ -1434,8 +1447,9 @@ def create_app() -> Flask:
                                 "author_name": form_data["author_name"],
                                 "author_email": form_data["author_email"],
                                 "author_school": form_data["author_school"],
+                                "is_ib_sample": form_data.get("is_ib_sample", ""),
                                 "ib_ee_data": form_data.get("ib_ee_data", ""),
-                        "cp_data": form_data.get("cp_data", ""),
+                                "cp_data": form_data.get("cp_data", ""),
                             })
                         else:
                             submission = {
@@ -1458,8 +1472,9 @@ def create_app() -> Flask:
                                 "author_name": form_data["author_name"],
                                 "author_email": form_data["author_email"],
                                 "author_school": form_data["author_school"],
+                                "is_ib_sample": form_data.get("is_ib_sample", ""),
                                 "ib_ee_data": form_data.get("ib_ee_data", ""),
-                        "cp_data": form_data.get("cp_data", ""),
+                                "cp_data": form_data.get("cp_data", ""),
                             }
                             _save_submission(submission)
                         return redirect(url_for("upload_success", title=form_data["title"]))
@@ -1548,6 +1563,39 @@ def create_app() -> Flask:
                 meta = r
                 break
 
+        def parsed_authors_from_meta(meta_row):
+            names = meta_row.get("author_name", "").split(", ")
+            emails = meta_row.get("author_email", "").split(", ")
+            schools = meta_row.get("author_school", "").split(", ")
+
+            parsed = []
+            for i, name in enumerate(names):
+                if name.strip():
+                    parsed.append({
+                        "name": name.strip(),
+                        "email": emails[i].strip() if i < len(emails) else "",
+                        "school": schools[i].strip() if i < len(schools) else ""
+                    })
+            if not parsed:
+                parsed = [{"name": "", "email": "", "school": ""}]
+            return parsed
+
+        def render_modify_form(meta_row):
+            return render_template(
+                "paper_modify.html",
+                user=user,
+                filename=filename,
+                meta=meta_row,
+                parsed_authors=parsed_authors_from_meta(meta_row),
+                categories=load_paper_categories(),
+                journals=get_journal_names(),
+                ee_subjects=load_ee_subjects(),
+                cp_global_contexts=CP_GLOBAL_CONTEXTS,
+                cp_action_types=CP_ACTION_TYPES,
+                ib_criteria_defs=IB_EE_CRITERIA_DEFS,
+                cp_criteria_defs=CP_CRITERIA_DEFS,
+            )
+
         if request.method == "POST":
             title = request.form.get("title", "").strip()
 
@@ -1556,9 +1604,12 @@ def create_app() -> Flask:
             raw_schools = request.form.getlist("author_school")
 
             is_ib_sample = request.form.get("is_ib_sample") == "1"
+            is_ib_ee = request.form.get("is_ib_ee") == "1"
             is_cp_paper = request.form.get("is_cp_paper") == "1"
+            ib_ee_data = build_ib_ee_data_from_form(request.form) if is_ib_ee else ""
+            cp_data = build_cp_data_from_form(request.form) if is_cp_paper else ""
 
-            if is_ib_sample or is_cp_paper:
+            if is_ib_sample:
                 author_names = ["IB SAMPLE"]
                 author_emails = [""]
                 author_schools = [""]
@@ -1575,6 +1626,35 @@ def create_app() -> Flask:
             final_author_name = ", ".join(author_names)
             final_author_email = ", ".join(author_emails)
             final_author_school = ", ".join(author_schools)
+
+            form_meta = {
+                **meta,
+                "title": title,
+                "journal": request.form.get("journal", "").strip(),
+                "category": request.form.get("category", "").strip(),
+                "language": request.form.get("language", "").strip(),
+                "keywords": request.form.get("keywords", "").strip(),
+                "abstract": request.form.get("abstract", "").strip(),
+                "author_name": final_author_name,
+                "author_email": final_author_email,
+                "author_school": final_author_school,
+                "is_ib_sample": "1" if is_ib_sample else "",
+                "ib_ee_data": ib_ee_data,
+                "cp_data": cp_data,
+            }
+
+            if is_ib_ee and is_cp_paper:
+                flash(_("A paper cannot be both an Extended Essay and a CP Paper."), "danger")
+                return render_modify_form(form_meta)
+            if is_ib_ee and not request.form.get("ib_ee_core_subject", "").strip():
+                flash(_("Please select an EE core subject."), "danger")
+                return render_modify_form(form_meta)
+            if is_cp_paper and not request.form.get("cp_global_context", "").strip():
+                flash(_("Please select a Global Context."), "danger")
+                return render_modify_form(form_meta)
+            if is_cp_paper and not request.form.getlist("cp_action_type"):
+                flash(_("Please select at least one Type of Action."), "danger")
+                return render_modify_form(form_meta)
 
             # We use the raw first author for the filename
             primary_author = author_names[0] if author_names else "author"
@@ -1602,35 +1682,13 @@ def create_app() -> Flask:
                 "author_email": final_author_email,
                 "author_school": final_author_school,
                 "is_ib_sample": "1" if is_ib_sample else "",
-                "cp_data": json.dumps({
-                    "is_cp_paper": True,
-                    "global_context": request.form.get("cp_global_context", "").strip(),
-                    "action_types": request.form.getlist("cp_action_type"),
-                    "total_score": int(round(sum(
-                        int(request.form.get(f"cp_crit_{c}_score", "0") or "0") for c in ["A","B","C","D"]
-                    ) / 4.0)),
-                }) if is_cp_paper else "",
+                "ib_ee_data": ib_ee_data,
+                "cp_data": cp_data,
             })
             flash(_("Paper information updated."), "success")
             return redirect(url_for("manage"))
 
-        names = meta.get("author_name", "").split(", ")
-        emails = meta.get("author_email", "").split(", ")
-        schools = meta.get("author_school", "").split(", ")
-        
-        parsed_authors = []
-        for i, name in enumerate(names):
-            if name.strip():
-                parsed_authors.append({
-                    "name": name.strip(),
-                    "email": emails[i].strip() if i < len(emails) else "",
-                    "school": schools[i].strip() if i < len(schools) else ""
-                })
-        if not parsed_authors:
-            parsed_authors = [{"name": "", "email": "", "school": ""}]
-
-        return render_template("paper_modify.html", user=user, filename=filename, meta=meta,
-                               parsed_authors=parsed_authors, categories=load_paper_categories(), journals=get_journal_names())
+        return render_modify_form(meta)
 
     @app.route("/paper/<path:filename>/delete", methods=["POST"])
     def paper_delete(filename):
@@ -2303,7 +2361,9 @@ def create_app() -> Flask:
                 "language": s.language,
                 "submitter": s.submitted_by,
                 "original_filename": s.original_filename,
-                "ib_ee_data": s.ib_ee_data
+                "ib_ee_data": s.ib_ee_data,
+                "is_ib_sample": s.is_ib_sample,
+                "cp_data": s.cp_data,
             } for s in subs]
 
     def _write_submissions(subs):
@@ -2328,7 +2388,9 @@ def create_app() -> Flask:
                     language=s.get("language"),
                     submitted_by=s.get("submitter"),
                     original_filename=s.get("original_filename"),
-                    ib_ee_data=s.get("ib_ee_data")
+                    ib_ee_data=s.get("ib_ee_data"),
+                    is_ib_sample=s.get("is_ib_sample"),
+                    cp_data=s.get("cp_data"),
                 ))
             db.commit()
 
@@ -2498,6 +2560,8 @@ def create_app() -> Flask:
                 "author_school": sub.get("author_school", ""),
                 "published_at": today,
                 "ib_ee_data": sub.get("ib_ee_data", ""),
+                "is_ib_sample": sub.get("is_ib_sample", ""),
+                "cp_data": sub.get("cp_data", ""),
             },
         )
 

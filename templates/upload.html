@@ -608,13 +608,11 @@
       if (ibCheckbox.checked) {
         ibDetails.style.display = "block";
         // Make IB fields required
-        document.getElementById("ibTotalGradeLetter").setAttribute("required", "");
         document.getElementById("ibTotalGradeNumber").setAttribute("required", "");
         document.querySelectorAll(".ib-crit-score").forEach(el => el.setAttribute("required", ""));
       } else {
         ibDetails.style.display = "none";
         // Remove required from IB fields
-        document.getElementById("ibTotalGradeLetter").removeAttribute("required");
         document.getElementById("ibTotalGradeNumber").removeAttribute("required");
         document.querySelectorAll(".ib-crit-score").forEach(el => el.removeAttribute("required"));
         document.querySelectorAll(".ib-crit-comment").forEach(el => el.removeAttribute("required"));
