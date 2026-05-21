@@ -52,13 +52,13 @@
         <select class="form-select form-select-sm shadow-none" id="paper_type" name="paper_type"
           onchange="this.form.submit()">
           <option value="">{{ _('Any Type') }}</option>
-          <option value="ee" {% if paper_type_filter=='ee' %}selected{% endif %}>{{ _('EE Paper') }}</option>
+          <option value="ee" {% if paper_type_filter=='ee' %}selected{% endif %}>{{ _('Extended Essay') }}</option>
           <option value="cp" {% if paper_type_filter=='cp' %}selected{% endif %}>{{ _('CP Paper') }}</option>
           <option value="independent" {% if paper_type_filter=='independent' %}selected{% endif %}>{{ _('Independent Research') }}</option>
         </select>
       </div>
 
-      <!-- EE Subject Filter (only when EE Paper selected) -->
+      <!-- EE Subject Filter (only when Extended Essay selected) -->
       {% if paper_type_filter == 'ee' %}
       <div class="mb-4" id="eeSubjectFilter">
         <label for="ee_subject" class="form-label text-uppercase text-muted fw-bold"
@@ -196,7 +196,7 @@
           {% if paper.get('ee_core_subject') %}
           <div class="d-flex flex-wrap gap-1 mb-2">
             <span class="badge rounded-pill" style="font-size: 12px; background: linear-gradient(135deg, #0d6efd 0%, #084298 100%); border: 1px solid #0d6efd;">
-              {{ _('EE Paper') }}
+              {{ _('Extended Essay') }}
             </span>
             <span class="badge rounded-pill" style="font-size: 12px; background-color: #fff; color: #212529; border: 1px solid #dee2e6;">
               {{ paper.ee_core_subject }}

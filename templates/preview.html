@@ -109,23 +109,7 @@
         <div id="collapseIbEe" class="accordion-collapse collapse show" aria-labelledby="headingIbEe">
           <div class="accordion-body px-2 pt-1 pb-4" style="font-size: 14px;">
 
-            <!-- Overall Grade Display -->
-            <div class="ib-ee-grade-badge text-center mb-3">
-              <div class="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-3"
-                style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border: 1px solid #dee2e6;">
-                <span class="fw-bold" style="font-size: 28px; color: #212529;">
-                  {{ ib_ee_info.total_grade_letter or '—' }}
-                </span>
-                <div class="text-start" style="line-height: 1.2;">
-                  <div class="fw-semibold" style="font-size: 16px; color: #495057;">
-                    {{ ib_ee_info.total_grade_number or '—' }} / 30
-                  </div>
-                  <div class="text-muted" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
-                    {{ _('Total Score') }}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <!-- Subject info -->
 
             <!-- EE Subject Display -->
             {% if ib_ee_info.core_subject %}
