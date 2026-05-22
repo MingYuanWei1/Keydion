@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Manage Guides · Keydion') }}{% endblock %}
+{% block content %}
+<div class="container py-4" style="max-width: 1080px;">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 fw-semibold mb-0">{{ _('Manage Guides') }}</h1>
+    <a class="btn btn-primary" href="{{ url_for('admin_guide_new') }}">
+      + {{ _('New Guide') }}
+    </a>
+  </div>
+
+  {% if not guides %}
+    <div class="text-center py-5 text-muted">
+      <p class="mb-3">{{ _('No guides yet.') }}</p>
+      <a href="{{ url_for('admin_guide_new') }}" class="btn btn-outline-primary">{{ _('Create the first guide') }}</a>
+    </div>
+  {% else %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>{{ _('Title (EN)') }}</th>
+            <th>{{ _('Title (ZH)') }}</th>
+            <th>{{ _('Category') }}</th>
+            <th>{{ _('Slug') }}</th>
+            <th>{{ _('Order') }}</th>
+            <th>{{ _('Status') }}</th>
+            <th class="text-end">{{ _('Actions') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for g in guides %}
+            <tr>
+              <td>{{ g.title_en or '—' }}</td>
+              <td>{{ g.title_zh or '—' }}</td>
+              <td>{% if g.category %}<span class="badge bg-secondary">{{ g.category }}</span>{% endif %}</td>
+              <td><code class="small">{{ g.slug }}</code></td>
+              <td class="text-muted">{{ g.sort_order }}</td>
+              <td>
+                {% if g.published %}
+                  <span class="badge bg-success">{{ _('Published') }}</span>
+                {% else %}
+                  <span class="badge bg-warning text-dark">{{ _('Draft') }}</span>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin_guide_edit', guide_id=g.id) }}">{{ _('Edit') }}</a>
+                <form method="post" action="{{ url_for('admin_guide_delete', guide_id=g.id) }}" class="d-inline"
+                      onsubmit="return confirm('{{ _('Delete this guide?') }}')">
+                  <button type="submit" class="btn btn-sm btn-outline-danger">{{ _('Delete') }}</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
