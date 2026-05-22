@@ -3063,3 +3063,152 @@ msgstr "致力于培养青年学者的学术研究能力——一个写作、发
 #~ "            max"
 #~ msgstr "最多 300 字"
 
+# ==================== GUIDES ====================
+#: templates/guides.html
+msgid "Guides"
+msgstr "使用指南"
+
+#: templates/guides.html
+msgid "Step-by-step help for using Keydion."
+msgstr "Keydion 使用步骤指引。"
+
+#: templates/guides.html
+msgid "No guides published yet. Check back soon."
+msgstr "暂无指南，请稍后查看。"
+
+#: templates/guide_article.html
+msgid "Back to guides"
+msgstr "返回指南列表"
+
+#: templates/guide_article.html
+msgid "Updated"
+msgstr "更新于"
+
+#: templates/guide_manage.html
+msgid "Manage Guides · Keydion"
+msgstr "管理指南 · Keydion"
+
+#: templates/guide_manage.html
+msgid "Manage Guides"
+msgstr "管理指南"
+
+#: templates/guide_manage.html
+msgid "New Guide"
+msgstr "新建指南"
+
+#: templates/guide_manage.html
+msgid "No guides yet."
+msgstr "暂无指南。"
+
+#: templates/guide_manage.html
+msgid "Create the first guide"
+msgstr "创建第一篇指南"
+
+#: templates/guide_manage.html templates/guide_publish.html
+msgid "Slug"
+msgstr "链接标识"
+
+#: templates/guide_manage.html
+msgid "Order"
+msgstr "顺序"
+
+#: templates/guide_manage.html templates/guide_publish.html
+msgid "Delete this guide?"
+msgstr "确定删除该指南？"
+
+#: templates/guide_publish.html
+msgid "Edit Guide"
+msgstr "编辑指南"
+
+#: templates/guide_publish.html
+msgid "Back to manage"
+msgstr "返回管理"
+
+#: templates/guide_publish.html
+msgid "Sort order"
+msgstr "排序顺序"
+
+#: templates/guide_publish.html
+msgid "auto-generated from EN title"
+msgstr "由英文标题自动生成"
+
+#: templates/guide_publish.html
+msgid "Used in the URL: /guides/<slug>. Lowercase letters, numbers, dashes only."
+msgstr "用于 URL：/guides/<slug>。仅限小写字母、数字和短横线。"
+
+#: templates/guide_publish.html
+msgid "Title (EN)"
+msgstr "标题（英文）"
+
+#: templates/guide_publish.html
+msgid "Title (ZH)"
+msgstr "标题（中文）"
+
+#: templates/guide_publish.html
+msgid "Summary (EN)"
+msgstr "摘要（英文）"
+
+#: templates/guide_publish.html
+msgid "Summary (ZH)"
+msgstr "摘要（中文）"
+
+#: templates/guide_publish.html
+msgid "Optional one-line description shown on the index"
+msgstr "选填：在列表页显示的一句话简介"
+
+#: templates/guide_publish.html
+msgid "Body (EN)"
+msgstr "正文（英文）"
+
+#: templates/guide_publish.html
+msgid "Body (ZH)"
+msgstr "正文（中文）"
+
+#: templates/guide_publish.html
+msgid "— Select —"
+msgstr "— 请选择 —"
+
+#: templates/guide_publish.html
+msgid "Save"
+msgstr "保存"
+
+#: templates/guide_publish.html
+msgid "Delete this guide? This cannot be undone."
+msgstr "确定删除该指南？此操作无法撤销。"
+
+#: templates/guide_publish.html
+msgid "Delete guide"
+msgstr "删除指南"
+
+#: templates/guide_publish.html
+msgid "Image upload failed."
+msgstr "图片上传失败。"
+
+#: app.py
+msgid "Guide not found."
+msgstr "未找到该指南。"
+
+#: app.py
+msgid "Please enter a title in at least one language."
+msgstr "请至少输入一种语言的标题。"
+
+#: app.py
+msgid "Please enter a slug."
+msgstr "请输入链接标识。"
+
+#: app.py
+msgid "That slug is already taken. Pick another."
+msgstr "该链接标识已被使用，请换一个。"
+
+#: app.py
+msgid "Guide updated."
+msgstr "指南已更新。"
+
+#: app.py
+msgid "Guide published."
+msgstr "指南已发布。"
+
+#: app.py
+msgid "Guide deleted."
+msgstr "指南已删除。"
+

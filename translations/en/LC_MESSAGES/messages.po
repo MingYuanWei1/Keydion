@@ -3064,3 +3064,156 @@ msgstr[1] ""
 #~ msgid "International Academy Research Hub"
 #~ msgstr "Keydion"
 
+# ==================== GUIDES ====================
+#: templates/guides.html
+msgid "Guides"
+msgstr "Guides"
+
+#: templates/guides.html
+msgid "Step-by-step help for using Keydion."
+msgstr "Step-by-step help for using Keydion."
+
+#: templates/guides.html
+msgid "No guides published yet. Check back soon."
+msgstr "No guides published yet. Check back soon."
+
+#: templates/guide_article.html
+msgid "Back to guides"
+msgstr "Back to guides"
+
+#: templates/guide_article.html
+msgid "Updated"
+msgstr "Updated"
+
+#: templates/guide_manage.html
+msgid "Manage Guides · Keydion"
+msgstr "Manage Guides · Keydion"
+
+#: templates/guide_manage.html
+msgid "Manage Guides"
+msgstr "Manage Guides"
+
+#: templates/guide_manage.html
+msgid "New Guide"
+msgstr "New Guide"
+
+#: templates/guide_manage.html
+msgid "No guides yet."
+msgstr "No guides yet."
+
+#: templates/guide_manage.html
+msgid "Create the first guide"
+msgstr "Create the first guide"
+
+#: templates/guide_manage.html
+msgid "Order"
+msgstr "Order"
+
+#: templates/guide_manage.html
+msgid "Draft"
+msgstr "Draft"
+
+#: templates/guide_manage.html templates/guide_publish.html
+msgid "Delete this guide?"
+msgstr "Delete this guide?"
+
+#: templates/guide_publish.html
+msgid "Edit Guide"
+msgstr "Edit Guide"
+
+#: templates/guide_publish.html
+msgid "Back to manage"
+msgstr "Back to manage"
+
+#: templates/guide_publish.html
+msgid "Sort order"
+msgstr "Sort order"
+
+#: templates/guide_publish.html
+msgid "Slug"
+msgstr "Slug"
+
+#: templates/guide_publish.html
+msgid "auto-generated from EN title"
+msgstr "auto-generated from EN title"
+
+#: templates/guide_publish.html
+msgid "Used in the URL: /guides/<slug>. Lowercase letters, numbers, dashes only."
+msgstr "Used in the URL: /guides/<slug>. Lowercase letters, numbers, dashes only."
+
+#: templates/guide_publish.html
+msgid "Title (EN)"
+msgstr "Title (EN)"
+
+#: templates/guide_publish.html
+msgid "Title (ZH)"
+msgstr "Title (ZH)"
+
+#: templates/guide_publish.html
+msgid "Summary (EN)"
+msgstr "Summary (EN)"
+
+#: templates/guide_publish.html
+msgid "Summary (ZH)"
+msgstr "Summary (ZH)"
+
+#: templates/guide_publish.html
+msgid "Optional one-line description shown on the index"
+msgstr "Optional one-line description shown on the index"
+
+#: templates/guide_publish.html
+msgid "Body (EN)"
+msgstr "Body (EN)"
+
+#: templates/guide_publish.html
+msgid "Body (ZH)"
+msgstr "Body (ZH)"
+
+#: templates/guide_publish.html
+msgid "— Select —"
+msgstr "— Select —"
+
+#: templates/guide_publish.html
+msgid "Save"
+msgstr "Save"
+
+#: templates/guide_publish.html
+msgid "Delete this guide? This cannot be undone."
+msgstr "Delete this guide? This cannot be undone."
+
+#: templates/guide_publish.html
+msgid "Delete guide"
+msgstr "Delete guide"
+
+#: templates/guide_publish.html
+msgid "Image upload failed."
+msgstr "Image upload failed."
+
+#: app.py
+msgid "Guide not found."
+msgstr "Guide not found."
+
+#: app.py
+msgid "Please enter a title in at least one language."
+msgstr "Please enter a title in at least one language."
+
+#: app.py
+msgid "Please enter a slug."
+msgstr "Please enter a slug."
+
+#: app.py
+msgid "That slug is already taken. Pick another."
+msgstr "That slug is already taken. Pick another."
+
+#: app.py
+msgid "Guide updated."
+msgstr "Guide updated."
+
+#: app.py
+msgid "Guide published."
+msgstr "Guide published."
+
+#: app.py
+msgid "Guide deleted."
+msgstr "Guide deleted."
+
