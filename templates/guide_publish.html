@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}
+  {% if editing %}{{ _('Edit Guide') }}{% else %}{{ _('New Guide') }}{% endif %} · Keydion
+{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/quill/quill.snow.css') }}">
+
+<div class="container py-4" style="max-width: 980px;">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 fw-semibold mb-0">
+      {% if editing %}{{ _('Edit Guide') }}{% else %}{{ _('New Guide') }}{% endif %}
+    </h1>
+    <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('admin_guides_manage') }}">
+      {{ _('Back to manage') }}
+    </a>
+  </div>
+
+  <form method="post" id="guideForm">
+    <div class="row g-4 mb-4">
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">{{ _('Category') }}</label>
+        <select name="category" class="form-select">
+          <option value="">{{ _('— Select —') }}</option>
+          {% for cat in categories %}
+            <option value="{{ cat }}" {% if form_data.category == cat %}selected{% endif %}>{{ cat }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-semibold">{{ _('Sort order') }}</label>
+        <input type="number" name="sort_order" class="form-control" value="{{ form_data.sort_order }}" min="0" max="9999">
+      </div>
+      <div class="col-md-3 d-flex align-items-end">
+        <div class="form-check">
+          <input type="checkbox" name="published" id="publishedCheck" value="1" class="form-check-input" {% if form_data.published %}checked{% endif %}>
+          <label for="publishedCheck" class="form-check-label">{{ _('Published') }}</label>
+        </div>
+      </div>
+      <div class="col-12">
+        <label class="form-label fw-semibold">{{ _('Slug') }}</label>
+        <input type="text" name="slug" id="slugInput" class="form-control" value="{{ form_data.slug }}" placeholder="auto-generated from title">
+        <div class="form-text">{{ _('Used in the URL: /guides/<slug>. Lowercase letters, numbers, dashes only.') }}</div>
+      </div>
+    </div>
+
+    <!-- English section -->
+    <div class="card mb-4">
+      <div class="card-header bg-light fw-semibold">English</div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="form-label">{{ _('Title (EN)') }}</label>
+          <input type="text" name="title_en" class="form-control" value="{{ form_data.title_en }}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">{{ _('Summary (EN)') }}</label>
+          <input type="text" name="summary_en" class="form-control" value="{{ form_data.summary_en }}" placeholder="{{ _('Optional one-line description shown on the index') }}">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">{{ _('Body (EN)') }}</label>
+          <div id="editorEn" style="min-height: 280px; background: #fff;"></div>
+          <input type="hidden" name="body_en" id="bodyEnField" value="{{ form_data.body_en }}">
+        </div>
+      </div>
+    </div>
+
+    <!-- Chinese section -->
+    <div class="card mb-4">
+      <div class="card-header bg-light fw-semibold">中文</div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="form-label">{{ _('Title (ZH)') }}</label>
+          <input type="text" name="title_zh" class="form-control" value="{{ form_data.title_zh }}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">{{ _('Summary (ZH)') }}</label>
+          <input type="text" name="summary_zh" class="form-control" value="{{ form_data.summary_zh }}">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">{{ _('Body (ZH)') }}</label>
+          <div id="editorZh" style="min-height: 280px; background: #fff;"></div>
+          <input type="hidden" name="body_zh" id="bodyZhField" value="{{ form_data.body_zh }}">
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2">
+      <a href="{{ url_for('admin_guides_manage') }}" class="btn btn-outline-secondary">{{ _('Cancel') }}</a>
+      <button type="submit" class="btn btn-primary">{{ _('Save') }}</button>
+    </div>
+  </form>
+
+  {% if editing %}
+    <!-- Delete must live outside the main form: nested <form> is invalid HTML. -->
+    <form method="post" action="{{ url_for('admin_guide_delete', guide_id=guide_id) }}" class="mt-4"
+          onsubmit="return confirm('{{ _('Delete this guide? This cannot be undone.') }}')">
+      <button type="submit" class="btn btn-sm btn-outline-danger">{{ _('Delete guide') }}</button>
+    </form>
+  {% endif %}
+</div>
+
+<script src="{{ url_for('static', filename='vendor/quill/quill.min.js') }}"></script>
+<script>
+  (function () {
+    var toolbar = [
+      [{ header: [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      ['blockquote', 'code-block'],
+      ['link', 'image'],
+      ['clean']
+    ];
+
+    function makeEditor(elId, hiddenId) {
+      var hidden = document.getElementById(hiddenId);
+      var editor = new Quill('#' + elId, {
+        theme: 'snow',
+        modules: { toolbar: toolbar }
+      });
+      // Load existing content
+      if (hidden.value) {
+        editor.clipboard.dangerouslyPasteHTML(0, hidden.value);
+      }
+      // Hook image button to our upload endpoint
+      editor.getModule('toolbar').addHandler('image', function () {
+        var input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/png,image/jpeg,image/gif,image/webp';
+        input.onchange = function () {
+          var file = input.files && input.files[0];
+          if (!file) return;
+          var fd = new FormData();
+          fd.append('file', file);
+          fetch("{{ url_for('admin_guide_upload_image') }}", {
+            method: 'POST', body: fd
+          })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+              if (data.url) {
+                var range = editor.getSelection(true);
+                editor.insertEmbed(range.index, 'image', data.url, 'user');
+                editor.setSelection(range.index + 1);
+              } else {
+                alert(data.error || 'Upload failed');
+              }
+            })
+            .catch(function () { alert("{{ _('Image upload failed.') }}"); });
+        };
+        input.click();
+      });
+      // Sync to hidden field on every change
+      editor.on('text-change', function () {
+        hidden.value = editor.root.innerHTML;
+      });
+      // Final sync on submit
+      document.getElementById('guideForm').addEventListener('submit', function () {
+        hidden.value = editor.root.innerHTML;
+      });
+    }
+
+    makeEditor('editorEn', 'bodyEnField');
+    makeEditor('editorZh', 'bodyZhField');
+
+    // Auto-suggest slug from EN title
+    var slugInput = document.getElementById('slugInput');
+    var titleEn = document.querySelector('input[name="title_en"]');
+    titleEn.addEventListener('blur', function () {
+      if (!slugInput.value && titleEn.value) {
+        slugInput.value = titleEn.value
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '');
+      }
+    });
+  })();
+</script>
+{% endblock %}
