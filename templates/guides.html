@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Guides') }} · Keydion{% endblock %}
+{% block content %}
+<div style="max-width: 820px; margin: 0 auto;">
+  <div class="mb-4">
+    <h1 class="display-6 fw-semibold mb-2">{{ _('Guides') }}</h1>
+    <p class="text-muted mb-0">{{ _('Step-by-step help for using Keydion.') }}</p>
+  </div>
+
+  {% if not grouped %}
+    <div class="text-center py-5 text-muted">
+      <p>{{ _('No guides published yet. Check back soon.') }}</p>
+    </div>
+  {% else %}
+    {% for category, items in grouped %}
+      <section class="mb-4">
+        <h2 class="h5 fw-semibold text-secondary text-uppercase mb-3" style="letter-spacing:.05em;">
+          {{ category }}
+        </h2>
+        <ul class="list-group list-group-flush border-top border-bottom">
+          {% for g in items %}
+            {% set title = g.title_zh if current_locale == 'zh' and g.title_zh else g.title_en or g.title_zh %}
+            {% set summary = g.summary_zh if current_locale == 'zh' and g.summary_zh else g.summary_en or g.summary_zh %}
+            <li class="list-group-item px-0 py-3">
+              <a class="text-decoration-none d-block" href="{{ url_for('guide_article', slug=g.slug) }}">
+                <div class="fw-semibold text-dark">{{ title }}</div>
+                {% if summary %}
+                  <div class="text-muted small mt-1">{{ summary }}</div>
+                {% endif %}
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endfor %}
+  {% endif %}
+</div>
+{% endblock %}
