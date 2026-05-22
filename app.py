@@ -3403,6 +3403,82 @@ def refresh_session(username: str, token: str) -> bool:
         db.commit()
         return True
 
+# ==================== GUIDE HELPERS ====================
+
+import bleach
+from html.parser import HTMLParser as _HTMLParser
+
+GUIDE_ALLOWED_TAGS = [
+    "h1", "h2", "h3", "h4", "p", "strong", "em", "u", "s",
+    "ul", "ol", "li", "a", "img", "blockquote", "code", "pre",
+    "br", "hr", "span", "div",
+]
+GUIDE_ALLOWED_ATTRS = {
+    "a": ["href", "title", "target", "rel"],
+    "img": ["src", "alt", "width", "height"],
+    "span": ["class"],
+    "div": ["class"],
+}
+GUIDE_ALLOWED_PROTOCOLS = ["http", "https"]
+
+# Tags whose entire content (not just the tag itself) must be removed.
+_GUIDE_CONTENT_STRIP_TAGS = {"script", "style", "iframe", "object", "embed", "form"}
+
+
+class _ContentStripper(_HTMLParser):
+    """Pre-pass that drops both the tags and their inner text for dangerous elements."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=False)
+        self._skip_depth = 0
+        self._parts = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag in _GUIDE_CONTENT_STRIP_TAGS:
+            self._skip_depth += 1
+        else:
+            self._parts.append(self.get_starttag_text())
+
+    def handle_endtag(self, tag):
+        if tag in _GUIDE_CONTENT_STRIP_TAGS:
+            self._skip_depth = max(0, self._skip_depth - 1)
+        elif not self._skip_depth:
+            self._parts.append(f"</{tag}>")
+
+    def handle_data(self, data):
+        if not self._skip_depth:
+            self._parts.append(data)
+
+    def handle_entityref(self, name):
+        if not self._skip_depth:
+            self._parts.append(f"&{name};")
+
+    def handle_charref(self, name):
+        if not self._skip_depth:
+            self._parts.append(f"&#{name};")
+
+    def get_result(self):
+        return "".join(self._parts)
+
+
+def _sanitize_guide_html(html: str) -> str:
+    """Strip dangerous HTML from a Quill body before storing it."""
+    if not html:
+        return ""
+    # Phase 1: remove content of dangerous tags (script, style, etc.)
+    stripper = _ContentStripper()
+    stripper.feed(html)
+    pre_cleaned = stripper.get_result()
+    # Phase 2: use bleach to enforce tag/attribute/protocol allowlists
+    return bleach.clean(
+        pre_cleaned,
+        tags=GUIDE_ALLOWED_TAGS,
+        attributes=GUIDE_ALLOWED_ATTRS,
+        protocols=GUIDE_ALLOWED_PROTOCOLS,
+        strip=True,
+    )
+
+
 # ==================== NEWS HELPERS ====================
 
 def load_news_articles() -> List[Dict[str, str]]:
