@@ -2247,6 +2247,25 @@ def create_app() -> Flask:
             guide_id=guide_id,
         )
 
+    @app.route("/admin/guides")
+    def admin_guides_manage():
+        user = require_login(level=3)
+        if not user:
+            return redirect(url_for("login"))
+        guides = load_guides(published_only=False)
+        return render_template("guide_manage.html", guides=guides, user=user)
+
+    @app.route("/admin/guides/<int:guide_id>/delete", methods=["POST"])
+    def admin_guide_delete(guide_id: int):
+        user = require_login(level=3)
+        if not user:
+            return redirect(url_for("login"))
+        if delete_guide(guide_id):
+            flash(_("Guide deleted."), "success")
+        else:
+            flash(_("Guide not found."), "warning")
+        return redirect(url_for("admin_guides_manage"))
+
     # ---------- Paper categories & journals management ----------
     @app.route("/admin/paper-manage")
     def paper_manage():
