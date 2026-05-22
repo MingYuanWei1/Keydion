@@ -5,6 +5,7 @@ load_dotenv()
 
 import base64
 import binascii
+import bleach
 
 import hashlib
 import hmac
@@ -15,6 +16,7 @@ import secrets
 import shutil
 from contextlib import contextmanager
 from datetime import datetime, timedelta
+from html.parser import HTMLParser as _HTMLParser
 from io import BytesIO
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -3404,9 +3406,6 @@ def refresh_session(username: str, token: str) -> bool:
         return True
 
 # ==================== GUIDE HELPERS ====================
-
-import bleach
-from html.parser import HTMLParser as _HTMLParser
 
 GUIDE_ALLOWED_TAGS = [
     "h1", "h2", "h3", "h4", "p", "strong", "em", "u", "s",
