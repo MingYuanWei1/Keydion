@@ -2144,6 +2144,13 @@ def create_app() -> Flask:
             grouped.append((cat, extras[cat]))
         return render_template("guides.html", grouped=grouped)
 
+    @app.route("/guides/<slug>")
+    def guide_article(slug):
+        guide = get_guide_by_slug(slug)
+        if not guide or not guide.get("published"):
+            abort(404)
+        return render_template("guide_article.html", guide=guide)
+
     # ---------- Paper categories & journals management ----------
     @app.route("/admin/paper-manage")
     def paper_manage():
