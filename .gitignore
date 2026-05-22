@@ -1,5 +1,6 @@
 # Database and uploaded files (DO NOT COMMIT THESE)
 static/uploads/
+static/uploads/guides/
 *.db
 *.sqlite3
 *.sqlite
