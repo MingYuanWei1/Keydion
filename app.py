@@ -2175,6 +2175,78 @@ def create_app() -> Flask:
         img_url = url_for("static", filename=f"uploads/guides/{unique_name}")
         return jsonify({"url": img_url})
 
+    @app.route("/admin/guides/new", methods=["GET", "POST"], endpoint="admin_guide_new")
+    @app.route("/admin/guides/<int:guide_id>/edit", methods=["GET", "POST"], endpoint="admin_guide_edit")
+    def admin_guide_publish(guide_id: int = None):
+        user = require_login(level=3)
+        if not user:
+            return redirect(url_for("login"))
+
+        editing = guide_id is not None
+        guide = get_guide(guide_id) if editing else None
+        if editing and not guide:
+            flash(_("Guide not found."), "warning")
+            return redirect(url_for("admin_guides_manage"))
+
+        form_data = {
+            "slug": (guide or {}).get("slug", ""),
+            "category": (guide or {}).get("category", ""),
+            "sort_order": (guide or {}).get("sort_order", 100),
+            "published": bool((guide or {}).get("published", False)),
+            "title_en": (guide or {}).get("title_en", ""),
+            "title_zh": (guide or {}).get("title_zh", ""),
+            "summary_en": (guide or {}).get("summary_en", ""),
+            "summary_zh": (guide or {}).get("summary_zh", ""),
+            "body_en": (guide or {}).get("body_en", ""),
+            "body_zh": (guide or {}).get("body_zh", ""),
+        }
+
+        if request.method == "POST":
+            form_data = {
+                "slug": request.form.get("slug", "").strip(),
+                "category": request.form.get("category", "").strip(),
+                "sort_order": request.form.get("sort_order", "100").strip() or "100",
+                "published": request.form.get("published") == "1",
+                "title_en": request.form.get("title_en", "").strip(),
+                "title_zh": request.form.get("title_zh", "").strip(),
+                "summary_en": request.form.get("summary_en", "").strip(),
+                "summary_zh": request.form.get("summary_zh", "").strip(),
+                "body_en": request.form.get("body_en", "").strip(),
+                "body_zh": request.form.get("body_zh", "").strip(),
+            }
+            # Auto-generate slug if blank
+            if not form_data["slug"]:
+                form_data["slug"] = _slugify(form_data["title_en"] or form_data["title_zh"])
+            else:
+                form_data["slug"] = _slugify(form_data["slug"])
+
+            error = None
+            if not form_data["title_en"] and not form_data["title_zh"]:
+                error = _("Please enter a title in at least one language.")
+            elif not form_data["slug"]:
+                error = _("Please enter a slug.")
+            elif slug_exists(form_data["slug"], exclude_id=guide_id or 0):
+                error = _("That slug is already taken. Pick another.")
+
+            if error:
+                flash(error, "warning")
+            else:
+                if editing:
+                    update_guide(guide_id, form_data)
+                    flash(_("Guide updated."), "success")
+                else:
+                    save_guide(form_data)
+                    flash(_("Guide published."), "success")
+                return redirect(url_for("admin_guides_manage"))
+
+        return render_template(
+            "guide_publish.html",
+            form_data=form_data,
+            categories=_load_guide_categories(),
+            editing=editing,
+            guide_id=guide_id,
+        )
+
     # ---------- Paper categories & journals management ----------
     @app.route("/admin/paper-manage")
     def paper_manage():
