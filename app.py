@@ -24,8 +24,9 @@ from uuid import uuid4
 from urllib.parse import urlparse
 
 import msal
+import re
 import requests
-from sqlalchemy import Column, Date, DateTime, ForeignKey, String, Text, Unicode, UnicodeText, create_engine
+from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, String, Text, Unicode, UnicodeText, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from flask import (
     Flask,
@@ -49,6 +50,15 @@ DATA_DIR = Path(os.environ.get("PAPERQUERY_DATA_DIR", BASE_DIR / "data")).resolv
 PAPERS_DIR = Path(os.environ.get("PAPERQUERY_UPLOAD_DIR", BASE_DIR / "papers")).resolve()
 LOCAL_USER_FIELDS = ["username", "password", "registration_date", "expiry_date", "role", "email", "first_name", "last_name", "school"]
 NEWS_FIELDS = ["id", "title", "category", "abstract", "body", "author", "image_url", "published_at"]
+GUIDE_FIELDS = [
+    "id", "slug", "category", "sort_order", "published",
+    "title_en", "title_zh", "summary_en", "summary_zh",
+    "body_en", "body_zh", "created_at", "updated_at",
+]
+GUIDE_CATEGORIES_JSON = DATA_DIR / "guide_categories.json"
+_DEFAULT_GUIDE_CATEGORIES = [
+    "Getting Started", "Account", "Submissions", "News", "Other",
+]
 _DEFAULT_NEWS_CATEGORIES = [
     "活动回顾", "期刊发布", "讲座预告", "成果展示",
     "公告通知", "学术动态", "社团新闻", "其他",
@@ -477,6 +487,23 @@ class NewsArticleModel(BASE):
     author = Column(Unicode(255))
     image_url = Column(Unicode(255))
     published_at = Column(Unicode(255))
+
+
+class GuideModel(BASE):
+    __tablename__ = "guides"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    slug = Column(Unicode(120), unique=True, index=True, nullable=False)
+    category = Column(Unicode(80), default="")
+    sort_order = Column(Integer, default=100)
+    published = Column(Boolean, default=False)
+    title_en = Column(Unicode(200), default="")
+    title_zh = Column(Unicode(200), default="")
+    summary_en = Column(Unicode(300), default="")
+    summary_zh = Column(Unicode(300), default="")
+    body_en = Column(UnicodeText, default="")
+    body_zh = Column(UnicodeText, default="")
+    created_at = Column(Unicode(40), default="")
+    updated_at = Column(Unicode(40), default="")
 
 class SubmissionModel(BASE):
     __tablename__ = "submissions"
@@ -3476,6 +3503,121 @@ def _sanitize_guide_html(html: str) -> str:
         protocols=GUIDE_ALLOWED_PROTOCOLS,
         strip=True,
     )
+
+
+def _load_guide_categories() -> list:
+    """Load guide categories from JSON file, seeding from defaults if needed."""
+    if GUIDE_CATEGORIES_JSON.exists():
+        try:
+            return json.loads(GUIDE_CATEGORIES_JSON.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            pass
+    _save_guide_categories(_DEFAULT_GUIDE_CATEGORIES)
+    return list(_DEFAULT_GUIDE_CATEGORIES)
+
+
+def _save_guide_categories(cats: list) -> None:
+    GUIDE_CATEGORIES_JSON.parent.mkdir(parents=True, exist_ok=True)
+    GUIDE_CATEGORIES_JSON.write_text(
+        json.dumps(cats, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+
+_SLUG_RE = re.compile(r"[^a-z0-9]+")
+
+
+def _slugify(text: str) -> str:
+    """Lowercase ASCII slug, dash-separated, max 120 chars."""
+    if not text:
+        return ""
+    slug = _SLUG_RE.sub("-", text.lower()).strip("-")
+    return slug[:120] or "guide"
+
+
+def _guide_to_dict(g) -> dict:
+    return {field: getattr(g, field) for field in GUIDE_FIELDS}
+
+
+def load_guides(published_only: bool = True) -> list:
+    """Return all guides, ordered by category then sort_order ascending."""
+    with db_session() as db:
+        q = db.query(GuideModel)
+        if published_only:
+            q = q.filter(GuideModel.published == True)  # noqa: E712
+        guides = q.all()
+        rows = [_guide_to_dict(g) for g in guides]
+        rows.sort(key=lambda r: (r.get("category") or "", r.get("sort_order") or 0))
+        return rows
+
+
+def get_guide_by_slug(slug: str):
+    with db_session() as db:
+        g = db.query(GuideModel).filter_by(slug=slug).first()
+        return _guide_to_dict(g) if g else None
+
+
+def get_guide(guide_id: int):
+    with db_session() as db:
+        g = db.query(GuideModel).filter_by(id=guide_id).first()
+        return _guide_to_dict(g) if g else None
+
+
+def save_guide(data: dict) -> int:
+    """Insert a new guide and return its id."""
+    now = datetime.utcnow().isoformat()
+    payload = {f: data.get(f, "") for f in GUIDE_FIELDS if f != "id"}
+    payload["created_at"] = now
+    payload["updated_at"] = now
+    payload["body_en"] = _sanitize_guide_html(payload.get("body_en", ""))
+    payload["body_zh"] = _sanitize_guide_html(payload.get("body_zh", ""))
+    payload["published"] = bool(payload.get("published"))
+    payload["sort_order"] = int(payload.get("sort_order") or 100)
+    with db_session() as db:
+        g = GuideModel(**payload)
+        db.add(g)
+        db.commit()
+        return g.id
+
+
+def update_guide(guide_id: int, data: dict) -> bool:
+    with db_session() as db:
+        g = db.query(GuideModel).filter_by(id=guide_id).first()
+        if not g:
+            return False
+        for field in GUIDE_FIELDS:
+            if field in ("id", "created_at"):
+                continue
+            if field not in data:
+                continue
+            value = data[field]
+            if field in ("body_en", "body_zh"):
+                value = _sanitize_guide_html(value or "")
+            elif field == "published":
+                value = bool(value)
+            elif field == "sort_order":
+                value = int(value or 100)
+            setattr(g, field, value)
+        g.updated_at = datetime.utcnow().isoformat()
+        db.commit()
+        return True
+
+
+def delete_guide(guide_id: int) -> bool:
+    with db_session() as db:
+        g = db.query(GuideModel).filter_by(id=guide_id).first()
+        if not g:
+            return False
+        db.delete(g)
+        db.commit()
+        return True
+
+
+def slug_exists(slug: str, exclude_id: int = 0) -> bool:
+    with db_session() as db:
+        q = db.query(GuideModel).filter_by(slug=slug)
+        if exclude_id:
+            q = q.filter(GuideModel.id != exclude_id)
+        return db.query(q.exists()).scalar()
 
 
 # ==================== NEWS HELPERS ====================
