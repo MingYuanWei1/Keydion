@@ -2119,6 +2119,31 @@ def create_app() -> Flask:
         save_categories(cats)
         return jsonify(categories=cats)
 
+    # ==================== GUIDE ROUTES ====================
+
+    @app.route("/guides")
+    def guides():
+        all_guides = load_guides(published_only=True)
+        # Group by category, preserving the order from guide_categories.json,
+        # then any unknown categories at the end.
+        categories_in_order = _load_guide_categories()
+        seen = set()
+        grouped = []
+        for cat in categories_in_order:
+            items = [g for g in all_guides if g.get("category") == cat]
+            if items:
+                grouped.append((cat, items))
+                seen.add(cat)
+        # Any leftover categories not in the JSON list
+        extras = {}
+        for g in all_guides:
+            cat = g.get("category") or ""
+            if cat and cat not in seen:
+                extras.setdefault(cat, []).append(g)
+        for cat in sorted(extras):
+            grouped.append((cat, extras[cat]))
+        return render_template("guides.html", grouped=grouped)
+
     # ---------- Paper categories & journals management ----------
     @app.route("/admin/paper-manage")
     def paper_manage():
