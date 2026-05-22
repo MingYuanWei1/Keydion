@@ -250,6 +250,8 @@ JOURNAL_COVERS_DIR = BASE_DIR / "static" / "uploads" / "journal_covers"
 ALLOWED_EXTENSIONS = {"pdf"}
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 NEWS_IMAGES_DIR = BASE_DIR / "static" / "uploads" / "news"
+GUIDE_IMAGES_DIR = BASE_DIR / "static" / "uploads" / "guides"
+GUIDE_IMAGE_MAX_BYTES = 5 * 1024 * 1024  # 5 MB
 MAX_SEARCH_RESULTS = 20
 PASSWORD_SCHEME = "pbkdf2_sha256"
 SUPPORTED_LOCALES = ("en", "zh")
@@ -2150,6 +2152,28 @@ def create_app() -> Flask:
         if not guide or not guide.get("published"):
             abort(404)
         return render_template("guide_article.html", guide=guide)
+
+    @app.route("/admin/guides/upload-image", methods=["POST"])
+    def admin_guide_upload_image():
+        user = require_login(level=3)
+        if not user:
+            return jsonify({"error": "Unauthorized"}), 401
+        img_file = request.files.get("file")
+        if not img_file or not img_file.filename:
+            return jsonify({"error": "No file provided"}), 400
+        img_file.stream.seek(0, 2)  # seek to end to measure size
+        size = img_file.stream.tell()
+        img_file.stream.seek(0)
+        if size > GUIDE_IMAGE_MAX_BYTES:
+            return jsonify({"error": "File too large"}), 400
+        ext = img_file.filename.rsplit(".", 1)[-1].lower() if "." in img_file.filename else ""
+        if ext not in ALLOWED_IMAGE_EXTENSIONS:
+            return jsonify({"error": "Invalid image format"}), 400
+        GUIDE_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+        unique_name = f"{uuid4().hex[:12]}_{secure_filename(img_file.filename)}"
+        img_file.save(GUIDE_IMAGES_DIR / unique_name)
+        img_url = url_for("static", filename=f"uploads/guides/{unique_name}")
+        return jsonify({"url": img_url})
 
     # ---------- Paper categories & journals management ----------
     @app.route("/admin/paper-manage")
