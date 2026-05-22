@@ -38,7 +38,7 @@
       </div>
       <div class="col-12">
         <label class="form-label fw-semibold">{{ _('Slug') }}</label>
-        <input type="text" name="slug" id="slugInput" class="form-control" value="{{ form_data.slug }}" placeholder="auto-generated from title">
+        <input type="text" name="slug" id="slugInput" class="form-control" value="{{ form_data.slug }}" placeholder="{{ _('auto-generated from EN title') }}">
         <div class="form-text">{{ _('Used in the URL: /guides/<slug>. Lowercase letters, numbers, dashes only.') }}</div>
       </div>
     </div>
@@ -151,14 +151,17 @@
       editor.on('text-change', function () {
         hidden.value = editor.root.innerHTML;
       });
-      // Final sync on submit
-      document.getElementById('guideForm').addEventListener('submit', function () {
-        hidden.value = editor.root.innerHTML;
-      });
+      return { editor: editor, hidden: hidden };
     }
 
-    makeEditor('editorEn', 'bodyEnField');
-    makeEditor('editorZh', 'bodyZhField');
+    var pairEn = makeEditor('editorEn', 'bodyEnField');
+    var pairZh = makeEditor('editorZh', 'bodyZhField');
+
+    // Consolidated submit handler for both editors
+    document.getElementById('guideForm').addEventListener('submit', function () {
+      pairEn.hidden.value = pairEn.editor.root.innerHTML;
+      pairZh.hidden.value = pairZh.editor.root.innerHTML;
+    });
 
     // Auto-suggest slug from EN title
     var slugInput = document.getElementById('slugInput');
