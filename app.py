@@ -23,8 +23,9 @@ from typing import Dict, List, Optional, Tuple
 from uuid import uuid4
 from urllib.parse import urlparse
 
-import msal
 import re
+
+import msal
 import requests
 from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, String, Text, Unicode, UnicodeText, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
@@ -504,6 +505,7 @@ class GuideModel(BASE):
     body_zh = Column(UnicodeText, default="")
     created_at = Column(Unicode(40), default="")
     updated_at = Column(Unicode(40), default="")
+
 
 class SubmissionModel(BASE):
     __tablename__ = "submissions"
@@ -3535,7 +3537,13 @@ def _slugify(text: str) -> str:
 
 
 def _guide_to_dict(g) -> dict:
-    return {field: getattr(g, field) for field in GUIDE_FIELDS}
+    out = {}
+    for field in GUIDE_FIELDS:
+        val = getattr(g, field)
+        if val is None and field not in ("id", "sort_order", "published"):
+            val = ""
+        out[field] = val
+    return out
 
 
 def load_guides(published_only: bool = True) -> list:
@@ -3570,8 +3578,13 @@ def save_guide(data: dict) -> int:
     payload["updated_at"] = now
     payload["body_en"] = _sanitize_guide_html(payload.get("body_en", ""))
     payload["body_zh"] = _sanitize_guide_html(payload.get("body_zh", ""))
-    payload["published"] = bool(payload.get("published"))
-    payload["sort_order"] = int(payload.get("sort_order") or 100)
+    raw_pub = payload.get("published")
+    if isinstance(raw_pub, str):
+        payload["published"] = raw_pub.strip().lower() in ("1", "true", "yes", "on")
+    else:
+        payload["published"] = bool(raw_pub)
+    raw_sort = payload.get("sort_order")
+    payload["sort_order"] = int(raw_sort) if raw_sort not in (None, "") else 100
     with db_session() as db:
         g = GuideModel(**payload)
         db.add(g)
@@ -3593,9 +3606,12 @@ def update_guide(guide_id: int, data: dict) -> bool:
             if field in ("body_en", "body_zh"):
                 value = _sanitize_guide_html(value or "")
             elif field == "published":
-                value = bool(value)
+                if isinstance(value, str):
+                    value = value.strip().lower() in ("1", "true", "yes", "on")
+                else:
+                    value = bool(value)
             elif field == "sort_order":
-                value = int(value or 100)
+                value = int(value) if value not in (None, "") else 100
             setattr(g, field, value)
         g.updated_at = datetime.utcnow().isoformat()
         db.commit()
