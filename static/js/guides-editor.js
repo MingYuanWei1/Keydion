@@ -286,6 +286,58 @@
     window.removeEventListener('beforeunload', beforeUnloadHandler);
   });
 
+  /* ─── Published toggle ───────────────────────────────────────────── */
+  var toggle = document.querySelector('[data-toggle-published]');
+  var publishedCheck = document.getElementById('publishedCheck');
+  if (toggle && publishedCheck) {
+    toggle.addEventListener('click', function (e) {
+      e.preventDefault();
+      var nowOn = !publishedCheck.checked;
+      publishedCheck.checked = nowOn;
+      toggle.classList.toggle('on', nowOn);
+      var statusEl = toggle.querySelector('.kd-toggle-status');
+      if (statusEl) statusEl.textContent = nowOn ? 'Live' : 'Draft';
+      checkDirty();
+    });
+  }
+
+  /* ─── Preview button ─────────────────────────────────────────────── */
+  var previewBtn = document.querySelector('[data-preview-guide]');
+  if (previewBtn) {
+    previewBtn.addEventListener('click', function () {
+      /* Sync editors into hidden fields first */
+      pairEn.hidden.value = pairEn.editor.root.innerHTML;
+      pairZh.hidden.value = pairZh.editor.root.innerHTML;
+      var transient = document.createElement('form');
+      transient.method = 'POST';
+      transient.action = panel.dataset.previewUrl;
+      transient.target = '_blank';
+      var fd = new FormData(form);
+      fd.forEach(function (v, k) {
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = k;
+        input.value = v;
+        transient.appendChild(input);
+      });
+      document.body.appendChild(transient);
+      transient.submit();
+      document.body.removeChild(transient);
+    });
+  }
+
+  /* ─── Delete button ──────────────────────────────────────────────── */
+  var deleteBtn = document.querySelector('[data-delete-guide]');
+  var deleteForm = document.getElementById('deleteGuideForm');
+  if (deleteBtn && deleteForm) {
+    deleteBtn.addEventListener('click', function () {
+      if (window.confirm('Delete this guide? This cannot be undone.')) {
+        window.removeEventListener('beforeunload', beforeUnloadHandler);
+        deleteForm.submit();
+      }
+    });
+  }
+
   /* Hooks for the next tasks — exported on a namespace so each task can
      reach in without forcing another rewrite. */
   window.__guidesEditor = {

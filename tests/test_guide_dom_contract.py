@@ -55,6 +55,13 @@ class GuideDomContractTest(unittest.TestCase):
         for phrase in ("All changes saved", "Unsaved changes"):
             self.assertIn(phrase, self.js)
 
+    def test_js_wires_toggle_preview_delete(self):
+        self.assertIn("data-toggle-published", self.js)
+        self.assertIn("data-preview-guide", self.js)
+        self.assertIn("data-delete-guide", self.js)
+        self.assertIn("publishedCheck", self.js)
+        self.assertIn("deleteGuideForm", self.js)
+
 
 if __name__ == "__main__":
     unittest.main()
