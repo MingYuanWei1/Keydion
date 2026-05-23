@@ -65,11 +65,20 @@
 
     fetch(url, init)
       .then(function (res) {
-        // If the server redirected us off the dashboard (e.g. login wall),
-        // fall back to a full navigation.
-        if (res.redirected && res.url && pathOf(res.url) !== pathOf(url)) {
-          window.location.href = res.url;
-          return null;
+        // If the server redirected us OUT of /dashboard/* (e.g. login wall,
+        // session expiry), fall back to a full navigation. In-shell redirects
+        // (POST /dashboard/news/publish → /dashboard/news/manage) stay partial.
+        if (res.redirected && res.url) {
+          var redirPath = pathOf(res.url);
+          var origPath  = pathOf(url);
+          var leftDashboard = origPath.indexOf('/dashboard') === 0 && !redirPath.startsWith('/dashboard');
+          if (leftDashboard) {
+            window.location.href = res.url;
+            return null;
+          }
+          // Otherwise carry the resolved URL forward so pushState writes
+          // /dashboard/news/manage instead of /dashboard/news/publish.
+          opts.resolvedUrl = res.url;
         }
         return res.text();
       })
@@ -89,12 +98,12 @@
           oldScript.parentNode.replaceChild(s, oldScript);
         });
 
-        var p = pathOf(url);
-        activateNavForPath(p);
+        var resolvedUrl = opts.resolvedUrl || url;
+        activateNavForPath(pathOf(resolvedUrl));
         if (opts.push !== false) {
-          history.pushState({ partial: url }, '', url);
+          history.pushState({ partial: resolvedUrl }, '', resolvedUrl);
         }
-        document.dispatchEvent(new CustomEvent('keydion:partial-loaded', { detail: { url: url } }));
+        document.dispatchEvent(new CustomEvent('keydion:partial-loaded', { detail: { url: resolvedUrl } }));
       })
       .catch(function (err) {
         main.classList.remove('is-swapping');
