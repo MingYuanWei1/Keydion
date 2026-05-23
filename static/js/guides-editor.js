@@ -209,6 +209,36 @@
     }
   });
 
+  /* ─── Per-language status pill ───────────────────────────────────── */
+  function updateStatus(lang, pair) {
+    var card = document.querySelector('.kd-editor-card[data-lang="' + lang + '"]');
+    if (!card) return;
+    var dot = card.querySelector('[data-status] .dot');
+    var label = card.querySelector('[data-status-label]');
+    var titleInput = card.querySelector('input[name="title_' + lang + '"]');
+    var summaryInput = card.querySelector('input[name="summary_' + lang + '"]');
+    var bodyText = pair.editor.getText().trim();
+    var msg, ok;
+    if (!titleInput.value.trim()) { msg = 'Title missing'; ok = false; }
+    else if (!summaryInput.value.trim()) { msg = 'Summary missing'; ok = false; }
+    else if (!bodyText) { msg = 'Body missing'; ok = false; }
+    else { msg = 'All fields filled'; ok = true; }
+    label.textContent = msg;
+    dot.style.background = ok ? '#2a9d5f' : '#c98a1a';
+  }
+
+  ['en', 'zh'].forEach(function (lang) {
+    var pair = (lang === 'en') ? pairEn : pairZh;
+    var card = document.querySelector('.kd-editor-card[data-lang="' + lang + '"]');
+    if (!card) return;
+    var inputs = card.querySelectorAll('input[data-required]');
+    inputs.forEach(function (inp) {
+      inp.addEventListener('input', function () { updateStatus(lang, pair); });
+    });
+    pair.editor.on('text-change', function () { updateStatus(lang, pair); });
+    updateStatus(lang, pair); /* initial */
+  });
+
   /* Hooks for the next tasks — exported on a namespace so each task can
      reach in without forcing another rewrite. */
   window.__guidesEditor = {

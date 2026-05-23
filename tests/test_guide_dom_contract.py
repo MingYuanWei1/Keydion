@@ -42,6 +42,13 @@ class GuideDomContractTest(unittest.TestCase):
         self.assertIn("kd-fig-img", self.js)
         self.assertIn("kd-fig-caption", self.js)
 
+    def test_js_wires_status_pill(self):
+        self.assertIn("data-status-label", self.js)
+        # Status states surface as text in the JS for translation/observability
+        for phrase in ("All fields filled", "Title missing",
+                       "Summary missing", "Body missing"):
+            self.assertIn(phrase, self.js)
+
 
 if __name__ == "__main__":
     unittest.main()
