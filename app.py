@@ -2403,6 +2403,7 @@ def create_app() -> Flask:
             categories=_load_guide_categories(),
             editing=editing,
             guide_id=guide_id,
+            user=user,
         )
 
     @app.route("/dashboard/admin/guides")

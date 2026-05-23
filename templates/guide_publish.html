@@ -1,105 +1,167 @@
-{% extends "base.html" %}
+{% extends "_dashboard_shell.html" %}
 {% block title %}
   {% if editing %}{{ _('Edit Guide') }}{% else %}{{ _('New Guide') }}{% endif %} · Keydion
 {% endblock %}
-{% block content %}
+{% block panel %}
 <link rel="stylesheet" href="{{ url_for('static', filename='vendor/quill/quill.snow.css') }}">
 
-<div class="container py-4" style="max-width: 980px;">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h3 fw-semibold mb-0">
-      {% if editing %}{{ _('Edit Guide') }}{% else %}{{ _('New Guide') }}{% endif %}
-    </h1>
-    <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('admin_guides_manage') }}">
-      {{ _('Back to manage') }}
-    </a>
+<div class="kd-panel"
+     data-upload-image-url="{{ url_for('admin_guides_upload_image') }}"
+     data-preview-url="{{ url_for('admin_guide_preview') }}"
+     {% if editing %}data-delete-url="{{ url_for('admin_guide_delete', guide_id=guide_id) }}"{% endif %}>
+  <div class="kd-panel-head">
+    <div class="kd-panel-head__left">
+      <div class="kd-panel-head__crumb">
+        <a href="{{ url_for('admin_guides_manage') }}">{{ _('Manage guides') }}</a>
+        <span class="sep">/</span>
+        <span>{{ form_data.slug or _('new') }}</span>
+      </div>
+      <h1 class="kd-panel-head__title">
+        {% if editing %}{{ _('Edit') }} <em>{{ _('guide') }}</em>{% else %}{{ _('New') }} <em>{{ _('guide') }}</em>{% endif %}
+      </h1>
+      <p class="kd-panel-head__sub">{{ _('Publish dual-language guides with rich text.') }}</p>
+    </div>
+    <div class="kd-panel-head__actions">
+      <a href="{{ url_for('admin_guides_manage') }}" class="kd-panel-head__back">
+        ← {{ _('Manage guides') }}
+      </a>
+    </div>
   </div>
 
   <form method="post" id="guideForm">
-    <div class="row g-4 mb-4">
-      <div class="col-md-6">
-        <label class="form-label fw-semibold">{{ _('Category') }}</label>
-        <select name="category" class="form-select">
+    <div class="kd-form-meta">
+      <div class="kd-field">
+        <label class="kd-field-label">
+          {{ _('Category') }} <span class="req">*</span>
+        </label>
+        <select name="category" class="kd-select">
           <option value="">{{ _('— Select —') }}</option>
           {% for cat in categories %}
             <option value="{{ cat }}" {% if form_data.category == cat %}selected{% endif %}>{{ cat }}</option>
           {% endfor %}
         </select>
       </div>
-      <div class="col-md-3">
-        <label class="form-label fw-semibold">{{ _('Sort order') }}</label>
-        <input type="number" name="sort_order" class="form-control" value="{{ form_data.sort_order }}" min="0" max="9999">
+      <div class="kd-field">
+        <label class="kd-field-label">{{ _('Sort order') }}</label>
+        <input class="kd-input" type="number" name="sort_order"
+               value="{{ form_data.sort_order }}" min="0" max="9999">
+        <span class="kd-field-hint">{{ _('Lower numbers appear first.') }}</span>
       </div>
-      <div class="col-md-3 d-flex align-items-end">
-        <div class="form-check">
-          <input type="checkbox" name="published" id="publishedCheck" value="1" class="form-check-input" {% if form_data.published %}checked{% endif %}>
-          <label for="publishedCheck" class="form-check-label">{{ _('Published') }}</label>
-        </div>
+      <div class="kd-field">
+        <label class="kd-field-label">{{ _('Published') }}</label>
+        <label class="kd-toggle {% if form_data.published %}on{% endif %}" data-toggle-published>
+          <span class="kd-toggle-track"></span>
+          <span class="kd-toggle-status">
+            {% if form_data.published %}{{ _('Live') }}{% else %}{{ _('Draft') }}{% endif %}
+          </span>
+        </label>
+        <input type="checkbox" name="published" id="publishedCheck"
+               value="1" hidden {% if form_data.published %}checked{% endif %}>
       </div>
-      <div class="col-12">
-        <label class="form-label fw-semibold">{{ _('Slug') }}</label>
-        <input type="text" name="slug" id="slugInput" class="form-control" value="{{ form_data.slug }}" placeholder="{{ _('auto-generated from EN title') }}">
-        <div class="form-text">{{ _('Used in the URL: /guides/<slug>. Lowercase letters, numbers, dashes only.') }}</div>
-      </div>
-    </div>
-
-    <!-- English section -->
-    <div class="card mb-4">
-      <div class="card-header bg-light fw-semibold">English</div>
-      <div class="card-body">
-        <div class="mb-3">
-          <label class="form-label">{{ _('Title (EN)') }}</label>
-          <input type="text" name="title_en" class="form-control" value="{{ form_data.title_en }}">
+      <div class="kd-field">
+        <label class="kd-field-label">{{ _('Slug') }}</label>
+        <div class="kd-input-prefix">
+          <span class="prefix">/guides/</span>
+          <input class="kd-input" type="text" name="slug" id="slugInput"
+                 value="{{ form_data.slug }}"
+                 placeholder="{{ _('auto-generated from EN title') }}">
         </div>
-        <div class="mb-3">
-          <label class="form-label">{{ _('Summary (EN)') }}</label>
-          <input type="text" name="summary_en" class="form-control" value="{{ form_data.summary_en }}" placeholder="{{ _('Optional one-line description shown on the index') }}">
-        </div>
-        <div class="mb-2">
-          <label class="form-label">{{ _('Body (EN)') }}</label>
-          <div id="editorEn" style="min-height: 280px; background: #fff;"></div>
-          <input type="hidden" name="body_en" id="bodyEnField" value="{{ form_data.body_en }}">
-        </div>
+        <span class="kd-field-hint">{{ _('Lowercase letters, numbers, dashes only.') }}</span>
       </div>
     </div>
 
-    <!-- Chinese section -->
-    <div class="card mb-4">
-      <div class="card-header bg-light fw-semibold">中文</div>
-      <div class="card-body">
-        <div class="mb-3">
-          <label class="form-label">{{ _('Title (ZH)') }}</label>
-          <input type="text" name="title_zh" class="form-control" value="{{ form_data.title_zh }}">
+    {# EN editor card #}
+    <div class="kd-editor-card" data-lang="en">
+      <div class="kd-editor-head">
+        <span class="kd-editor-lang"><span class="dot"></span> English</span>
+        <span class="kd-editor-status" data-status>
+          <span class="dot"></span><span data-status-label>—</span>
+        </span>
+      </div>
+      <div class="kd-editor-fields">
+        <div class="kd-field">
+          <label class="kd-field-label">
+            {{ _('Title') }} <span class="req">*</span>
+          </label>
+          <input class="kd-input" type="text" name="title_en"
+                 value="{{ form_data.title_en }}" data-required>
         </div>
-        <div class="mb-3">
-          <label class="form-label">{{ _('Summary (ZH)') }}</label>
-          <input type="text" name="summary_zh" class="form-control" value="{{ form_data.summary_zh }}">
+        <div class="kd-field">
+          <label class="kd-field-label">{{ _('Summary') }}</label>
+          <input class="kd-input" type="text" name="summary_en"
+                 value="{{ form_data.summary_en }}" data-required>
+          <span class="kd-field-hint">{{ _('One-line description shown on the guides index.') }}</span>
         </div>
-        <div class="mb-2">
-          <label class="form-label">{{ _('Body (ZH)') }}</label>
-          <div id="editorZh" style="min-height: 280px; background: #fff;"></div>
-          <input type="hidden" name="body_zh" id="bodyZhField" value="{{ form_data.body_zh }}">
+      </div>
+      <div class="kd-field" style="gap: 0;">
+        <div style="padding: 16px 22px 0;">
+          <label class="kd-field-label">{{ _('Body') }}</label>
         </div>
+        <div id="editorEn" data-body style="min-height: 280px; background: #fff;"></div>
+        <input type="hidden" name="body_en" id="bodyEnField" value="{{ form_data.body_en }}">
       </div>
     </div>
 
-    <div class="d-flex justify-content-end gap-2">
-      <a href="{{ url_for('admin_guides_manage') }}" class="btn btn-outline-secondary">{{ _('Cancel') }}</a>
-      <button type="submit" class="btn btn-primary">{{ _('Save') }}</button>
+    {# ZH editor card #}
+    <div class="kd-editor-card" data-lang="zh">
+      <div class="kd-editor-head">
+        <span class="kd-editor-lang"><span class="dot"></span> 中文</span>
+        <span class="kd-editor-status" data-status>
+          <span class="dot"></span><span data-status-label>—</span>
+        </span>
+      </div>
+      <div class="kd-editor-fields">
+        <div class="kd-field">
+          <label class="kd-field-label">
+            {{ _('Title') }} <span class="req">*</span>
+          </label>
+          <input class="kd-input" type="text" name="title_zh"
+                 value="{{ form_data.title_zh }}" data-required>
+        </div>
+        <div class="kd-field">
+          <label class="kd-field-label">{{ _('Summary') }}</label>
+          <input class="kd-input" type="text" name="summary_zh"
+                 value="{{ form_data.summary_zh }}" data-required>
+          <span class="kd-field-hint">{{ _('One-line description shown on the guides index.') }}</span>
+        </div>
+      </div>
+      <div class="kd-field" style="gap: 0;">
+        <div style="padding: 16px 22px 0;">
+          <label class="kd-field-label">{{ _('Body') }}</label>
+        </div>
+        <div id="editorZh" data-body style="min-height: 280px; background: #fff;"></div>
+        <input type="hidden" name="body_zh" id="bodyZhField" value="{{ form_data.body_zh }}">
+      </div>
+    </div>
+
+    <div class="kd-form-footer">
+      <div class="left">
+        {% if editing %}
+          <button class="kd-btn kd-btn-danger" type="button" data-delete-guide>
+            {{ _('Delete guide') }}
+          </button>
+        {% endif %}
+      </div>
+      <div class="right">
+        <span class="kd-saved" data-dirty-state>{{ _('All changes saved') }}</span>
+        <a href="{{ url_for('admin_guides_manage') }}" class="kd-btn kd-btn-ghost">
+          {{ _('Cancel') }}
+        </a>
+        <button class="kd-btn" type="button" data-preview-guide>{{ _('Preview') }}</button>
+        <button class="kd-btn kd-btn-primary" type="submit">{{ _('Save') }}</button>
+      </div>
     </div>
   </form>
 
   {% if editing %}
-    <!-- Delete must live outside the main form: nested <form> is invalid HTML. -->
-    <form method="post" action="{{ url_for('admin_guide_delete', guide_id=guide_id) }}" class="mt-4"
-          onsubmit="return confirm('{{ _('Delete this guide? This cannot be undone.') }}')">
-      <button type="submit" class="btn btn-sm btn-outline-danger">{{ _('Delete guide') }}</button>
-    </form>
+    <form method="post" action="{{ url_for('admin_guide_delete', guide_id=guide_id) }}"
+          id="deleteGuideForm" hidden></form>
   {% endif %}
 </div>
 
 <script src="{{ url_for('static', filename='vendor/quill/quill.min.js') }}"></script>
 <script>
+  /* Temporary inline init — moved to static/js/guides-editor.js in Task 12. */
   (function () {
     var toolbar = [
       [{ header: [1, 2, 3, false] }],
@@ -107,20 +169,14 @@
       [{ list: 'ordered' }, { list: 'bullet' }],
       ['blockquote', 'code-block'],
       ['link', 'image'],
-      ['clean']
+      ['clean'],
     ];
 
     function makeEditor(elId, hiddenId) {
       var hidden = document.getElementById(hiddenId);
-      var editor = new Quill('#' + elId, {
-        theme: 'snow',
-        modules: { toolbar: toolbar }
-      });
-      // Load existing content
-      if (hidden.value) {
-        editor.clipboard.dangerouslyPasteHTML(0, hidden.value);
-      }
-      // Hook image button to our upload endpoint
+      var editor = new Quill('#' + elId, { theme: 'snow', modules: { toolbar: toolbar } });
+      if (hidden.value) editor.clipboard.dangerouslyPasteHTML(0, hidden.value);
+      var uploadUrl = document.querySelector('.kd-panel').dataset.uploadImageUrl;
       editor.getModule('toolbar').addHandler('image', function () {
         var input = document.createElement('input');
         input.type = 'file';
@@ -128,50 +184,36 @@
         input.onchange = function () {
           var file = input.files && input.files[0];
           if (!file) return;
-          var fd = new FormData();
-          fd.append('file', file);
-          fetch("{{ url_for('admin_guides_upload_image') }}", {
-            method: 'POST', body: fd
-          })
+          var fd = new FormData(); fd.append('file', file);
+          fetch(uploadUrl, { method: 'POST', body: fd })
             .then(function (r) { return r.json(); })
             .then(function (data) {
               if (data.url) {
                 var range = editor.getSelection(true);
                 editor.insertEmbed(range.index, 'image', data.url, 'user');
                 editor.setSelection(range.index + 1);
-              } else {
-                alert(data.error || 'Upload failed');
-              }
-            })
-            .catch(function () { alert("{{ _('Image upload failed.') }}"); });
+              } else { alert(data.error || 'Upload failed'); }
+            });
         };
         input.click();
       });
-      // Sync to hidden field on every change
-      editor.on('text-change', function () {
-        hidden.value = editor.root.innerHTML;
-      });
+      editor.on('text-change', function () { hidden.value = editor.root.innerHTML; });
       return { editor: editor, hidden: hidden };
     }
 
     var pairEn = makeEditor('editorEn', 'bodyEnField');
     var pairZh = makeEditor('editorZh', 'bodyZhField');
 
-    // Consolidated submit handler for both editors
     document.getElementById('guideForm').addEventListener('submit', function () {
       pairEn.hidden.value = pairEn.editor.root.innerHTML;
       pairZh.hidden.value = pairZh.editor.root.innerHTML;
     });
 
-    // Auto-suggest slug from EN title
     var slugInput = document.getElementById('slugInput');
     var titleEn = document.querySelector('input[name="title_en"]');
     titleEn.addEventListener('blur', function () {
       if (!slugInput.value && titleEn.value) {
-        slugInput.value = titleEn.value
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-+|-+$/g, '');
+        slugInput.value = titleEn.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
       }
     });
   })();
