@@ -2531,7 +2531,7 @@ def create_app() -> Flask:
             if viewer_role < 2:
                 flash(_("Article not found."), "warning")
                 return redirect(url_for("news_list"))
-        all_articles = load_news_articles()
+        all_articles = load_news_articles(status="published")
         related = [a for a in all_articles if a.get("id") != news_id][:3]
         return render_template("news_article.html", article=article, related=related)
 
