@@ -66,6 +66,21 @@ class GuideTemplateContractTest(unittest.TestCase):
         self.assertIn("guide.body_en", self.article_tpl)
         self.assertIn("guide.body_zh", self.article_tpl)
 
+    def test_article_template_uses_new_design(self):
+        self.assertIn("kd-page", self.article_tpl)
+        self.assertIn("kd-back", self.article_tpl)
+        self.assertIn("kd-h-page", self.article_tpl)
+        self.assertIn("kd-article-meta", self.article_tpl)
+        self.assertIn("kd-cat-pill", self.article_tpl)
+        self.assertIn('article class="kd-body"', self.article_tpl)
+        self.assertIn("kd-prevnext", self.article_tpl)
+        # prev/next rendered, optional via if/else
+        self.assertIn("prev_guide", self.article_tpl)
+        self.assertIn("next_guide", self.article_tpl)
+        # preview banner shown when preview_mode is true
+        self.assertIn("preview_mode", self.article_tpl)
+        self.assertIn("Preview", self.article_tpl)
+
 
 if __name__ == "__main__":
     unittest.main()
