@@ -22,5 +22,37 @@ class DashboardAssetsContractTest(unittest.TestCase):
         self.assertIn("keydion.sidebar", src)
 
 
+class OverviewPartialContractTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.path = ROOT / "templates" / "_dashboard" / "overview.html"
+
+    def test_overview_exists(self):
+        self.assertTrue(self.path.exists())
+
+    def test_overview_hides_stats_row_for_role_1(self):
+        src = self.path.read_text(encoding="utf-8")
+        # The stats-row block must be wrapped in {% if role > 1 %}.
+        self.assertRegex(src, r"\{%\s*if\s+role\s*>\s*1\s*%\}\s*\n?\s*<section class=\"stats-row\"")
+
+    def test_overview_role_1_quick_actions_are_upload_and_change_password_only(self):
+        src = self.path.read_text(encoding="utf-8")
+        # "My submissions" action card (the role==1 block) must be removed.
+        self.assertNotIn("View submissions", src)
+        # Upload research + Change password cards must remain.
+        self.assertIn("Open uploader", src)
+        self.assertIn("Update security", src)
+
+    def test_overview_published_news_tile_uses_published_news_stat(self):
+        src = self.path.read_text(encoding="utf-8")
+        self.assertIn("Published news", src)
+        self.assertIn("dashboard_stats.published_news", src)
+
+    def test_overview_pending_news_tile_uses_pending_news_stat(self):
+        src = self.path.read_text(encoding="utf-8")
+        self.assertIn("Pending news", src)
+        self.assertIn("dashboard_stats.pending_news", src)
+
+
 if __name__ == "__main__":
     unittest.main()
