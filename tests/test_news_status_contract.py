@@ -132,6 +132,12 @@ class NewsPublishActionContractTest(unittest.TestCase):
         # status must not be in the skip list.
         self.assertNotRegex(src, r"if field in \([^)]*['\"]status['\"]")
 
+    def test_draft_save_leaves_published_at_empty(self):
+        # Drafts must not record a publish timestamp; published_at is stamped
+        # only on actual publish so the displayed date is accurate.
+        src = self._find_function_source("news_publish")
+        self.assertIn('"published_at": "" if is_draft else', src)
+
 
 if __name__ == "__main__":
     unittest.main()
