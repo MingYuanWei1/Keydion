@@ -43,6 +43,7 @@ from flask import (
     url_for,
 )
 from flask_babel import Babel, gettext as _, get_locale, lazy_gettext as _l
+from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
 
 
@@ -624,12 +625,14 @@ def select_locale() -> str:
 
 def create_app() -> Flask:
     app = Flask(__name__)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
     app.config.update(
         SECRET_KEY=os.environ.get("PAPERQUERY_SECRET", "dev-secret-key"),
         UPLOAD_FOLDER=str(PAPERS_DIR),
         BABEL_DEFAULT_LOCALE="en",
         BABEL_DEFAULT_TIMEZONE="UTC",
         BABEL_SUPPORTED_LOCALES=",".join(SUPPORTED_LOCALES),
+        MAX_CONTENT_LENGTH=int(os.environ.get("PAPERQUERY_MAX_UPLOAD_MB", "50")) * 1024 * 1024,
     )
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)

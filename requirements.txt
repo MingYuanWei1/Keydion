@@ -8,3 +8,4 @@ PyMySQL>=1.1
 python-dotenv>=1.0.0
 pymssql>=2.2.8
 bleach>=6.0
+gunicorn>=22.0

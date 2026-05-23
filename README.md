@@ -60,6 +60,54 @@ If you prefer to run the application locally:
    ./start_local.sh
    ```
 
+## Production Deployment (gunicorn + nginx)
+
+The default `docker-compose.yml` runs the Flask development server with the
+Werkzeug debugger enabled — **do not expose it publicly**. For production, use
+`docker-compose.prod.yml`, which launches gunicorn behind an nginx reverse
+proxy.
+
+1. Create a `.env.prod` (gitignored) alongside `.env`:
+
+   ```bash
+   PAPERQUERY_SECRET=<strong random value, NOT dev-secret-key>
+   PAPERQUERY_DATABASE_URL="mysql+pymysql://user:password@host:3306/dbname?charset=utf8mb4"
+
+   # Microsoft OAuth — must match the Azure app registration redirect URI
+   PAPERQUERY_MS_CLIENT_ID=...
+   PAPERQUERY_MS_CLIENT_SECRET=...
+   PAPERQUERY_MS_REDIRECT_URI=https://yourdomain.com/auth/callback
+
+   # Optional gunicorn tuning
+   GUNICORN_WORKERS=4
+   GUNICORN_TIMEOUT=60
+   PAPERQUERY_MAX_UPLOAD_MB=50
+   ```
+
+2. Build and start:
+
+   ```bash
+   docker-compose -f docker-compose.prod.yml up -d --build
+   ```
+
+   - nginx listens on `:80` and serves `/static/*` directly.
+   - gunicorn runs application code with preforked workers behind a Unix
+     socket. The Werkzeug debugger is not loaded.
+   - PDF download routes (`/papers/*`) still go through Flask so auth checks
+     run.
+
+3. TLS is intentionally out of scope for this compose file — terminate HTTPS
+   in a load balancer, Caddy/Traefik, or a separate certbot sidecar in front
+   of nginx.
+
+4. Graceful zero-downtime deploy after a code change:
+
+   ```bash
+   docker-compose -f docker-compose.prod.yml build web
+   docker-compose -f docker-compose.prod.yml up -d web
+   # or, to reload in place: docker exec keydion-web-prod kill -HUP 1
+   ```
+
 ## User Management
 
 You can manage users (create, update, list) using the provided CLI tool:
