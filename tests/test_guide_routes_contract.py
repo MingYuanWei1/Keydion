@@ -42,21 +42,21 @@ class GuideRoutesContractTest(unittest.TestCase):
 
     def test_admin_manage_route(self):
         decs = self._route_decorators("admin_guides_manage")
-        self.assertEqual(decs, [{"path": "/admin/guides", "methods": ["GET"]}])
+        self.assertEqual(decs, [{"path": "/dashboard/admin/guides", "methods": ["GET"]}])
         self.assertIn("require_login(level=3)", self._function_source("admin_guides_manage"))
 
     def test_admin_publish_route_handles_new_and_edit(self):
         decs = self._route_decorators("admin_guide_publish")
         paths = {(d["path"], tuple(sorted(d["methods"]))) for d in decs}
-        self.assertIn(("/admin/guides/new", ("GET", "POST")), paths)
-        self.assertIn(("/admin/guides/<int:guide_id>/edit", ("GET", "POST")), paths)
+        self.assertIn(("/dashboard/admin/guides/new", ("GET", "POST")), paths)
+        self.assertIn(("/dashboard/admin/guides/<int:guide_id>/edit", ("GET", "POST")), paths)
         self.assertIn("require_login(level=3)", self._function_source("admin_guide_publish"))
 
     def test_admin_delete_route(self):
         decs = self._route_decorators("admin_guide_delete")
         self.assertEqual(
             decs,
-            [{"path": "/admin/guides/<int:guide_id>/delete", "methods": ["POST"]}],
+            [{"path": "/dashboard/admin/guides/<int:guide_id>/delete", "methods": ["POST"]}],
         )
         self.assertIn("require_login(level=3)", self._function_source("admin_guide_delete"))
 
@@ -64,7 +64,7 @@ class GuideRoutesContractTest(unittest.TestCase):
         decs = self._route_decorators("admin_guide_upload_image")
         self.assertEqual(
             decs,
-            [{"path": "/admin/guides/upload-image", "methods": ["POST"]}],
+            [{"path": "/dashboard/admin/guides/upload-image", "methods": ["POST"]}],
         )
         src = self._function_source("admin_guide_upload_image")
         self.assertIn("require_login(level=3)", src)

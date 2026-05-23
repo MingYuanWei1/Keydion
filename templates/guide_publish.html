@@ -130,7 +130,7 @@
           if (!file) return;
           var fd = new FormData();
           fd.append('file', file);
-          fetch("{{ url_for('admin_guide_upload_image') }}", {
+          fetch("{{ url_for('admin_guides_upload_image') }}", {
             method: 'POST', body: fd
           })
             .then(function (r) { return r.json(); })

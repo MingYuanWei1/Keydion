@@ -947,7 +947,7 @@ def create_app() -> Flask:
 
         return render_template("change_password.html", user=user, has_password=has_password)
 
-    @app.route("/admin/users")
+    @app.route("/dashboard/admin/users")
     def admin_users():
         user = require_login(level=3)
         if not user:
@@ -962,7 +962,7 @@ def create_app() -> Flask:
             role_options=ROLE_OPTIONS,
         )
 
-    @app.route("/admin/users/roles", methods=["POST"])
+    @app.route("/dashboard/admin/users/roles", methods=["POST"], endpoint="admin_users_roles")
     def admin_bulk_update_roles():
         user = require_login(level=3)
         if not user:
@@ -980,7 +980,7 @@ def create_app() -> Flask:
         flash(_("Role updates saved."), "success")
         return redirect(url_for("admin_users"))
 
-    @app.route("/admin/users/add", methods=["POST"])
+    @app.route("/dashboard/admin/users/add", methods=["POST"], endpoint="admin_users_add")
     def admin_add_local_user():
         user = require_login(level=3)
         if not user:
@@ -998,7 +998,7 @@ def create_app() -> Flask:
         flash(_("Local user created."), "success")
         return redirect(url_for("admin_users"))
 
-    @app.route("/admin/users/<path:username>/role", methods=["POST"])
+    @app.route("/dashboard/admin/users/<path:username>/role", methods=["POST"], endpoint="admin_user_role")
     def admin_update_local_role(username: str):
         user = require_login(level=3)
         if not user:
@@ -1010,7 +1010,7 @@ def create_app() -> Flask:
             flash(_("Unable to update role."), "warning")
         return redirect(url_for("admin_users"))
 
-    @app.route("/admin/users/<path:username>/reset-password", methods=["POST"])
+    @app.route("/dashboard/admin/users/<path:username>/reset-password", methods=["POST"], endpoint="admin_user_reset_password")
     def admin_reset_password(username: str):
         user = require_login(level=3)
         if not user:
@@ -1025,7 +1025,7 @@ def create_app() -> Flask:
             flash(_("Unable to reset password."), "warning")
         return redirect(url_for("admin_users"))
 
-    @app.route("/admin/users/<path:username>/delete", methods=["POST"])
+    @app.route("/dashboard/admin/users/<path:username>/delete", methods=["POST"], endpoint="admin_user_delete")
     def admin_delete_local_user(username: str):
         user = require_login(level=3)
         if not user:
@@ -1036,7 +1036,11 @@ def create_app() -> Flask:
             flash(_("Unable to delete user."), "warning")
         return redirect(url_for("admin_users"))
 
-    @app.route("/admin/ms-users/<path:ms_id>/role", methods=["POST"])
+    @app.route("/admin/users", endpoint="admin_users_legacy")
+    def admin_users_legacy():
+        return redirect(url_for("admin_users"), code=301)
+
+    @app.route("/dashboard/admin/ms-users/<path:ms_id>/role", methods=["POST"], endpoint="admin_ms_user_role")
     def admin_update_ms_role(ms_id: str):
         user = require_login(level=3)
         if not user:
@@ -1048,7 +1052,7 @@ def create_app() -> Flask:
             flash(_("Unable to update role."), "warning")
         return redirect(url_for("admin_users"))
 
-    @app.route("/admin/ms-users/<path:ms_id>/delete", methods=["POST"])
+    @app.route("/dashboard/admin/ms-users/<path:ms_id>/delete", methods=["POST"], endpoint="admin_ms_user_delete")
     def admin_delete_ms_user(ms_id: str):
         user = require_login(level=3)
         if not user:
@@ -1059,7 +1063,7 @@ def create_app() -> Flask:
             flash(_("Unable to delete Microsoft user."), "warning")
         return redirect(url_for("admin_users"))
 
-    @app.route("/admin/ms-users/<path:ms_id>/set-password", methods=["POST"])
+    @app.route("/dashboard/admin/ms-users/<path:ms_id>/set-password", methods=["POST"], endpoint="admin_ms_user_set_password")
     def admin_set_ms_password(ms_id: str):
         user = require_login(level=3)
         if not user:
@@ -2274,7 +2278,7 @@ def create_app() -> Flask:
             abort(404)
         return render_template("guide_article.html", guide=guide)
 
-    @app.route("/admin/guides/upload-image", methods=["POST"])
+    @app.route("/dashboard/admin/guides/upload-image", methods=["POST"], endpoint="admin_guides_upload_image")
     def admin_guide_upload_image():
         user = require_login(level=3)
         if not user:
@@ -2296,8 +2300,8 @@ def create_app() -> Flask:
         img_url = url_for("static", filename=f"uploads/guides/{unique_name}")
         return jsonify({"url": img_url})
 
-    @app.route("/admin/guides/new", methods=["GET", "POST"], endpoint="admin_guide_new")
-    @app.route("/admin/guides/<int:guide_id>/edit", methods=["GET", "POST"], endpoint="admin_guide_edit")
+    @app.route("/dashboard/admin/guides/new", methods=["GET", "POST"], endpoint="admin_guide_new")
+    @app.route("/dashboard/admin/guides/<int:guide_id>/edit", methods=["GET", "POST"], endpoint="admin_guide_edit")
     def admin_guide_publish(guide_id: int = None):
         user = require_login(level=3)
         if not user:
@@ -2368,7 +2372,7 @@ def create_app() -> Flask:
             guide_id=guide_id,
         )
 
-    @app.route("/admin/guides")
+    @app.route("/dashboard/admin/guides")
     def admin_guides_manage():
         user = require_login(level=3)
         if not user:
@@ -2376,7 +2380,7 @@ def create_app() -> Flask:
         guides = load_guides(published_only=False)
         return render_template("guide_manage.html", guides=guides, user=user)
 
-    @app.route("/admin/guides/<int:guide_id>/delete", methods=["POST"])
+    @app.route("/dashboard/admin/guides/<int:guide_id>/delete", methods=["POST"])
     def admin_guide_delete(guide_id: int):
         user = require_login(level=3)
         if not user:
@@ -2386,6 +2390,18 @@ def create_app() -> Flask:
         else:
             flash(_("Guide not found."), "warning")
         return redirect(url_for("admin_guides_manage"))
+
+    @app.route("/admin/guides", endpoint="admin_guides_manage_legacy")
+    def admin_guides_manage_legacy():
+        return redirect(url_for("admin_guides_manage"), code=301)
+
+    @app.route("/admin/guides/new", endpoint="admin_guide_new_legacy")
+    def admin_guide_new_legacy():
+        return redirect(url_for("admin_guide_new"), code=301)
+
+    @app.route("/admin/guides/<int:guide_id>/edit", endpoint="admin_guide_edit_legacy")
+    def admin_guide_edit_legacy(guide_id):
+        return redirect(url_for("admin_guide_edit", guide_id=guide_id), code=301)
 
     # ---------- Paper categories & journals management ----------
     @app.route("/dashboard/admin/paper-manage")

@@ -8,7 +8,7 @@
   </div>
 </div>
 
-<form id="role-update-form" method="post" action="{{ url_for('admin_bulk_update_roles') }}">
+<form id="role-update-form" method="post" action="{{ url_for('admin_users_roles') }}">
   <div class="d-flex justify-content-end gap-2 mb-3">
     <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#addLocalUserModal">
       {{ _('Add Local User') }}
@@ -43,14 +43,14 @@
             </td>
             <td>
               <div class="d-flex flex-wrap gap-2">
-                <form method="post" action="{{ url_for('admin_reset_password', username=entry.username) }}">
+                <form method="post" action="{{ url_for('admin_user_reset_password', username=entry.username) }}">
                   <div class="input-group input-group-sm">
                     <input class="form-control" name="password" type="password" placeholder="{{ _('New password') }}"
                       required>
                     <button class="btn btn-outline-secondary" type="submit">{{ _('Reset') }}</button>
                   </div>
                 </form>
-                <form method="post" action="{{ url_for('admin_delete_local_user', username=entry.username) }}">
+                <form method="post" action="{{ url_for('admin_user_delete', username=entry.username) }}">
                   <button class="btn btn-outline-danger btn-sm" type="submit">{{ _('Delete') }}</button>
                 </form>
               </div>
@@ -95,7 +95,7 @@
             </td>
             <td>
               <div class="d-flex flex-wrap gap-2">
-                <form method="post" action="{{ url_for('admin_set_ms_password', ms_id=entry.ms_id) }}">
+                <form method="post" action="{{ url_for('admin_ms_user_set_password', ms_id=entry.ms_id) }}">
                   <div class="input-group input-group-sm">
                     <input class="form-control" name="password" type="password" placeholder="{{ _('New password') }}"
                       required>
@@ -104,7 +104,7 @@
                     </button>
                   </div>
                 </form>
-                <form method="post" action="{{ url_for('admin_delete_ms_user', ms_id=entry.ms_id) }}">
+                <form method="post" action="{{ url_for('admin_ms_user_delete', ms_id=entry.ms_id) }}">
                   <button class="btn btn-outline-danger btn-sm" type="submit">{{ _('Delete') }}</button>
                 </form>
               </div>
@@ -128,7 +128,7 @@
         <h5 class="modal-title" id="addLocalUserLabel">{{ _('Add Local User') }}</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
       </div>
-      <form method="post" action="{{ url_for('admin_add_local_user') }}">
+      <form method="post" action="{{ url_for('admin_users_add') }}">
         <div class="modal-body">
           <div class="mb-3">
             <label class="form-label" for="modal-username">{{ _('Username / Email') }}</label>

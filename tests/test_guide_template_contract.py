@@ -34,7 +34,7 @@ class GuideTemplateContractTest(unittest.TestCase):
         self.assertIn("new Quill(", self.publish_tpl)
 
     def test_publish_template_wires_image_upload(self):
-        self.assertIn("admin_guide_upload_image", self.publish_tpl)
+        self.assertIn("admin_guides_upload_image", self.publish_tpl)
 
     def test_manage_template_links_to_new_and_edit(self):
         self.assertIn("admin_guide_new", self.manage_tpl)
