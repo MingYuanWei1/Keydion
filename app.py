@@ -2138,7 +2138,7 @@ def create_app() -> Flask:
             flash(_("Article deleted."), "success")
         else:
             flash(_("Article not found."), "warning")
-        return redirect(url_for("news_list"))
+        return redirect(url_for("news_manage"))
 
     @app.route("/news/manage")
     def news_manage():
