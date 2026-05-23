@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "_bare.html" if partial else "base.html" %}
 {% block title %}{{ _('Publish News · Keydion') }}{% endblock %}
 {% block content %}
 <style>
