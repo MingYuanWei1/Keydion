@@ -84,5 +84,30 @@ class ChangePasswordContractTest(unittest.TestCase):
         )
 
 
+    # --- Task 4: composition + different-from-current -----------------
+
+    def test_view_enforces_letters_and_digits(self):
+        has_alpha = "c.isalpha()" in self.view_source
+        has_digit = "c.isdigit()" in self.view_source
+        self.assertTrue(
+            has_alpha and has_digit,
+            "change_password view must enforce a letters-and-digits rule "
+            "(expected `any(c.isalpha() for c in ...)` and "
+            "`any(c.isdigit() for c in ...)` in the function body)",
+        )
+
+    def test_view_rejects_unchanged_password(self):
+        comparisons = re.findall(
+            r"new_password\s*(?:!=|==)\s*current_password|"
+            r"current_password\s*(?:!=|==)\s*new_password",
+            self.view_source,
+        )
+        self.assertTrue(
+            comparisons,
+            "change_password view must compare new_password against "
+            "current_password to reject reuse",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

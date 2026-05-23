@@ -947,6 +947,19 @@ def create_app() -> Flask:
                 flash(_("Password must be at least 6 characters."), "warning")
                 return redirect(url_for("change_password"))
 
+            has_alpha = any(c.isalpha() for c in new_password)
+            has_digit = any(c.isdigit() for c in new_password)
+            if not (has_alpha and has_digit):
+                flash(_("Password must contain both letters and numbers."), "warning")
+                return redirect(url_for("change_password"))
+
+            if has_password and new_password == current_password:
+                flash(
+                    _("New password must be different from your current password."),
+                    "warning",
+                )
+                return redirect(url_for("change_password"))
+
             if is_ms_user:
                 success = update_ms_user_password(ms_id, new_password)
             else:
