@@ -1079,7 +1079,62 @@ def create_app() -> Flask:
         user = require_login()
         if not user:
             return redirect(url_for("login"))
-        return render_template("dashboard.html", user=user)
+
+        try:
+            role = int(user.get("role", "1"))
+        except (TypeError, ValueError):
+            role = 1
+
+        stats: Dict[str, object] = {}
+
+        if role >= 2:
+            with db_session() as db:
+                pending_subs = db.query(SubmissionModel).filter_by(status="pending").all()
+                stats["pending_reviews"] = len(pending_subs)
+                # Oldest submission delta — submitted_at is a Unicode ISO string.
+                oldest_days = None
+                for sub in pending_subs:
+                    ts = (sub.submitted_at or "").strip()
+                    if not ts:
+                        continue
+                    try:
+                        dt = datetime.fromisoformat(ts)
+                    except ValueError:
+                        continue
+                    days = (datetime.utcnow() - dt).days
+                    if oldest_days is None or days > oldest_days:
+                        oldest_days = days
+                if oldest_days is not None and oldest_days > 0:
+                    stats["pending_oldest_label"] = _("oldest %(n)d days ago") % {"n": oldest_days}
+
+                stats["published_news"] = db.query(NewsArticleModel).filter_by(status="published").count()
+                stats["pending_news"] = db.query(NewsArticleModel).filter_by(status="pending").count()
+
+        if role >= 3:
+            with db_session() as db:
+                stats["papers_in_library"] = db.query(PaperMetadataModel).count()
+                # "+N this month" delta via string-prefix comparison on the YYYY-MM portion.
+                current_prefix = datetime.utcnow().strftime("%Y-%m")
+                new_this_month = (
+                    db.query(PaperMetadataModel)
+                    .filter(PaperMetadataModel.published_at.like(f"{current_prefix}%"))
+                    .count()
+                )
+                if new_this_month:
+                    stats["papers_delta_label"] = _("+%(n)d this month") % {"n": new_this_month}
+
+        if is_partial_request():
+            return render_template(
+                "_dashboard/overview.html",
+                user=user,
+                dashboard_stats=stats,
+            )
+
+        return render_template(
+            "dashboard.html",
+            user=user,
+            dashboard_stats=stats,
+        )
 
     @app.route("/advanced-search")
     def advanced_search():

@@ -79,5 +79,42 @@ class DashboardShellTemplateContractTest(unittest.TestCase):
         self.assertIn("data-partial-href", self.src)
 
 
+class DashboardRouteContractTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app_source = (ROOT / "app.py").read_text(encoding="utf-8")
+        cls.app_tree = ast.parse(cls.app_source)
+
+    def _dashboard_source(self):
+        for node in ast.walk(self.app_tree):
+            if isinstance(node, ast.FunctionDef) and node.name == "dashboard":
+                return ast.get_source_segment(self.app_source, node)
+        self.fail("dashboard route not found")
+
+    def test_dashboard_branches_on_partial_request(self):
+        src = self._dashboard_source()
+        self.assertIn("is_partial_request()", src)
+        self.assertIn("_dashboard/overview.html", src)
+
+    def test_dashboard_computes_role_gated_stats(self):
+        src = self._dashboard_source()
+        # Role-2+ stats.
+        self.assertIn("pending_reviews", src)
+        self.assertIn("published_news", src)
+        self.assertIn("pending_news", src)
+        # Role-3+ stat.
+        self.assertIn("papers_in_library", src)
+
+    def test_dashboard_passes_stats_to_templates(self):
+        src = self._dashboard_source()
+        self.assertIn("dashboard_stats=", src)
+
+    def test_dashboard_does_not_compute_stats_for_role_1(self):
+        src = self._dashboard_source()
+        # Stats should be gated so role 1 gets an empty dict.
+        self.assertIn("role >= 2", src)
+        self.assertIn("role >= 3", src)
+
+
 if __name__ == "__main__":
     unittest.main()
