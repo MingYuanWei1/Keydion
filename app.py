@@ -905,7 +905,7 @@ def create_app() -> Flask:
         )
 
 
-    @app.route("/account/change-password", methods=["GET", "POST"])
+    @app.route("/dashboard/account/change-password", methods=["GET", "POST"])
     def change_password():
         user = require_login()
         if not user:
@@ -946,6 +946,10 @@ def create_app() -> Flask:
             has_password = bool(ms_record and ms_record.get("password"))
 
         return render_template("change_password.html", user=user, has_password=has_password)
+
+    @app.route("/account/change-password", endpoint="change_password_legacy")
+    def change_password_legacy():
+        return redirect(url_for("change_password"), code=301)
 
     @app.route("/dashboard/admin/users")
     def admin_users():
