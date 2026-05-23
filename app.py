@@ -1274,7 +1274,7 @@ def create_app() -> Flask:
             journal_id_map=get_journal_id_map(),
         )
 
-    @app.route("/upload", methods=["GET", "POST"])
+    @app.route("/dashboard/upload", methods=["GET", "POST"])
     def upload():
         user = require_login(level=1)
         if not user:
@@ -1593,7 +1593,7 @@ def create_app() -> Flask:
 
         return render_template("upload.html", user=user, form_data=form_data, journals=get_journal_names(), paper_categories=load_paper_categories(), ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES, draft_id=request.args.get("draft", ""))
 
-    @app.route("/upload/success")
+    @app.route("/dashboard/upload/success")
     def upload_success():
         user = require_login()
         if not user:
@@ -1601,6 +1601,14 @@ def create_app() -> Flask:
         title = request.args.get("title", "")
         submitted_at = datetime.utcnow().strftime("%Y.%m.%d %H:%M:%S")
         return render_template("upload_success.html", user=user, title=title, submitted_at=submitted_at)
+
+    @app.route("/upload", endpoint="upload_legacy")
+    def upload_legacy():
+        return redirect(url_for("upload"), code=301)
+
+    @app.route("/upload/success", endpoint="upload_success_legacy")
+    def upload_success_legacy():
+        return redirect(url_for("upload_success"), code=301)
 
     @app.route("/manage")
     def manage():
@@ -2698,7 +2706,7 @@ def create_app() -> Flask:
 
     # ---- Submission review routes ----
 
-    @app.route("/my-submissions")
+    @app.route("/dashboard/my-submissions")
     def my_submissions():
         user = require_login()
         if not user:
@@ -2708,7 +2716,7 @@ def create_app() -> Flask:
         subs.sort(key=lambda s: s.get("submitted_at", ""), reverse=True)
         return render_template("my_submissions.html", user=user, submissions=subs)
 
-    @app.route("/my-submissions/<sub_id>/delete", methods=["POST"])
+    @app.route("/dashboard/my-submissions/<sub_id>/delete", methods=["POST"], endpoint="my_submission_delete")
     def delete_submission(sub_id):
         user = require_login()
         if not user:
@@ -2731,7 +2739,7 @@ def create_app() -> Flask:
         flash(_("Submission deleted."), "success")
         return redirect(url_for("my_submissions"))
 
-    @app.route("/my-submissions/<sub_id>")
+    @app.route("/dashboard/my-submissions/<sub_id>", endpoint="my_submission_view")
     def submission_detail(sub_id):
         user = require_login()
         if not user:
@@ -2760,7 +2768,7 @@ def create_app() -> Flask:
 
         return render_template("submission_detail.html", user=user, submission=sub, pdf_url=pdf_url)
 
-    @app.route("/my-submissions/<sub_id>/file")
+    @app.route("/dashboard/my-submissions/<sub_id>/file")
     def my_submission_file(sub_id):
         """Serve a pending paper file to the submitter only."""
         user = require_login()
@@ -2771,6 +2779,18 @@ def create_app() -> Flask:
             abort(403)
         pending_filename = sub.get("pending_filename", "")
         return send_from_directory(str(PENDING_PAPERS_DIR), pending_filename)
+
+    @app.route("/my-submissions", endpoint="my_submissions_legacy")
+    def my_submissions_legacy():
+        return redirect(url_for("my_submissions"), code=301)
+
+    @app.route("/my-submissions/<sub_id>", endpoint="my_submission_view_legacy")
+    def my_submission_view_legacy(sub_id):
+        return redirect(url_for("my_submission_view", sub_id=sub_id), code=301)
+
+    @app.route("/my-submissions/<sub_id>/file", endpoint="my_submission_file_legacy")
+    def my_submission_file_legacy(sub_id):
+        return redirect(url_for("my_submission_file", sub_id=sub_id), code=301)
 
     @app.route("/review")
     def review_list():
