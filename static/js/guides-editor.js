@@ -239,6 +239,53 @@
     updateStatus(lang, pair); /* initial */
   });
 
+  /* ─── Dirty tracker + beforeunload ───────────────────────────────── */
+  var form = document.getElementById('guideForm');
+  var dirtyEl = document.querySelector('[data-dirty-state]');
+
+  function snapshot() {
+    var fd = new FormData(form);
+    var parts = [];
+    fd.forEach(function (v, k) { parts.push(k + '=' + v); });
+    parts.push('__body_en=' + pairEn.editor.root.innerHTML);
+    parts.push('__body_zh=' + pairZh.editor.root.innerHTML);
+    return parts.join('|');
+  }
+
+  var initial = snapshot();
+  var isDirty = false;
+
+  function beforeUnloadHandler(e) {
+    e.preventDefault();
+    e.returnValue = '';
+    return '';
+  }
+
+  function checkDirty() {
+    var now = snapshot();
+    var nextDirty = (now !== initial);
+    if (nextDirty === isDirty) return;
+    isDirty = nextDirty;
+    if (isDirty) {
+      dirtyEl.textContent = '● Unsaved changes';
+      dirtyEl.style.color = 'var(--accent)';
+      window.addEventListener('beforeunload', beforeUnloadHandler);
+    } else {
+      dirtyEl.textContent = 'All changes saved';
+      dirtyEl.style.color = '';
+      window.removeEventListener('beforeunload', beforeUnloadHandler);
+    }
+  }
+
+  form.addEventListener('input', checkDirty);
+  form.addEventListener('change', checkDirty);
+  pairEn.editor.on('text-change', checkDirty);
+  pairZh.editor.on('text-change', checkDirty);
+
+  form.addEventListener('submit', function () {
+    window.removeEventListener('beforeunload', beforeUnloadHandler);
+  });
+
   /* Hooks for the next tasks — exported on a namespace so each task can
      reach in without forcing another rewrite. */
   window.__guidesEditor = {
