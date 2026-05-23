@@ -937,7 +937,7 @@ def create_app() -> Flask:
                 flash(_("Password updated successfully."), "success")
             else:
                 flash(_("Unable to update password."), "danger")
-            return redirect(url_for("dashboard"))
+            return redirect(url_for("change_password"))
 
         # Determine if the user already has a password set
         has_password = True
