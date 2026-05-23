@@ -3217,3 +3217,7 @@ msgstr "Guide published."
 msgid "Guide deleted."
 msgstr "Guide deleted."
 
+
+#: templates/dashboard.html
+msgid "Write and publish step-by-step guides that help users understand how to use the site."
+msgstr "Write and publish step-by-step guides that help users understand how to use the site."

@@ -91,6 +91,13 @@
       <a class="btn btn-outline-primary" href="{{ url_for('paper_manage') }}">{{ _('Manage') }}</a>
     </div>
   </div>
+  <div class="col-md-6">
+    <div class="feature-card feature-card--pink h-100">
+      <h2>{{ _('Manage Guides') }}</h2>
+      <p>{{ _('Write and publish step-by-step guides that help users understand how to use the site.') }}</p>
+      <a class="btn btn-outline-primary" href="{{ url_for('admin_guides_manage') }}">{{ _('Manage Guides') }}</a>
+    </div>
+  </div>
   {% endif %}
 
   {# Change/Set Password — visible to all users #}
