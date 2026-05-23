@@ -1968,7 +1968,7 @@ def create_app() -> Flask:
                     "body": form_data["body"],
                     "author": form_data["author"],
                     "image_url": image_url,
-                    "published_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M"),
+                    "published_at": "" if is_draft else datetime.utcnow().strftime("%Y-%m-%d %H:%M"),
                     "status": "pending" if is_draft else "published",
                 }
                 save_news_article(article)
