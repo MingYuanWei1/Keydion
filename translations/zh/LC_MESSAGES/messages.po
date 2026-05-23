@@ -3212,3 +3212,7 @@ msgstr "指南已发布。"
 msgid "Guide deleted."
 msgstr "指南已删除。"
 
+
+#: templates/dashboard.html
+msgid "Write and publish step-by-step guides that help users understand how to use the site."
+msgstr "撰写并发布逐步指南，帮助用户了解如何使用本网站。"
