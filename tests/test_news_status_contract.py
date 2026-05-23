@@ -87,6 +87,11 @@ class PublicNewsViewsFilterContractTest(unittest.TestCase):
         self.assertIn('"status"', src.replace("'", '"'))
         self.assertIn("pending", src)
 
+    def test_news_detail_related_list_filters_to_published(self):
+        # The related-articles sidebar on the detail page must not leak drafts.
+        src = self._find_function_source("news_detail")
+        self.assertIn('load_news_articles(status="published")', src.replace("'", '"'))
+
     def test_landing_index_filters_latest_news_to_published(self):
         # The landing route is index(); it pulls latest_news from load_news_articles.
         src = self._find_function_source("index")
