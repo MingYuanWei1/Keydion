@@ -222,8 +222,12 @@
   padding: 18px 12px 14px;
   justify-content: center;
 }
-.dashboard-shell[data-sidebar-state="icons"] .sidebar-head__who { display: none; }
-.dashboard-shell[data-sidebar-state="icons"] .sidebar-toggle { display: none; }
+.dashboard-shell[data-sidebar-state="icons"] .sidebar-head__id { display: none; }
+.dashboard-shell[data-sidebar-state="icons"] .sidebar-toggle {
+  /* Keep the toggle visible so the user can keep cycling
+     icons → hidden (which then surfaces the floating reveal button). */
+  margin: 0 auto;
+}
 
 .dashboard-shell[data-sidebar-state="icons"] .nav-group__label {
   font-size: 0;
@@ -256,26 +260,38 @@
   border-right-color: transparent;
 }
 
-/* ── Floating reveal button (only when hidden) ─────────────── */
+/* ── Floating reveal button (only when sidebar is hidden) ─────
+   Filled with the accent color so it reads clearly against the
+   cream background; positioned top-left within the shell area. */
 .sidebar-reveal {
   position: fixed;
-  top: 80px;
-  left: 14px;
-  width: 38px; height: 38px;
-  border-radius: 8px;
-  background: #fffdf9;
-  border: 1px solid var(--border);
-  color: var(--ink-soft);
+  top: 84px;
+  left: 18px;
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: #fff;
   display: none;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 90;
-  box-shadow: 0 6px 18px rgba(20, 33, 61, 0.08);
+  z-index: 110;
+  box-shadow: 0 8px 22px rgba(139, 26, 26, 0.28);
+  transition: background 140ms ease, transform 140ms ease, box-shadow 140ms ease;
 }
-.sidebar-reveal:hover { color: var(--accent); }
-.dashboard-shell[data-sidebar-state="hidden"] ~ .sidebar-reveal,
-.dashboard-shell[data-sidebar-state="hidden"] .sidebar-reveal { display: inline-flex; }
+.sidebar-reveal:hover {
+  background: #6e1414;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 26px rgba(139, 26, 26, 0.34);
+}
+.sidebar-reveal:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+.dashboard-shell[data-sidebar-state="hidden"] .sidebar-reveal {
+  display: inline-flex;
+}
 
 /* ── Main panel ────────────────────────────────────────────── */
 .dashboard-main {
