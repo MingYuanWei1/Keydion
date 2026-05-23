@@ -1,11 +1,11 @@
 {# =============================================================
    templates/_bare.html — minimal layout used when a route is hit
-   with the X-Partial-Content: 1 header. Emits the content block
+   with the X-Partial-Content: 1 header. Emits the panel block
    *only* — no html tag, no head, no body, no header, no footer.
 
    Pages that want to be partial-loadable into the dashboard shell
    should use:
-       {% extends "_bare.html" if partial else "base.html" %}
+       {% extends "_bare.html" if partial else "_dashboard_shell.html" %}
    See INTEGRATION.md for the full pattern.
    ============================================================= #}
 {# Render alert/flash messages inline so the user sees them in-panel. #}
@@ -20,4 +20,4 @@
 {% endif %}
 {% endwith %}
 
-{% block content %}{% endblock %}
+{% block panel %}{% endblock %}

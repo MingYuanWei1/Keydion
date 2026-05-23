@@ -42,9 +42,9 @@ class BareTemplateContractTest(unittest.TestCase):
     def test_bare_template_exists(self):
         self.assertTrue(self.path.exists(), "_bare.html does not exist")
 
-    def test_bare_template_has_content_block(self):
+    def test_bare_template_has_panel_block(self):
         src = self.path.read_text(encoding="utf-8")
-        self.assertIn("{% block content %}{% endblock %}", src)
+        self.assertIn("{% block panel %}{% endblock %}", src)
 
     def test_bare_template_renders_flash_messages(self):
         src = self.path.read_text(encoding="utf-8")
@@ -74,7 +74,9 @@ class PartialAwareTemplatesContractTest(unittest.TestCase):
     ]
 
     def test_all_sidebar_destinations_extend_conditionally(self):
-        expected = '{% extends "_bare.html" if partial else "base.html" %}'
+        # On a partial fetch, the page extends _bare.html; on a direct visit,
+        # it extends the shared shell so the sidebar wraps it server-side.
+        expected = '{% extends "_bare.html" if partial else "_dashboard_shell.html" %}'
         for name in self.TEMPLATES:
             path = ROOT / "templates" / name
             self.assertTrue(path.exists(), f"{name} missing")
@@ -84,6 +86,28 @@ class PartialAwareTemplatesContractTest(unittest.TestCase):
                 expected,
                 f"{name} first line should be conditional extends, got: {first_line!r}",
             )
+
+    def test_all_sidebar_destinations_use_panel_block(self):
+        # The shell expects {% block panel %}, not the old {% block content %}.
+        import re
+        for name in self.TEMPLATES:
+            src = (ROOT / "templates" / name).read_text(encoding="utf-8")
+            self.assertRegex(
+                src,
+                r"\{%\s*block\s+panel\s*%\}",
+                f"{name} must define a {{% block panel %}} block",
+            )
+            # The old content block must be gone (otherwise direct visits would
+            # render an empty panel: dashboard_shell.html doesn't override content).
+            self.assertNotRegex(
+                src,
+                r"\{%\s*block\s+content\s*%\}",
+                f"{name} should no longer use {{% block content %}} — rename to panel",
+            )
+
+    def test_bare_template_uses_panel_block(self):
+        src = (ROOT / "templates" / "_bare.html").read_text(encoding="utf-8")
+        self.assertIn("{% block panel %}{% endblock %}", src)
 
 
 if __name__ == "__main__":
