@@ -3216,3 +3216,141 @@ msgstr "指南已删除。"
 #: templates/dashboard.html
 msgid "Write and publish step-by-step guides that help users understand how to use the site."
 msgstr "撰写并发布逐步指南，帮助用户了解如何使用本网站。"
+
+msgid "User Hub · Keydion"
+msgstr "用户中心 · Keydion"
+
+msgid "User hub navigation"
+msgstr "用户中心导航"
+
+msgid "Functions"
+msgstr "功能"
+
+msgid "Account"
+msgstr "账户"
+
+msgid "Cycle sidebar"
+msgstr "切换侧边栏"
+
+msgid "Show sidebar"
+msgstr "显示侧边栏"
+
+msgid "Overview"
+msgstr "概览"
+
+msgid "Workspace"
+msgstr "工作区"
+
+msgid "Admin"
+msgstr "管理"
+
+msgid "At a glance"
+msgstr "概况"
+
+msgid "Quick actions"
+msgstr "快速操作"
+
+msgid "Hello, %(name)s."
+msgstr "你好,%(name)s。"
+
+msgid "Manage your account access, uploads, and the Keydion library."
+msgstr "管理你的账户、上传以及 Keydion 文献库。"
+
+msgid "Papers in library"
+msgstr "文献库总数"
+
+msgid "Pending reviews"
+msgstr "待审稿件"
+
+msgid "Published news"
+msgstr "已发布新闻"
+
+msgid "Pending news"
+msgstr "新闻草稿"
+
+msgid "oldest %(n)d days ago"
+msgstr "最早 %(n)d 天前"
+
+msgid "+%(n)d this month"
+msgstr "本月新增 %(n)d 篇"
+
+msgid "Upload research"
+msgstr "上传研究"
+
+msgid "My submissions"
+msgstr "我的投稿"
+
+msgid "Review submissions"
+msgstr "审核投稿"
+
+msgid "Manage papers"
+msgstr "管理文献"
+
+msgid "Categories & journals"
+msgstr "分类与期刊"
+
+msgid "Write an article"
+msgstr "撰写文章"
+
+msgid "Manage news"
+msgstr "管理新闻"
+
+msgid "Manage users"
+msgstr "管理用户"
+
+msgid "Manage guides"
+msgstr "管理指南"
+
+msgid "Change password"
+msgstr "修改密码"
+
+msgid "Review the queue"
+msgstr "审核队列"
+
+msgid "%(n)d submissions are waiting for editorial decision."
+msgstr "有 %(n)d 篇投稿等待编辑处理。"
+
+msgid "Accept or reject papers submitted by readers."
+msgstr "接受或拒绝读者提交的文献。"
+
+msgid "Share a new paper for peers to explore. Supports PDF with metadata extraction."
+msgstr "分享新的研究文献,支持 PDF 元数据提取。"
+
+msgid "Publish updates, announcements and stories for the Keydion community."
+msgstr "为 Keydion 社区发布更新、公告和文章。"
+
+msgid "Review local and Microsoft-linked accounts, adjust roles, set passwords."
+msgstr "管理本地账户和 Microsoft 关联账户,调整角色与密码。"
+
+msgid "Set or change your account password."
+msgstr "设置或修改你的账户密码。"
+
+msgid "Open uploader"
+msgstr "打开上传"
+
+msgid "Open queue"
+msgstr "打开队列"
+
+msgid "Open editor"
+msgstr "打开编辑器"
+
+msgid "Open admin"
+msgstr "打开管理"
+
+msgid "View submissions"
+msgstr "查看投稿"
+
+msgid "Update security"
+msgstr "更新密码"
+
+msgid "Could not load this section."
+msgstr "无法加载该部分。"
+
+msgid "Save Draft"
+msgstr "保存草稿"
+
+msgid "Publish Changes"
+msgstr "发布修改"
+
+msgid "Draft saved."
+msgstr "草稿已保存。"

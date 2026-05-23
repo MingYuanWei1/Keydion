@@ -3221,3 +3221,144 @@ msgstr "Guide deleted."
 #: templates/dashboard.html
 msgid "Write and publish step-by-step guides that help users understand how to use the site."
 msgstr "Write and publish step-by-step guides that help users understand how to use the site."
+
+msgid "User Hub · Keydion"
+msgstr "User Hub · Keydion"
+
+msgid "User hub navigation"
+msgstr "User hub navigation"
+
+msgid "Functions"
+msgstr "Functions"
+
+msgid "Account"
+msgstr "Account"
+
+msgid "Cycle sidebar"
+msgstr "Cycle sidebar"
+
+msgid "Show sidebar"
+msgstr "Show sidebar"
+
+msgid "Overview"
+msgstr "Overview"
+
+msgid "Workspace"
+msgstr "Workspace"
+
+msgid "Admin"
+msgstr "Admin"
+
+msgid "At a glance"
+msgstr "At a glance"
+
+msgid "Quick actions"
+msgstr "Quick actions"
+
+msgid "Hello, %(name)s."
+msgstr "Hello, %(name)s."
+
+msgid "Manage your account access, uploads, and the Keydion library."
+msgstr "Manage your account access, uploads, and the Keydion library."
+
+msgid "Papers in library"
+msgstr "Papers in library"
+
+msgid "Pending reviews"
+msgstr "Pending reviews"
+
+msgid "Published news"
+msgstr "Published news"
+
+msgid "Pending news"
+msgstr "Pending news"
+
+msgid "oldest %(n)d days ago"
+msgstr "oldest %(n)d days ago"
+
+msgid "+%(n)d this month"
+msgstr "+%(n)d this month"
+
+msgid "Upload research"
+msgstr "Upload research"
+
+msgid "My submissions"
+msgstr "My submissions"
+
+msgid "Review submissions"
+msgstr "Review submissions"
+
+msgid "Manage papers"
+msgstr "Manage papers"
+
+msgid "Categories & journals"
+msgstr "Categories & journals"
+
+msgid "Write an article"
+msgstr "Write an article"
+
+msgid "Manage news"
+msgstr "Manage news"
+
+msgid "Manage users"
+msgstr "Manage users"
+
+msgid "Manage guides"
+msgstr "Manage guides"
+
+msgid "Change password"
+msgstr "Change password"
+
+msgid "Review the queue"
+msgstr "Review the queue"
+
+msgid "%(n)d submissions are waiting for editorial decision."
+msgstr "%(n)d submissions are waiting for editorial decision."
+
+msgid "Accept or reject papers submitted by readers."
+msgstr "Accept or reject papers submitted by readers."
+
+msgid "Share a new paper for peers to explore. Supports PDF with metadata extraction."
+msgstr "Share a new paper for peers to explore. Supports PDF with metadata extraction."
+
+msgid "Publish updates, announcements and stories for the Keydion community."
+msgstr "Publish updates, announcements and stories for the Keydion community."
+
+msgid "Review local and Microsoft-linked accounts, adjust roles, set passwords."
+msgstr "Review local and Microsoft-linked accounts, adjust roles, set passwords."
+
+msgid "Set or change your account password."
+msgstr "Set or change your account password."
+
+msgid "Open uploader"
+msgstr "Open uploader"
+
+msgid "Open queue"
+msgstr "Open queue"
+
+msgid "Open editor"
+msgstr "Open editor"
+
+msgid "Open admin"
+msgstr "Open admin"
+
+msgid "View submissions"
+msgstr "View submissions"
+
+msgid "Update security"
+msgstr "Update security"
+
+msgid "Could not load this section."
+msgstr "Could not load this section."
+
+msgid "Save as Draft"
+msgstr "Save as Draft"
+
+msgid "Save Draft"
+msgstr "Save Draft"
+
+msgid "Publish Changes"
+msgstr "Publish Changes"
+
+msgid "Draft saved."
+msgstr "Draft saved."
