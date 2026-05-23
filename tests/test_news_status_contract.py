@@ -156,6 +156,19 @@ class NewsPublishTemplateContractTest(unittest.TestCase):
         self.assertIn("btnPublish", self.template)
         self.assertIn("getElementById('btnPublish').click()", self.template)
 
+    def test_publish_button_precedes_draft_in_dom(self):
+        # Browsers default-submit the first <button type="submit"> when Enter is
+        # pressed inside a text input. Publish must be first in DOM order so
+        # accidental Enter does not silently save as draft. Visual order is
+        # preserved via flexbox `order:` on the buttons.
+        publish_idx = self.template.find('id="btnPublish"')
+        draft_idx = self.template.find('id="btnDraft"')
+        self.assertGreater(publish_idx, 0, "btnPublish not found")
+        self.assertGreater(draft_idx, 0, "btnDraft not found")
+        self.assertLess(publish_idx, draft_idx,
+                        "Publish button must appear before Draft button in DOM "
+                        "so Enter inside a text field does not save as draft.")
+
 
 if __name__ == "__main__":
     unittest.main()
