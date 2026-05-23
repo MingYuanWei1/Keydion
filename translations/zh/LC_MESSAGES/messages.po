@@ -3357,3 +3357,78 @@ msgstr "发布修改"
 
 msgid "Draft saved."
 msgstr "草稿已保存。"
+
+msgid "Current password is incorrect."
+msgstr "当前密码不正确。"
+
+msgid "New password must be different from your current password."
+msgstr "新密码必须与当前密码不同。"
+
+msgid "Password must contain both letters and numbers."
+msgstr "密码必须包含字母和数字。"
+
+msgid "Set a password"
+msgstr "设置密码"
+
+msgid "Update the password used to sign in to Keydion with your email or username."
+msgstr "更新用于使用邮箱或用户名登录 Keydion 的密码。"
+
+msgid "Create a password so you can sign in with email and password in the future."
+msgstr "创建一个密码，以便日后可以使用邮箱和密码登录。"
+
+msgid "Current password"
+msgstr "当前密码"
+
+msgid "Enter your current password"
+msgstr "请输入当前密码"
+
+msgid "Confirm new password"
+msgstr "确认新密码"
+
+msgid "Re-enter your new password"
+msgstr "请再次输入新密码"
+
+msgid "Show password"
+msgstr "显示密码"
+
+msgid "Hide password"
+msgstr "隐藏密码"
+
+msgid "Passwords match"
+msgstr "密码一致"
+
+msgid "Passwords don't match"
+msgstr "两次输入的密码不一致"
+
+msgid "Password requirements"
+msgstr "密码要求"
+
+msgid "Letters and numbers"
+msgstr "字母和数字"
+
+msgid "One symbol (recommended)"
+msgstr "一个符号（推荐）"
+
+msgid "Different from your current password"
+msgstr "与当前密码不同"
+
+msgid "Update password"
+msgstr "更新密码"
+
+msgid "Set password"
+msgstr "设置密码"
+
+msgid "Too short"
+msgstr "太短"
+
+msgid "Weak"
+msgstr "较弱"
+
+msgid "Fair"
+msgstr "一般"
+
+msgid "Good"
+msgstr "良好"
+
+msgid "Strong"
+msgstr "强"
