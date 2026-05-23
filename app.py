@@ -3826,9 +3826,10 @@ GUIDE_ALLOWED_TAGS = [
 ]
 GUIDE_ALLOWED_ATTRS = {
     "a": ["href", "title", "target", "rel"],
-    "img": ["src", "alt", "width", "height"],
+    "img": ["src", "alt", "width", "height", "class"],
     "span": ["class"],
     "div": ["class"],
+    "p": ["class"],
 }
 GUIDE_ALLOWED_PROTOCOLS = ["http", "https"]
 
