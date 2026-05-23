@@ -89,6 +89,35 @@ class GuideTemplateContractTest(unittest.TestCase):
         self.assertIn("preview_mode", self.article_tpl)
         self.assertIn("Preview", self.article_tpl)
 
+    def test_publish_template_uses_dashboard_shell(self):
+        self.assertIn('extends "_dashboard_shell.html"', self.publish_tpl)
+        self.assertIn("{% block panel %}", self.publish_tpl)
+
+    def test_publish_template_has_new_form_structure(self):
+        # Editor cards per language
+        self.assertIn('data-lang="en"', self.publish_tpl)
+        self.assertIn('data-lang="zh"', self.publish_tpl)
+        # Slug prefix decoration
+        self.assertIn("kd-input-prefix", self.publish_tpl)
+        # Custom published toggle
+        self.assertIn("kd-toggle", self.publish_tpl)
+        # Sticky form footer with dirty state
+        self.assertIn("kd-form-footer", self.publish_tpl)
+        self.assertIn("data-dirty-state", self.publish_tpl)
+        # Preview and delete buttons
+        self.assertIn("data-preview-guide", self.publish_tpl)
+        # Status pill
+        self.assertIn("data-status", self.publish_tpl)
+        # URL exposed for JS image upload
+        self.assertIn("data-upload-image-url", self.publish_tpl)
+
+    def test_publish_template_keeps_field_names(self):
+        # Backward compat: the POST handler must still see these names
+        for name in ("slug", "category", "sort_order", "published",
+                     "title_en", "title_zh", "summary_en", "summary_zh",
+                     "body_en", "body_zh"):
+            self.assertIn(f'name="{name}"', self.publish_tpl)
+
 
 if __name__ == "__main__":
     unittest.main()
