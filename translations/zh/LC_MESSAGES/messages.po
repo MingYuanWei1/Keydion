@@ -2470,6 +2470,9 @@ msgstr "导航"
 msgid "Dedicated to cultivating academic research skills for young scholars — a platform for writing, publishing, and discovery."
 msgstr "致力于培养青年学者的学术研究能力——一个写作、发表与发现的平台。"
 
+msgid "Collection"
+msgstr "文献库"
+
 #~ msgid "Please use the Microsoft button to sign in."
 #~ msgstr "请使用微软按钮登录。"
 
