@@ -77,6 +77,15 @@ class GuideRoutesContractTest(unittest.TestCase):
             self.landing,
         )
 
+    def test_read_guide_form_helper_exists(self):
+        # A helper that maps request.form -> the canonical guide form dict.
+        self.assertIn("def _read_guide_form(", self.app_source,
+                      "expected module-level helper _read_guide_form(form)")
+
+    def test_admin_guide_publish_uses_read_guide_form(self):
+        src = self._function_source("admin_guide_publish")
+        self.assertIn("_read_guide_form(request.form)", src)
+
 
 if __name__ == "__main__":
     unittest.main()
