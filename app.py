@@ -3795,10 +3795,17 @@ def slug_exists(slug: str, exclude_id: int = 0) -> bool:
 
 # ==================== NEWS HELPERS ====================
 
-def load_news_articles() -> List[Dict[str, str]]:
-    """Return all news articles sorted by published_at descending."""
+def load_news_articles(status: Optional[str] = None) -> List[Dict[str, str]]:
+    """Return news articles sorted by published_at descending.
+
+    When status is provided, only articles with that status are returned.
+    With status=None (default), all articles are returned regardless of status.
+    """
     with db_session() as db:
-        articles = db.query(NewsArticleModel).all()
+        query = db.query(NewsArticleModel)
+        if status:
+            query = query.filter_by(status=status)
+        articles = query.all()
         rows = [{field: (getattr(a, field) or "") for field in NEWS_FIELDS} for a in articles]
         rows.sort(key=lambda r: r.get("published_at", ""), reverse=True)
         return rows
