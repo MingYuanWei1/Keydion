@@ -8,12 +8,54 @@
   if (!panel) return; /* not on the publish page */
 
   var uploadUrl = panel.dataset.uploadImageUrl;
+
+  /* ─── Callout blot ─────────────────────────────────────────────── */
+  var BlockEmbed = Quill.import('blots/block/embed');
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function CalloutBlot() { BlockEmbed.apply(this, arguments); }
+  CalloutBlot.prototype = Object.create(BlockEmbed.prototype);
+  CalloutBlot.prototype.constructor = CalloutBlot;
+  CalloutBlot.blotName = 'callout';
+  CalloutBlot.tagName = 'div';
+  CalloutBlot.className = 'kd-callout';
+  CalloutBlot.create = function (value) {
+    var node = BlockEmbed.create.call(this);
+    node.setAttribute('class', 'kd-callout');
+    var label = document.createElement('div');
+    label.className = 'kd-callout-label';
+    label.setAttribute('contenteditable', 'true');
+    label.textContent = (value && value.label) || 'Note';
+    var body = document.createElement('div');
+    body.className = 'kd-callout-body';
+    body.setAttribute('contenteditable', 'true');
+    body.innerHTML = '<p>' + escapeHtml((value && value.body) || 'Type your callout here.') + '</p>';
+    node.appendChild(label);
+    node.appendChild(body);
+    return node;
+  };
+  CalloutBlot.value = function (node) {
+    var lbl = node.querySelector('.kd-callout-label');
+    var bdy = node.querySelector('.kd-callout-body');
+    return {
+      label: lbl ? lbl.textContent.trim() : '',
+      body: bdy ? bdy.textContent.trim() : '',
+    };
+  };
+  Quill.register(CalloutBlot);
+
   var toolbar = [
     [{ header: [1, 2, 3, false] }],
     ['bold', 'italic', 'underline', 'strike'],
     [{ list: 'ordered' }, { list: 'bullet' }],
     ['blockquote', 'code-block'],
     ['link', 'image'],
+    ['callout'],
     ['clean'],
   ];
 
@@ -42,12 +84,23 @@
       };
       input.click();
     });
+    editor.getModule('toolbar').addHandler('callout', function () {
+      var range = editor.getSelection(true);
+      editor.insertEmbed(range.index, 'callout',
+        { label: 'Note', body: 'Type your callout here.' }, 'user');
+      editor.setSelection(range.index + 1);
+    });
     editor.on('text-change', function () { hidden.value = editor.root.innerHTML; });
     return { editor: editor, hidden: hidden };
   }
 
   var pairEn = makeEditor('editorEn', 'bodyEnField');
   var pairZh = makeEditor('editorZh', 'bodyZhField');
+
+  document.querySelectorAll('button.ql-callout').forEach(function (btn) {
+    btn.setAttribute('title', 'Insert callout');
+    btn.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10"/><line x1="2" y1="6" x2="14" y2="6"/><circle cx="5" cy="9" r="0.6" fill="currentColor"/></svg>';
+  });
 
   document.getElementById('guideForm').addEventListener('submit', function () {
     pairEn.hidden.value = pairEn.editor.root.innerHTML;

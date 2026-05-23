@@ -28,6 +28,13 @@ class GuideDomContractTest(unittest.TestCase):
             self.assertIn(f"data-{attr}", self.publish_tpl,
                           f"JS references [data-{attr}] but template has no such attribute")
 
+    def test_js_registers_callout_blot(self):
+        self.assertIn("CalloutBlot", self.js)
+        self.assertIn("blotName = 'callout'", self.js.replace('"', "'"))
+        self.assertIn("kd-callout", self.js)
+        # Toolbar handler for callout
+        self.assertIn("'callout'", self.js)
+
 
 if __name__ == "__main__":
     unittest.main()
