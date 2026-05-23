@@ -1610,7 +1610,7 @@ def create_app() -> Flask:
     def upload_success_legacy():
         return redirect(url_for("upload_success"), code=301)
 
-    @app.route("/manage")
+    @app.route("/dashboard/manage")
     def manage():
         user = require_login(level=3)
         if not user:
@@ -1639,6 +1639,10 @@ def create_app() -> Flask:
 
         return render_template("delete.html", user=user, papers=papers)
 
+    @app.route("/manage", endpoint="manage_legacy")
+    def manage_legacy():
+        return redirect(url_for("manage"), code=301)
+
     @app.route("/paper/<path:filename>/info")
     def paper_info(filename):
         """Return paper metadata as JSON for the preview modal."""
@@ -1664,7 +1668,7 @@ def create_app() -> Flask:
             "pdf_url": url_for("paper_file", filename=filename),
         })
 
-    @app.route("/paper/<path:filename>/modify", methods=["GET", "POST"])
+    @app.route("/dashboard/paper/<path:filename>/modify", methods=["GET", "POST"])
     def paper_modify(filename):
         user = require_login(level=3)
         if not user:
@@ -1812,7 +1816,11 @@ def create_app() -> Flask:
 
         return render_modify_form(meta)
 
-    @app.route("/paper/<path:filename>/delete", methods=["POST"])
+    @app.route("/paper/<path:filename>/modify", endpoint="paper_modify_legacy")
+    def paper_modify_legacy(filename):
+        return redirect(url_for("paper_modify", filename=filename), code=301)
+
+    @app.route("/dashboard/paper/<path:filename>/delete", methods=["POST"])
     def paper_delete(filename):
         user = require_login(level=3)
         if not user:
@@ -2367,7 +2375,7 @@ def create_app() -> Flask:
         return redirect(url_for("admin_guides_manage"))
 
     # ---------- Paper categories & journals management ----------
-    @app.route("/admin/paper-manage")
+    @app.route("/dashboard/admin/paper-manage")
     def paper_manage():
         user = require_login(level=3)
         if not user:
@@ -2378,7 +2386,11 @@ def create_app() -> Flask:
                                journals=load_journals(),
                                ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES)
 
-    @app.route("/admin/paper-categories/add", methods=["POST"])
+    @app.route("/admin/paper-manage", endpoint="paper_manage_legacy")
+    def paper_manage_legacy():
+        return redirect(url_for("paper_manage"), code=301)
+
+    @app.route("/dashboard/admin/paper-categories/add", methods=["POST"], endpoint="admin_paper_categories_add")
     def paper_category_add():
         user = require_login(level=3)
         if not user:
@@ -2393,7 +2405,7 @@ def create_app() -> Flask:
         save_paper_categories(cats)
         return jsonify(items=cats)
 
-    @app.route("/admin/paper-categories/rename", methods=["POST"])
+    @app.route("/dashboard/admin/paper-categories/rename", methods=["POST"], endpoint="admin_paper_categories_rename")
     def paper_category_rename():
         user = require_login(level=3)
         if not user:
@@ -2421,7 +2433,7 @@ def create_app() -> Flask:
             save_paper_metadata(meta_rows)
         return jsonify(items=cats)
 
-    @app.route("/admin/paper-categories/delete", methods=["POST"])
+    @app.route("/dashboard/admin/paper-categories/delete", methods=["POST"], endpoint="admin_paper_categories_delete")
     def paper_category_delete():
         user = require_login(level=3)
         if not user:
@@ -2436,7 +2448,7 @@ def create_app() -> Flask:
         save_paper_categories(cats)
         return jsonify(items=cats)
 
-    @app.route("/admin/ee-subjects/add", methods=["POST"])
+    @app.route("/dashboard/admin/ee-subjects/add", methods=["POST"], endpoint="admin_ee_subjects_add")
     def ee_subject_add():
         user = require_login(level=3)
         if not user:
@@ -2456,7 +2468,7 @@ def create_app() -> Flask:
                 return jsonify(groups=subjects_data["groups"])
         return jsonify(error=str(_("Group not found."))), 404
 
-    @app.route("/admin/ee-subjects/delete", methods=["POST"])
+    @app.route("/dashboard/admin/ee-subjects/delete", methods=["POST"], endpoint="admin_ee_subjects_delete")
     def ee_subject_delete():
         user = require_login(level=3)
         if not user:
@@ -2478,7 +2490,7 @@ def create_app() -> Flask:
                 return jsonify(groups=subjects_data["groups"])
         return jsonify(error=str(_("Group not found."))), 404
 
-    @app.route("/admin/journals/add", methods=["POST"])
+    @app.route("/dashboard/admin/journals/add", methods=["POST"], endpoint="admin_journals_add")
     def journal_add():
         user = require_login(level=3)
         if not user:
@@ -2502,7 +2514,7 @@ def create_app() -> Flask:
         save_journals(journals)
         return jsonify(items=journals)
 
-    @app.route("/admin/journals/delete", methods=["POST"])
+    @app.route("/dashboard/admin/journals/delete", methods=["POST"], endpoint="admin_journals_delete")
     def journal_delete():
         user = require_login(level=3)
         if not user:
@@ -2528,7 +2540,7 @@ def create_app() -> Flask:
         save_journals(journals)
         return jsonify(items=journals)
 
-    @app.route("/admin/journal/<journal_id>/edit", methods=["GET", "POST"])
+    @app.route("/dashboard/admin/journal/<journal_id>/edit", methods=["GET", "POST"], endpoint="admin_journal_edit")
     def journal_edit(journal_id):
         user = require_login(level=3)
         if not user:
@@ -2546,7 +2558,7 @@ def create_app() -> Flask:
 
             if not new_name:
                 flash(_("Journal name is required."), "danger")
-                return redirect(url_for("journal_edit", journal_id=journal_id))
+                return redirect(url_for("admin_journal_edit", journal_id=journal_id))
 
             journals = load_journals()
             for j in journals:
@@ -2579,7 +2591,7 @@ def create_app() -> Flask:
                     save_paper_metadata(meta_rows)
 
             flash(_("Journal updated."), "success")
-            return redirect(url_for("journal_edit", journal_id=journal_id))
+            return redirect(url_for("admin_journal_edit", journal_id=journal_id))
 
         # GET: load papers belonging to this journal
         all_papers = gather_paper_records()
@@ -2587,6 +2599,10 @@ def create_app() -> Flask:
         journal_papers.sort(key=lambda r: r.get("published_at") or "", reverse=True)
 
         return render_template("journal_edit.html", user=user, journal=journal, papers=journal_papers)
+
+    @app.route("/admin/journal/<journal_id>/edit", endpoint="admin_journal_edit_legacy")
+    def admin_journal_edit_legacy(journal_id):
+        return redirect(url_for("admin_journal_edit", journal_id=journal_id), code=301)
 
     # ---------- Public journal pages ----------
     @app.route("/journals")

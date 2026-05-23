@@ -191,7 +191,7 @@
                             <span class="item-name">{{ j.name }}</span>
                         </div>
                         <span class="item-actions">
-                            <a class="btn-edit" href="{{ url_for('journal_edit', journal_id=j.id) }}"
+                            <a class="btn-edit" href="{{ url_for('admin_journal_edit', journal_id=j.id) }}"
                                 title="{{ _('Edit') }}">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
                                     viewBox="0 0 16 16">
@@ -256,7 +256,7 @@
         const input = document.getElementById('new-category-name');
         const name = input.value.trim();
         if (!name) return;
-        const data = await apiCall("{{ url_for('paper_category_add') }}", { name });
+        const data = await apiCall("{{ url_for('admin_paper_categories_add') }}", { name });
         if (data) { rebuildCategoryList(data.items); input.value = ''; }
     }
     async function renameCategory(btn) {
@@ -264,14 +264,14 @@
         const oldName = li.dataset.name;
         const newName = prompt("{{ _('Enter new name:') }}", oldName);
         if (!newName || newName.trim() === oldName) return;
-        const data = await apiCall("{{ url_for('paper_category_rename') }}", { old_name: oldName, new_name: newName.trim() });
+        const data = await apiCall("{{ url_for('admin_paper_categories_rename') }}", { old_name: oldName, new_name: newName.trim() });
         if (data) rebuildCategoryList(data.items);
     }
     async function deleteCategory(btn) {
         const li = btn.closest('li');
         const name = li.dataset.name;
         if (!confirm("{{ _('Are you sure you want to delete') }} \"" + name + "\"?")) return;
-        const data = await apiCall("{{ url_for('paper_category_delete') }}", { name });
+        const data = await apiCall("{{ url_for('admin_paper_categories_delete') }}", { name });
         if (data) rebuildCategoryList(data.items);
     }
 
@@ -311,7 +311,7 @@
         const name = input.value.trim();
         if (!name) return;
         const groupId = parseInt(document.getElementById('ee-group-select').value);
-        const data = await apiCall("{{ url_for('ee_subject_add') }}", { group_id: groupId, name });
+        const data = await apiCall("{{ url_for('admin_ee_subjects_add') }}", { group_id: groupId, name });
         if (data) {
             eeSubjectsData.groups = data.groups;
             rebuildEeSubjectList(groupId);
@@ -324,7 +324,7 @@
         const name = li.dataset.name;
         const groupId = parseInt(li.dataset.groupId);
         if (!confirm("{{ _('Are you sure you want to delete') }} \"" + name + "\"?")) return;
-        const data = await apiCall("{{ url_for('ee_subject_delete') }}", { group_id: groupId, name });
+        const data = await apiCall("{{ url_for('admin_ee_subjects_delete') }}", { group_id: groupId, name });
         if (data) {
             eeSubjectsData.groups = data.groups;
             rebuildEeSubjectList(groupId);
@@ -339,7 +339,7 @@
         const input = document.getElementById('new-journal-name');
         const name = input.value.trim();
         if (!name) return;
-        const data = await apiCall("{{ url_for('journal_add') }}", { name });
+        const data = await apiCall("{{ url_for('admin_journals_add') }}", { name });
         if (data) { location.reload(); }
     }
     async function deleteJournal(btn) {
@@ -347,7 +347,7 @@
         const id = li.dataset.id;
         const name = li.querySelector('.item-name').textContent;
         if (!confirm("{{ _('Are you sure you want to delete') }} \"" + name + "\"?")) return;
-        const data = await apiCall("{{ url_for('journal_delete') }}", { id });
+        const data = await apiCall("{{ url_for('admin_journals_delete') }}", { id });
         if (data) { location.reload(); }
     }
 
