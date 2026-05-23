@@ -50,7 +50,7 @@ BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = Path(os.environ.get("PAPERQUERY_DATA_DIR", BASE_DIR / "data")).resolve()
 PAPERS_DIR = Path(os.environ.get("PAPERQUERY_UPLOAD_DIR", BASE_DIR / "papers")).resolve()
 LOCAL_USER_FIELDS = ["username", "password", "registration_date", "expiry_date", "role", "email", "first_name", "last_name", "school"]
-NEWS_FIELDS = ["id", "title", "category", "abstract", "body", "author", "image_url", "published_at"]
+NEWS_FIELDS = ["id", "title", "category", "abstract", "body", "author", "image_url", "published_at", "status"]
 GUIDE_FIELDS = [
     "id", "slug", "category", "sort_order", "published",
     "title_en", "title_zh", "summary_en", "summary_zh",
@@ -490,6 +490,7 @@ class NewsArticleModel(BASE):
     author = Column(Unicode(255))
     image_url = Column(Unicode(255))
     published_at = Column(Unicode(255))
+    status = Column(Unicode(20), default="published")
 
 
 class GuideModel(BASE):
@@ -584,6 +585,15 @@ def init_db() -> None:
             with _ENGINE.connect() as conn:
                 from sqlalchemy import text
                 conn.execute(text("ALTER TABLE submissions ADD COLUMN cp_data TEXT"))
+                conn.commit()
+        except Exception:
+            pass
+        # Migrate: add status column to news_articles if it doesn't exist
+        try:
+            with _ENGINE.connect() as conn:
+                from sqlalchemy import text
+                conn.execute(text("ALTER TABLE news_articles ADD COLUMN status VARCHAR(20) DEFAULT 'published'"))
+                conn.execute(text("UPDATE news_articles SET status = 'published' WHERE status IS NULL OR status = ''"))
                 conn.commit()
         except Exception:
             pass
