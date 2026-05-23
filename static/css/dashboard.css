@@ -48,15 +48,17 @@
   flex: 0 0 auto;
   width: 38px; height: 38px;
   border-radius: 50%;
+  overflow: hidden;
   background: var(--accent);
-  color: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Cormorant Garamond', Georgia, serif;
-  font-weight: 600;
-  font-size: 15px;
-  letter-spacing: 0.5px;
+}
+.sidebar-head__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .sidebar-head__who { min-width: 0; flex: 1 1 auto; }
