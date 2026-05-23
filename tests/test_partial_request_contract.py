@@ -58,5 +58,33 @@ class BareTemplateContractTest(unittest.TestCase):
         self.assertNotIn("<body", src.lower())
 
 
+class PartialAwareTemplatesContractTest(unittest.TestCase):
+    TEMPLATES = [
+        "upload.html",
+        "my_submissions.html",
+        "review_list.html",
+        "review_paper.html",
+        "delete.html",
+        "paper_manage.html",
+        "news_publish.html",
+        "news_manage.html",
+        "admin_users.html",
+        "guide_manage.html",
+        "change_password.html",
+    ]
+
+    def test_all_sidebar_destinations_extend_conditionally(self):
+        expected = '{% extends "_bare.html" if partial else "base.html" %}'
+        for name in self.TEMPLATES:
+            path = ROOT / "templates" / name
+            self.assertTrue(path.exists(), f"{name} missing")
+            first_line = path.read_text(encoding="utf-8").splitlines()[0].strip()
+            self.assertEqual(
+                first_line,
+                expected,
+                f"{name} first line should be conditional extends, got: {first_line!r}",
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

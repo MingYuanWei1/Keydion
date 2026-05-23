@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "_bare.html" if partial else "base.html" %}
 {% block title %}{{ _('User Management - Keydion') }}{% endblock %}
 {% block content %}
 <div class="row mb-4">
