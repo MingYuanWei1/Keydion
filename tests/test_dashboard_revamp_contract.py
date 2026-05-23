@@ -21,6 +21,13 @@ class DashboardAssetsContractTest(unittest.TestCase):
         src = (ROOT / "static" / "js" / "dashboard.js").read_text(encoding="utf-8")
         self.assertIn("keydion.sidebar", src)
 
+    def test_dashboard_js_passes_submitter_to_formdata(self):
+        # Without the second arg, the clicked button's name=value (e.g.
+        # action=draft vs action=publish) is dropped from the partial POST.
+        import re
+        src = (ROOT / "static" / "js" / "dashboard.js").read_text(encoding="utf-8")
+        self.assertRegex(src, r"new\s+FormData\(\s*form\s*,\s*e\.submitter\s*\)")
+
 
 class OverviewPartialContractTest(unittest.TestCase):
     @classmethod
