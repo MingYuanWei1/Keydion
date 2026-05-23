@@ -914,9 +914,28 @@ def create_app() -> Flask:
         is_ms_user = not user.get("is_local", True)
         ms_id = user.get("ms_id") or user.get("username", "")
 
+        # Determine if the user already has a password set. MS-only users may
+        # have arrived via Microsoft sign-in without ever setting a local
+        # password — in that case current-password verification is skipped.
+        ms_record = get_ms_user(ms_id) if is_ms_user else None
+        has_password = True
+        if is_ms_user:
+            has_password = bool(ms_record and ms_record.get("password"))
+
         if request.method == "POST":
+            current_password = request.form.get("current_password", "")
             new_password = request.form.get("new_password", "").strip()
             confirm_password = request.form.get("confirm_password", "").strip()
+
+            if has_password:
+                if is_ms_user:
+                    stored_hash = (ms_record or {}).get("password", "")
+                else:
+                    local_record = get_local_user(user.get("username", "")) or {}
+                    stored_hash = local_record.get("password", "")
+                if not stored_hash or not verify_password(current_password, stored_hash):
+                    flash(_("Current password is incorrect."), "danger")
+                    return redirect(url_for("change_password"))
 
             if not new_password:
                 flash(_("Please enter a new password."), "warning")
@@ -938,12 +957,6 @@ def create_app() -> Flask:
             else:
                 flash(_("Unable to update password."), "danger")
             return redirect(url_for("change_password"))
-
-        # Determine if the user already has a password set
-        has_password = True
-        if is_ms_user:
-            ms_record = get_ms_user(ms_id)
-            has_password = bool(ms_record and ms_record.get("password"))
 
         return render_template("change_password.html", user=user, has_password=has_password)
 
