@@ -2413,6 +2413,35 @@ def create_app() -> Flask:
             flash(_("Guide not found."), "warning")
         return redirect(url_for("admin_guides_manage"))
 
+    @app.route("/dashboard/admin/guides/preview", methods=["POST"], endpoint="admin_guide_preview")
+    def admin_guide_preview():
+        user = require_login(level=3)
+        if not user:
+            return redirect(url_for("login"))
+        data = _read_guide_form(request.form)
+        # Sanitize bodies the same way the persisted save path would, so the
+        # preview reflects exactly what would end up in the DB.
+        data["body_en"] = _sanitize_guide_html(data.get("body_en", ""))
+        data["body_zh"] = _sanitize_guide_html(data.get("body_zh", ""))
+        guide = {
+            "slug": data["slug"] or "preview",
+            "category": data["category"],
+            "title_en": data["title_en"],
+            "title_zh": data["title_zh"],
+            "summary_en": data["summary_en"],
+            "summary_zh": data["summary_zh"],
+            "body_en": data["body_en"],
+            "body_zh": data["body_zh"],
+            "updated_at": datetime.utcnow().isoformat(timespec="seconds"),
+            "published": data["published"],
+        }
+        return render_template("guide_article.html",
+            guide=guide,
+            prev_guide=None,
+            next_guide=None,
+            preview_mode=True,
+        )
+
     @app.route("/admin/guides", endpoint="admin_guides_manage_legacy")
     def admin_guides_manage_legacy():
         return redirect(url_for("admin_guides_manage"), code=301)

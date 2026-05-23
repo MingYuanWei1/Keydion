@@ -86,6 +86,18 @@ class GuideRoutesContractTest(unittest.TestCase):
         src = self._function_source("admin_guide_publish")
         self.assertIn("_read_guide_form(request.form)", src)
 
+    def test_admin_guide_preview_route(self):
+        decs = self._route_decorators("admin_guide_preview")
+        self.assertEqual(
+            decs,
+            [{"path": "/dashboard/admin/guides/preview", "methods": ["POST"]}],
+        )
+        src = self._function_source("admin_guide_preview")
+        self.assertIn("require_login(level=3)", src)
+        self.assertIn("_read_guide_form(request.form)", src)
+        self.assertIn('render_template("guide_article.html"', src)
+        self.assertIn("preview_mode=True", src)
+
 
 if __name__ == "__main__":
     unittest.main()
