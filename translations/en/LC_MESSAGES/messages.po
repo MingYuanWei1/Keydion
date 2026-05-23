@@ -3411,8 +3411,8 @@ msgstr "Hide password"
 msgid "Passwords match"
 msgstr "Passwords match"
 
-msgid "Passwords don't match"
-msgstr "Passwords don't match"
+msgid "Passwords don’t match"
+msgstr "Passwords don’t match"
 
 msgid "Password requirements"
 msgstr "Password requirements"
