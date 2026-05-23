@@ -108,6 +108,67 @@ proxy.
    # or, to reload in place: docker exec keydion-web-prod kill -HUP 1
    ```
 
+### Host-direct deployment (gunicorn under systemd, existing nginx)
+
+If you already operate nginx on the host (instead of using the bundled
+`docker-compose.prod.yml` stack), run gunicorn directly under systemd and
+point your existing nginx at it. `run_prod.sh` sources `.env.prod` and
+execs gunicorn with the config in `gunicorn.conf.py`.
+
+A reference site config is at [`deploy/keydion.nginx.conf`](deploy/keydion.nginx.conf);
+the critical bit is `proxy_set_header X-Forwarded-Proto $scheme;` (or
+`https` for a TLS-only vhost) so Flask's `ProxyFix` generates correct
+HTTPS URLs for OAuth callbacks.
+
+A reference systemd unit (`/etc/systemd/system/keydion.service`):
+
+```ini
+[Unit]
+Description=Keydion (gunicorn)
+After=network.target
+
+[Service]
+User=<owner of the repo>
+WorkingDirectory=/Keydion
+ExecStart=/Keydion/run_prod.sh
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Updating the server after `git pull`
+
+Match the command to what actually changed:
+
+| Change | Command |
+|---|---|
+| Python code (`app.py`, templates, etc.) | `sudo systemctl reload keydion` |
+| `requirements.txt` (new/upgraded packages) | `.venv/bin/pip install -r requirements.txt && sudo systemctl restart keydion` |
+| `gunicorn.conf.py` or `.env.prod` | `sudo systemctl restart keydion` |
+| `run_prod.sh` or the systemd unit itself | `sudo systemctl daemon-reload && sudo systemctl restart keydion` |
+| `.po` translation source files | `.venv/bin/python tools/compile_translations.py && sudo systemctl reload keydion` |
+| Anything under `static/` | nothing — nginx serves it directly from disk |
+| `nginx` config | `sudo nginx -t && sudo systemctl reload nginx` |
+
+`reload` sends `SIGHUP` to the gunicorn master: new workers spawn with the
+updated code, and old workers drain in-flight requests before exiting. No
+dropped connections.
+
+Quick post-deploy check:
+
+```bash
+sudo systemctl status keydion --no-pager      # active (running)
+sudo journalctl -u keydion -n 30 --no-pager   # look for fresh "Booting worker"
+curl -sI https://www.keydion.com/ | head -5   # 200/302, Server: nginx
+```
+
+If the journal shows a traceback instead of fresh worker boots, the new
+code failed to import — fix on disk and reload again.
+
 ## User Management
 
 You can manage users (create, update, list) using the provided CLI tool:
