@@ -80,7 +80,7 @@
                         <td class="text-end">
                             {% if sub.status == 'pending' %}
                             <a class="btn btn-sm btn-outline-primary"
-                                href="{{ url_for('review_detail', sub_id=sub.id) }}">
+                                href="{{ url_for('review_paper', sub_id=sub.id) }}">
                                 {{ _('Review') }}
                             </a>
                             {% else %}

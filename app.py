@@ -2808,7 +2808,7 @@ def create_app() -> Flask:
     def my_submission_file_legacy(sub_id):
         return redirect(url_for("my_submission_file", sub_id=sub_id), code=301)
 
-    @app.route("/review")
+    @app.route("/dashboard/review")
     def review_list():
         user = require_login(level=2)
         if not user:
@@ -2825,7 +2825,7 @@ def create_app() -> Flask:
         subs.sort(key=lambda s: s.get("submitted_at", ""), reverse=True)
         return render_template("review_list.html", user=user, submissions=subs, status_filter=status_filter)
 
-    @app.route("/review/<sub_id>")
+    @app.route("/dashboard/review/<sub_id>", endpoint="review_paper")
     def review_detail(sub_id):
         user = require_login(level=2)
         if not user:
@@ -2838,7 +2838,7 @@ def create_app() -> Flask:
         pdf_url = url_for("pending_paper_file", filename=sub.get("pending_filename", ""))
         return render_template("review_paper.html", user=user, submission=sub, pdf_url=pdf_url)
 
-    @app.route("/review/<sub_id>/accept", methods=["POST"])
+    @app.route("/dashboard/review/<sub_id>/accept", methods=["POST"])
     def review_accept(sub_id):
         user = require_login(level=2)
         if not user:
@@ -2892,7 +2892,7 @@ def create_app() -> Flask:
         flash(_("Paper accepted and published."), "success")
         return redirect(url_for("review_list"))
 
-    @app.route("/review/<sub_id>/reject", methods=["POST"])
+    @app.route("/dashboard/review/<sub_id>/reject", methods=["POST"])
     def review_reject(sub_id):
         user = require_login(level=2)
         if not user:
@@ -2918,6 +2918,14 @@ def create_app() -> Flask:
         })
         flash(_("Paper rejected."), "info")
         return redirect(url_for("review_list"))
+
+    @app.route("/review", endpoint="review_list_legacy")
+    def review_list_legacy():
+        return redirect(url_for("review_list"), code=301)
+
+    @app.route("/review/<sub_id>", endpoint="review_paper_legacy")
+    def review_paper_legacy(sub_id):
+        return redirect(url_for("review_paper", sub_id=sub_id), code=301)
 
     @app.route("/pending-papers/<path:filename>")
     def pending_paper_file(filename):
