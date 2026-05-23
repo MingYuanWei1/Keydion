@@ -6,6 +6,7 @@
   --cream:        #faf8f5;
   --cream-2:      #f3efe8;
   --paper:        #ffffff;
+  --paper-warm:   #fffdf9;   /* warm-tinted card surface (shared with dashboard.css) */
   --border:       #e0dbd0;
   --border-soft:  #ebe6dc;
   --ink:          #1a1a1a;
@@ -89,7 +90,12 @@
 /* base.html ships <body class="bg-light ..."> for the rest of the site;
    on pages that opt into the guides design (anything that renders .kd-page),
    override so the cream extends to the viewport edges instead of showing
-   Bootstrap's #f8f9fa around the page block. */
+   Bootstrap's #f8f9fa around the page block.
+
+   TODO: drop !important once base.html's <body> no longer hardcodes
+   Bootstrap's .bg-light class. Today both rules use !important so source
+   order is the only resolver — fragile if a third !important body bg
+   rule ever appears. The clean fix is template-side, not CSS-side. */
 body:has(.kd-page) {
   background: var(--cream) !important;
 }
@@ -636,14 +642,17 @@ body:has(.kd-page) {
 
 /* Inside the dashboard panel: drop sticky (which strands the bar mid-page
    whenever the form is shorter than the viewport) and render as an inline
-   card at the end of the form. Matches the mock's dashboard-shell override. */
+   card at the end of the form. Matches the mock's dashboard-shell override.
+   display: flex restated for self-documentation; it would inherit from
+   the base rule but explicit beats implicit when overriding. */
 .kd-panel .kd-form-footer {
   position: static;
+  display: flex;
   margin: 32px 0 0;
   padding: 16px 22px;
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: #fffdf9;
+  background: var(--paper-warm, #fffdf9);
   backdrop-filter: none;
 }
 .kd-saved {
