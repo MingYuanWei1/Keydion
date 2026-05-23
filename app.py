@@ -2309,7 +2309,18 @@ def create_app() -> Flask:
         guide = get_guide_by_slug(slug)
         if not guide or not guide.get("published"):
             abort(404)
-        return render_template("guide_article.html", guide=guide)
+        # Compute prev/next from the same ordered list the index uses.
+        flat = load_guides(published_only=True)
+        idx = next((i for i, g in enumerate(flat) if g.get("slug") == slug), -1)
+        prev_guide = flat[idx - 1] if idx > 0 else None
+        next_guide = flat[idx + 1] if 0 <= idx < len(flat) - 1 else None
+        return render_template(
+            "guide_article.html",
+            guide=guide,
+            prev_guide=prev_guide,
+            next_guide=next_guide,
+            preview_mode=False,
+        )
 
     @app.route("/dashboard/admin/guides/upload-image", methods=["POST"], endpoint="admin_guides_upload_image")
     def admin_guide_upload_image():
