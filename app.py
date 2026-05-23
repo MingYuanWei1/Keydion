@@ -1925,20 +1925,24 @@ def create_app() -> Flask:
             "body": request.form.get("body", "").strip(),
             "author": request.form.get("author", "").strip() or display_name,
             "image_url": "",
+            "status": "",
         }
 
         if request.method == "POST":
+            action = request.form.get("action", "publish")
+            is_draft = action == "draft"
+
+            # Drafts require only a title; publish requires the full set.
             if not form_data["title"]:
                 flash(_("Please enter a title."), "warning")
-            elif not form_data["category"]:
+            elif not is_draft and not form_data["category"]:
                 flash(_("Please select a category."), "warning")
-            elif not form_data["abstract"]:
+            elif not is_draft and not form_data["abstract"]:
                 flash(_("Please enter an abstract."), "warning")
-            elif not form_data["body"]:
+            elif not is_draft and not form_data["body"]:
                 flash(_("Please write the article body."), "warning")
             else:
                 article_id = uuid4().hex[:12]
-                # Handle cover image upload
                 image_url = ""
                 cover_file = request.files.get("cover_image")
                 if cover_file and cover_file.filename:
@@ -1965,8 +1969,12 @@ def create_app() -> Flask:
                     "author": form_data["author"],
                     "image_url": image_url,
                     "published_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M"),
+                    "status": "pending" if is_draft else "published",
                 }
                 save_news_article(article)
+                if is_draft:
+                    flash(_("Draft saved."), "success")
+                    return redirect(url_for("news_manage"))
                 flash(_("Article published successfully."), "success")
                 return redirect(url_for("news_list"))
 
@@ -1996,27 +2004,30 @@ def create_app() -> Flask:
             "body": article["body"],
             "author": article["author"],
             "image_url": article["image_url"],
+            "status": article.get("status", "published"),
         }
 
         if request.method == "POST":
+            action = request.form.get("action", "publish")
+            is_draft = action == "draft"
             form_data = {
                 "title": request.form.get("title", "").strip(),
                 "category": request.form.get("category", "").strip(),
                 "abstract": request.form.get("abstract", "").strip(),
                 "body": request.form.get("body", "").strip(),
                 "author": request.form.get("author", "").strip(),
-                "image_url": article["image_url"],  # keep existing by default
+                "image_url": article["image_url"],
+                "status": article.get("status", "published"),
             }
             if not form_data["title"]:
                 flash(_("Please enter a title."), "warning")
-            elif not form_data["category"]:
+            elif not is_draft and not form_data["category"]:
                 flash(_("Please select a category."), "warning")
-            elif not form_data["abstract"]:
+            elif not is_draft and not form_data["abstract"]:
                 flash(_("Please enter an abstract."), "warning")
-            elif not form_data["body"]:
+            elif not is_draft and not form_data["body"]:
                 flash(_("Please write the article body."), "warning")
             else:
-                # Handle cover image upload
                 cover_file = request.files.get("cover_image")
                 if cover_file and cover_file.filename:
                     img_ext = cover_file.filename.rsplit(".", 1)[-1].lower() if "." in cover_file.filename else ""
@@ -2033,10 +2044,13 @@ def create_app() -> Flask:
                             categories=load_categories(),
                             editing=True,
                         )
-                # Check if user wants to remove existing image
                 if request.form.get("remove_image") == "1":
                     form_data["image_url"] = ""
+                form_data["status"] = "pending" if is_draft else "published"
                 update_news_article(news_id, form_data)
+                if is_draft:
+                    flash(_("Draft saved."), "success")
+                    return redirect(url_for("news_manage"))
                 flash(_("Article updated."), "success")
                 return redirect(url_for("news_list"))
 
@@ -3843,6 +3857,9 @@ def update_news_article(article_id: str, data: Dict[str, str]) -> bool:
                     continue
                 if field in data:
                     setattr(article, field, data[field])
+            # When transitioning from draft to published, refresh published_at.
+            if data.get("status") == "published" and (article.published_at is None or article.published_at == ""):
+                article.published_at = datetime.utcnow().strftime("%Y-%m-%d %H:%M")
             db.commit()
             return True
         return False
