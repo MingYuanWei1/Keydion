@@ -1,0 +1,113 @@
+{# =============================================================
+   templates/_dashboard/overview.html — default panel for the user hub.
+   Rendered inline by dashboard.html on first paint, and re-rendered
+   as a partial when the user clicks the "Overview" sidebar item.
+   ============================================================= #}
+{% set role = user.role|int %}
+{% set display_name = user.display_name or (user.first_name ~ ' ' ~ user.last_name)|trim or user.email or user.username %}
+{% set first_name = display_name.split(' ')[0] %}
+
+<article class="panel panel--overview" data-screen-label="Overview">
+  <header class="panel-hero">
+    <div class="panel-hero__text">
+      <h1 class="panel-hero__title">{{ _('Hello, %(name)s.', name=first_name) }}</h1>
+      <p class="panel-hero__sub">{{ _('Manage your account access, uploads, and the Keydion library.') }}</p>
+    </div>
+    <div class="panel-hero__meta">
+      <span class="role-pill">{{ role_label(role) }}</span>
+      {% if user.expiry_date %}
+      <span class="role-expiry">{{ _('Access valid through %(date)s', date=user.expiry_date) }}</span>
+      {% endif %}
+    </div>
+  </header>
+
+  {% if role > 1 %}
+  <section class="stats-row" aria-label="{{ _('At a glance') }}">
+    {% if dashboard_stats %}
+    {% if role >= 3 and dashboard_stats.papers_in_library is defined %}
+    <a class="stat-tile" href="{{ url_for('manage') }}" data-partial-href="{{ url_for('manage') }}">
+      <div class="stat-tile__label">{{ _('Papers in library') }}</div>
+      <div class="stat-tile__value">{{ '{:,}'.format(dashboard_stats.papers_in_library) }}</div>
+      {% if dashboard_stats.papers_delta_label %}
+      <div class="stat-tile__delta">{{ dashboard_stats.papers_delta_label }}</div>
+      {% endif %}
+    </a>
+    {% endif %}
+
+    {% if role >= 2 and dashboard_stats.pending_reviews is defined %}
+    <a class="stat-tile {% if dashboard_stats.pending_reviews > 0 %}stat-tile--alert{% endif %}"
+       href="{{ url_for('review_list') }}" data-partial-href="{{ url_for('review_list') }}">
+      <div class="stat-tile__label">{{ _('Pending reviews') }}</div>
+      <div class="stat-tile__value">{{ dashboard_stats.pending_reviews }}</div>
+      {% if dashboard_stats.pending_oldest_label %}
+      <div class="stat-tile__delta">{{ dashboard_stats.pending_oldest_label }}</div>
+      {% endif %}
+    </a>
+    {% endif %}
+
+    {% if role >= 2 and dashboard_stats.published_news is defined %}
+    <a class="stat-tile" href="{{ url_for('news_list') }}" data-partial-href="{{ url_for('news_list') }}">
+      <div class="stat-tile__label">{{ _('Published news') }}</div>
+      <div class="stat-tile__value">{{ dashboard_stats.published_news }}</div>
+    </a>
+    {% endif %}
+
+    {% if role >= 2 and dashboard_stats.pending_news is defined %}
+    <a class="stat-tile" href="{{ url_for('news_manage') }}" data-partial-href="{{ url_for('news_manage') }}">
+      <div class="stat-tile__label">{{ _('Pending news') }}</div>
+      <div class="stat-tile__value">{{ dashboard_stats.pending_news }}</div>
+    </a>
+    {% endif %}
+    {% endif %}
+  </section>
+  {% endif %}
+
+  <section class="quick-actions" aria-label="{{ _('Quick actions') }}">
+    <div class="section-head">
+      <h2>{{ _('Quick actions') }}</h2>
+    </div>
+    <div class="quick-actions__grid">
+      <a class="action-card" href="{{ url_for('upload') }}" data-partial-href="{{ url_for('upload') }}">
+        <div class="action-card__title">{{ _('Upload research') }}</div>
+        <p class="action-card__body">{{ _('Share a new paper for peers to explore. Supports PDF with metadata extraction.') }}</p>
+        <span class="action-card__cta">{{ _('Open uploader') }} →</span>
+      </a>
+
+      {% if role >= 2 %}
+      <a class="action-card" href="{{ url_for('review_list') }}" data-partial-href="{{ url_for('review_list') }}">
+        <div class="action-card__title">{{ _('Review the queue') }}</div>
+        <p class="action-card__body">
+          {% if dashboard_stats and dashboard_stats.pending_reviews %}
+          {{ _('%(n)d submissions are waiting for editorial decision.', n=dashboard_stats.pending_reviews) }}
+          {% else %}
+          {{ _('Accept or reject papers submitted by readers.') }}
+          {% endif %}
+        </p>
+        <span class="action-card__cta">{{ _('Open queue') }} →</span>
+      </a>
+      {% endif %}
+
+      {% if role >= 2 %}
+      <a class="action-card" href="{{ url_for('news_publish') }}" data-partial-href="{{ url_for('news_publish') }}">
+        <div class="action-card__title">{{ _('Write an article') }}</div>
+        <p class="action-card__body">{{ _('Publish updates, announcements and stories for the Keydion community.') }}</p>
+        <span class="action-card__cta">{{ _('Open editor') }} →</span>
+      </a>
+      {% endif %}
+
+      {% if role >= 3 %}
+      <a class="action-card" href="{{ url_for('admin_users') }}" data-partial-href="{{ url_for('admin_users') }}">
+        <div class="action-card__title">{{ _('Manage users') }}</div>
+        <p class="action-card__body">{{ _('Review local and Microsoft-linked accounts, adjust roles, set passwords.') }}</p>
+        <span class="action-card__cta">{{ _('Open admin') }} →</span>
+      </a>
+      {% endif %}
+
+      <a class="action-card" href="{{ url_for('change_password') }}" data-partial-href="{{ url_for('change_password') }}">
+        <div class="action-card__title">{{ _('Change password') }}</div>
+        <p class="action-card__body">{{ _('Set or change your account password.') }}</p>
+        <span class="action-card__cta">{{ _('Update security') }} →</span>
+      </a>
+    </div>
+  </section>
+</article>
