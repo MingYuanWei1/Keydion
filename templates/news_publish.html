@@ -967,11 +967,11 @@
             </h1>
             <div class="editor-actions">
                 <a class="btn-ed" href="{{ url_for('news_list') }}">{{ _('Cancel') }}</a>
-                <button type="submit" name="action" value="draft" class="btn-ed" id="btnDraft">
-                    {% if editing and form_data.status == 'pending' %}{{ _('Save Draft') }}{% else %}{{ _('Save as Draft') }}{% endif %}
-                </button>
-                <button type="submit" name="action" value="publish" class="btn-ed primary" id="btnPublish">
+                <button type="submit" name="action" value="publish" class="btn-ed primary" id="btnPublish" style="order:2">
                     {% if editing %}{{ _('Publish Changes') }}{% else %}{{ _('Publish Article') }}{% endif %}
+                </button>
+                <button type="submit" name="action" value="draft" class="btn-ed" id="btnDraft" style="order:1">
+                    {% if editing and form_data.status == 'pending' %}{{ _('Save Draft') }}{% else %}{{ _('Save as Draft') }}{% endif %}
                 </button>
             </div>
         </div>
