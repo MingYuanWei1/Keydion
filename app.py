@@ -2525,9 +2525,12 @@ def create_app() -> Flask:
         if not article:
             flash(_("Article not found."), "warning")
             return redirect(url_for("news_list"))
-        if article and article.get("status") == "pending":
+        if article.get("status") == "pending":
             viewer = get_active_user()
-            viewer_role = int(viewer.get("role", "1")) if viewer else 0
+            try:
+                viewer_role = int(viewer.get("role", "1")) if viewer else 0
+            except (TypeError, ValueError):
+                viewer_role = 0
             if viewer_role < 2:
                 flash(_("Article not found."), "warning")
                 return redirect(url_for("news_list"))
