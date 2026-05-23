@@ -459,6 +459,7 @@
             <tr>
                 <th style="min-width:300px">{{ _('Title') }}</th>
                 <th>{{ _('Category') }}</th>
+                <th>{{ _('Status') }}</th>
                 <th>{{ _('Author') }}</th>
                 <th>{{ _('Published') }}</th>
                 <th class="text-end" style="min-width:150px">{{ _('Actions') }}</th>
@@ -475,6 +476,15 @@
                     {% endif %}
                 </td>
                 <td><span class="badge bg-secondary">{{ item.category }}</span></td>
+                <td>
+                    {% if item.status == 'pending' %}
+                    <span class="badge bg-warning text-dark">{{ _('Draft') }}</span>
+                    {% elif item.status == 'published' %}
+                    <span class="badge bg-success">{{ _('Published') }}</span>
+                    {% else %}
+                    <span class="badge bg-secondary">{{ item.status or _('Published') }}</span>
+                    {% endif %}
+                </td>
                 <td>{{ item.author }}</td>
                 <td class="text-muted small">{{ item.published_at }}</td>
                 <td class="text-end">
