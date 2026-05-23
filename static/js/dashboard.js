@@ -124,11 +124,15 @@
     var action = form.getAttribute('action') || location.pathname;
     var method = (form.getAttribute('method') || 'GET').toUpperCase();
     var body;
+    // Pass e.submitter so the clicked button's name=value pair is included
+    // (e.g. Save-as-Draft vs Publish in news_publish.html). Native form posts
+    // include the submitter automatically; FormData(form) without a second
+    // argument silently drops it.
     if (method === 'GET') {
-      var params = new URLSearchParams(new FormData(form));
+      var params = new URLSearchParams(new FormData(form, e.submitter));
       action += (action.indexOf('?') >= 0 ? '&' : '?') + params.toString();
     } else {
-      body = new FormData(form);
+      body = new FormData(form, e.submitter);
     }
     loadPartial(action, { method: method, body: body });
   });
