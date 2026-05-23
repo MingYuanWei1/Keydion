@@ -28,6 +28,25 @@ class DashboardAssetsContractTest(unittest.TestCase):
         src = (ROOT / "static" / "js" / "dashboard.js").read_text(encoding="utf-8")
         self.assertRegex(src, r"new\s+FormData\(\s*form\s*,\s*e\.submitter\s*\)")
 
+    def test_dashboard_js_only_full_navs_when_leaving_dashboard(self):
+        # The redirect-fallback in loadPartial must check that we *leave*
+        # /dashboard/* before doing window.location.href. A naive path-mismatch
+        # check would kick the user out on every in-shell redirect after the
+        # URL-nesting refactor.
+        src = (ROOT / "static" / "js" / "dashboard.js").read_text(encoding="utf-8")
+        self.assertRegex(
+            src,
+            r"!.*startsWith\(\s*['\"]/dashboard['\"]\s*\)",
+            "dashboard.js must guard the full-nav fallback with a /dashboard prefix check",
+        )
+
+    def test_dashboard_js_pushes_resolved_redirect_url(self):
+        # When a redirect resolves in-shell, the address bar must show the
+        # final URL (e.g. /dashboard/news/manage), not the originally posted one.
+        src = (ROOT / "static" / "js" / "dashboard.js").read_text(encoding="utf-8")
+        self.assertIn("res.url", src)
+        self.assertRegex(src, r"history\.pushState\([^;]*res\.url|history\.pushState\([^;]*resolvedUrl")
+
 
 class OverviewPartialContractTest(unittest.TestCase):
     @classmethod
