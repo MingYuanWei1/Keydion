@@ -3365,3 +3365,84 @@ msgstr "Publish Changes"
 
 msgid "Draft saved."
 msgstr "Draft saved."
+
+msgid "Current password is incorrect."
+msgstr "Current password is incorrect."
+
+msgid "New password must be different from your current password."
+msgstr "New password must be different from your current password."
+
+msgid "Password must contain both letters and numbers."
+msgstr "Password must contain both letters and numbers."
+
+msgid "Change Password · Keydion"
+msgstr "Change Password · Keydion"
+
+msgid "Set a password"
+msgstr "Set a password"
+
+msgid "Update the password used to sign in to Keydion with your email or username."
+msgstr "Update the password used to sign in to Keydion with your email or username."
+
+msgid "Create a password so you can sign in with email and password in the future."
+msgstr "Create a password so you can sign in with email and password in the future."
+
+msgid "Current password"
+msgstr "Current password"
+
+msgid "Enter your current password"
+msgstr "Enter your current password"
+
+msgid "At least 6 characters"
+msgstr "At least 6 characters"
+
+msgid "Confirm new password"
+msgstr "Confirm new password"
+
+msgid "Re-enter your new password"
+msgstr "Re-enter your new password"
+
+msgid "Show password"
+msgstr "Show password"
+
+msgid "Hide password"
+msgstr "Hide password"
+
+msgid "Passwords match"
+msgstr "Passwords match"
+
+msgid "Passwords don’t match"
+msgstr "Passwords don’t match"
+
+msgid "Password requirements"
+msgstr "Password requirements"
+
+msgid "Letters and numbers"
+msgstr "Letters and numbers"
+
+msgid "One symbol (recommended)"
+msgstr "One symbol (recommended)"
+
+msgid "Different from your current password"
+msgstr "Different from your current password"
+
+msgid "Update password"
+msgstr "Update password"
+
+msgid "Set password"
+msgstr "Set password"
+
+msgid "Too short"
+msgstr "Too short"
+
+msgid "Weak"
+msgstr "Weak"
+
+msgid "Fair"
+msgstr "Fair"
+
+msgid "Good"
+msgstr "Good"
+
+msgid "Strong"
+msgstr "Strong"
