@@ -1,113 +1,182 @@
+{# =============================================================
+   templates/dashboard.html — revamped user hub
+   Drop-in replacement for the old dashboard.html.
+
+   Required context (provided by the dashboard() route in app.py):
+     user                          — current user object (with .role, .display_name, .expiry_date, ...)
+     role_label(role)              — existing helper, already in scope
+     ms_enabled                    — passed by base.html context
+     dashboard_stats               — dict from app.py, see INTEGRATION.md. Keys (any may be missing):
+                                       papers_in_library, your_uploads,
+                                       pending_reviews, news_drafts,
+                                       papers_delta_label, uploads_delta_label,
+                                       pending_oldest_label, news_drafts_label
+   ============================================================= #}
 {% extends "base.html" %}
-{% block title %}{{ _('User Menu · Keydion') }}{% endblock %}
+{% block title %}{{ _('User Hub · Keydion') }}{% endblock %}
+
 {% block content %}
-<div class="row align-items-center mb-4">
-  <div class="col-md-8">
-    {% set display_name = user.display_name %}
-    {% if not display_name %}
-    {% set display_name = (user.first_name ~ ' ' ~ user.last_name)|trim %}
-    {% endif %}
-    {% if not display_name %}
-    {% set display_name = user.email or user.username %}
-    {% endif %}
-    <h1 class="display-6 fw-semibold text-primary">{{ _('Hello, %(username)s!', username=display_name) }}</h1>
-    <p class="lead text-muted">{{ _('Manage your account access, uploads, and linked services.') }}</p>
-  </div>
-  <div class="col-md-4 text-md-end text-center">
-    <div class="d-flex flex-column align-items-md-end align-items-center gap-2">
-      <div class="badge bg-info text-dark fs-6">{{ role_label(user.role|int) }}</div>
-      {% if user.expiry_date %}
-      <div class="small text-muted">{{ _('Access valid through %(date)s', date=user.expiry_date) }}</div>
-      {% endif %}
-      <a class="btn btn-outline-primary" href="{{ url_for('logout') }}">{{ _('Sign out') }}</a>
-    </div>
-  </div>
-</div>
+{# ── This page wants the full viewport. The wrapper below breaks out of
+     base.html's <main class="py-4"><div class="container">. ── #}
+<style>
+  /* page-local override: collapse the .container constraint for the dashboard */
+  main.py-4 > .container { max-width: none !important; padding: 0 !important; }
+  main.py-4 { padding: 0 !important; }
+  body { padding-bottom: 0 !important; }
+  footer { display: none !important; }  /* footer hides under the fixed shell anyway */
+</style>
 
-<div class="row g-4">
-  {# Upload — visible to ALL logged-in users #}
-  <div class="col-md-6">
-    <div class="feature-card feature-card--teal h-100">
-      <h2>{{ _('Upload Research') }}</h2>
-      <p>{{ _('Support community scholarship by sharing new papers in PDF format for peers to explore.') }}</p>
-      <a class="btn btn-outline-primary" href="{{ url_for('upload') }}">{{ _('Upload a Paper') }}</a>
-    </div>
-  </div>
-  {# My Submissions — readers only #}
-  {% if user.role|int == 1 %}
-  <div class="col-md-6">
-    <div class="feature-card feature-card--pink h-100">
-      <h2>{{ _('My Submissions') }}</h2>
-      <p>{{ _('Track the review status of your submitted papers.') }}</p>
-      <a class="btn btn-outline-primary" href="{{ url_for('my_submissions') }}">{{ _('View Submissions') }}</a>
-    </div>
-  </div>
-  {% endif %}
-  {# Review Submissions — moderator / admin #}
-  {% if user.role|int >= 2 %}
-  <div class="col-md-6">
-    <div class="feature-card feature-card--gold h-100">
-      <h2>{{ _('Review Submissions') }}</h2>
-      <p>{{ _('Review papers submitted by readers. Accept or reject pending submissions.') }}</p>
-      <a class="btn btn-outline-primary" href="{{ url_for('review_list') }}">{{ _('Review Papers') }}</a>
-    </div>
-  </div>
-  {% endif %}
-  {% if user.role|int >= 3 %}
-  <div class="col-md-6">
-    <div class="feature-card feature-card--gold h-100">
-      <h2>{{ _('Manage Collection') }}</h2>
-      <p>{{ _('Keep the repository tidy by removing outdated or duplicate papers. Confirmation keeps actions safe.') }}
-      </p>
-      <a class="btn btn-outline-primary" href="{{ url_for('manage') }}">{{ _('Manage Papers') }}</a>
-    </div>
-  </div>
-  {% endif %}
-  {% if user.role|int >= 2 %}
-  <div class="col-md-6">
-    <div class="feature-card feature-card--pink h-100">
-      <h2>{{ _('News') }}</h2>
-      <p>{{ _('Share updates, announcements, and stories with the Keydion community. Manage existing articles or
-        publish new ones.') }}</p>
-      <div class="d-flex gap-2 flex-wrap">
-        <a class="btn btn-outline-primary" href="{{ url_for('news_publish') }}">{{ _('Write an Article') }}</a>
-        <a class="btn btn-outline-primary" href="{{ url_for('news_manage') }}">{{ _('Manage News') }}</a>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+
+{% set role = user.role|int %}
+{% set initials = ((user.display_name or user.first_name or user.username or user.email or 'K')[:1] ~ ((user.display_name or '').split(' ')|last)[:1])|upper %}
+{% set display_name = user.display_name or (user.first_name ~ ' ' ~ user.last_name)|trim or user.email or user.username %}
+
+<div class="dashboard-shell" data-sidebar-state="full">
+  <aside class="dashboard-sidebar" aria-label="{{ _('User hub navigation') }}">
+    <div class="sidebar-head">
+      <div class="sidebar-head__id">
+        <div class="sidebar-head__avatar" aria-hidden="true">{{ initials }}</div>
+        <div class="sidebar-head__who">
+          <div class="sidebar-head__name">{{ display_name }}</div>
+          <div class="sidebar-head__role">{{ role_label(role) }}</div>
+        </div>
       </div>
+      <button class="sidebar-toggle" type="button" aria-label="{{ _('Cycle sidebar') }}" data-cycle-sidebar>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v16"/><path d="M3 6h18"/><path d="M3 18h18"/></svg>
+      </button>
     </div>
-  </div>
-  {% endif %}
-  {% if user.role|int >= 3 %}
-  <div class="col-md-6">
-    <div class="feature-card feature-card--gold h-100">
-      <h2>{{ _('Admin Tools') }}</h2>
-      <p>{{ _('Manage local and Microsoft users, roles, and passwords.') }}</p>
-      <a class="btn btn-outline-primary" href="{{ url_for('admin_users') }}">{{ _('Manage Users') }}</a>
-    </div>
-  </div>
-  <div class="col-md-6">
-    <div class="feature-card feature-card--teal h-100">
-      <h2>{{ _('Manage Categories & Journals') }}</h2>
-      <p>{{ _('Add, rename, or remove paper subject categories and journal names used in the submission forms.') }}</p>
-      <a class="btn btn-outline-primary" href="{{ url_for('paper_manage') }}">{{ _('Manage') }}</a>
-    </div>
-  </div>
-  <div class="col-md-6">
-    <div class="feature-card feature-card--pink h-100">
-      <h2>{{ _('Manage Guides') }}</h2>
-      <p>{{ _('Write and publish step-by-step guides that help users understand how to use the site.') }}</p>
-      <a class="btn btn-outline-primary" href="{{ url_for('admin_guides_manage') }}">{{ _('Manage Guides') }}</a>
-    </div>
-  </div>
-  {% endif %}
 
-  {# Change/Set Password — visible to all users #}
-  <div class="col-md-6">
-    <div class="feature-card feature-card--teal h-100">
-      <h2>{{ _('Account Security') }}</h2>
-      <p>{{ _('Set or change your account password. This allows you to sign in with your email and password.') }}</p>
-      <a class="btn btn-outline-primary" href="{{ url_for('change_password') }}">{{ _('Change Password') }}</a>
-    </div>
-  </div>
+    <nav class="sidebar-nav" aria-label="{{ _('Functions') }}">
+      {# Overview — always visible #}
+      <a href="{{ url_for('dashboard') }}" class="nav-item is-active" data-partial-href="{{ url_for('dashboard') }}">
+        <span class="nav-item__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg>
+        </span>
+        <span class="nav-item__label">{{ _('Overview') }}</span>
+      </a>
 
+      {# Workspace #}
+      <div class="nav-group">
+        <div class="nav-group__label">{{ _('Workspace') }}</div>
+        <a href="{{ url_for('upload') }}" class="nav-item" data-partial-href="{{ url_for('upload') }}">
+          <span class="nav-item__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>
+          </span>
+          <span class="nav-item__label">{{ _('Upload research') }}</span>
+        </a>
+        {% if role == 1 %}
+        <a href="{{ url_for('my_submissions') }}" class="nav-item" data-partial-href="{{ url_for('my_submissions') }}">
+          <span class="nav-item__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>
+          </span>
+          <span class="nav-item__label">{{ _('My submissions') }}</span>
+        </a>
+        {% endif %}
+      </div>
+
+      {# Review — moderator + admin #}
+      {% if role >= 2 %}
+      <div class="nav-group">
+        <div class="nav-group__label">{{ _('Review') }}</div>
+        <a href="{{ url_for('review_list') }}" class="nav-item" data-partial-href="{{ url_for('review_list') }}">
+          <span class="nav-item__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </span>
+          <span class="nav-item__label">{{ _('Review submissions') }}</span>
+          {% if dashboard_stats and dashboard_stats.pending_reviews %}
+          <span class="nav-item__badge">{{ dashboard_stats.pending_reviews }}</span>
+          {% endif %}
+        </a>
+      </div>
+      {% endif %}
+
+      {# Collection — admin #}
+      {% if role >= 3 %}
+      <div class="nav-group">
+        <div class="nav-group__label">{{ _('Collection') }}</div>
+        <a href="{{ url_for('manage') }}" class="nav-item" data-partial-href="{{ url_for('manage') }}">
+          <span class="nav-item__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v6H4z"/><path d="M14 4h6v6h-6z"/><path d="M4 14h6v6H4z"/><path d="M14 14h6v6h-6z"/></svg>
+          </span>
+          <span class="nav-item__label">{{ _('Manage papers') }}</span>
+        </a>
+        <a href="{{ url_for('paper_manage') }}" class="nav-item" data-partial-href="{{ url_for('paper_manage') }}">
+          <span class="nav-item__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18"/><path d="M3 12h18"/><path d="M3 17h12"/></svg>
+          </span>
+          <span class="nav-item__label">{{ _('Categories & journals') }}</span>
+        </a>
+      </div>
+      {% endif %}
+
+      {# News — moderator + admin #}
+      {% if role >= 2 %}
+      <div class="nav-group">
+        <div class="nav-group__label">{{ _('News') }}</div>
+        <a href="{{ url_for('news_publish') }}" class="nav-item" data-partial-href="{{ url_for('news_publish') }}">
+          <span class="nav-item__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+          </span>
+          <span class="nav-item__label">{{ _('Write an article') }}</span>
+        </a>
+        <a href="{{ url_for('news_manage') }}" class="nav-item" data-partial-href="{{ url_for('news_manage') }}">
+          <span class="nav-item__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/><circle cx="19" cy="18" r="2"/></svg>
+          </span>
+          <span class="nav-item__label">{{ _('Manage news') }}</span>
+          {% if dashboard_stats and dashboard_stats.news_drafts %}
+          <span class="nav-item__badge nav-item__badge--quiet">{{ dashboard_stats.news_drafts }}</span>
+          {% endif %}
+        </a>
+      </div>
+      {% endif %}
+
+      {# Admin — admin only #}
+      {% if role >= 3 %}
+      <div class="nav-group">
+        <div class="nav-group__label">{{ _('Admin') }}</div>
+        <a href="{{ url_for('admin_users') }}" class="nav-item" data-partial-href="{{ url_for('admin_users') }}">
+          <span class="nav-item__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M21 21v-2a4 4 0 0 0-3-3.87"/><path d="M17 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </span>
+          <span class="nav-item__label">{{ _('Manage users') }}</span>
+        </a>
+        <a href="{{ url_for('admin_guides_manage') }}" class="nav-item" data-partial-href="{{ url_for('admin_guides_manage') }}">
+          <span class="nav-item__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          </span>
+          <span class="nav-item__label">{{ _('Manage guides') }}</span>
+        </a>
+      </div>
+      {% endif %}
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="nav-group__label">{{ _('Account') }}</div>
+      <a href="{{ url_for('change_password') }}" class="nav-item" data-partial-href="{{ url_for('change_password') }}">
+        <span class="nav-item__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </span>
+        <span class="nav-item__label">{{ _('Change password') }}</span>
+      </a>
+      <a href="{{ url_for('logout') }}" class="nav-item nav-item--signout">
+        <span class="nav-item__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        </span>
+        <span class="nav-item__label">{{ _('Sign out') }}</span>
+      </a>
+    </div>
+  </aside>
+
+  <button class="sidebar-reveal" type="button" data-cycle-sidebar aria-label="{{ _('Show sidebar') }}">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/></svg>
+  </button>
+
+  <main class="dashboard-main" id="dashboardMain">
+    {% include "_dashboard/overview.html" %}
+  </main>
 </div>
+
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 {% endblock %}

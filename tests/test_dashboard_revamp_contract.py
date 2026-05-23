@@ -54,5 +54,30 @@ class OverviewPartialContractTest(unittest.TestCase):
         self.assertIn("dashboard_stats.pending_news", src)
 
 
+class DashboardShellTemplateContractTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.src = (ROOT / "templates" / "dashboard.html").read_text(encoding="utf-8")
+
+    def test_shell_extends_base(self):
+        self.assertIn('{% extends "base.html" %}', self.src)
+
+    def test_shell_loads_dashboard_assets(self):
+        self.assertIn("dashboard.css", self.src)
+        self.assertIn("dashboard.js", self.src)
+
+    def test_shell_includes_overview_partial(self):
+        self.assertIn('include "_dashboard/overview.html"', self.src)
+
+    def test_shell_has_sidebar_groups(self):
+        # Workspace + Account are always present; others gated by role in template.
+        self.assertIn("'Workspace'", self.src)
+        self.assertIn("'Account'", self.src)
+
+    def test_shell_links_use_data_partial_href(self):
+        # Sidebar nav items must opt into partial loading.
+        self.assertIn("data-partial-href", self.src)
+
+
 if __name__ == "__main__":
     unittest.main()
