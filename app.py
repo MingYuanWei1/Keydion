@@ -2302,14 +2302,25 @@ def create_app() -> Flask:
                 extras.setdefault(cat, []).append(g)
         for cat in sorted(extras):
             grouped.append((cat, extras[cat]))
-        return render_template("guides.html", grouped=grouped)
+        return render_template("guides.html", grouped=grouped, total=len(all_guides))
 
     @app.route("/guides/<slug>")
     def guide_article(slug):
         guide = get_guide_by_slug(slug)
         if not guide or not guide.get("published"):
             abort(404)
-        return render_template("guide_article.html", guide=guide)
+        # Compute prev/next from the same ordered list the index uses.
+        flat = load_guides(published_only=True)
+        idx = next((i for i, g in enumerate(flat) if g.get("slug") == slug), -1)
+        prev_guide = flat[idx - 1] if idx > 0 else None
+        next_guide = flat[idx + 1] if 0 <= idx < len(flat) - 1 else None
+        return render_template(
+            "guide_article.html",
+            guide=guide,
+            prev_guide=prev_guide,
+            next_guide=next_guide,
+            preview_mode=False,
+        )
 
     @app.route("/dashboard/admin/guides/upload-image", methods=["POST"], endpoint="admin_guides_upload_image")
     def admin_guide_upload_image():
@@ -2360,18 +2371,7 @@ def create_app() -> Flask:
         }
 
         if request.method == "POST":
-            form_data = {
-                "slug": request.form.get("slug", "").strip(),
-                "category": request.form.get("category", "").strip(),
-                "sort_order": request.form.get("sort_order", "100").strip() or "100",
-                "published": request.form.get("published") == "1",
-                "title_en": request.form.get("title_en", "").strip(),
-                "title_zh": request.form.get("title_zh", "").strip(),
-                "summary_en": request.form.get("summary_en", "").strip(),
-                "summary_zh": request.form.get("summary_zh", "").strip(),
-                "body_en": request.form.get("body_en", "").strip(),
-                "body_zh": request.form.get("body_zh", "").strip(),
-            }
+            form_data = _read_guide_form(request.form)
             # Auto-generate slug if blank
             if not form_data["slug"]:
                 form_data["slug"] = _slugify(form_data["title_en"] or form_data["title_zh"])
@@ -2403,6 +2403,7 @@ def create_app() -> Flask:
             categories=_load_guide_categories(),
             editing=editing,
             guide_id=guide_id,
+            user=user,
         )
 
     @app.route("/dashboard/admin/guides")
@@ -2423,6 +2424,35 @@ def create_app() -> Flask:
         else:
             flash(_("Guide not found."), "warning")
         return redirect(url_for("admin_guides_manage"))
+
+    @app.route("/dashboard/admin/guides/preview", methods=["POST"], endpoint="admin_guide_preview")
+    def admin_guide_preview():
+        user = require_login(level=3)
+        if not user:
+            return redirect(url_for("login"))
+        data = _read_guide_form(request.form)
+        # Sanitize bodies the same way the persisted save path would, so the
+        # preview reflects exactly what would end up in the DB.
+        data["body_en"] = _sanitize_guide_html(data.get("body_en", ""))
+        data["body_zh"] = _sanitize_guide_html(data.get("body_zh", ""))
+        guide = {
+            "slug": data["slug"] or "preview",
+            "category": data["category"],
+            "title_en": data["title_en"],
+            "title_zh": data["title_zh"],
+            "summary_en": data["summary_en"],
+            "summary_zh": data["summary_zh"],
+            "body_en": data["body_en"],
+            "body_zh": data["body_zh"],
+            "updated_at": datetime.utcnow().isoformat(timespec="seconds"),
+            "published": data["published"],
+        }
+        return render_template("guide_article.html",
+            guide=guide,
+            prev_guide=None,
+            next_guide=None,
+            preview_mode=True,
+        )
 
     @app.route("/admin/guides", endpoint="admin_guides_manage_legacy")
     def admin_guides_manage_legacy():
@@ -3797,9 +3827,10 @@ GUIDE_ALLOWED_TAGS = [
 ]
 GUIDE_ALLOWED_ATTRS = {
     "a": ["href", "title", "target", "rel"],
-    "img": ["src", "alt", "width", "height"],
+    "img": ["src", "alt", "width", "height", "class"],
     "span": ["class"],
     "div": ["class"],
+    "p": ["class"],
 }
 GUIDE_ALLOWED_PROTOCOLS = ["http", "https"]
 
@@ -3859,6 +3890,28 @@ def _sanitize_guide_html(html: str) -> str:
         protocols=GUIDE_ALLOWED_PROTOCOLS,
         strip=True,
     )
+
+
+def _read_guide_form(form) -> dict:
+    """Parse a guide POST form into the canonical form_data dict.
+
+    Called from admin_guide_publish (which then validates and persists) and
+    admin_guide_preview (which renders the article template without persisting).
+    Slug normalization stays in admin_guide_publish since preview tolerates
+    a blank or invalid slug.
+    """
+    return {
+        "slug": form.get("slug", "").strip(),
+        "category": form.get("category", "").strip(),
+        "sort_order": form.get("sort_order", "100").strip() or "100",
+        "published": form.get("published") == "1",
+        "title_en": form.get("title_en", "").strip(),
+        "title_zh": form.get("title_zh", "").strip(),
+        "summary_en": form.get("summary_en", "").strip(),
+        "summary_zh": form.get("summary_zh", "").strip(),
+        "body_en": form.get("body_en", "").strip(),
+        "body_zh": form.get("body_zh", "").strip(),
+    }
 
 
 def _load_guide_categories() -> list:

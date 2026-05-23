@@ -77,6 +77,37 @@ class GuideRoutesContractTest(unittest.TestCase):
             self.landing,
         )
 
+    def test_read_guide_form_helper_exists(self):
+        # A helper that maps request.form -> the canonical guide form dict.
+        self.assertIn("def _read_guide_form(", self.app_source,
+                      "expected module-level helper _read_guide_form(form)")
+
+    def test_admin_guide_publish_uses_read_guide_form(self):
+        src = self._function_source("admin_guide_publish")
+        self.assertIn("_read_guide_form(request.form)", src)
+
+    def test_admin_guide_preview_route(self):
+        decs = self._route_decorators("admin_guide_preview")
+        self.assertEqual(
+            decs,
+            [{"path": "/dashboard/admin/guides/preview", "methods": ["POST"]}],
+        )
+        src = self._function_source("admin_guide_preview")
+        self.assertIn("require_login(level=3)", src)
+        self.assertIn("_read_guide_form(request.form)", src)
+        self.assertIn('render_template("guide_article.html"', src)
+        self.assertIn("preview_mode=True", src)
+
+    def test_guide_article_passes_prev_next(self):
+        src = self._function_source("guide_article")
+        self.assertIn("prev_guide=", src)
+        self.assertIn("next_guide=", src)
+        self.assertIn("preview_mode=False", src)
+
+    def test_guides_index_passes_total(self):
+        src = self._function_source("guides")
+        self.assertIn("total=", src)
+
 
 if __name__ == "__main__":
     unittest.main()

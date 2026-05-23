@@ -3432,3 +3432,72 @@ msgstr "良好"
 
 msgid "Strong"
 msgstr "强"
+
+msgid "Step-by-step"
+msgstr "循序渐进的"
+
+msgid "help."
+msgstr "帮助。"
+
+msgid "How to upload, publish, and curate work on Keydion."
+msgstr "如何在 Keydion 上传、发布与策展作品。"
+
+msgid "ARTICLES"
+msgstr "篇文章"
+
+msgid "Articles"
+msgstr "篇"
+
+msgid "No guides published yet. Check back soon."
+msgstr "暂无指南,稍后再来。"
+
+msgid "Last updated"
+msgstr "最后更新"
+
+msgid "No previous guide"
+msgstr "没有上一篇"
+
+msgid "No next guide"
+msgstr "没有下一篇"
+
+msgid "Preview · not yet published"
+msgstr "预览 · 尚未发布"
+
+msgid "Publish dual-language guides with rich text."
+msgstr "发布双语指南,支持富文本格式。"
+
+msgid "Lower numbers appear first."
+msgstr "数字越小越靠前。"
+
+msgid "Live"
+msgstr "已上线"
+
+msgid "Lowercase letters, numbers, dashes only."
+msgstr "仅限小写字母、数字与连字符。"
+
+msgid "auto-generated from EN title"
+msgstr "根据英文标题自动生成"
+
+msgid "— Select —"
+msgstr "— 选择 —"
+
+msgid "Summary"
+msgstr "摘要"
+
+msgid "One-line description shown on the guides index."
+msgstr "在指南列表页显示的一句话描述。"
+
+msgid "Body"
+msgstr "正文"
+
+msgid "All changes saved"
+msgstr "已保存所有更改"
+
+msgid "New"
+msgstr "新建"
+
+msgid "guide"
+msgstr "指南"
+
+msgid "new"
+msgstr "新建"
