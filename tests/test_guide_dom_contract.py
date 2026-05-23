@@ -49,6 +49,12 @@ class GuideDomContractTest(unittest.TestCase):
                        "Summary missing", "Body missing"):
             self.assertIn(phrase, self.js)
 
+    def test_js_wires_dirty_tracker(self):
+        self.assertIn("data-dirty-state", self.js)
+        self.assertIn("beforeunload", self.js)
+        for phrase in ("All changes saved", "Unsaved changes"):
+            self.assertIn(phrase, self.js)
+
 
 if __name__ == "__main__":
     unittest.main()
