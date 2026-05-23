@@ -116,5 +116,18 @@ class DashboardRouteContractTest(unittest.TestCase):
         self.assertIn("role >= 3", src)
 
 
+class BaseNavCleanupContractTest(unittest.TestCase):
+    def test_base_html_no_longer_has_top_nav_upload_link(self):
+        src = (ROOT / "templates" / "base.html").read_text(encoding="utf-8")
+        # The Upload link inside the nav block is removed; the only remaining
+        # references to 'upload' should be in user-menu / dashboard contexts, not nav-link.
+        # Stronger check: no <a class="nav-link" ...url_for('upload')...> in the file.
+        self.assertNotRegex(
+            src,
+            r"<a class=\"nav-link\"[^>]+url_for\('upload'\)",
+            "base.html top-nav Upload link must be removed",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
