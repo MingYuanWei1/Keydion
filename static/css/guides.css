@@ -625,6 +625,19 @@
 }
 .kd-form-footer .left { display: flex; gap: 12px; align-items: center; }
 .kd-form-footer .right { display: flex; gap: 12px; align-items: center; }
+
+/* Inside the dashboard panel: drop sticky (which strands the bar mid-page
+   whenever the form is shorter than the viewport) and render as an inline
+   card at the end of the form. Matches the mock's dashboard-shell override. */
+.kd-panel .kd-form-footer {
+  position: static;
+  margin: 32px 0 0;
+  padding: 16px 22px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fffdf9;
+  backdrop-filter: none;
+}
 .kd-saved {
   font-family: var(--mono);
   font-size: 11px; letter-spacing: 0.08em;
