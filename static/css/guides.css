@@ -1,0 +1,24 @@
+/* Keydion — Guides design tokens and components.
+   Ported from templates/Keydion-Guides-revamp.html (Claude artifact mock).
+   Loaded sitewide via base.html so any page can opt into the typography. */
+
+:root {
+  --cream:        #faf8f5;
+  --cream-2:      #f3efe8;
+  --paper:        #ffffff;
+  --border:       #e0dbd0;
+  --border-soft:  #ebe6dc;
+  --ink:          #1a1a1a;
+  --ink-soft:     #3d3d3d;
+  --muted:        #6b6b6b;
+  --muted-2:      #8e857a;
+  --accent:       #8b1a1a;
+  --accent-hover: #6b1212;
+  --accent-tint:  #fdf6f6;
+  --gold:         #a07a2a;
+
+  --serif:        "Source Serif 4", "Source Serif Pro", Georgia, "Noto Serif SC", serif;
+  --display:      "Cormorant Garamond", "Source Serif 4", Georgia, serif;
+  --sans:         -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --mono:         "JetBrains Mono", "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
