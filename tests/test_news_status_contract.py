@@ -139,5 +139,23 @@ class NewsPublishActionContractTest(unittest.TestCase):
         self.assertIn('"published_at": "" if is_draft else', src)
 
 
+class NewsPublishTemplateContractTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.template = (ROOT / "templates" / "news_publish.html").read_text(encoding="utf-8")
+
+    def test_template_has_save_as_draft_button(self):
+        self.assertIn('name="action" value="draft"', self.template)
+
+    def test_template_has_publish_action_button(self):
+        self.assertIn('name="action" value="publish"', self.template)
+
+    def test_ctrl_enter_triggers_publish_button(self):
+        # The Ctrl/Cmd+Enter shortcut must click the publish button (not the draft button),
+        # since requestSubmit() without a specific button omits the action field.
+        self.assertIn("btnPublish", self.template)
+        self.assertIn("getElementById('btnPublish').click()", self.template)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -967,8 +967,11 @@
             </h1>
             <div class="editor-actions">
                 <a class="btn-ed" href="{{ url_for('news_list') }}">{{ _('Cancel') }}</a>
-                <button type="submit" class="btn-ed primary" id="btnPublish">
-                    {% if editing %}{{ _('Save Changes') }}{% else %}{{ _('Publish Article') }}{% endif %}
+                <button type="submit" name="action" value="draft" class="btn-ed" id="btnDraft">
+                    {% if editing and form_data.status == 'pending' %}{{ _('Save Draft') }}{% else %}{{ _('Save as Draft') }}{% endif %}
+                </button>
+                <button type="submit" name="action" value="publish" class="btn-ed primary" id="btnPublish">
+                    {% if editing %}{{ _('Publish Changes') }}{% else %}{{ _('Publish Article') }}{% endif %}
                 </button>
             </div>
         </div>
@@ -1543,7 +1546,7 @@
     document.addEventListener('keydown', function (e) {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
             e.preventDefault();
-            document.getElementById('publishForm').requestSubmit();
+            document.getElementById('btnPublish').click();
         }
     });
 
