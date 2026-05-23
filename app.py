@@ -704,7 +704,7 @@ def create_app() -> Flask:
         if user and token:
             if not refresh_session(user.get("username", ""), token):
                 session.clear()
-        latest_news = load_news_articles()[:4]
+        latest_news = load_news_articles(status="published")[:4]
         return render_template("landing.html", ms_enabled=is_ms_configured(), latest_news=latest_news)
 
     @app.route("/faq")
@@ -1882,7 +1882,7 @@ def create_app() -> Flask:
         except ValueError:
             page = 1
         per_page = 15
-        all_articles = load_news_articles()
+        all_articles = load_news_articles(status="published")
         pagination = paginate_records(all_articles, page, per_page)
         recent = all_articles[:6]
         return render_template(
@@ -2525,6 +2525,12 @@ def create_app() -> Flask:
         if not article:
             flash(_("Article not found."), "warning")
             return redirect(url_for("news_list"))
+        if article and article.get("status") == "pending":
+            viewer = get_active_user()
+            viewer_role = int(viewer.get("role", "1")) if viewer else 0
+            if viewer_role < 2:
+                flash(_("Article not found."), "warning")
+                return redirect(url_for("news_list"))
         all_articles = load_news_articles()
         related = [a for a in all_articles if a.get("id") != news_id][:3]
         return render_template("news_article.html", article=article, related=related)
