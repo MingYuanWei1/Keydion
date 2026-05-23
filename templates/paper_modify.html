@@ -1,6 +1,6 @@
-{% extends "base.html" %}
+{% extends "_bare.html" if partial else "_dashboard_shell.html" %}
 {% block title %}{{ _('Modify Paper · Keydion') }}{% endblock %}
-{% block content %}
+{% block panel %}
 
 <div class="page-title">
     <h1>{{ _('Modify Paper Information') }}</h1>
