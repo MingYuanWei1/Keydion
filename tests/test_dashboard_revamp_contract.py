@@ -65,25 +65,56 @@ class DashboardShellTemplateContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.src = (ROOT / "templates" / "dashboard.html").read_text(encoding="utf-8")
+        shell_path = ROOT / "templates" / "_dashboard_shell.html"
+        cls.shell_src = shell_path.read_text(encoding="utf-8") if shell_path.exists() else ""
 
     def test_shell_extends_base(self):
-        self.assertIn('{% extends "base.html" %}', self.src)
+        # dashboard.html now extends the shared shell, which itself extends base.html.
+        self.assertIn('{% extends "_dashboard_shell.html" %}', self.src)
 
     def test_shell_loads_dashboard_assets(self):
-        self.assertIn("dashboard.css", self.src)
-        self.assertIn("dashboard.js", self.src)
+        # Asset loading now lives in the shell template.
+        self.assertIn("dashboard.css", self.shell_src)
+        self.assertIn("dashboard.js", self.shell_src)
 
     def test_shell_includes_overview_partial(self):
         self.assertIn('include "_dashboard/overview.html"', self.src)
 
     def test_shell_has_sidebar_groups(self):
         # Workspace + Account are always present; others gated by role in template.
-        self.assertIn("'Workspace'", self.src)
-        self.assertIn("'Account'", self.src)
+        # Sidebar markup moved into the shell.
+        self.assertIn("'Workspace'", self.shell_src)
+        self.assertIn("'Account'", self.shell_src)
 
     def test_shell_links_use_data_partial_href(self):
-        # Sidebar nav items must opt into partial loading.
-        self.assertIn("data-partial-href", self.src)
+        # Sidebar nav items must opt into partial loading (now in the shell).
+        self.assertIn("data-partial-href", self.shell_src)
+
+    def test_shell_template_file_exists(self):
+        from pathlib import Path
+        ROOT = Path(__file__).resolve().parents[1]
+        self.assertTrue((ROOT / "templates" / "_dashboard_shell.html").exists())
+
+    def test_dashboard_extends_shell(self):
+        # dashboard.html is now a thin wrapper that fills the shell's panel slot.
+        self.assertIn('{% extends "_dashboard_shell.html" %}', self.src)
+        self.assertIn("{% block panel %}", self.src)
+        self.assertIn('include "_dashboard/overview.html"', self.src)
+
+    def test_shell_exposes_panel_block(self):
+        import re
+        from pathlib import Path
+        ROOT = Path(__file__).resolve().parents[1]
+        shell = (ROOT / "templates" / "_dashboard_shell.html").read_text(encoding="utf-8")
+        # Shell must extend base and expose a {% block panel %} slot inside the main panel.
+        self.assertIn('{% extends "base.html" %}', shell)
+        self.assertTrue(
+            re.search(r'id="dashboardMain".*?\{%\s*block\s+panel\s*%\}', shell, flags=re.DOTALL),
+            "Shell must expose {% block panel %} inside <main id=\"dashboardMain\">",
+        )
+        # Sidebar must still be in the shell (moved out of dashboard.html).
+        self.assertIn("dashboard-sidebar", shell)
+        self.assertIn("data-cycle-sidebar", shell)
 
 
 class DashboardRouteContractTest(unittest.TestCase):
