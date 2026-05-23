@@ -170,5 +170,21 @@ class NewsPublishTemplateContractTest(unittest.TestCase):
                         "so Enter inside a text field does not save as draft.")
 
 
+class NewsManageTemplateContractTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.template = (ROOT / "templates" / "news_manage.html").read_text(encoding="utf-8")
+
+    def test_table_has_status_header(self):
+        # Must show a Status column header.
+        self.assertRegex(self.template, r"<th[^>]*>\s*\{\{\s*_\(\s*'Status'\s*\)\s*\}\}\s*</th>")
+
+    def test_table_renders_status_pill(self):
+        # Body must reference item.status and render distinct pills for published vs pending.
+        self.assertIn("item.status", self.template)
+        self.assertIn("'pending'", self.template)
+        self.assertIn("'published'", self.template)
+
+
 if __name__ == "__main__":
     unittest.main()
