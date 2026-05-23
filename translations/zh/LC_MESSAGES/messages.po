@@ -3397,7 +3397,7 @@ msgstr "隐藏密码"
 msgid "Passwords match"
 msgstr "密码一致"
 
-msgid "Passwords don't match"
+msgid "Passwords don’t match"
 msgstr "两次输入的密码不一致"
 
 msgid "Password requirements"
