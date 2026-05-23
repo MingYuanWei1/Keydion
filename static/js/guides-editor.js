@@ -172,7 +172,8 @@
             editor.insertEmbed(range.index, 'figure',
               { src: data.url, num: num, caption: caption }, 'user');
             editor.setSelection(range.index + 1);
-          });
+          })
+          .catch(function () { alert('Image upload failed.'); });
       };
       input.click();
     });
