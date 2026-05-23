@@ -1976,7 +1976,7 @@ def create_app() -> Flask:
             recent=recent,
         )
 
-    @app.route("/news/upload-inline-image", methods=["POST"])
+    @app.route("/dashboard/news/upload-inline-image", methods=["POST"])
     def news_upload_inline_image():
         """AJAX endpoint: upload an image for the block editor and return its URL."""
         user = require_login(level=2)
@@ -1994,7 +1994,7 @@ def create_app() -> Flask:
         img_url = url_for("static", filename=f"uploads/news/{unique_name}")
         return jsonify({"url": img_url})
 
-    @app.route("/news/publish", methods=["GET", "POST"])
+    @app.route("/dashboard/news/publish", methods=["GET", "POST"])
     def news_publish():
         user = require_login(level=2)
         if not user:
@@ -2069,7 +2069,7 @@ def create_app() -> Flask:
             editing=False,
         )
 
-    @app.route("/news/<news_id>/edit", methods=["GET", "POST"])
+    @app.route("/dashboard/news/<news_id>/edit", methods=["GET", "POST"])
     def news_edit(news_id: str):
         user = require_login(level=2)
         if not user:
@@ -2145,7 +2145,7 @@ def create_app() -> Flask:
             editing=True,
         )
 
-    @app.route("/news/<news_id>/delete", methods=["POST"])
+    @app.route("/dashboard/news/<news_id>/delete", methods=["POST"])
     def news_delete(news_id: str):
         user = require_login(level=2)
         if not user:
@@ -2156,7 +2156,7 @@ def create_app() -> Flask:
             flash(_("Article not found."), "warning")
         return redirect(url_for("news_manage"))
 
-    @app.route("/news/manage")
+    @app.route("/dashboard/news/manage")
     def news_manage():
         user = require_login(level=2)
         if not user:
@@ -2165,7 +2165,7 @@ def create_app() -> Flask:
         return render_template("news_manage.html", articles=articles, user=user, categories=load_categories())
 
     # ---------- Category management API ----------
-    @app.route("/news/categories/add", methods=["POST"])
+    @app.route("/dashboard/news/categories/add", methods=["POST"], endpoint="news_categories_add")
     def news_category_add():
         user = require_login(level=2)
         if not user:
@@ -2180,7 +2180,7 @@ def create_app() -> Flask:
         save_categories(cats)
         return jsonify(categories=cats)
 
-    @app.route("/news/categories/rename", methods=["POST"])
+    @app.route("/dashboard/news/categories/rename", methods=["POST"], endpoint="news_categories_rename")
     def news_category_rename():
         user = require_login(level=2)
         if not user:
@@ -2214,7 +2214,7 @@ def create_app() -> Flask:
                 db.commit()
         return jsonify(categories=cats)
 
-    @app.route("/news/categories/delete", methods=["POST"])
+    @app.route("/dashboard/news/categories/delete", methods=["POST"], endpoint="news_categories_delete")
     def news_category_delete():
         user = require_login(level=2)
         if not user:
@@ -2228,6 +2228,19 @@ def create_app() -> Flask:
         cats.remove(name)
         save_categories(cats)
         return jsonify(categories=cats)
+
+    # ---------- Legacy redirects (curator news routes) ----------
+    @app.route("/news/publish", endpoint="news_publish_legacy")
+    def news_publish_legacy():
+        return redirect(url_for("news_publish"), code=301)
+
+    @app.route("/news/<news_id>/edit", endpoint="news_edit_legacy")
+    def news_edit_legacy(news_id):
+        return redirect(url_for("news_edit", news_id=news_id), code=301)
+
+    @app.route("/news/manage", endpoint="news_manage_legacy")
+    def news_manage_legacy():
+        return redirect(url_for("news_manage"), code=301)
 
     # ==================== GUIDE ROUTES ====================
 

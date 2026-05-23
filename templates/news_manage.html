@@ -658,7 +658,7 @@
         var inp = document.getElementById('catNewName');
         var name = inp.value.trim();
         if (!name) { inp.focus(); return; }
-        catApi("{{ url_for('news_category_add') }}", { name: name }, function (err) {
+        catApi("{{ url_for('news_categories_add') }}", { name: name }, function (err) {
             if (err) { alert(err); return; }
             inp.value = '';
             showToast("{{ _('Category added') }}");
@@ -689,7 +689,7 @@
         var oldName = item.dataset.cat;
         var newName = item.querySelector('.cat-rename-form input').value.trim();
         if (!newName || newName === oldName) { catCancelRename(btn); return; }
-        catApi("{{ url_for('news_category_rename') }}", { old_name: oldName, new_name: newName }, function (err) {
+        catApi("{{ url_for('news_categories_rename') }}", { old_name: oldName, new_name: newName }, function (err) {
             if (err) { alert(err); return; }
             // Update local articles data model
             for (var i = 0; i < articles.length; i++) {
@@ -718,7 +718,7 @@
     window.catDoDelete = function (btn) {
         var item = btn.closest('.cat-item');
         var name = item.dataset.cat;
-        catApi("{{ url_for('news_category_delete') }}", { name: name }, function (err) {
+        catApi("{{ url_for('news_categories_delete') }}", { name: name }, function (err) {
             if (err) { alert(err); return; }
             showToast("{{ _('Category deleted') }}");
         });
