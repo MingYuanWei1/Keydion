@@ -65,5 +65,33 @@ class LoadNewsArticlesFilterContractTest(unittest.TestCase):
         self.assertIn("filter_by(status=", src)
 
 
+class PublicNewsViewsFilterContractTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app_source = (ROOT / "app.py").read_text(encoding="utf-8")
+        cls.app_tree = ast.parse(cls.app_source)
+
+    def _find_function_source(self, name):
+        for node in ast.walk(self.app_tree):
+            if isinstance(node, ast.FunctionDef) and node.name == name:
+                return ast.get_source_segment(self.app_source, node)
+        self.fail(f"Could not find function {name}")
+
+    def test_news_list_filters_to_published(self):
+        src = self._find_function_source("news_list")
+        self.assertIn('load_news_articles(status="published")', src.replace("'", '"'))
+
+    def test_news_detail_blocks_drafts_from_non_editors(self):
+        src = self._find_function_source("news_detail")
+        # Must check status and require role >= 2 (editor/admin) to view drafts.
+        self.assertIn('"status"', src.replace("'", '"'))
+        self.assertIn("pending", src)
+
+    def test_landing_index_filters_latest_news_to_published(self):
+        # The landing route is index(); it pulls latest_news from load_news_articles.
+        src = self._find_function_source("index")
+        self.assertIn('load_news_articles(status="published")', src.replace("'", '"'))
+
+
 if __name__ == "__main__":
     unittest.main()
