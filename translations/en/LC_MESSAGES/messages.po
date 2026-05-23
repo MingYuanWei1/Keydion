@@ -3446,3 +3446,72 @@ msgstr "Good"
 
 msgid "Strong"
 msgstr "Strong"
+
+msgid "Step-by-step"
+msgstr "Step-by-step"
+
+msgid "help."
+msgstr "help."
+
+msgid "How to upload, publish, and curate work on Keydion."
+msgstr "How to upload, publish, and curate work on Keydion."
+
+msgid "ARTICLES"
+msgstr "ARTICLES"
+
+msgid "Articles"
+msgstr "Articles"
+
+msgid "No guides published yet. Check back soon."
+msgstr "No guides published yet. Check back soon."
+
+msgid "Last updated"
+msgstr "Last updated"
+
+msgid "No previous guide"
+msgstr "No previous guide"
+
+msgid "No next guide"
+msgstr "No next guide"
+
+msgid "Preview · not yet published"
+msgstr "Preview · not yet published"
+
+msgid "Publish dual-language guides with rich text."
+msgstr "Publish dual-language guides with rich text."
+
+msgid "Lower numbers appear first."
+msgstr "Lower numbers appear first."
+
+msgid "Live"
+msgstr "Live"
+
+msgid "Lowercase letters, numbers, dashes only."
+msgstr "Lowercase letters, numbers, dashes only."
+
+msgid "auto-generated from EN title"
+msgstr "auto-generated from EN title"
+
+msgid "— Select —"
+msgstr "— Select —"
+
+msgid "Summary"
+msgstr "Summary"
+
+msgid "One-line description shown on the guides index."
+msgstr "One-line description shown on the guides index."
+
+msgid "Body"
+msgstr "Body"
+
+msgid "All changes saved"
+msgstr "All changes saved"
+
+msgid "New"
+msgstr "New"
+
+msgid "guide"
+msgstr "guide"
+
+msgid "new"
+msgstr "new"
