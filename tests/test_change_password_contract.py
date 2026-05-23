@@ -109,5 +109,52 @@ class ChangePasswordContractTest(unittest.TestCase):
         )
 
 
+    # --- Task 5: template render contract ------------------------------
+
+    @staticmethod
+    def _render(has_password):
+        from jinja2 import DictLoader, Environment
+
+        env = Environment(
+            loader=DictLoader({
+                "_bare.html": "{% block title %}{% endblock %}{% block panel %}{% endblock %}",
+                "_dashboard_shell.html": "{% block title %}{% endblock %}{% block panel %}{% endblock %}",
+                "change_password.html": (
+                    ROOT / "templates" / "change_password.html"
+                ).read_text(encoding="utf-8"),
+            }),
+            autoescape=True,
+            extensions=["jinja2.ext.i18n"],
+        )
+        env.install_null_translations(newstyle=True)
+        env.globals["url_for"] = lambda name, **_: "/" + name.replace("_", "-")
+        env.globals["get_flashed_messages"] = lambda **_: []
+        return env.get_template("change_password.html").render(
+            user={"username": "alice"},
+            has_password=has_password,
+            partial=False,
+        )
+
+    def test_template_has_current_password_input_when_has_password(self):
+        html = self._render(has_password=True)
+        self.assertRegex(
+            html,
+            r'<input[^>]+name="current_password"',
+            "template must include a current_password input when has_password=True",
+        )
+        self.assertRegex(html, r'<input[^>]+name="new_password"')
+        self.assertRegex(html, r'<input[^>]+name="confirm_password"')
+
+    def test_template_omits_current_password_input_for_first_time_set(self):
+        html = self._render(has_password=False)
+        self.assertNotIn(
+            'name="current_password"',
+            html,
+            "template must omit the current_password input when has_password=False",
+        )
+        self.assertRegex(html, r'<input[^>]+name="new_password"')
+        self.assertRegex(html, r'<input[^>]+name="confirm_password"')
+
+
 if __name__ == "__main__":
     unittest.main()
