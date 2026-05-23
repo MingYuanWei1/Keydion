@@ -1,6 +1,6 @@
-{% extends "_bare.html" if partial else "base.html" %}
+{% extends "_bare.html" if partial else "_dashboard_shell.html" %}
 {% block title %}{{ _('Paper Submission · Keydion') }}{% endblock %}
-{% block content %}
+{% block panel %}
 <div class="page-title">
   <h1>{{ _('Paper Submission Portal') }}</h1>
   <p class="text-muted">{{ _('Please fill in the information below and upload your research') }}</p>

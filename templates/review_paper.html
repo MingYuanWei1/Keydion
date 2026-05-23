@@ -1,6 +1,6 @@
-{% extends "_bare.html" if partial else "base.html" %}
+{% extends "_bare.html" if partial else "_dashboard_shell.html" %}
 {% block title %}{{ _('Review Paper · Keydion') }}{% endblock %}
-{% block content %}
+{% block panel %}
 <div class="page-title">
     <h1>{{ _('Review Paper') }}</h1>
     <p class="text-muted">{{ _('Review the submission details and decide whether to accept or reject.') }}</p>
