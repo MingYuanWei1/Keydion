@@ -3,33 +3,60 @@
 {% set body = guide.body_zh if current_locale == 'zh' and guide.body_zh else (guide.body_en or guide.body_zh) %}
 {% block title %}{{ title }} · Keydion{% endblock %}
 {% block content %}
-<div class="container py-4" style="max-width: 820px;">
-  <a class="text-decoration-none small text-muted" href="{{ url_for('guides') }}">
-    &larr; {{ _('Back to guides') }}
-  </a>
-  <h1 class="display-6 fw-semibold mt-2 mb-2">{{ title }}</h1>
-  <div class="mb-4 d-flex gap-2 align-items-center">
-    {% if guide.category %}
-      <span class="badge bg-secondary">{{ guide.category }}</span>
+<div class="kd-page">
+  <div class="kd-wrap" style="max-width: 760px;">
+    {% if preview_mode %}
+      <div class="kd-eyebrow" style="text-align: center; padding: 10px 0; background: var(--accent-tint); margin-bottom: 32px;">
+        {{ _('Preview · not yet published') }}
+      </div>
     {% endif %}
-    {% if guide.updated_at %}
-      <span class="text-muted small">{{ _('Updated') }} {{ guide.updated_at[:10] }}</span>
+
+    <a class="kd-back" href="{{ url_for('guides') }}">
+      <span>←</span> {{ _('Back to guides') }}
+    </a>
+
+    <h1 class="kd-h-page" style="margin-top: 32px; margin-bottom: 0;">{{ title }}</h1>
+
+    <div class="kd-article-meta">
+      {% if guide.category %}
+        <span class="kd-cat-pill">{{ guide.category }}</span>
+        <span class="sep">·</span>
+      {% endif %}
+      {% if guide.updated_at %}
+        <span>{{ _('Last updated') }} {{ guide.updated_at[:10] }}</span>
+        <span class="sep">·</span>
+      {% endif %}
+      <span>EN&nbsp;·&nbsp;中文</span>
+    </div>
+
+    <article class="kd-body">{{ body | safe }}</article>
+
+    {% if prev_guide or next_guide %}
+      <nav class="kd-prevnext">
+        {% if prev_guide %}
+          <a href="{{ url_for('guide_article', slug=prev_guide.slug) }}">
+            <div class="label">← {{ _('Previous') }}</div>
+            <div class="title">{{ prev_guide.title_zh if current_locale == 'zh' and prev_guide.title_zh else (prev_guide.title_en or prev_guide.title_zh) }}</div>
+          </a>
+        {% else %}
+          <span class="disabled" style="padding: 28px 32px;">
+            <div class="label">← {{ _('Previous') }}</div>
+            <div class="title">{{ _('No previous guide') }}</div>
+          </span>
+        {% endif %}
+        {% if next_guide %}
+          <a href="{{ url_for('guide_article', slug=next_guide.slug) }}" class="right">
+            <div class="label">{{ _('Next') }} →</div>
+            <div class="title">{{ next_guide.title_zh if current_locale == 'zh' and next_guide.title_zh else (next_guide.title_en or next_guide.title_zh) }}</div>
+          </a>
+        {% else %}
+          <span class="disabled right" style="padding: 28px 32px;">
+            <div class="label">{{ _('Next') }} →</div>
+            <div class="title">{{ _('No next guide') }}</div>
+          </span>
+        {% endif %}
+      </nav>
     {% endif %}
   </div>
-  <article class="guide-body">
-    {{ body | safe }}
-  </article>
 </div>
-
-<style>
-  .guide-body h1, .guide-body h2, .guide-body h3, .guide-body h4 { margin-top: 1.4em; margin-bottom: .5em; font-weight: 600; }
-  .guide-body p { line-height: 1.7; margin-bottom: 1em; }
-  .guide-body img { max-width: 100%; height: auto; border-radius: 6px; margin: 1em 0; }
-  .guide-body ul, .guide-body ol { margin-bottom: 1em; padding-left: 1.5em; }
-  .guide-body li { margin-bottom: .3em; }
-  .guide-body blockquote { border-left: 3px solid #d1d5db; padding-left: 1em; color: #6b7280; margin: 1em 0; }
-  .guide-body code { background: #f3f4f6; padding: 1px 5px; border-radius: 3px; font-size: .9em; }
-  .guide-body pre { background: #f3f4f6; padding: 12px 14px; border-radius: 6px; overflow-x: auto; }
-  .guide-body a { color: #2563eb; }
-</style>
 {% endblock %}
