@@ -1099,9 +1099,9 @@ def create_app() -> Flask:
                         continue
                     try:
                         dt = datetime.fromisoformat(ts)
-                    except ValueError:
+                        days = (datetime.utcnow() - dt).days
+                    except (ValueError, TypeError):
                         continue
-                    days = (datetime.utcnow() - dt).days
                     if oldest_days is None or days > oldest_days:
                         oldest_days = days
                 if oldest_days is not None and oldest_days > 0:
