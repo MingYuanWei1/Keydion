@@ -49,13 +49,77 @@
   };
   Quill.register(CalloutBlot);
 
+  /* ─── Figure blot ──────────────────────────────────────────────── */
+  function isSafeImageSrc(src) {
+    if (!src) return false;
+    /* Same-origin /static/uploads/guides/... — relative URL */
+    if (src.indexOf('/static/uploads/guides/') === 0) return true;
+    /* Otherwise must be https:// */
+    try {
+      var u = new URL(src, window.location.origin);
+      return u.protocol === 'https:';
+    } catch (e) { return false; }
+  }
+
+  function FigureBlot() { BlockEmbed.apply(this, arguments); }
+  FigureBlot.prototype = Object.create(BlockEmbed.prototype);
+  FigureBlot.prototype.constructor = FigureBlot;
+  FigureBlot.blotName = 'figure';
+  FigureBlot.tagName = 'div';
+  FigureBlot.className = 'kd-fig';
+  FigureBlot.create = function (value) {
+    var node = BlockEmbed.create.call(this);
+    node.setAttribute('class', 'kd-fig');
+    var src = (value && isSafeImageSrc(value.src)) ? value.src : '';
+    var num = (value && value.num) || 'Fig.';
+    var cap = (value && value.caption) || '';
+    if (src) {
+      var img = document.createElement('img');
+      img.className = 'kd-fig-img';
+      img.src = src;
+      img.alt = cap;
+      node.appendChild(img);
+    } else {
+      var placeholder = document.createElement('div');
+      placeholder.className = 'kd-fig-img';
+      placeholder.style.cssText = 'height:200px;display:flex;align-items:center;justify-content:center;color:var(--muted-2);font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;background:var(--cream-2);';
+      placeholder.textContent = 'No image';
+      node.appendChild(placeholder);
+    }
+    var caption = document.createElement('div');
+    caption.className = 'kd-fig-caption';
+    caption.setAttribute('contenteditable', 'true');
+    var numSpan = document.createElement('span');
+    numSpan.className = 'num';
+    numSpan.textContent = num;
+    var capSpan = document.createElement('span');
+    capSpan.className = 'caption-text';
+    capSpan.textContent = cap;
+    caption.appendChild(numSpan);
+    caption.appendChild(document.createTextNode(' '));
+    caption.appendChild(capSpan);
+    node.appendChild(caption);
+    return node;
+  };
+  FigureBlot.value = function (node) {
+    var img = node.querySelector('img.kd-fig-img');
+    var numSpan = node.querySelector('.kd-fig-caption .num');
+    var capSpan = node.querySelector('.kd-fig-caption .caption-text');
+    return {
+      src: img ? img.getAttribute('src') : '',
+      num: numSpan ? numSpan.textContent.trim() : 'Fig.',
+      caption: capSpan ? capSpan.textContent.trim() : '',
+    };
+  };
+  Quill.register(FigureBlot);
+
   var toolbar = [
     [{ header: [1, 2, 3, false] }],
     ['bold', 'italic', 'underline', 'strike'],
     [{ list: 'ordered' }, { list: 'bullet' }],
     ['blockquote', 'code-block'],
     ['link', 'image'],
-    ['callout'],
+    ['callout', 'figure'],
     ['clean'],
   ];
 
@@ -90,6 +154,28 @@
         { label: 'Note', body: 'Type your callout here.' }, 'user');
       editor.setSelection(range.index + 1);
     });
+    editor.getModule('toolbar').addHandler('figure', function () {
+      var input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/png,image/jpeg,image/gif,image/webp';
+      input.onchange = function () {
+        var file = input.files && input.files[0];
+        if (!file) return;
+        var fd = new FormData(); fd.append('file', file);
+        fetch(uploadUrl, { method: 'POST', body: fd })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (!data.url) { alert(data.error || 'Upload failed'); return; }
+            var caption = window.prompt('Figure caption (optional):', '') || '';
+            var num = window.prompt('Figure label:', 'Fig. 01') || 'Fig.';
+            var range = editor.getSelection(true);
+            editor.insertEmbed(range.index, 'figure',
+              { src: data.url, num: num, caption: caption }, 'user');
+            editor.setSelection(range.index + 1);
+          });
+      };
+      input.click();
+    });
     editor.on('text-change', function () { hidden.value = editor.root.innerHTML; });
     return { editor: editor, hidden: hidden };
   }
@@ -100,6 +186,11 @@
   document.querySelectorAll('button.ql-callout').forEach(function (btn) {
     btn.setAttribute('title', 'Insert callout');
     btn.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10"/><line x1="2" y1="6" x2="14" y2="6"/><circle cx="5" cy="9" r="0.6" fill="currentColor"/></svg>';
+  });
+
+  document.querySelectorAll('button.ql-figure').forEach(function (btn) {
+    btn.setAttribute('title', 'Insert figure');
+    btn.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10"/><circle cx="6" cy="7" r="1.2"/><path d="M2 11 L6 8 L9 10 L14 6"/></svg>';
   });
 
   document.getElementById('guideForm').addEventListener('submit', function () {

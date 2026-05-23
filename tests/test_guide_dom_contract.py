@@ -35,6 +35,13 @@ class GuideDomContractTest(unittest.TestCase):
         # Toolbar handler for callout
         self.assertIn("'callout'", self.js)
 
+    def test_js_registers_figure_blot(self):
+        self.assertIn("FigureBlot", self.js)
+        self.assertIn("blotName = 'figure'", self.js.replace('"', "'"))
+        self.assertIn("kd-fig", self.js)
+        self.assertIn("kd-fig-img", self.js)
+        self.assertIn("kd-fig-caption", self.js)
+
 
 if __name__ == "__main__":
     unittest.main()
