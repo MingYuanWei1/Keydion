@@ -98,5 +98,40 @@ class PublicNewsViewsFilterContractTest(unittest.TestCase):
         self.assertIn('load_news_articles(status="published")', src.replace("'", '"'))
 
 
+class NewsPublishActionContractTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app_source = (ROOT / "app.py").read_text(encoding="utf-8")
+        cls.app_tree = ast.parse(cls.app_source)
+
+    def _find_function_source(self, name):
+        for node in ast.walk(self.app_tree):
+            if isinstance(node, ast.FunctionDef) and node.name == name:
+                return ast.get_source_segment(self.app_source, node)
+        self.fail(f"Could not find function {name}")
+
+    def test_news_publish_reads_action_and_sets_status(self):
+        src = self._find_function_source("news_publish")
+        self.assertIn('request.form.get("action"', src)
+        self.assertIn('"pending"', src)
+        self.assertIn('"published"', src)
+
+    def test_news_publish_allows_draft_with_only_title(self):
+        # Drafts skip the abstract/category/body validation.
+        src = self._find_function_source("news_publish")
+        self.assertIn("action == \"draft\"", src.replace("'", '"'))
+
+    def test_news_edit_reads_action_and_sets_status(self):
+        src = self._find_function_source("news_edit")
+        self.assertIn('request.form.get("action"', src)
+        self.assertIn('"pending"', src)
+        self.assertIn('"published"', src)
+
+    def test_update_news_article_can_update_status(self):
+        src = self._find_function_source("update_news_article")
+        # status must not be in the skip list.
+        self.assertNotRegex(src, r"if field in \([^)]*['\"]status['\"]")
+
+
 if __name__ == "__main__":
     unittest.main()
