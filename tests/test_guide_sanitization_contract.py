@@ -38,6 +38,36 @@ class GuideSanitizationContractTest(unittest.TestCase):
         self.assertNotIn("onclick", result)
         self.assertIn("hi", result)
 
+    def test_preserves_callout_markup(self):
+        html = (
+            '<div class="kd-callout">'
+            '<div class="kd-callout-label">Note</div>'
+            '<div class="kd-callout-body"><p>Be careful.</p></div>'
+            '</div>'
+        )
+        result = _sanitize_guide_html(html)
+        self.assertIn('class="kd-callout"', result)
+        self.assertIn('class="kd-callout-label"', result)
+        self.assertIn('class="kd-callout-body"', result)
+        self.assertIn("Be careful.", result)
+
+    def test_preserves_figure_markup_with_image_class(self):
+        html = (
+            '<div class="kd-fig">'
+            '<img class="kd-fig-img" src="/static/uploads/guides/x.png" alt="">'
+            '<div class="kd-fig-caption">'
+            '<span class="num">Fig. 01</span>'
+            '<span class="caption-text">An example.</span>'
+            '</div></div>'
+        )
+        result = _sanitize_guide_html(html)
+        self.assertIn('class="kd-fig"', result)
+        self.assertIn('class="kd-fig-img"', result)
+        self.assertIn('src="/static/uploads/guides/x.png"', result)
+        self.assertIn('class="num"', result)
+        self.assertIn("Fig. 01", result)
+        self.assertIn("An example.", result)
+
 
 if __name__ == "__main__":
     unittest.main()
