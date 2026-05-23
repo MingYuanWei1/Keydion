@@ -46,5 +46,24 @@ class NewsStatusSchemaContractTest(unittest.TestCase):
         self.fail(f"Could not find function {name}")
 
 
+class LoadNewsArticlesFilterContractTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app_source = (ROOT / "app.py").read_text(encoding="utf-8")
+        cls.app_tree = ast.parse(cls.app_source)
+
+    def test_load_news_articles_accepts_status_filter(self):
+        fn = None
+        for node in ast.walk(self.app_tree):
+            if isinstance(node, ast.FunctionDef) and node.name == "load_news_articles":
+                fn = node
+                break
+        self.assertIsNotNone(fn, "load_news_articles not found")
+        arg_names = [a.arg for a in fn.args.args]
+        self.assertIn("status", arg_names)
+        src = ast.get_source_segment(self.app_source, fn)
+        self.assertIn("filter_by(status=", src)
+
+
 if __name__ == "__main__":
     unittest.main()
