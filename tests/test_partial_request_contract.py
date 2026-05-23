@@ -1,0 +1,38 @@
+import ast
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+class PartialRequestContractTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app_source = (ROOT / "app.py").read_text(encoding="utf-8")
+        cls.app_tree = ast.parse(cls.app_source)
+
+    def test_is_partial_request_helper_exists(self):
+        found = any(
+            isinstance(node, ast.FunctionDef) and node.name == "is_partial_request"
+            for node in ast.walk(self.app_tree)
+        )
+        self.assertTrue(found, "is_partial_request helper not found")
+
+    def test_helper_reads_x_partial_content_header(self):
+        for node in ast.walk(self.app_tree):
+            if isinstance(node, ast.FunctionDef) and node.name == "is_partial_request":
+                src = ast.get_source_segment(self.app_source, node)
+                self.assertIn("X-Partial-Content", src)
+                return
+        self.fail("is_partial_request helper not found")
+
+    def test_inject_partial_flag_context_processor_exists(self):
+        found = any(
+            isinstance(node, ast.FunctionDef) and node.name == "inject_partial_flag"
+            for node in ast.walk(self.app_tree)
+        )
+        self.assertTrue(found, "inject_partial_flag context processor not found")
+
+
+if __name__ == "__main__":
+    unittest.main()
