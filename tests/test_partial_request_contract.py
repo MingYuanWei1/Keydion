@@ -34,5 +34,29 @@ class PartialRequestContractTest(unittest.TestCase):
         self.assertTrue(found, "inject_partial_flag context processor not found")
 
 
+class BareTemplateContractTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.path = ROOT / "templates" / "_bare.html"
+
+    def test_bare_template_exists(self):
+        self.assertTrue(self.path.exists(), "_bare.html does not exist")
+
+    def test_bare_template_has_content_block(self):
+        src = self.path.read_text(encoding="utf-8")
+        self.assertIn("{% block content %}{% endblock %}", src)
+
+    def test_bare_template_renders_flash_messages(self):
+        src = self.path.read_text(encoding="utf-8")
+        self.assertIn("get_flashed_messages", src)
+
+    def test_bare_template_has_no_html_tag(self):
+        # The bare template must NOT render <html>, <head>, or <body> tags.
+        src = self.path.read_text(encoding="utf-8")
+        self.assertNotIn("<html", src.lower())
+        self.assertNotIn("<head>", src.lower())
+        self.assertNotIn("<body", src.lower())
+
+
 if __name__ == "__main__":
     unittest.main()

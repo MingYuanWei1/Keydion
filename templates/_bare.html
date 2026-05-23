@@ -1,0 +1,23 @@
+{# =============================================================
+   templates/_bare.html — minimal layout used when a route is hit
+   with the X-Partial-Content: 1 header. Emits the content block
+   *only* — no html tag, no head, no body, no header, no footer.
+
+   Pages that want to be partial-loadable into the dashboard shell
+   should use:
+       {% extends "_bare.html" if partial else "base.html" %}
+   See INTEGRATION.md for the full pattern.
+   ============================================================= #}
+{# Render alert/flash messages inline so the user sees them in-panel. #}
+{% with messages = get_flashed_messages(with_categories=True) %}
+{% if messages %}
+{% for category, message in messages %}
+<div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+  {{ message }}
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endfor %}
+{% endif %}
+{% endwith %}
+
+{% block content %}{% endblock %}
