@@ -86,6 +86,14 @@
 .kd-wrap  { max-width: 880px; margin: 0 auto; }
 .kd-wrap-wide { max-width: 1120px; margin: 0 auto; padding: 0 32px; }
 
+/* base.html ships <body class="bg-light ..."> for the rest of the site;
+   on pages that opt into the guides design (anything that renders .kd-page),
+   override so the cream extends to the viewport edges instead of showing
+   Bootstrap's #f8f9fa around the page block. */
+body:has(.kd-page) {
+  background: var(--cream) !important;
+}
+
 /* ─── Eyebrows, headlines, meta ─── */
 .kd-eyebrow {
   font-family: var(--mono);
