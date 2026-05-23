@@ -129,6 +129,12 @@ class DashboardUrlNestingContractTest(unittest.TestCase):
             resp = client.get(concrete, follow_redirects=False)
             if resp.status_code not in (301, 302, 308):
                 skipped.append(f"{old_path} -> got {resp.status_code}, expected redirect")
+                continue
+            # Verify the redirect target is the /dashboard/* sibling, not e.g.
+            # the login wall (302 to /login passes status-only checks vacuously).
+            location = resp.headers.get("Location", "")
+            if "/dashboard" not in location:
+                skipped.append(f"{old_path} -> Location {location!r} does not contain /dashboard")
         self.assertEqual(skipped, [], "Legacy routes didn't redirect:\n" + "\n".join(skipped))
 
 
