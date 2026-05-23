@@ -2042,9 +2042,9 @@ def create_app() -> Flask:
                 save_news_article(article)
                 if is_draft:
                     flash(_("Draft saved."), "success")
-                    return redirect(url_for("news_manage"))
-                flash(_("Article published successfully."), "success")
-                return redirect(url_for("news_list"))
+                else:
+                    flash(_("Article published successfully."), "success")
+                return redirect(url_for("news_manage"))
 
         return render_template(
             "news_publish.html",
@@ -2118,9 +2118,9 @@ def create_app() -> Flask:
                 update_news_article(news_id, form_data)
                 if is_draft:
                     flash(_("Draft saved."), "success")
-                    return redirect(url_for("news_manage"))
-                flash(_("Article updated."), "success")
-                return redirect(url_for("news_list"))
+                else:
+                    flash(_("Article updated."), "success")
+                return redirect(url_for("news_manage"))
 
         return render_template(
             "news_publish.html",

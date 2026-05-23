@@ -138,6 +138,37 @@ class NewsPublishActionContractTest(unittest.TestCase):
         src = self._find_function_source("news_publish")
         self.assertIn('"published_at": "" if is_draft else', src)
 
+    def test_publish_branch_redirects_to_news_manage(self):
+        # Both draft and publish paths must land curators on /news/manage
+        # so they stay in their workflow. The publish branch in particular
+        # used to land on /news (public list) — that's wrong.
+        # news_edit may still redirect to news_list on the article-not-found
+        # error path; that's a separate concern.
+        publish_src = self._find_function_source("news_publish")
+        self.assertNotIn(
+            'redirect(url_for("news_list"))', publish_src,
+            "news_publish should not redirect to news_list anywhere",
+        )
+        self.assertIn(
+            'redirect(url_for("news_manage"))', publish_src,
+            "news_publish should redirect to news_manage on save",
+        )
+
+        edit_src = self._find_function_source("news_edit")
+        self.assertIn(
+            'redirect(url_for("news_manage"))', edit_src,
+            "news_edit should redirect to news_manage on save",
+        )
+        # news_edit must have NO 'redirect to news_list' in its save block;
+        # the only acceptable occurrence is the article-not-found early-return.
+        # Count: should be exactly 1 (the early-return) after this fix.
+        self.assertEqual(
+            edit_src.count('redirect(url_for("news_list"))'),
+            1,
+            "news_edit save block should not redirect to news_list "
+            "(only the article-not-found early-return may)",
+        )
+
 
 class NewsPublishTemplateContractTest(unittest.TestCase):
     @classmethod
