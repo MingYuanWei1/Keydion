@@ -2302,7 +2302,7 @@ def create_app() -> Flask:
                 extras.setdefault(cat, []).append(g)
         for cat in sorted(extras):
             grouped.append((cat, extras[cat]))
-        return render_template("guides.html", grouped=grouped)
+        return render_template("guides.html", grouped=grouped, total=len(all_guides))
 
     @app.route("/guides/<slug>")
     def guide_article(slug):

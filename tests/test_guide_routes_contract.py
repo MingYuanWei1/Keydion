@@ -104,6 +104,10 @@ class GuideRoutesContractTest(unittest.TestCase):
         self.assertIn("next_guide=", src)
         self.assertIn("preview_mode=False", src)
 
+    def test_guides_index_passes_total(self):
+        src = self._function_source("guides")
+        self.assertIn("total=", src)
+
 
 if __name__ == "__main__":
     unittest.main()
