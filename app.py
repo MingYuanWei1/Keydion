@@ -2360,18 +2360,7 @@ def create_app() -> Flask:
         }
 
         if request.method == "POST":
-            form_data = {
-                "slug": request.form.get("slug", "").strip(),
-                "category": request.form.get("category", "").strip(),
-                "sort_order": request.form.get("sort_order", "100").strip() or "100",
-                "published": request.form.get("published") == "1",
-                "title_en": request.form.get("title_en", "").strip(),
-                "title_zh": request.form.get("title_zh", "").strip(),
-                "summary_en": request.form.get("summary_en", "").strip(),
-                "summary_zh": request.form.get("summary_zh", "").strip(),
-                "body_en": request.form.get("body_en", "").strip(),
-                "body_zh": request.form.get("body_zh", "").strip(),
-            }
+            form_data = _read_guide_form(request.form)
             # Auto-generate slug if blank
             if not form_data["slug"]:
                 form_data["slug"] = _slugify(form_data["title_en"] or form_data["title_zh"])
@@ -3859,6 +3848,28 @@ def _sanitize_guide_html(html: str) -> str:
         protocols=GUIDE_ALLOWED_PROTOCOLS,
         strip=True,
     )
+
+
+def _read_guide_form(form) -> dict:
+    """Parse a guide POST form into the canonical form_data dict.
+
+    Called from admin_guide_publish (which then validates and persists) and
+    admin_guide_preview (which renders the article template without persisting).
+    Slug normalization stays in admin_guide_publish since preview tolerates
+    a blank or invalid slug.
+    """
+    return {
+        "slug": form.get("slug", "").strip(),
+        "category": form.get("category", "").strip(),
+        "sort_order": form.get("sort_order", "100").strip() or "100",
+        "published": form.get("published") == "1",
+        "title_en": form.get("title_en", "").strip(),
+        "title_zh": form.get("title_zh", "").strip(),
+        "summary_en": form.get("summary_en", "").strip(),
+        "summary_zh": form.get("summary_zh", "").strip(),
+        "body_en": form.get("body_en", "").strip(),
+        "body_zh": form.get("body_zh", "").strip(),
+    }
 
 
 def _load_guide_categories() -> list:
