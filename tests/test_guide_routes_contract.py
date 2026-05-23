@@ -98,6 +98,12 @@ class GuideRoutesContractTest(unittest.TestCase):
         self.assertIn('render_template("guide_article.html"', src)
         self.assertIn("preview_mode=True", src)
 
+    def test_guide_article_passes_prev_next(self):
+        src = self._function_source("guide_article")
+        self.assertIn("prev_guide=", src)
+        self.assertIn("next_guide=", src)
+        self.assertIn("preview_mode=False", src)
+
 
 if __name__ == "__main__":
     unittest.main()
