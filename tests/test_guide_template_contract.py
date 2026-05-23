@@ -45,6 +45,21 @@ class GuideTemplateContractTest(unittest.TestCase):
         self.assertIn("guide_article", self.index_tpl)
         self.assertIn("slug=g.slug", self.index_tpl)
 
+    def test_index_template_uses_new_design(self):
+        self.assertIn("kd-page", self.index_tpl)
+        self.assertIn("kd-eyebrow", self.index_tpl)
+        self.assertIn("kd-h-display", self.index_tpl)
+        self.assertIn("kd-lede", self.index_tpl)
+        self.assertIn("kd-cat-row", self.index_tpl)
+        self.assertIn("kd-cat-label", self.index_tpl)
+        self.assertIn("kd-guide-list", self.index_tpl)
+        self.assertIn("kd-guide-item", self.index_tpl)
+        self.assertIn("kd-guide-num", self.index_tpl)
+        # Two-digit padded counter format used somewhere
+        self.assertIn("'%02d'", self.index_tpl)
+        # Empty-state message preserved
+        self.assertIn("No guides published yet", self.index_tpl)
+
     def test_article_template_renders_body_safe(self):
         # body is sanitized server-side, so `| safe` is correct here
         self.assertIn("| safe", self.article_tpl)
