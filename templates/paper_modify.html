@@ -333,7 +333,7 @@
 </div>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
+    (function () {
         const container = document.getElementById("authorsContainer");
         const addBtn = document.getElementById("addAuthorBtn");
 
@@ -460,6 +460,6 @@
         toggleCpSection();
         updateMutualExclusion();
         updateCpTotal();
-    });
+    })();
 </script>
 {% endblock %}

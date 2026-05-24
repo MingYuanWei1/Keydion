@@ -543,7 +543,7 @@
 </style>
 
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
+  (function () {
     // ---- Author add/remove ----
     const container = document.getElementById("authorsContainer");
     const addBtn = document.getElementById("addAuthorBtn");
@@ -807,6 +807,6 @@
         }
       }
     });
-  });
+  })();
 </script>
 {% endblock %}

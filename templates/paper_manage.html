@@ -276,7 +276,7 @@
     }
 
     /* ---------- EE Subjects ---------- */
-    const eeSubjectsData = {{ ee_subjects | tojson | safe }};
+    var eeSubjectsData = {{ ee_subjects | tojson | safe }};
 
     function rebuildEeSubjectList(groupId) {
         const list = document.getElementById('ee-subject-list');
