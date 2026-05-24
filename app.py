@@ -1410,6 +1410,7 @@ def create_app() -> Flask:
                 "type_cp": _("IB Community Project"),
                 "english": _("English"),
                 "chinese": _("Chinese"),
+                "avg_grade": _("Avg. Grade"),
             },
         }
         return render_template("upload.html",
