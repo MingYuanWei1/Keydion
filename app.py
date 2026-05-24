@@ -45,6 +45,7 @@ from flask import (
 from flask_babel import Babel, gettext as _, get_locale, lazy_gettext as _l
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
+from ee_pdf_extractor import extract_ee_metadata, EePdfExtractionError
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -2229,6 +2230,29 @@ def create_app() -> Flask:
         img_file.save(NEWS_IMAGES_DIR / unique_name)
         img_url = url_for("static", filename=f"uploads/news/{unique_name}")
         return jsonify({"url": img_url})
+
+    @app.route("/api/upload/extract-ee-metadata", methods=["POST"])
+    def api_extract_ee_metadata():
+        user = require_login(level=2)
+        if not user:
+            return jsonify({"error": str(_("Unauthorized"))}), 401
+
+        upload = request.files.get("file")
+        if not upload or not upload.filename:
+            return jsonify({"error": str(_("No file provided"))}), 400
+        if not upload.filename.lower().endswith(".pdf"):
+            return jsonify({"error": str(_("File must be a PDF"))}), 400
+
+        raw = upload.read()
+        if not raw.startswith(b"%PDF-"):
+            return jsonify({"error": str(_("File is not a valid PDF"))}), 400
+
+        try:
+            result = extract_ee_metadata(raw)
+        except EePdfExtractionError as exc:
+            return jsonify({"error": str(exc)}), 400
+
+        return jsonify(result), 200
 
     @app.route("/dashboard/news/publish", methods=["GET", "POST"])
     def news_publish():
