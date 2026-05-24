@@ -959,7 +959,69 @@
       text.textContent = t('draft_saved_at', 'Draft saved · %(time)s', { time: hh + ':' + mm });
     }
   }
-  function clearLocalStorage() { /* implemented in Task 15 */ }
+  // ─── localStorage mirror ───────────────────────────────────
+  const STORAGE_KEY = 'kd:upload-draft:' + (BOOT.user_key || 'anon') + (BOOT.draft_id ? ':' + BOOT.draft_id : '');
+  let mirrorTimer = null;
+
+  function mirrorToLocalStorage() {
+    clearTimeout(mirrorTimer);
+    mirrorTimer = setTimeout(() => {
+      try {
+        const payload = {
+          ts: Date.now(),
+          state: serializableState(),
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      } catch (e) { /* quota / disabled — silent fallback */ }
+    }, 600);
+  }
+
+  function serializableState() {
+    const s = Object.assign({}, state);
+    s.visitedSteps = Array.from(state.visitedSteps);
+    // The wizard's `file` is just {name, size}; the real File object lives in
+    // #uploadFormFile and isn't restorable from localStorage anyway.
+    return s;
+  }
+
+  function loadLocalStorage() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (e) { return null; }
+  }
+
+  function clearLocalStorage() {
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* silent */ }
+  }
+
+  function showRestoreBanner(stored) {
+    const banner = document.createElement('div');
+    banner.className = 'restore-banner';
+    banner.innerHTML = `
+      <div class="restore-banner__body">
+        <div class="restore-banner__title">${t('restore_banner_title', 'Unsaved changes from earlier')}</div>
+        <div class="restore-banner__sub">${t('restore_banner_body', "Your last session in this browser had changes you didn't save. Restore them?")}</div>
+      </div>
+      <div class="restore-banner__actions">
+        <button type="button" class="btn btn--ghost" id="restoreDiscardBtn">${t('discard_btn', 'Discard')}</button>
+        <button type="button" class="btn btn--primary" id="restoreApplyBtn">${t('restore_btn', 'Restore')}</button>
+      </div>
+    `;
+    stepsContainer.appendChild(banner);
+    banner.querySelector('#restoreApplyBtn').addEventListener('click', () => {
+      Object.assign(state, stored.state);
+      state.visitedSteps = new Set(stored.state.visitedSteps || [0]);
+      banner.remove();
+      render();
+    });
+    banner.querySelector('#restoreDiscardBtn').addEventListener('click', () => {
+      clearLocalStorage();
+      banner.remove();
+      render();
+    });
+  }
 
   // ─── Combobox component ────────────────────────────────────
   function renderCombobox(id, value, placeholder, groups) {
@@ -1054,8 +1116,17 @@
     });
   });
 
-  // ─── Mutation marker (used later by localStorage mirror) ───
-  function touch() { state.lastModified = Date.now(); }
+  // ─── Mutation marker ───────────────────────────────────────
+  function touch() {
+    state.lastModified = Date.now();
+    autosaveSaving();
+    mirrorToLocalStorage();
+    // Mark as "saved" visually after the debounce period — note this only
+    // reflects localStorage, NOT a server save. Server save is gated by
+    // the Save Draft button. The visual lie matches user intent here: the
+    // wizard remembers their work between tabs.
+    setTimeout(() => autosaveSaved(), 700);
+  }
 
   // ─── Helpers ───────────────────────────────────────────────
   function esc(s) {
@@ -1077,6 +1148,12 @@
     if (!stepperEl || !stepsContainer || !footerEl) {
       console.error('[upload-wizard] mount points missing');
       return;
+    }
+    const stored = loadLocalStorage();
+    const fdEmpty = !state.title && !state.paperType && state.keywords.length === 0 && !state.eeCoreSubject && !state.cpGlobalContext;
+    if (stored && stored.state && (fdEmpty || stored.ts > (Number(fd.last_modified) || 0))) {
+      showRestoreBanner(stored);
+      return;   // wait for user to click Restore or Discard before rendering
     }
     render();
   }
