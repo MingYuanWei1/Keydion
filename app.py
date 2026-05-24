@@ -1365,7 +1365,53 @@ def create_app() -> Flask:
         )
 
     def _render_upload(user, form_data, draft_id):
-        """Render upload.html with the standard kwargs the wizard needs."""
+        """Render upload.html with the wizard_boot context the JS needs."""
+        wizard_boot = {
+            "submit_url": url_for("upload"),
+            "draft_id": draft_id or "",
+            "form_data": form_data,
+            "paper_categories": load_paper_categories(),
+            "ee_subjects": load_ee_subjects(),
+            "cp_global_contexts": CP_GLOBAL_CONTEXTS,
+            "cp_action_types": CP_ACTION_TYPES,
+            "user_key": user.get("username", ""),
+            "i18n": {
+                "saving": _("Saving…"),
+                "draft_saved_at": _("Draft saved · %(time)s"),
+                "no_file_chosen": _("No file chosen"),
+                "pdf_only_single": _("PDF only · single file"),
+                "choose_file": _("Choose file"),
+                "replace_file": _("Replace"),
+                "missing_fields_one": _("1 field still needs attention"),
+                "missing_fields_many": _("%(n)s fields still need attention"),
+                "everything_filled": _("Everything required is filled in."),
+                "submit_cta": _("Click Submit Paper below to send your submission for review."),
+                "go_to": _("go to %(step)s"),
+                "restore_banner_title": _("Unsaved changes from earlier"),
+                "restore_banner_body": _("Your last session in this browser had changes you didn't save. Restore them?"),
+                "restore_btn": _("Restore"),
+                "discard_btn": _("Discard"),
+                "edit": _("Edit"),
+                "back": _("← Back"),
+                "continue": _("Continue →"),
+                "submit_paper": _("Submit Paper"),
+                "save_draft": _("Save Draft"),
+                "add_author": _("+ Add another author"),
+                "remove_author": _("Remove author"),
+                "step_label": _("Step %(n)s"),
+                "not_provided": _("Not provided"),
+                "not_chosen": _("Not chosen"),
+                "not_written": _("Not written"),
+                "no_file_uploaded": _("No file uploaded"),
+                "yes_skipped": _("Yes — author info skipped"),
+                "no": _("No"),
+                "type_standard": _("Independent Research Paper"),
+                "type_ee": _("IB Extended Essay"),
+                "type_cp": _("IB Community Project"),
+                "english": _("English"),
+                "chinese": _("Chinese"),
+            },
+        }
         return render_template("upload.html",
             user=user,
             form_data=form_data,
@@ -1375,6 +1421,7 @@ def create_app() -> Flask:
             cp_global_contexts=CP_GLOBAL_CONTEXTS,
             cp_action_types=CP_ACTION_TYPES,
             draft_id=draft_id,
+            wizard_boot=wizard_boot,
         )
 
     @app.route("/dashboard/upload", methods=["GET", "POST"])
