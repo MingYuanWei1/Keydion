@@ -1,60 +1,496 @@
 {% extends "_bare.html" if partial else "_dashboard_shell.html" %}
 {% block title %}{{ _('Manage Guides · Keydion') }}{% endblock %}
 {% block panel %}
-<div class="container py-4" style="max-width: 1080px;">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h3 fw-semibold mb-0">{{ _('Manage Guides') }}</h1>
-    <a class="btn btn-primary" href="{{ url_for('admin_guide_new') }}">
-      + {{ _('New Guide') }}
+
+{# =============================================================
+   templates/guide_manage.html — Category-grouped sections (variant B)
+
+   Visual language: cream + serif + crimson, matching dashboard.css.
+   Loads styles from static/css/manage.css.
+
+   Existing endpoints used (unchanged):
+     admin_guide_new, admin_guide_edit(guide_id), admin_guide_delete(guide_id)
+
+   NEW backend endpoints expected (see PORT_NOTES.md):
+     admin_guides_reorder         POST {items: [{id:int, sort_order:int, category:str}]}
+     admin_guide_toggle_published POST /admin/guides/<int:guide_id>/toggle
+   The page degrades gracefully if these are missing — drag/toggle
+   actions roll back visually and a toast announces "Endpoint not wired yet."
+   ============================================================= #}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/manage.css') }}">
+
+<div class="kp-head">
+  <div class="kp-head__left">
+    <div class="kp-crumb">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <span>{{ _('Collection') }} · {{ _('Help') }}</span>
+    </div>
+    <h1 class="kp-title">{{ _('Manage Guides') }}</h1>
+    <p class="kp-sub">{{ _('Long-form documentation served at /help. Each guide supports English and Chinese, and appears in a sidebar grouped by category. Drag entries to reorder or recategorise.') }}</p>
+  </div>
+  <div class="kp-head__right">
+    <a class="kp-btn kp-btn--primary" href="{{ url_for('admin_guide_new') }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      <span>{{ _('New guide') }}</span>
     </a>
   </div>
-
-  {% if not guides %}
-    <div class="text-center py-5 text-muted">
-      <p class="mb-3">{{ _('No guides yet.') }}</p>
-      <a href="{{ url_for('admin_guide_new') }}" class="btn btn-outline-primary">{{ _('Create the first guide') }}</a>
-    </div>
-  {% else %}
-    <div class="table-responsive">
-      <table class="table table-hover align-middle">
-        <thead class="table-light">
-          <tr>
-            <th>{{ _('Title (EN)') }}</th>
-            <th>{{ _('Title (ZH)') }}</th>
-            <th>{{ _('Category') }}</th>
-            <th>{{ _('Slug') }}</th>
-            <th>{{ _('Order') }}</th>
-            <th>{{ _('Status') }}</th>
-            <th class="text-end">{{ _('Actions') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for g in guides %}
-            <tr>
-              <td>{{ g.title_en or '—' }}</td>
-              <td>{{ g.title_zh or '—' }}</td>
-              <td>{% if g.category %}<span class="badge bg-secondary">{{ g.category }}</span>{% endif %}</td>
-              <td><code class="small">{{ g.slug }}</code></td>
-              <td class="text-muted">{{ g.sort_order }}</td>
-              <td>
-                {% if g.published %}
-                  <span class="badge bg-success">{{ _('Published') }}</span>
-                {% else %}
-                  <span class="badge bg-warning text-dark">{{ _('Draft') }}</span>
-                {% endif %}
-              </td>
-              <td class="text-end">
-                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin_guide_edit', guide_id=g.id) }}">{{ _('Edit') }}</a>
-                <form method="post" action="{{ url_for('admin_guide_delete', guide_id=g.id) }}" class="d-inline"
-                      onsubmit="return confirm('{{ _('Delete this guide?') }}')">
-                  <button type="submit" class="btn btn-sm btn-outline-danger">{{ _('Delete') }}</button>
-                </form>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  {% endif %}
 </div>
+
+{% if not guides %}
+  {# ─── Empty state ───────────────────────────────────────── #}
+  <div class="kp-empty">
+    <svg class="kp-empty__art" width="200" height="148" viewBox="0 0 200 148" fill="none">
+      <path d="M30 26 L96 38 L96 134 L30 122 Z" fill="#fffdf9" stroke="#e0dbd0" stroke-width="1.4"/>
+      <path d="M170 26 L104 38 L104 134 L170 122 Z" fill="#fffdf9" stroke="#e0dbd0" stroke-width="1.4"/>
+      <path d="M96 38 L100 36 L104 38 L100 134 Z" fill="#f5efde" stroke="#e0dbd0" stroke-width="1"/>
+      <line x1="40" y1="50" x2="88" y2="58" stroke="#8b1a1a" stroke-width="2"/>
+      <line x1="40" y1="64" x2="80" y2="71" stroke="#1a1a1a" stroke-opacity="0.4" stroke-width="1.2"/>
+      <line x1="40" y1="74" x2="86" y2="82" stroke="#1a1a1a" stroke-opacity="0.25" stroke-width="1"/>
+      <line x1="40" y1="82" x2="84" y2="90" stroke="#1a1a1a" stroke-opacity="0.25" stroke-width="1"/>
+      <line x1="40" y1="90" x2="88" y2="98" stroke="#1a1a1a" stroke-opacity="0.25" stroke-width="1"/>
+      <line x1="40" y1="98" x2="78" y2="105" stroke="#1a1a1a" stroke-opacity="0.25" stroke-width="1"/>
+      <line x1="40" y1="106" x2="86" y2="113" stroke="#1a1a1a" stroke-opacity="0.25" stroke-width="1"/>
+      <line x1="160" y1="50" x2="112" y2="58" stroke="#1a1a1a" stroke-opacity="0.4" stroke-width="1.2"/>
+      <line x1="160" y1="64" x2="118" y2="71" stroke="#1a1a1a" stroke-opacity="0.25" stroke-width="1"/>
+      <line x1="160" y1="74" x2="114" y2="82" stroke="#1a1a1a" stroke-opacity="0.25" stroke-width="1"/>
+      <line x1="160" y1="82" x2="116" y2="90" stroke="#1a1a1a" stroke-opacity="0.25" stroke-width="1"/>
+      <line x1="160" y1="90" x2="112" y2="98" stroke="#1a1a1a" stroke-opacity="0.25" stroke-width="1"/>
+      <line x1="160" y1="98" x2="122" y2="105" stroke="#1a1a1a" stroke-opacity="0.25" stroke-width="1"/>
+      <line x1="160" y1="106" x2="114" y2="113" stroke="#1a1a1a" stroke-opacity="0.25" stroke-width="1"/>
+      <path d="M130 28 L130 70 L138 64 L146 70 L146 30" fill="#8b1a1a" stroke="#6b1212" stroke-width="0.8"/>
+    </svg>
+    <h3>{{ _('No guides yet') }}</h3>
+    <p>{{ _("Guides appear in the public help center at /help, grouped by category and sorted by the order you set here. Start with a “Getting Started” piece — that's where most readers begin.") }}</p>
+    <a href="{{ url_for('admin_guide_new') }}" class="kp-btn kp-btn--primary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      <span>{{ _('Write your first guide') }}</span>
+    </a>
+  </div>
+{% else %}
+
+{# ─── Filter toolbar ──────────────────────────────────────── #}
+<div class="kp-toolbar">
+  <div class="kp-search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input type="text" id="guideSearch" placeholder="{{ _('Search by title or slug…') }}" autocomplete="off">
+  </div>
+
+  {% set published_count   = guides | selectattr('published', 'equalto', true)  | list | length %}
+  {% set draft_count       = guides | selectattr('published', 'equalto', false) | list | length %}
+  <div class="kp-chip-group" role="tablist" aria-label="{{ _('Filter by status') }}">
+    <button type="button" class="kp-chip is-active" data-status-filter="all">{{ _('All') }} <span class="kp-chip__count">{{ guides|length }}</span></button>
+    <button type="button" class="kp-chip" data-status-filter="published">{{ _('Published') }} <span class="kp-chip__count">{{ published_count }}</span></button>
+    <button type="button" class="kp-chip" data-status-filter="draft">{{ _('Draft') }} <span class="kp-chip__count">{{ draft_count }}</span></button>
+  </div>
+
+  <span class="kp-divider"></span>
+
+  <select class="kp-select" id="guideCategoryFilter" aria-label="{{ _('Filter by category') }}">
+    <option value="all">{{ _('Category: All') }}</option>
+    {% set seen = [] %}
+    {% for g in guides %}
+      {% if g.category and g.category not in seen %}
+        {% if seen.append(g.category) %}{% endif %}
+        <option value="{{ g.category }}">{{ g.category }}</option>
+      {% endif %}
+    {% endfor %}
+  </select>
+</div>
+
+{# Group guides by category (in the order the categories are first encountered) #}
+{% set cat_order = [] %}
+{% set uncategorised = [] %}
+{% set by_cat = {} %}
+{% for g in guides %}
+  {% set cname = g.category or '__uncategorised__' %}
+  {% if cname not in by_cat %}
+    {% if by_cat.update({cname: []}) %}{% endif %}
+    {% if cname != '__uncategorised__' and cname not in cat_order %}
+      {% if cat_order.append(cname) %}{% endif %}
+    {% endif %}
+  {% endif %}
+  {% if by_cat[cname].append(g) %}{% endif %}
+{% endfor %}
+
+<div id="guideSections">
+{% for cname in cat_order %}
+  {% set rows = by_cat[cname] | sort(attribute='sort_order') %}
+  <section class="guide-section" data-category="{{ cname }}">
+    <div class="guide-section__head">
+      <h2 class="guide-section__title">
+        <span class="guide-section__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h11a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3v5a2 2 0 0 0 2 2"/><path d="M3 14V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v9"/></svg>
+        </span>
+        <span class="guide-section__title-name">{{ cname }}</span>
+        <span class="guide-section__count">{{ rows|length }}</span>
+      </h2>
+      <a class="guide-section__add" href="{{ url_for('admin_guide_new') }}?category={{ cname|urlencode }}">
+        + {{ _('Add guide to') }} “{{ cname }}”
+      </a>
+    </div>
+
+    <div class="guide-rows" data-rows>
+      {% for g in rows %}
+        <div class="guide-row"
+             draggable="true"
+             data-guide-id="{{ g.id }}"
+             data-category="{{ cname }}"
+             data-title="{{ ((g.title_en or '') ~ ' ' ~ (g.title_zh or ''))|lower }}"
+             data-slug="{{ (g.slug or '')|lower }}"
+             data-published="{{ 'true' if g.published else 'false' }}">
+          <div class="guide-row__handle" title="{{ _('Drag to reorder') }}">
+            <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="9" cy="5" r="1.3"/><circle cx="15" cy="5" r="1.3"/><circle cx="9" cy="12" r="1.3"/><circle cx="15" cy="12" r="1.3"/><circle cx="9" cy="19" r="1.3"/><circle cx="15" cy="19" r="1.3"/></svg>
+          </div>
+          <div class="guide-row__order" data-order-cell>{{ '%02d' % (loop.index) }}</div>
+          <div class="guide-row__title">
+            <div class="guide-row__en"><span class="flag-en">EN</span>{{ g.title_en or '—' }}</div>
+            <div class="guide-row__zh"><span class="flag-zh">ZH</span>{{ g.title_zh or '—' }}</div>
+          </div>
+          <div class="guide-row__slug-cell">
+            <code class="guide-row__slug">/help/{{ g.slug }}</code>
+          </div>
+          <div class="guide-row__meta-cell guide-row__updated">
+            {% if g.updated_at %}{{ g.updated_at }}{% else %}—{% endif %}
+            {% if g.word_count %}<div style="font-size:10.5px; margin-top:2px; color:var(--muted);">{{ g.word_count }} {{ _('words') }}</div>{% endif %}
+          </div>
+          <div class="guide-row__toggle-cell">
+            <button type="button"
+                    class="kp-switch"
+                    data-on="{{ 'true' if g.published else 'false' }}"
+                    data-guide-toggle="{{ g.id }}"
+                    title="{{ _('Click to publish or unpublish') }}"
+                    aria-label="{{ _('Toggle published') }}">
+              <span class="kp-switch__track"></span>
+              <span class="kp-switch__label">{{ _('Live') if g.published else _('Draft') }}</span>
+            </button>
+          </div>
+          <div class="guide-row__actions">
+            <a class="kp-row-icon" href="/help/{{ g.slug }}" target="_blank" rel="noopener" title="{{ _('Preview public') }}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            </a>
+            <a class="kp-row-icon" href="{{ url_for('admin_guide_edit', guide_id=g.id) }}" title="{{ _('Edit') }}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+            </a>
+            <button type="button" class="kp-row-icon" data-copy-slug="/help/{{ g.slug }}" title="{{ _('Copy link') }}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-2 2"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l2-2"/></svg>
+            </button>
+            <form method="post" action="{{ url_for('admin_guide_delete', guide_id=g.id) }}" onsubmit="return confirm('{{ _('Delete this guide?') }}')">
+              <button type="submit" class="kp-row-icon" title="{{ _('Delete') }}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+{% endfor %}
+
+{# Uncategorised guides (if any) — always last #}
+{% if by_cat.get('__uncategorised__') %}
+  {% set rows = by_cat['__uncategorised__'] | sort(attribute='sort_order') %}
+  <section class="guide-section" data-category="">
+    <div class="guide-section__head">
+      <h2 class="guide-section__title">
+        <span class="guide-section__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 1-1 1.7M12 16h.01"/></svg>
+        </span>
+        <span class="guide-section__title-name">{{ _('Uncategorised') }}</span>
+        <span class="guide-section__count">{{ rows|length }}</span>
+      </h2>
+    </div>
+    <div class="guide-rows" data-rows>
+      {% for g in rows %}
+        <div class="guide-row"
+             draggable="true"
+             data-guide-id="{{ g.id }}"
+             data-category=""
+             data-title="{{ ((g.title_en or '') ~ ' ' ~ (g.title_zh or ''))|lower }}"
+             data-slug="{{ (g.slug or '')|lower }}"
+             data-published="{{ 'true' if g.published else 'false' }}">
+          <div class="guide-row__handle" title="{{ _('Drag to reorder') }}">
+            <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="9" cy="5" r="1.3"/><circle cx="15" cy="5" r="1.3"/><circle cx="9" cy="12" r="1.3"/><circle cx="15" cy="12" r="1.3"/><circle cx="9" cy="19" r="1.3"/><circle cx="15" cy="19" r="1.3"/></svg>
+          </div>
+          <div class="guide-row__order" data-order-cell>{{ '%02d' % (loop.index) }}</div>
+          <div class="guide-row__title">
+            <div class="guide-row__en"><span class="flag-en">EN</span>{{ g.title_en or '—' }}</div>
+            <div class="guide-row__zh"><span class="flag-zh">ZH</span>{{ g.title_zh or '—' }}</div>
+          </div>
+          <div class="guide-row__slug-cell">
+            <code class="guide-row__slug">/help/{{ g.slug }}</code>
+          </div>
+          <div class="guide-row__meta-cell guide-row__updated">
+            {% if g.updated_at %}{{ g.updated_at }}{% else %}—{% endif %}
+          </div>
+          <div class="guide-row__toggle-cell">
+            <button type="button"
+                    class="kp-switch"
+                    data-on="{{ 'true' if g.published else 'false' }}"
+                    data-guide-toggle="{{ g.id }}"
+                    title="{{ _('Click to publish or unpublish') }}">
+              <span class="kp-switch__track"></span>
+              <span class="kp-switch__label">{{ _('Live') if g.published else _('Draft') }}</span>
+            </button>
+          </div>
+          <div class="guide-row__actions">
+            <a class="kp-row-icon" href="{{ url_for('admin_guide_edit', guide_id=g.id) }}" title="{{ _('Edit') }}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+            </a>
+            <form method="post" action="{{ url_for('admin_guide_delete', guide_id=g.id) }}" onsubmit="return confirm('{{ _('Delete this guide?') }}')">
+              <button type="submit" class="kp-row-icon" title="{{ _('Delete') }}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}
+</div>
+
+<div class="kp-banner">
+  <span class="kp-banner__icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8l-2 6-6 2 2-6z"/></svg>
+  </span>
+  <span><strong>{{ _('Order on the live site') }}</strong> {{ _('follows category order, then the manual order you set here. Drag a row’s handle to move it within or between categories.') }}</span>
+</div>
+
+<div class="kp-empty" id="guideNoResults" style="display:none; margin-top:20px;">
+  <h3>{{ _('No guides match these filters') }}</h3>
+  <p>{{ _('Try a different status or category — or clear the search box.') }}</p>
+  <button type="button" class="kp-btn kp-btn--ghost" id="guideClearFilters">{{ _('Clear filters') }}</button>
+</div>
+
+{% endif %}
+
+<div class="kp-toast" id="guideToast"></div>
+
+<script>
+(function () {
+  /* ============ Endpoint flags ============
+     Flip these on once the corresponding backend routes are live.
+     See PORT_NOTES.md for the request/response contract. */
+  var REORDER_URL = "{{ url_for('admin_guides_reorder') }}";
+  var TOGGLE_URL_TEMPLATE = "{{ url_for('admin_guide_toggle_published', guide_id=0) | replace('/0/', '/{id}/') }}";
+
+  function showToast(msg) {
+    var t = document.getElementById('guideToast');
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(function () { t.classList.remove('show'); }, 2400);
+  }
+
+  /* ============ Search + filters (client-side) ============ */
+  var state = { status: 'all', category: 'all', search: '' };
+
+  function applyFilters() {
+    var rows = document.querySelectorAll('.guide-row');
+    var anyVisible = false;
+    rows.forEach(function (row) {
+      var ok = true;
+      if (state.status === 'published' && row.dataset.published !== 'true') ok = false;
+      else if (state.status === 'draft' && row.dataset.published !== 'false') ok = false;
+      if (ok && state.category !== 'all' && row.dataset.category !== state.category) ok = false;
+      if (ok && state.search) {
+        if (row.dataset.title.indexOf(state.search) === -1 &&
+            row.dataset.slug.indexOf(state.search) === -1) ok = false;
+      }
+      row.style.display = ok ? '' : 'none';
+      if (ok) anyVisible = true;
+    });
+    // Hide empty section headings
+    document.querySelectorAll('.guide-section').forEach(function (sec) {
+      var visibleHere = sec.querySelectorAll('.guide-row:not([style*="display: none"])');
+      var anyHere = false;
+      sec.querySelectorAll('.guide-row').forEach(function (r) { if (r.style.display !== 'none') anyHere = true; });
+      sec.style.display = anyHere ? '' : 'none';
+    });
+    var nor = document.getElementById('guideNoResults');
+    if (nor) nor.style.display = anyVisible ? 'none' : '';
+  }
+
+  /* ============ Drag-to-reorder (HTML5 DnD) ============ */
+  var dragged = null;
+
+  document.addEventListener('dragstart', function (e) {
+    var row = e.target.closest && e.target.closest('.guide-row');
+    if (!row) return;
+    dragged = row;
+    row.classList.add('is-dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('text/plain', row.dataset.guideId); } catch (_) {}
+  });
+  document.addEventListener('dragend', function () {
+    if (dragged) dragged.classList.remove('is-dragging');
+    dragged = null;
+    document.querySelectorAll('.is-drop-target').forEach(function (el) { el.classList.remove('is-drop-target'); });
+  });
+  document.addEventListener('dragover', function (e) {
+    if (!dragged) return;
+    var row = e.target.closest && e.target.closest('.guide-row');
+    var bucket = e.target.closest && e.target.closest('[data-rows]');
+    if (!bucket) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    document.querySelectorAll('.is-drop-target').forEach(function (el) { el.classList.remove('is-drop-target'); });
+    if (row && row !== dragged) {
+      row.classList.add('is-drop-target');
+    }
+  });
+  document.addEventListener('drop', function (e) {
+    if (!dragged) return;
+    var row = e.target.closest && e.target.closest('.guide-row');
+    var bucket = e.target.closest && e.target.closest('[data-rows]');
+    if (!bucket) return;
+    e.preventDefault();
+
+    if (row && row !== dragged) {
+      var rect = row.getBoundingClientRect();
+      var after = (e.clientY - rect.top) > (rect.height / 2);
+      row.parentNode.insertBefore(dragged, after ? row.nextSibling : row);
+    } else {
+      // Drop into empty bucket
+      bucket.appendChild(dragged);
+    }
+    var newCategory = bucket.closest('.guide-section').dataset.category;
+    dragged.dataset.category = newCategory;
+    document.querySelectorAll('.is-drop-target').forEach(function (el) { el.classList.remove('is-drop-target'); });
+
+    renumberAll();
+    persistOrder();
+  });
+
+  function renumberAll() {
+    document.querySelectorAll('.guide-section').forEach(function (sec) {
+      var i = 1;
+      sec.querySelectorAll('.guide-row').forEach(function (row) {
+        var cell = row.querySelector('[data-order-cell]');
+        if (cell) cell.textContent = String(i).padStart(2, '0');
+        i++;
+      });
+      // Also update the section count badge
+      var badge = sec.querySelector('.guide-section__count');
+      if (badge) badge.textContent = (i - 1);
+    });
+  }
+
+  function persistOrder() {
+    var items = [];
+    document.querySelectorAll('.guide-section').forEach(function (sec) {
+      var cat = sec.dataset.category;
+      var i = 1;
+      sec.querySelectorAll('.guide-row').forEach(function (row) {
+        items.push({
+          id: parseInt(row.dataset.guideId, 10),
+          sort_order: i++,
+          category: cat
+        });
+      });
+    });
+
+    if (!REORDER_URL) {
+      showToast("{{ _('Order saved locally. Wire admin_guides_reorder to persist.') }}");
+      return;
+    }
+    fetch(REORDER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: items })
+    })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+      .then(function () { showToast("{{ _('Order saved') }}"); })
+      .catch(function () { showToast("{{ _('Could not save order — please refresh.') }}"); });
+  }
+
+  /* ============ Publish toggle ============ */
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest && e.target.closest('[data-guide-toggle]');
+    if (!btn) return;
+    if (btn.classList.contains('is-busy')) return;
+    var id = btn.dataset.guideToggle;
+    var newOn = btn.dataset.on !== 'true';
+
+    function paint(on) {
+      btn.dataset.on = on ? 'true' : 'false';
+      var lbl = btn.querySelector('.kp-switch__label');
+      if (lbl) lbl.textContent = on ? "{{ _('Live') }}" : "{{ _('Draft') }}";
+      var row = btn.closest('.guide-row');
+      if (row) row.dataset.published = on ? 'true' : 'false';
+    }
+    paint(newOn);
+    btn.classList.add('is-busy');
+
+    if (!TOGGLE_URL_TEMPLATE) {
+      // No backend wired — keep optimistic state and warn once
+      btn.classList.remove('is-busy');
+      showToast("{{ _('Toggled locally. Wire admin_guide_toggle_published to persist.') }}");
+      return;
+    }
+    fetch(TOGGLE_URL_TEMPLATE.replace('{id}', id), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ published: newOn })
+    })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+      .then(function () { btn.classList.remove('is-busy'); })
+      .catch(function () {
+        paint(!newOn); // rollback
+        btn.classList.remove('is-busy');
+        showToast("{{ _('Could not update — please refresh.') }}");
+      });
+  });
+
+  /* ============ Copy link ============ */
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest && e.target.closest('[data-copy-slug]');
+    if (!btn) return;
+    var path = btn.dataset.copySlug;
+    var url = window.location.origin + path;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(function () { showToast("{{ _('Link copied') }}"); });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = url; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); showToast("{{ _('Link copied') }}"); } catch (_) {}
+      document.body.removeChild(ta);
+    }
+  });
+
+  /* ============ Filter wire-up ============ */
+  document.addEventListener('DOMContentLoaded', wireUp);
+  if (document.readyState !== 'loading') wireUp();
+  var _wired = false;
+  function wireUp() {
+    if (_wired) return; _wired = true;
+
+    document.querySelectorAll('[data-status-filter]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('[data-status-filter]').forEach(function (b) { b.classList.remove('is-active'); });
+        btn.classList.add('is-active');
+        state.status = btn.dataset.statusFilter;
+        applyFilters();
+      });
+    });
+    var cat = document.getElementById('guideCategoryFilter');
+    if (cat) cat.addEventListener('change', function () { state.category = cat.value; applyFilters(); });
+    var srch = document.getElementById('guideSearch');
+    if (srch) srch.addEventListener('input', function () { state.search = srch.value.trim().toLowerCase(); applyFilters(); });
+    var clr = document.getElementById('guideClearFilters');
+    if (clr) clr.addEventListener('click', function () {
+      state = { status: 'all', category: 'all', search: '' };
+      if (cat)  cat.value = 'all';
+      if (srch) srch.value = '';
+      document.querySelectorAll('[data-status-filter]').forEach(function (b) {
+        b.classList.toggle('is-active', b.dataset.statusFilter === 'all');
+      });
+      applyFilters();
+    });
+  }
+})();
+</script>
+
 {% endblock %}
