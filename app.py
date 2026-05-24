@@ -2486,7 +2486,7 @@ def create_app() -> Flask:
                 if op == "publish":
                     r.status = "published"
                     if not r.published_at:
-                        r.published_at = datetime.utcnow().isoformat()
+                        r.published_at = datetime.utcnow().strftime("%Y-%m-%d %H:%M")
                 elif op == "unpublish":
                     r.status = "pending"
                 elif op == "delete":

@@ -126,6 +126,28 @@ class NewsBulkActionEndpointTest(unittest.TestCase):
                            content_type="application/json")
         self.assertEqual(resp.status_code, 401)
 
+    def test_publish_op_does_not_restamp_already_published_article(self):
+        # An article that's already published keeps its original published_at
+        # when re-published via bulk action (idempotent re-publish).
+        original_ts = "2024-01-15 09:00"
+        with self.app_module.db_session() as db:
+            db.add(self.app_module.NewsArticleModel(
+                id="art-already-pub", title="T", status="published",
+                abstract="", body="", author="a", category="c",
+                image_url="", published_at=original_ts,
+            ))
+            db.commit()
+        client = self.app.test_client()
+        _login_as(client, self.app_module, level=2)
+        resp = client.post("/dashboard/news/bulk_action",
+                           data=json.dumps({"ids": ["art-already-pub"], "op": "publish"}),
+                           content_type="application/json")
+        self.assertEqual(resp.status_code, 200)
+        with self.app_module.db_session() as db:
+            row = db.query(self.app_module.NewsArticleModel).filter_by(id="art-already-pub").first()
+            self.assertEqual(row.published_at, original_ts)
+            self.assertEqual(row.status, "published")
+
 
 if __name__ == "__main__":
     unittest.main()
