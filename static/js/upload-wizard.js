@@ -588,7 +588,7 @@
   }
 
   function isEEDirty() {
-    if ((state.title || '').trim()) return true;
+    // Note: state.title is excluded — autofill no longer writes to the title.
     if ((state.eeCoreSubject || '').trim()) return true;
     if ((state.eeInterSubject || '').trim()) return true;
     for (const k of ['A','B','C','D','E']) {
@@ -600,7 +600,9 @@
   }
 
   function applyEEAutofill(data) {
-    if (data.research_question) state.title = data.research_question;
+    // Do NOT map research_question → state.title. EE research questions
+    // routinely exceed the title column's 255-char limit, and the user can
+    // type a concise title manually.
     state.eeCoreSubject = data.core_subject || '';
     state.eeInterSubject = data.interdisciplinary_subject || '';
     const criteria = data.criteria || {};
@@ -618,12 +620,14 @@
 
   function summariseAutofill(data) {
     const warnings = (data.warnings || []);
-    // Count populated fields out of the maximum (13 subject-focused, 14 interdisciplinary).
-    const max = (data.interdisciplinary_subject ? 14 : 13);
+    // Count populated fields out of the maximum. The research_question is
+    // intentionally NOT counted because we no longer map it onto the title.
+    // Max = 1 core_subject + 5 scores + 5 comments + 1 holistic = 12
+    // (+1 for interdisciplinary_subject when the form is interdisciplinary).
+    const max = (data.interdisciplinary_subject ? 13 : 12);
     let filled = 0;
     if (data.core_subject) filled++;
     if (data.interdisciplinary_subject) filled++;
-    if (data.research_question) filled++;
     if (data.holistic_comment) filled++;
     ['A','B','C','D','E'].forEach(k => {
       const crit = (data.criteria || {})[k] || {};
