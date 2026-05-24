@@ -2469,6 +2469,32 @@ def create_app() -> Flask:
         save_categories(cats)
         return jsonify(categories=cats)
 
+    @app.route("/dashboard/news/bulk_action", methods=["POST"], endpoint="news_bulk_action")
+    def news_bulk_action():
+        user = require_login(level=2)
+        if not user:
+            return jsonify(error="Unauthorized"), 401
+        data = request.get_json(silent=True) or {}
+        ids = [str(x) for x in (data.get("ids") or [])]
+        op = data.get("op")
+        if op not in {"publish", "unpublish", "delete"}:
+            return jsonify(error="bad op"), 400
+        affected = 0
+        with db_session() as db:
+            rows = db.query(NewsArticleModel).filter(NewsArticleModel.id.in_(ids)).all()
+            for r in rows:
+                if op == "publish":
+                    r.status = "published"
+                    if not r.published_at:
+                        r.published_at = datetime.utcnow().isoformat()
+                elif op == "unpublish":
+                    r.status = "pending"
+                elif op == "delete":
+                    db.delete(r)
+                affected += 1
+            db.commit()
+        return jsonify(ok=True, affected=affected)
+
     # ---------- Legacy redirects (curator news routes) ----------
     @app.route("/news/publish", endpoint="news_publish_legacy")
     def news_publish_legacy():
