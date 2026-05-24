@@ -29,8 +29,9 @@
 {% set role = user.role|int %}
 {% set display_name = user.display_name or (user.first_name ~ ' ' ~ user.last_name)|trim or user.email or user.username %}
 
-<div class="dashboard-shell" data-sidebar-state="full">
-<script>(function(){try{var s=localStorage.getItem("keydion.sidebar");if(s==="icons"||s==="hidden")document.currentScript.parentElement.dataset.sidebarState=s;}catch(_){}}());</script>
+<div class="dashboard-shell" data-sidebar-state="full" data-sidebar-init>
+<script>(function(){var e=document.currentScript.parentElement;try{var s=localStorage.getItem("keydion.sidebar");if(s==="icons"||s==="hidden")e.dataset.sidebarState=s;}catch(_){}
+requestAnimationFrame(function(){requestAnimationFrame(function(){e.removeAttribute("data-sidebar-init");});});}());</script>
   <aside class="dashboard-sidebar" aria-label="{{ _('User hub navigation') }}">
     <div class="sidebar-head">
       <div class="sidebar-head__id">

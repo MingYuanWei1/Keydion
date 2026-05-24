@@ -15,6 +15,12 @@
   background: var(--cream);
 }
 
+/* Disable sidebar transitions until JS has applied the saved state.
+   Removed via requestAnimationFrame after first paint so subsequent
+   cycle clicks animate normally. */
+.dashboard-shell[data-sidebar-init] .dashboard-sidebar,
+.dashboard-shell[data-sidebar-init] .sidebar-reveal { transition: none !important; }
+
 /* ── Sidebar ───────────────────────────────────────────────── */
 .dashboard-sidebar {
   flex: 0 0 auto;
