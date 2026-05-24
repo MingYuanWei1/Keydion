@@ -135,5 +135,26 @@ class DraftHydrationContractTest(unittest.TestCase):
         self.assertIn("form_data.update(", slice_)
 
 
+class WizardBootContractTest(unittest.TestCase):
+    """_render_upload must pass a wizard_boot dict with the expected keys."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.app_source = (ROOT / "app.py").read_text(encoding="utf-8")
+
+    def test_render_upload_builds_wizard_boot_with_required_keys(self):
+        helper_start = self.app_source.find("def _render_upload(")
+        helper_end = self.app_source.find("\n    def ", helper_start + 1)
+        if helper_end == -1:
+            helper_end = self.app_source.find("\ndef ", helper_start + 1)
+        helper_src = self.app_source[helper_start:helper_end]
+        for key in (
+            '"submit_url":', '"draft_id":', '"form_data":',
+            '"paper_categories":', '"ee_subjects":', '"cp_global_contexts":',
+            '"cp_action_types":', '"user_key":', '"i18n":',
+        ):
+            self.assertIn(key, helper_src, f"wizard_boot is missing key {key}")
+
+
 if __name__ == "__main__":
     unittest.main()
