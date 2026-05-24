@@ -1527,6 +1527,12 @@ def create_app() -> Flask:
                 "restore_btn": _("Restore"),
                 "search": _("Search…"),
                 "no_matches": _("No matches"),
+                "ee_autofill_btn": _("Auto-fill from commentary PDF"),
+                "ee_autofill_extracting": _("Extracting…"),
+                "ee_autofill_ok": _("Extracted all fields."),
+                "ee_autofill_partial": _("Extracted %(filled)s of %(total)s fields."),
+                "ee_autofill_error": _("Auto-fill failed — try again or fill manually."),
+                "ee_autofill_overwrite": _("Replace your existing EE entries with values from the PDF?"),
             },
         }
         return render_template("upload.html",
