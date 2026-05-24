@@ -60,12 +60,15 @@ If you prefer to run the application locally:
    ./start_local.sh
    ```
 
-## Production Deployment (gunicorn + nginx)
+## Production Deployment (gunicorn under systemd, host nginx)
 
-The default `docker-compose.yml` runs the Flask development server with the
-Werkzeug debugger enabled — **do not expose it publicly**. For production, use
-`docker-compose.prod.yml`, which launches gunicorn behind an nginx reverse
-proxy.
+Production runs gunicorn directly under systemd, with the host's nginx as
+the reverse proxy. The Flask development server (and its Werkzeug debugger)
+must **never** be exposed publicly.
+
+`run_prod.sh` sources `.env.prod` and execs gunicorn with the config in
+`gunicorn.conf.py`. nginx serves `/static/*` directly from disk; PDF
+download routes (`/papers/*`) proxy through to Flask so auth checks run.
 
 1. Create a `.env.prod` (gitignored) alongside `.env`:
 
@@ -84,61 +87,55 @@ proxy.
    PAPERQUERY_MAX_UPLOAD_MB=50
    ```
 
-2. Build and start:
+2. Create the virtualenv and install dependencies in the repo root:
 
    ```bash
-   docker-compose -f docker-compose.prod.yml up -d --build
+   python3 -m venv .venv
+   .venv/bin/pip install -r requirements.txt
    ```
 
-   - nginx listens on `:80` and serves `/static/*` directly.
-   - gunicorn runs application code with preforked workers behind a Unix
-     socket. The Werkzeug debugger is not loaded.
-   - PDF download routes (`/papers/*`) still go through Flask so auth checks
-     run.
-
-3. TLS is intentionally out of scope for this compose file — terminate HTTPS
-   in a load balancer, Caddy/Traefik, or a separate certbot sidecar in front
-   of nginx.
-
-4. Graceful zero-downtime deploy after a code change:
+3. Drop in the nginx site config. A reference is at
+   [`deploy/keydion.nginx.conf`](deploy/keydion.nginx.conf); the critical
+   bit is `proxy_set_header X-Forwarded-Proto $scheme;` (or `https` for a
+   TLS-only vhost) so Flask's `ProxyFix` generates correct HTTPS URLs for
+   OAuth callbacks.
 
    ```bash
-   docker-compose -f docker-compose.prod.yml build web
-   docker-compose -f docker-compose.prod.yml up -d web
-   # or, to reload in place: docker exec keydion-web-prod kill -HUP 1
+   sudo cp deploy/keydion.nginx.conf /etc/nginx/sites-available/keydion
+   sudo ln -s /etc/nginx/sites-available/keydion /etc/nginx/sites-enabled/
+   sudo nginx -t && sudo systemctl reload nginx
    ```
 
-### Host-direct deployment (gunicorn under systemd, existing nginx)
+   TLS is out of scope here — terminate HTTPS in nginx itself (certbot) or
+   an upstream load balancer.
 
-If you already operate nginx on the host (instead of using the bundled
-`docker-compose.prod.yml` stack), run gunicorn directly under systemd and
-point your existing nginx at it. `run_prod.sh` sources `.env.prod` and
-execs gunicorn with the config in `gunicorn.conf.py`.
+4. Install the systemd unit at `/etc/systemd/system/keydion.service`:
 
-A reference site config is at [`deploy/keydion.nginx.conf`](deploy/keydion.nginx.conf);
-the critical bit is `proxy_set_header X-Forwarded-Proto $scheme;` (or
-`https` for a TLS-only vhost) so Flask's `ProxyFix` generates correct
-HTTPS URLs for OAuth callbacks.
+   ```ini
+   [Unit]
+   Description=Keydion (gunicorn)
+   After=network.target
 
-A reference systemd unit (`/etc/systemd/system/keydion.service`):
+   [Service]
+   User=<owner of the repo>
+   WorkingDirectory=/Keydion
+   ExecStart=/Keydion/run_prod.sh
+   ExecReload=/bin/kill -HUP $MAINPID
+   Restart=on-failure
+   KillSignal=SIGTERM
+   TimeoutStopSec=30
 
-```ini
-[Unit]
-Description=Keydion (gunicorn)
-After=network.target
+   [Install]
+   WantedBy=multi-user.target
+   ```
 
-[Service]
-User=<owner of the repo>
-WorkingDirectory=/Keydion
-ExecStart=/Keydion/run_prod.sh
-ExecReload=/bin/kill -HUP $MAINPID
-Restart=on-failure
-KillSignal=SIGTERM
-TimeoutStopSec=30
+5. Enable and start the service:
 
-[Install]
-WantedBy=multi-user.target
-```
+   ```bash
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now keydion
+   sudo systemctl status keydion --no-pager
+   ```
 
 ### Updating the server after `git pull`
 
