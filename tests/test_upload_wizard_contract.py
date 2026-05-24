@@ -1,3 +1,4 @@
+import ast
 import json
 import sys
 import unittest
@@ -63,6 +64,52 @@ class ParseHelpersContractTest(unittest.TestCase):
         self.assertEqual(parse_cp_data_for_form(""), {})
         self.assertEqual(parse_cp_data_for_form("nope"), {})
         self.assertEqual(parse_cp_data_for_form(None), {})
+
+
+class UploadValidatorContractTest(unittest.TestCase):
+    """The upload() validator must skip keywords/abstract when EE or CP."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.app_source = (ROOT / "app.py").read_text(encoding="utf-8")
+        cls.app_tree = ast.parse(cls.app_source)
+
+    def _find_function(self, name):
+        for node in ast.walk(self.app_tree):
+            if isinstance(node, ast.FunctionDef) and node.name == name:
+                return node
+        self.fail(f"Could not find function {name}")
+
+    def test_upload_uses_per_type_required_cascade(self):
+        upload_fn = self._find_function("upload")
+        src = ast.get_source_segment(self.app_source, upload_fn)
+        # New shape: a single `required` list that conditionally includes
+        # "keywords" / "abstract" only when neither EE nor CP.
+        self.assertIn('required = ["title", "category", "language"]', src)
+        self.assertIn('if not (is_ib_ee or is_cp_paper):', src)
+        self.assertIn('required += ["keywords", "abstract"]', src)
+        self.assertIn('if not is_ib_sample:', src)
+        self.assertIn(
+            'required += ["author_name", "author_email", "author_school"]', src
+        )
+
+    def test_upload_uses_render_helper(self):
+        """The 8-way repeated render_template(...) is collapsed into one helper."""
+        upload_fn = self._find_function("upload")
+        src = ast.get_source_segment(self.app_source, upload_fn)
+        # Helper exists and is called from validators.
+        self.assertIn("_render_upload(", src)
+        # And the helper itself exists.
+        helper = self._find_function("_render_upload")
+        helper_src = ast.get_source_segment(self.app_source, helper)
+        self.assertIn('render_template("upload.html"', helper_src)
+
+    def test_missing_field_messages_table_exists(self):
+        # Single source of truth for the flash strings.
+        self.assertIn("_MISSING_FIELD_MESSAGES = {", self.app_source)
+        for key in ("title", "category", "language", "keywords", "abstract",
+                    "author_name", "author_email", "author_school"):
+            self.assertIn(f'"{key}":', self.app_source)
 
 
 if __name__ == "__main__":
