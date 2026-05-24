@@ -851,3 +851,17 @@
 .kd-upload-wizard .restore-banner__title { font-weight: 600; margin-bottom: 4px; }
 .kd-upload-wizard .restore-banner__sub { font-size: 13.5px; color: var(--ink-muted, #6b6052); }
 .kd-upload-wizard .restore-banner__actions { display: flex; gap: 10px; flex-shrink: 0; }
+/* EE commentary PDF auto-fill */
+.ee-autofill {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.ee-autofill__status { font-size: 0.875rem; }
+.ee-autofill__status--ok      { color: var(--bs-success, #198754); }
+.ee-autofill__status--partial { color: var(--bs-warning, #fd7e14); }
+.ee-autofill__status--error   { color: var(--bs-danger, #dc3545); }
+.ee-autofill__status--loading { color: var(--bs-secondary, #6c757d); }
+.ee-autofill__status--idle:empty { display: none; }
