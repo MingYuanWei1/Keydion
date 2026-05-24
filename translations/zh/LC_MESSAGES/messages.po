@@ -933,7 +933,6 @@ msgstr "学科类别"
 #: templates/delete.html:263 templates/delete.html:332
 #: templates/news_manage.html:462 templates/news_publish.html:998
 #: templates/review_paper.html:36 templates/submission_detail.html:36
-#, fuzzy
 msgid "Author"
 msgstr "作者"
 
@@ -3501,3 +3500,534 @@ msgstr "指南"
 
 msgid "new"
 msgstr "新建"
+
+
+# ==================== UPLOAD WIZARD (JS) ====================
+
+#: static/js/upload-wizard.js
+msgid "Paper Type"
+msgstr "论文类型"
+
+#: static/js/upload-wizard.js
+msgid "Metadata"
+msgstr "元信息"
+
+#: static/js/upload-wizard.js
+msgid "Authors"
+msgstr "作者"
+
+#: static/js/upload-wizard.js
+msgid "File"
+msgstr "文件"
+
+#: static/js/upload-wizard.js
+msgid "Step %(n)s"
+msgstr "第 %(n)s 步"
+
+#: static/js/upload-wizard.js
+msgid "Continue →"
+msgstr "继续 →"
+
+#: static/js/upload-wizard.js
+msgid "← Back"
+msgstr "← 返回"
+
+#: static/js/upload-wizard.js
+msgid "Choose paper type"
+msgstr "选择论文类型"
+
+#: static/js/upload-wizard.js
+msgid "What kind of paper are you submitting?"
+msgstr "您要提交的是哪一类论文？"
+
+#: static/js/upload-wizard.js
+msgid "The fields you'll be asked for next depend on this. You can come back and change it before submitting."
+msgstr "接下来需要填写的字段取决于您的选择。提交前您可以随时回到此步骤修改。"
+
+#: static/js/upload-wizard.js
+msgid "Independent Research"
+msgstr "独立研究"
+
+#: static/js/upload-wizard.js
+msgid "Standard Paper"
+msgstr "标准论文"
+
+#: static/js/upload-wizard.js
+msgid "A self-directed research paper, conference paper, or article that is not part of the IB Diploma framework."
+msgstr "自主选题的研究论文、会议论文或文章，不属于 IB 文凭课程框架。"
+
+#: static/js/upload-wizard.js
+msgid "Title · authors · abstract · subject"
+msgstr "标题 · 作者 · 摘要 · 学科"
+
+#: static/js/upload-wizard.js
+msgid "IB Diploma"
+msgstr "IB 文凭"
+
+#: static/js/upload-wizard.js
+msgid "Extended Essay (EE)"
+msgstr "拓展论文（EE）"
+
+#: static/js/upload-wizard.js
+msgid "A 4,000-word IB Diploma research essay with structured criterion scores (A–E) and an EE subject from the six IB subject groups."
+msgstr "约 4,000 字的 IB 文凭研究论文，按 A–E 评分标准评分，从六大 IB 学科组中选定 EE 学科。"
+
+#: static/js/upload-wizard.js
+msgid "Research Question · EE subject · criterion scores A–E"
+msgstr "研究问题 · EE 学科 · A–E 项评分"
+
+#: static/js/upload-wizard.js
+msgid "IB Diploma"
+msgstr "IB 文凭"
+
+#: static/js/upload-wizard.js
+msgid "Community Project (CP)"
+msgstr "社区项目（CP）"
+
+#: static/js/upload-wizard.js
+msgid "An IB MYP Community Project graded against Criteria A–D, with a Global Context and a chosen type of action."
+msgstr "IB MYP 社区项目，按 A–D 标准评分，并选择全球语境与行动类型。"
+
+#: static/js/upload-wizard.js
+msgid "Title · Global Context · type of action · criteria A–D"
+msgstr "标题 · 全球语境 · 行动类型 · A–D 项评分"
+
+#: static/js/upload-wizard.js
+msgid "Research Question"
+msgstr "研究问题"
+
+#: static/js/upload-wizard.js
+msgid "e.g. To what extent did monetary policy contribute to the 2008 financial crisis?"
+msgstr "例如：货币政策在多大程度上促成了 2008 年的金融危机？"
+
+#: static/js/upload-wizard.js
+msgid "Enter the complete paper title"
+msgstr "请输入完整的论文标题"
+
+#: static/js/upload-wizard.js
+msgid "Tell us about your essay"
+msgstr "请介绍您的论文"
+
+#: static/js/upload-wizard.js
+msgid "Tell us about your community project"
+msgstr "请介绍您的社区项目"
+
+#: static/js/upload-wizard.js
+msgid "Tell us about your paper"
+msgstr "请介绍您的论文"
+
+#: static/js/upload-wizard.js
+msgid "IB grading information and bibliographic details for the submission."
+msgstr "本次提交的 IB 评分信息与文献信息。"
+
+#: static/js/upload-wizard.js
+msgid "Bibliographic information that will appear on the public paper page."
+msgstr "将在论文公开页面上展示的文献信息。"
+
+#: static/js/upload-wizard.js
+msgid "Paper details"
+msgstr "论文详情"
+
+#: static/js/upload-wizard.js
+msgid "Bibliographic"
+msgstr "文献信息"
+
+#: static/js/upload-wizard.js
+msgid "Choose a subject category…"
+msgstr "请选择学科类别…"
+
+#: static/js/upload-wizard.js
+msgid "Add another…"
+msgstr "继续添加…"
+
+#: static/js/upload-wizard.js
+msgid "Type a keyword and press Enter"
+msgstr "输入关键词后按 Enter 添加"
+
+#: static/js/upload-wizard.js
+msgid "Press Enter or comma to add. Aim for 3–6 keywords."
+msgstr "按 Enter 或逗号添加，建议 3–6 个关键词。"
+
+#: static/js/upload-wizard.js
+msgid "added"
+msgstr "已添加"
+
+#: static/js/upload-wizard.js
+msgid "Briefly describe your research background, methods, and conclusions…"
+msgstr "请简要描述您的研究背景、方法与结论…"
+
+#: static/js/upload-wizard.js
+msgid "A short summary that appears in search results."
+msgstr "搜索结果中显示的简短摘要。"
+
+#: static/js/upload-wizard.js
+msgid "This is an IB Sample Paper"
+msgstr "这是一篇 IB 范文"
+
+#: static/js/upload-wizard.js
+msgid "Sample papers are reference essays without an identified author. Checking this will skip the Authors step."
+msgstr "范文是无明确作者的参考论文。勾选此项将跳过作者填写步骤。"
+
+#: static/js/upload-wizard.js
+msgid "Framework for the essay"
+msgstr "论文框架"
+
+#: static/js/upload-wizard.js
+msgid "Knowledge and understanding"
+msgstr "知识与理解"
+
+#: static/js/upload-wizard.js
+msgid "Analysis and line of argument"
+msgstr "分析与论证"
+
+#: static/js/upload-wizard.js
+msgid "Discussion and evaluation"
+msgstr "讨论与评估"
+
+#: static/js/upload-wizard.js
+msgid "Reflection"
+msgstr "反思"
+
+#: static/js/upload-wizard.js
+msgid "EE Subject"
+msgstr "EE 学科"
+
+#: static/js/upload-wizard.js
+msgid "Core Subject"
+msgstr "核心学科"
+
+#: static/js/upload-wizard.js
+msgid "Select a core subject…"
+msgstr "请选择核心学科…"
+
+#: static/js/upload-wizard.js
+msgid "Interdisciplinary"
+msgstr "跨学科"
+
+#: static/js/upload-wizard.js
+msgid "Optional"
+msgstr "可选"
+
+#: static/js/upload-wizard.js
+msgid "Optional — select if applicable…"
+msgstr "可选 — 如适用请选择…"
+
+#: static/js/upload-wizard.js
+msgid "Criterion Scores"
+msgstr "评分标准得分"
+
+#: static/js/upload-wizard.js
+msgid "Crit."
+msgstr "标准"
+
+#: static/js/upload-wizard.js
+msgid "Criterion"
+msgstr "评分标准"
+
+#: static/js/upload-wizard.js
+msgid "Score"
+msgstr "得分"
+
+#: static/js/upload-wizard.js
+msgid "Overall Grade"
+msgstr "总评等级"
+
+#: static/js/upload-wizard.js
+msgid "Calculated server-side from the criteria above"
+msgstr "由以上各项得分在服务器端自动计算"
+
+#: static/js/upload-wizard.js
+msgid "Criterion Commentaries"
+msgstr "标准评语"
+
+#: static/js/upload-wizard.js
+msgid "Include commentaries for all criteria"
+msgstr "为每项评分标准填写评语"
+
+#: static/js/upload-wizard.js
+msgid "Provide short remarks on each criterion plus an optional overall holistic commentary."
+msgstr "请为每项标准提供简短评语，并可选填一份整体性总评。"
+
+#: static/js/upload-wizard.js
+msgid "Commentary for Criterion %(k)s…"
+msgstr "对评分标准 %(k)s 的评语…"
+
+#: static/js/upload-wizard.js
+msgid "Holistic Commentary"
+msgstr "整体性总评"
+
+#: static/js/upload-wizard.js
+msgid "An overall holistic commentary for the essay…"
+msgstr "对整篇论文的整体性总评…"
+
+#: static/js/upload-wizard.js
+msgid "Investigating"
+msgstr "调研"
+
+#: static/js/upload-wizard.js
+msgid "Planning"
+msgstr "规划"
+
+#: static/js/upload-wizard.js
+msgid "Taking Action"
+msgstr "实施行动"
+
+#: static/js/upload-wizard.js
+msgid "Reflecting"
+msgstr "反思"
+
+#: static/js/upload-wizard.js
+msgid "Global Context"
+msgstr "全球语境"
+
+#: static/js/upload-wizard.js
+msgid "Select a Global Context…"
+msgstr "请选择全球语境…"
+
+#: static/js/upload-wizard.js
+msgid "Global Contexts"
+msgstr "全球语境"
+
+#: static/js/upload-wizard.js
+msgid "Type of Action"
+msgstr "行动类型"
+
+#: static/js/upload-wizard.js
+msgid "Mean of the four criterion scores, rounded"
+msgstr "四项标准得分的平均值（四舍五入）"
+
+#: static/js/upload-wizard.js
+msgid "Author information"
+msgstr "作者信息"
+
+#: static/js/upload-wizard.js
+msgid "Who wrote this?"
+msgstr "本论文的作者是谁？"
+
+#: static/js/upload-wizard.js
+msgid "The first author's contact details are required. Add co-authors as needed."
+msgstr "第一作者的联系信息为必填，可根据需要添加合作者。"
+
+#: static/js/upload-wizard.js
+msgid "School / Institution"
+msgstr "学校 / 机构"
+
+#: static/js/upload-wizard.js
+msgid "Remove author"
+msgstr "移除作者"
+
+#: static/js/upload-wizard.js
+msgid "+ Add another author"
+msgstr "+ 添加作者"
+
+#: static/js/upload-wizard.js
+msgid "File upload"
+msgstr "文件上传"
+
+#: static/js/upload-wizard.js
+msgid "Upload your PDF"
+msgstr "上传 PDF 文件"
+
+#: static/js/upload-wizard.js
+msgid "Submit a single PDF, up to 50 MB. You can change this before publishing."
+msgstr "请提交单个 PDF 文件，最大 50 MB。发布前仍可更换。"
+
+#: static/js/upload-wizard.js
+msgid "No file chosen"
+msgstr "尚未选择文件"
+
+#: static/js/upload-wizard.js
+msgid "PDF only · single file"
+msgstr "仅支持 PDF · 单个文件"
+
+#: static/js/upload-wizard.js
+msgid "Replace"
+msgstr "更换"
+
+#: static/js/upload-wizard.js
+msgid "Choose file"
+msgstr "选择文件"
+
+#: static/js/upload-wizard.js
+msgid "If you'd like to come back to this later, click Save Draft below — your form will be restored next time you visit."
+msgstr "若想稍后继续，请点击下方的「保存草稿」，下次访问时表单将自动恢复。"
+
+#: static/js/upload-wizard.js
+msgid "Paper Type"
+msgstr "论文类型"
+
+#: static/js/upload-wizard.js
+msgid "First author (name, email, school)"
+msgstr "第一作者（姓名、邮箱、学校）"
+
+#: static/js/upload-wizard.js
+msgid "EE core subject"
+msgstr "EE 核心学科"
+
+#: static/js/upload-wizard.js
+msgid "EE criterion score %(k)s"
+msgstr "EE 评分标准 %(k)s 得分"
+
+#: static/js/upload-wizard.js
+msgid "Global context"
+msgstr "全球语境"
+
+#: static/js/upload-wizard.js
+msgid "Type of action"
+msgstr "行动类型"
+
+#: static/js/upload-wizard.js
+msgid "CP criterion score %(k)s"
+msgstr "CP 评分标准 %(k)s 得分"
+
+#: static/js/upload-wizard.js
+msgid "PDF file"
+msgstr "PDF 文件"
+
+#: static/js/upload-wizard.js
+msgid "Independent Research Paper"
+msgstr "独立研究论文"
+
+#: static/js/upload-wizard.js
+msgid "IB Extended Essay"
+msgstr "IB 拓展论文（EE）"
+
+#: static/js/upload-wizard.js
+msgid "IB Community Project"
+msgstr "IB 社区项目（CP）"
+
+#: static/js/upload-wizard.js
+msgid "Review & submit"
+msgstr "复核并提交"
+
+#: static/js/upload-wizard.js
+msgid "Almost there — review your submission"
+msgstr "即将完成 — 请复核您的提交内容"
+
+#: static/js/upload-wizard.js
+msgid "Make sure everything looks right. You can jump back to any section to make changes."
+msgstr "请确认所有信息无误，可随时跳回任意步骤进行修改。"
+
+#: static/js/upload-wizard.js
+msgid "1 field still needs attention"
+msgstr "还有 1 项需要补充"
+
+#: static/js/upload-wizard.js
+msgid "%(n)s fields still need attention"
+msgstr "还有 %(n)s 项需要补充"
+
+#: static/js/upload-wizard.js
+msgid "go to %(step)s"
+msgstr "前往%(step)s"
+
+#: static/js/upload-wizard.js
+msgid "Everything required is filled in."
+msgstr "所有必填项已填写完成。"
+
+#: static/js/upload-wizard.js
+msgid "Click Submit Paper below to send your submission for review."
+msgstr "点击下方「提交论文」按钮发送您的提交以供审核。"
+
+#: static/js/upload-wizard.js
+msgid "Type"
+msgstr "类型"
+
+#: static/js/upload-wizard.js
+msgid "Metadata"
+msgstr "元信息"
+
+#: static/js/upload-wizard.js
+msgid "Research Q."
+msgstr "研究问题"
+
+#: static/js/upload-wizard.js
+msgid "Not provided"
+msgstr "未填写"
+
+#: static/js/upload-wizard.js
+msgid "Not chosen"
+msgstr "未选择"
+
+#: static/js/upload-wizard.js
+msgid "None"
+msgstr "无"
+
+#: static/js/upload-wizard.js
+msgid "Not written"
+msgstr "未填写"
+
+#: static/js/upload-wizard.js
+msgid "IB Sample"
+msgstr "IB 范文"
+
+#: static/js/upload-wizard.js
+msgid "Yes — author info skipped"
+msgstr "是 — 已跳过作者信息"
+
+#: static/js/upload-wizard.js
+msgid "No"
+msgstr "否"
+
+#: static/js/upload-wizard.js
+msgid "Authors"
+msgstr "作者"
+
+#: static/js/upload-wizard.js
+msgid "File"
+msgstr "文件"
+
+#: static/js/upload-wizard.js
+msgid "No file uploaded"
+msgstr "尚未上传文件"
+
+#: static/js/upload-wizard.js
+msgid "EE Details"
+msgstr "EE 详情"
+
+#: static/js/upload-wizard.js
+msgid "Total"
+msgstr "总分"
+
+#: static/js/upload-wizard.js
+msgid "CP Details"
+msgstr "CP 详情"
+
+#: static/js/upload-wizard.js
+msgid "None selected"
+msgstr "未选择"
+
+#: static/js/upload-wizard.js
+msgid "Avg. Grade"
+msgstr "平均得分"
+
+#: static/js/upload-wizard.js
+msgid "Saving…"
+msgstr "保存中…"
+
+#: static/js/upload-wizard.js
+msgid "Draft saved · %(time)s"
+msgstr "草稿已保存 · %(time)s"
+
+#: static/js/upload-wizard.js
+msgid "Unsaved changes from earlier"
+msgstr "存在未保存的修改"
+
+#: static/js/upload-wizard.js
+msgid "Your last session in this browser had changes you didn't save. Restore them?"
+msgstr "您上次在此浏览器中的更改尚未保存，是否恢复？"
+
+#: static/js/upload-wizard.js
+msgid "Discard"
+msgstr "放弃"
+
+#: static/js/upload-wizard.js
+msgid "Restore"
+msgstr "恢复"
+
+#: static/js/upload-wizard.js
+msgid "Search…"
+msgstr "搜索…"
+
+#: static/js/upload-wizard.js
+msgid "No matches"
+msgstr "无匹配结果"
