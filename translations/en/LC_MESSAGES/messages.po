@@ -4038,3 +4038,32 @@ msgstr "Search…"
 #: static/js/upload-wizard.js
 msgid "No matches"
 msgstr "No matches"
+
+# ==================== EE PDF AUTO-FILL ====================
+
+msgid "Auto-fill from commentary PDF"
+msgstr "Auto-fill from commentary PDF"
+
+msgid "Replace your existing EE entries with values from the PDF?"
+msgstr "Replace your existing EE entries with values from the PDF?"
+
+msgid "Extracting…"
+msgstr "Extracting…"
+
+msgid "Extracted all fields."
+msgstr "Extracted all fields."
+
+msgid "Extracted %(filled)s of %(total)s fields."
+msgstr "Extracted %(filled)s of %(total)s fields."
+
+msgid "Auto-fill failed — try again or fill manually."
+msgstr "Auto-fill failed — try again or fill manually."
+
+msgid "No file provided"
+msgstr "No file provided"
+
+msgid "File must be a PDF"
+msgstr "File must be a PDF"
+
+msgid "File is not a valid PDF"
+msgstr "File is not a valid PDF"
