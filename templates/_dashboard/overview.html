@@ -46,7 +46,7 @@
     {% endif %}
 
     {% if role >= 2 and dashboard_stats.published_news is defined %}
-    <a class="stat-tile" href="{{ url_for('news_list') }}" data-partial-href="{{ url_for('news_list') }}">
+    <a class="stat-tile" href="{{ url_for('news_list') }}">
       <div class="stat-tile__label">{{ _('Published news') }}</div>
       <div class="stat-tile__value">{{ dashboard_stats.published_news }}</div>
     </a>
