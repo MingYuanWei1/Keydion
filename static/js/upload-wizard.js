@@ -523,6 +523,122 @@
         touch();
       });
     });
+
+    // ── EE auto-fill from commentary PDF ─────────────────────────
+    const autoBtn = stepsContainer.querySelector('#eeAutofillBtn');
+    const autoFile = stepsContainer.querySelector('#eeAutofillFile');
+    if (autoBtn && autoFile) {
+      autoBtn.addEventListener('click', () => autoFile.click());
+      autoFile.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        e.target.value = ''; // allow re-selecting the same file
+        if (!file) return;
+        await runEEAutofill(file);
+      });
+    }
+  }
+
+  async function runEEAutofill(file) {
+    state.eeAutofillStatus = 'loading';
+    state.eeAutofillMessage = t('ee_autofill_extracting', 'Extracting…');
+    render();
+
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const resp = await fetch('/api/upload/extract-ee-metadata', {
+        method: 'POST',
+        body: form,
+        credentials: 'same-origin',
+      });
+      const data = await resp.json().catch(() => ({}));
+
+      if (!resp.ok) {
+        state.eeAutofillStatus = 'error';
+        state.eeAutofillMessage = data.error || t('ee_autofill_error',
+          'Auto-fill failed — try again or fill manually.');
+        render();
+        return;
+      }
+
+      if (isEEDirty()) {
+        const ok = window.confirm(t('ee_autofill_overwrite',
+          'Replace your existing EE entries with values from the PDF?'));
+        if (!ok) {
+          state.eeAutofillStatus = '';
+          state.eeAutofillMessage = '';
+          render();
+          return;
+        }
+      }
+
+      applyEEAutofill(data);
+      const summary = summariseAutofill(data);
+      state.eeAutofillStatus = summary.status;
+      state.eeAutofillMessage = summary.message;
+      touch();
+      render();
+    } catch (err) {
+      state.eeAutofillStatus = 'error';
+      state.eeAutofillMessage = t('ee_autofill_error',
+        'Auto-fill failed — try again or fill manually.');
+      render();
+    }
+  }
+
+  function isEEDirty() {
+    if ((state.title || '').trim()) return true;
+    if ((state.eeCoreSubject || '').trim()) return true;
+    if ((state.eeInterSubject || '').trim()) return true;
+    for (const k of ['A','B','C','D','E']) {
+      if ((state.eeScores[k] || '').toString().trim()) return true;
+      if ((state.eeComments[k] || '').trim()) return true;
+    }
+    if ((state.eeComments.holistic || '').trim()) return true;
+    return false;
+  }
+
+  function applyEEAutofill(data) {
+    if (data.research_question) state.title = data.research_question;
+    state.eeCoreSubject = data.core_subject || '';
+    state.eeInterSubject = data.interdisciplinary_subject || '';
+    const criteria = data.criteria || {};
+    ['A','B','C','D','E'].forEach(k => {
+      const crit = criteria[k] || {};
+      state.eeScores[k] = (crit.score === null || crit.score === undefined) ? '' : String(crit.score);
+      state.eeComments[k] = crit.comment || '';
+    });
+    state.eeComments.holistic = data.holistic_comment || '';
+    // Auto-reveal the commentary section if anything came back for it.
+    const anyComment = ['A','B','C','D','E'].some(k => state.eeComments[k])
+      || !!state.eeComments.holistic;
+    if (anyComment) state.eeIncludeComments = true;
+  }
+
+  function summariseAutofill(data) {
+    const warnings = (data.warnings || []);
+    // Count populated fields out of the maximum (13 subject-focused, 14 interdisciplinary).
+    const max = (data.interdisciplinary_subject ? 14 : 13);
+    let filled = 0;
+    if (data.core_subject) filled++;
+    if (data.interdisciplinary_subject) filled++;
+    if (data.research_question) filled++;
+    if (data.holistic_comment) filled++;
+    ['A','B','C','D','E'].forEach(k => {
+      const crit = (data.criteria || {})[k] || {};
+      if (crit.score !== null && crit.score !== undefined) filled++;
+      if (crit.comment) filled++;
+    });
+    if (warnings.length === 0 && filled >= max) {
+      return { status: 'ok', message: t('ee_autofill_ok', 'Extracted all fields.') };
+    }
+    const tail = warnings.length ? ' ' + warnings.join(' ') : '';
+    return {
+      status: 'partial',
+      message: t('ee_autofill_partial',
+        'Extracted %(filled)s of %(total)s fields.', { filled: String(filled), total: String(max) })
+        + tail,
+    };
   }
 
   // ─── CP fieldset ───────────────────────────────────────────
