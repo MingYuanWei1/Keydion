@@ -131,7 +131,7 @@
       case 'metadata': html = renderMetadata(); break;
       case 'authors': html = renderAuthors(); break;
       case 'file': html = renderFile(); break;
-      case 'review': html = '<div class="wizard-card"><p>Step 5 placeholder</p></div>'; break;
+      case 'review': html = renderReview(); break;
     }
     stepsContainer.innerHTML = html;
     bindStep(step.id);
@@ -142,6 +142,7 @@
     if (id === 'metadata') bindMetadata();
     if (id === 'authors') bindAuthors();
     if (id === 'file') bindFile();
+    if (id === 'review') bindReview();
   }
 
   function renderFooter() {
@@ -162,10 +163,22 @@
     if (back) back.addEventListener('click', () => goToStep(state.step - 1));
     const next = footerEl.querySelector('#nextBtn');
     if (next) next.addEventListener('click', () => {
-      if (isLast) { /* submit hooked up in later task */ }
-      else goToStep(state.step + 1);
+      if (isLast) {
+        // Submit only when nothing is missing; otherwise re-render Review so
+        // the missing-fields summary updates.
+        if (getMissing().length) { renderStep(); return; }
+        clearLocalStorage();
+        serializeToForm();
+      } else {
+        goToStep(state.step + 1);
+      }
     });
-    // saveBtn hooked up in Task 14
+    const save = footerEl.querySelector('#saveBtn');
+    if (save) save.addEventListener('click', () => {
+      autosaveSaving();
+      // For Save Draft we tolerate missing fields; the server only requires a title.
+      serializeToForm([['save_draft', '1']]);
+    });
   }
 
   function goToStep(idx) {
@@ -682,6 +695,271 @@
       });
     }
   }
+
+  // ─── Step 5: Review + missing-field summary ───────────────
+  function getMissing() {
+    const steps = getSteps();
+    const stepIdx = (id) => steps.findIndex(s => s.id === id);
+    const missing = [];
+    if (!state.paperType) missing.push({ label: t('paper_type', 'Paper type'), step: stepIdx('type') });
+    if (!state.title.trim()) missing.push({
+      label: state.paperType === 'ee' ? t('research_question', 'Research question') : t('paper_title', 'Paper title'),
+      step: stepIdx('metadata'),
+    });
+    if (!state.language) missing.push({ label: t('language', 'Language'), step: stepIdx('metadata') });
+    if (!state.category) missing.push({ label: t('subject_category', 'Subject category'), step: stepIdx('metadata') });
+    if (state.paperType === 'standard') {
+      if (!state.keywords.length) missing.push({ label: t('keywords', 'Keywords'), step: stepIdx('metadata') });
+      if (!state.abstract.trim()) missing.push({ label: t('abstract', 'Abstract'), step: stepIdx('metadata') });
+    }
+    if (!state.isIbSample) {
+      const a0 = state.authors[0] || {};
+      if (!a0.name || !a0.email || !a0.school) {
+        missing.push({ label: t('first_author', 'First author (name, email, school)'), step: stepIdx('authors') });
+      }
+    }
+    if (state.paperType === 'ee') {
+      if (!state.eeCoreSubject) missing.push({ label: t('ee_core', 'EE core subject'), step: stepIdx('metadata') });
+      Object.entries(state.eeScores).forEach(([k, v]) => {
+        if (v === '' || v == null) missing.push({ label: t('ee_score_x', 'EE criterion score %(k)s', { k }), step: stepIdx('metadata') });
+      });
+    }
+    if (state.paperType === 'cp') {
+      if (!state.cpGlobalContext) missing.push({ label: t('cp_global', 'Global context'), step: stepIdx('metadata') });
+      if (!state.cpActionTypes.length) missing.push({ label: t('cp_action_label', 'Type of action'), step: stepIdx('metadata') });
+      Object.entries(state.cpScores).forEach(([k, v]) => {
+        if (v === '' || v == null) missing.push({ label: t('cp_score_x', 'CP criterion score %(k)s', { k }), step: stepIdx('metadata') });
+      });
+    }
+    if (!state.file) missing.push({ label: t('pdf_file', 'PDF file'), step: stepIdx('file') });
+    return missing.filter(m => m.step >= 0);
+  }
+
+  function renderReview() {
+    const steps = getSteps();
+    const idx = (id) => steps.findIndex(s => s.id === id);
+    const missing = getMissing();
+    const typeName = state.paperType === 'standard' ? t('type_standard', 'Independent Research Paper')
+      : state.paperType === 'ee' ? t('type_ee', 'IB Extended Essay')
+      : state.paperType === 'cp' ? t('type_cp', 'IB Community Project')
+      : '—';
+    const langName = state.language === 'en' ? t('english', 'English')
+      : state.language === 'zh' ? t('chinese', 'Chinese') : '';
+    const cats = BOOT.paper_categories || [];
+    const matchedCat = cats.find(c => (typeof c === 'string' ? c : c.value) === state.category);
+    const categoryName = matchedCat ? (typeof matchedCat === 'string' ? matchedCat : matchedCat.label) : '';
+
+    let html = `
+      <div class="wizard-card">
+        <div class="wizard-card__head">
+          <div class="wizard-card__crumb">${t('step_label', 'Step %(n)s', { n: steps.length })} · ${t('review_submit', 'Review & submit')}</div>
+          <h2 class="wizard-card__title">${t('almost_there', 'Almost there — review your submission')}</h2>
+          <p class="wizard-card__sub">${t('review_sub', 'Make sure everything looks right. You can jump back to any section to make changes.')}</p>
+        </div>
+
+        ${missing.length ? `
+          <div class="review-missing">
+            <div class="review-missing__head">
+              ${missing.length === 1 ? t('missing_fields_one', '1 field still needs attention') : t('missing_fields_many', '%(n)s fields still need attention', { n: missing.length })}
+            </div>
+            <ul>
+              ${missing.map(m => `<li><strong>${esc(m.label)}</strong> — <button type="button" class="review-section__edit" data-jump="${m.step}">${t('go_to', 'go to %(step)s', { step: steps[m.step].name })}</button></li>`).join('')}
+            </ul>
+          </div>
+        ` : `
+          <div class="review-missing review-missing--clean">
+            <div class="review-missing__head">${t('everything_filled', 'Everything required is filled in.')}</div>
+            <p style="margin:0;font-size:13.5px;">${t('submit_cta', 'Click Submit Paper below to send your submission for review.')}</p>
+          </div>
+        `}
+
+        <div class="review-section">
+          <div class="review-section__head">
+            <div class="review-section__title">${t('paper_type', 'Paper Type')}</div>
+            <button type="button" class="review-section__edit" data-jump="${idx('type')}">${t('edit', 'Edit')}</button>
+          </div>
+          <dl class="review-grid"><dt>${t('type', 'Type')}</dt><dd>${esc(typeName)}</dd></dl>
+        </div>
+
+        <div class="review-section">
+          <div class="review-section__head">
+            <div class="review-section__title">${t('metadata_title', 'Metadata')}</div>
+            <button type="button" class="review-section__edit" data-jump="${idx('metadata')}">${t('edit', 'Edit')}</button>
+          </div>
+          <dl class="review-grid">
+            <dt>${state.paperType === 'ee' ? t('research_q_short', 'Research Q.') : t('title_short', 'Title')}</dt>
+            <dd${state.title ? '' : ' class="is-missing"'}>${state.title ? esc(state.title) : t('not_provided', 'Not provided')}</dd>
+            <dt>${t('language', 'Language')}</dt><dd${langName ? '' : ' class="is-missing"'}>${langName || t('not_chosen', 'Not chosen')}</dd>
+            <dt>${t('subject', 'Subject')}</dt><dd${categoryName ? '' : ' class="is-missing"'}>${categoryName || t('not_chosen', 'Not chosen')}</dd>
+            ${state.paperType === 'standard' ? `
+              <dt>${t('keywords', 'Keywords')}</dt><dd${state.keywords.length ? '' : ' class="is-missing"'}>${state.keywords.length ? state.keywords.map(esc).join(', ') : t('none', 'None')}</dd>
+              <dt>${t('abstract', 'Abstract')}</dt><dd${state.abstract ? '' : ' class="is-missing"'}>${state.abstract ? esc(state.abstract.slice(0, 280)) + (state.abstract.length > 280 ? '…' : '') : t('not_written', 'Not written')}</dd>
+            ` : ''}
+            ${(state.paperType === 'ee' || state.paperType === 'cp') ? `<dt>${t('ib_sample', 'IB Sample')}</dt><dd>${state.isIbSample ? t('yes_skipped', 'Yes — author info skipped') : t('no', 'No')}</dd>` : ''}
+          </dl>
+        </div>
+
+        ${!state.isIbSample ? `
+          <div class="review-section">
+            <div class="review-section__head">
+              <div class="review-section__title">${t('authors', 'Authors')}</div>
+              <button type="button" class="review-section__edit" data-jump="${idx('authors')}">${t('edit', 'Edit')}</button>
+            </div>
+            <dl class="review-grid">
+              ${state.authors.map((a, i) => `
+                <dt>${t('author', 'Author')} ${i + 1}</dt>
+                <dd${(i === 0 && (!a.name || !a.email || !a.school)) ? ' class="is-missing"' : ''}>
+                  ${a.name ? esc(a.name) : '<em>name?</em>'}${a.email ? ' · ' + esc(a.email) : ''}${a.school ? ' · ' + esc(a.school) : ''}
+                </dd>
+              `).join('')}
+            </dl>
+          </div>
+        ` : ''}
+
+        ${state.paperType === 'ee' ? renderReviewEE(idx('metadata')) : ''}
+        ${state.paperType === 'cp' ? renderReviewCP(idx('metadata')) : ''}
+
+        <div class="review-section">
+          <div class="review-section__head">
+            <div class="review-section__title">${t('file', 'File')}</div>
+            <button type="button" class="review-section__edit" data-jump="${idx('file')}">${t('edit', 'Edit')}</button>
+          </div>
+          <dl class="review-grid">
+            <dt>PDF</dt><dd${state.file ? '' : ' class="is-missing"'}>${state.file ? esc(state.file.name) + ' · ' + formatBytes(state.file.size) : t('no_file_uploaded', 'No file uploaded')}</dd>
+          </dl>
+        </div>
+      </div>
+    `;
+    return html;
+  }
+
+  function renderReviewEE(jumpIdx) {
+    const total = sumScores(state.eeScores);
+    return `
+      <div class="review-section">
+        <div class="review-section__head">
+          <div class="review-section__title">${t('ee_details', 'EE Details')}</div>
+          <button type="button" class="review-section__edit" data-jump="${jumpIdx}">${t('edit', 'Edit')}</button>
+        </div>
+        <dl class="review-grid">
+          <dt>${t('core_subject', 'Core Subject')}</dt><dd${state.eeCoreSubject ? '' : ' class="is-missing"'}>${esc(state.eeCoreSubject) || t('not_chosen', 'Not chosen')}</dd>
+          ${state.eeInterSubject ? `<dt>${t('inter_subject', 'Interdisciplinary')}</dt><dd>${esc(state.eeInterSubject)}</dd>` : ''}
+          <dt>${t('crit', 'Crit.')} A</dt><dd>${state.eeScores.A || 0} / 6</dd>
+          <dt>${t('crit', 'Crit.')} B</dt><dd>${state.eeScores.B || 0} / 6</dd>
+          <dt>${t('crit', 'Crit.')} C</dt><dd>${state.eeScores.C || 0} / 6</dd>
+          <dt>${t('crit', 'Crit.')} D</dt><dd>${state.eeScores.D || 0} / 8</dd>
+          <dt>${t('crit', 'Crit.')} E</dt><dd>${state.eeScores.E || 0} / 4</dd>
+          <dt>${t('total', 'Total')}</dt><dd><strong>${total} / 30</strong></dd>
+        </dl>
+      </div>
+    `;
+  }
+
+  function renderReviewCP(jumpIdx) {
+    const sum = sumScores(state.cpScores);
+    const avg = Math.round(sum / 4);
+    return `
+      <div class="review-section">
+        <div class="review-section__head">
+          <div class="review-section__title">${t('cp_details', 'CP Details')}</div>
+          <button type="button" class="review-section__edit" data-jump="${jumpIdx}">${t('edit', 'Edit')}</button>
+        </div>
+        <dl class="review-grid">
+          <dt>${t('global_context', 'Global Context')}</dt><dd${state.cpGlobalContext ? '' : ' class="is-missing"'}>${esc(state.cpGlobalContext) || t('not_chosen', 'Not chosen')}</dd>
+          <dt>${t('type_of_action', 'Type of Action')}</dt><dd${state.cpActionTypes.length ? '' : ' class="is-missing"'}>${state.cpActionTypes.length ? state.cpActionTypes.map(esc).join(', ') : t('none_selected', 'None selected')}</dd>
+          <dt>${t('crit', 'Crit.')} A</dt><dd>${state.cpScores.A || 0} / 8</dd>
+          <dt>${t('crit', 'Crit.')} B</dt><dd>${state.cpScores.B || 0} / 8</dd>
+          <dt>${t('crit', 'Crit.')} C</dt><dd>${state.cpScores.C || 0} / 8</dd>
+          <dt>${t('crit', 'Crit.')} D</dt><dd>${state.cpScores.D || 0} / 8</dd>
+          <dt>${t('total', 'Total')}</dt><dd><strong>${avg} / 8</strong></dd>
+        </dl>
+      </div>
+    `;
+  }
+
+  function bindReview() {
+    stepsContainer.querySelectorAll('[data-jump]').forEach(b => {
+      b.addEventListener('click', () => goToStep(parseInt(b.dataset.jump, 10)));
+    });
+  }
+
+  // ─── Submit / Save Draft ───────────────────────────────────
+  function serializeToForm(extraInputs) {
+    const form = document.getElementById('uploadForm');
+    if (!form) { console.error('[upload-wizard] #uploadForm missing'); return; }
+    // Remove any previously injected hidden inputs (keep #uploadFormFile and draft_id).
+    form.querySelectorAll('input[data-wiz]').forEach(el => el.remove());
+
+    const add = (name, value) => {
+      if (value == null) return;
+      const i = document.createElement('input');
+      i.type = 'hidden'; i.name = name; i.value = String(value);
+      i.setAttribute('data-wiz', '1');
+      form.appendChild(i);
+    };
+
+    if (state.paperType === 'ee') add('is_ib_ee', '1');
+    if (state.paperType === 'cp') add('is_cp_paper', '1');
+    if (state.isIbSample && state.paperType !== 'standard') add('is_ib_sample', '1');
+
+    add('title', state.title);
+    add('language', state.language);
+    add('category', state.category);
+
+    if (state.paperType === 'standard') {
+      add('keywords', state.keywords.join(', '));
+      add('abstract', state.abstract);
+    }
+
+    if (!state.isIbSample) {
+      state.authors.forEach(a => {
+        add('author_name', a.name);
+        add('author_email', a.email);
+        add('author_school', a.school);
+      });
+    }
+
+    if (state.paperType === 'ee') {
+      add('ib_ee_core_subject', state.eeCoreSubject);
+      add('ib_ee_interdisciplinary_subject', state.eeInterSubject);
+      ['A', 'B', 'C', 'D', 'E'].forEach(k => add(`ib_crit_${k}_score`, state.eeScores[k] || '0'));
+      if (state.eeIncludeComments) {
+        ['A', 'B', 'C', 'D', 'E'].forEach(k => add(`ib_crit_${k}_comment`, state.eeComments[k] || ''));
+        add('ib_holistic_comment', state.eeComments.holistic || '');
+      }
+    }
+
+    if (state.paperType === 'cp') {
+      add('cp_global_context', state.cpGlobalContext);
+      state.cpActionTypes.forEach(a => add('cp_action_type', a));
+      ['A', 'B', 'C', 'D'].forEach(k => add(`cp_crit_${k}_score`, state.cpScores[k] || '0'));
+    }
+
+    (extraInputs || []).forEach(([n, v]) => add(n, v));
+
+    form.submit();
+  }
+
+  function autosaveSaving() {
+    if (!autosaveEl) return;
+    autosaveEl.classList.remove('autosave--idle', 'autosave--saved');
+    autosaveEl.classList.add('autosave--saving');
+    const text = autosaveEl.querySelector('.autosave__text');
+    if (text) text.textContent = t('saving', 'Saving…');
+  }
+  function autosaveSaved() {
+    if (!autosaveEl) return;
+    autosaveEl.classList.remove('autosave--idle', 'autosave--saving');
+    autosaveEl.classList.add('autosave--saved');
+    const text = autosaveEl.querySelector('.autosave__text');
+    if (text) {
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, '0');
+      const mm = String(now.getMinutes()).padStart(2, '0');
+      text.textContent = t('draft_saved_at', 'Draft saved · %(time)s', { time: hh + ':' + mm });
+    }
+  }
+  function clearLocalStorage() { /* implemented in Task 15 */ }
 
   // ─── Combobox component ────────────────────────────────────
   function renderCombobox(id, value, placeholder, groups) {
