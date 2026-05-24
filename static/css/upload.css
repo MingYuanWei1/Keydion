@@ -1,4 +1,4 @@
-main.py-4 > .container { max-width: none !important; padding: 0 !important; }main.py-4 { padding: 0 !important; }body { padding-bottom: 0 !important; background: var(--cream); }body::before { display: none; }footer { display: none !important; }.kd-upload-wizard .panel-head--upload {
+.kd-upload-wizard .panel-head--upload {
   align-items: flex-start;
   flex-wrap: wrap;
   gap: 14px 24px;
