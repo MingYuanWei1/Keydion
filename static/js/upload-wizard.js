@@ -422,7 +422,7 @@
     ];
     return `
       <div class="ee-autofill">
-        <button type="button" id="eeAutofillBtn" class="btn btn-outline-primary btn-sm">
+        <button type="button" id="eeAutofillBtn" class="btn btn-outline-primary btn-sm" ${state.eeAutofillStatus === 'loading' ? 'disabled' : ''}>
           ${t('ee_autofill_btn', 'Auto-fill from commentary PDF')}
         </button>
         <input type="file" id="eeAutofillFile" accept="application/pdf,.pdf" hidden>
@@ -539,6 +539,7 @@
   }
 
   async function runEEAutofill(file) {
+    if (state.eeAutofillStatus === 'loading') return;  // re-entrancy guard
     state.eeAutofillStatus = 'loading';
     state.eeAutofillMessage = t('ee_autofill_extracting', 'Extracting…');
     render();
