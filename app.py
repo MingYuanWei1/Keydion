@@ -331,6 +331,25 @@ def _form_int(form, name: str) -> int:
     return int(raw) if raw.isdigit() else 0
 
 
+def _build_safe_paper_filename(title: str, author: str = "") -> str:
+    """Return a safe PDF filename from a title (+ optional author).
+
+    Caps title at 120 chars and author at 50 chars so the result stays well
+    under the filesystem's NAME_MAX (255 bytes on ext4) even after a UUID
+    prefix is later prepended for pending uploads. EE research questions
+    routinely exceed 255 chars, which would otherwise trigger ENAMETOOLONG.
+    """
+    safe_title = secure_filename(title or "")[:120]
+    safe_author = secure_filename(author or "")[:50]
+    if safe_title and safe_author:
+        return f"{safe_title}_{safe_author}.pdf"
+    if safe_title:
+        return f"{safe_title}.pdf"
+    if safe_author:
+        return f"{safe_author}.pdf"
+    return f"{uuid4().hex[:12]}.pdf"
+
+
 def build_ib_ee_data_from_form(form) -> str:
     criteria = {}
     for letter, label, max_mark in IB_EE_CRITERIA_DEFS:
@@ -1740,14 +1759,9 @@ def create_app() -> Flask:
                     flash(_("Only PDF files are supported"), "danger")
                 else:
                     # Build a safe filename: try title+author first, fall back to UUID
-                    safe_title = secure_filename(form_data['title'])
-                    safe_author = secure_filename(form_data['author_name'])
-                    if safe_title and safe_author:
-                        filename = f"{safe_title}_{safe_author}.pdf"
-                    elif safe_title:
-                        filename = f"{safe_title}.pdf"
-                    else:
-                        filename = f"{uuid4().hex[:12]}.pdf"
+                    filename = _build_safe_paper_filename(
+                        form_data["title"], form_data["author_name"]
+                    )
                     role = int(user.get("role", "1"))
                     if role >= 2:
                         # Moderator / Admin: publish directly
@@ -2026,7 +2040,7 @@ def create_app() -> Flask:
 
             # We use the raw first author for the filename
             primary_author = author_names[0] if author_names else "author"
-            new_filename = secure_filename(f"{title}_{primary_author}.pdf")
+            new_filename = _build_safe_paper_filename(title, primary_author)
             if new_filename != filename:
                 new_paper_path = PAPERS_DIR / new_filename
                 if new_paper_path.exists():
@@ -3248,7 +3262,9 @@ def create_app() -> Flask:
         pending_path = PENDING_PAPERS_DIR / sub.get("pending_filename", "")
         filename = sub.get("pdf_filename") or sub.get("filename")
         if not filename:
-            filename = secure_filename(f"{sub.get('title', 'paper')}_{sub.get('author_name', 'author')}.pdf")
+            filename = _build_safe_paper_filename(
+                sub.get("title", "paper"), sub.get("author_name", "author")
+            )
         publish_path = PAPERS_DIR / filename
         if publish_path.exists():
             # Add sub_id prefix to avoid collision
