@@ -149,5 +149,70 @@ class NewsBulkActionEndpointTest(unittest.TestCase):
             self.assertEqual(row.status, "published")
 
 
+class GuideReorderEndpointTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app, cls.app_module = _build_app()
+
+    def _seed_guides(self, rows):
+        ids = []
+        with self.app_module.db_session() as db:
+            for slug, category, sort_order in rows:
+                g = self.app_module.GuideModel(
+                    slug=slug, category=category, sort_order=sort_order,
+                    published=False, title_en=slug, title_zh="", summary_en="",
+                    summary_zh="", body_en="", body_zh="", created_at="", updated_at="",
+                )
+                db.add(g)
+            db.commit()
+            for slug, _c, _s in rows:
+                g = db.query(self.app_module.GuideModel).filter_by(slug=slug).first()
+                ids.append(g.id)
+        return ids
+
+    def test_route_is_registered(self):
+        rules = [r.rule for r in self.app.url_map.iter_rules()
+                 if r.endpoint == "admin_guides_reorder"]
+        self.assertEqual(rules, ["/dashboard/admin/guides/reorder"])
+
+    def test_reorder_updates_sort_order_and_category(self):
+        ids = self._seed_guides([("g-a", "cat1", 10), ("g-b", "cat1", 20)])
+        client = self.app.test_client()
+        _login_as(client, self.app_module, level=3)
+        payload = {"items": [
+            {"id": ids[0], "sort_order": 2, "category": "cat2"},
+            {"id": ids[1], "sort_order": 1, "category": "cat1"},
+        ]}
+        resp = client.post("/dashboard/admin/guides/reorder",
+                           data=json.dumps(payload),
+                           content_type="application/json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.get_json()["ok"])
+        with self.app_module.db_session() as db:
+            a = db.query(self.app_module.GuideModel).filter_by(id=ids[0]).first()
+            b = db.query(self.app_module.GuideModel).filter_by(id=ids[1]).first()
+            self.assertEqual(a.sort_order, 2)
+            self.assertEqual(a.category, "cat2")
+            self.assertEqual(b.sort_order, 1)
+            self.assertEqual(b.category, "cat1")
+
+    def test_unknown_id_is_skipped_silently(self):
+        client = self.app.test_client()
+        _login_as(client, self.app_module, level=3)
+        resp = client.post("/dashboard/admin/guides/reorder",
+                           data=json.dumps({"items": [{"id": 999999, "sort_order": 1}]}),
+                           content_type="application/json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.get_json()["ok"])
+
+    def test_level_2_user_is_forbidden(self):
+        client = self.app.test_client()
+        _login_as(client, self.app_module, level=2)
+        resp = client.post("/dashboard/admin/guides/reorder",
+                           data=json.dumps({"items": []}),
+                           content_type="application/json")
+        self.assertEqual(resp.status_code, 401)
+
+
 if __name__ == "__main__":
     unittest.main()

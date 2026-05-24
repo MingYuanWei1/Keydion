@@ -2654,6 +2654,32 @@ def create_app() -> Flask:
             flash(_("Guide not found."), "warning")
         return redirect(url_for("admin_guides_manage"))
 
+    @app.route("/dashboard/admin/guides/reorder", methods=["POST"], endpoint="admin_guides_reorder")
+    def admin_guides_reorder():
+        user = require_login(level=3)
+        if not user:
+            return jsonify(error="Unauthorized"), 401
+        data = request.get_json(silent=True) or {}
+        items = data.get("items") or []
+        with db_session() as db:
+            for it in items:
+                try:
+                    gid = int(it.get("id"))
+                except (TypeError, ValueError):
+                    continue
+                g = db.query(GuideModel).filter_by(id=gid).first()
+                if not g:
+                    continue
+                try:
+                    g.sort_order = int(it.get("sort_order"))
+                except (TypeError, ValueError):
+                    pass
+                if "category" in it:
+                    g.category = (it.get("category") or "").strip()
+                g.updated_at = datetime.utcnow().isoformat()
+            db.commit()
+        return jsonify(ok=True)
+
     @app.route("/dashboard/admin/guides/preview", methods=["POST"], endpoint="admin_guide_preview")
     def admin_guide_preview():
         user = require_login(level=3)
