@@ -48,6 +48,9 @@
       C: fd.ib_crit_C_comment || '', D: fd.ib_crit_D_comment || '',
       E: fd.ib_crit_E_comment || '', holistic: fd.ib_holistic_comment || '',
     },
+    // EE auto-fill UI
+    eeAutofillStatus: '',    // '' | 'loading' | 'ok' | 'partial' | 'error'
+    eeAutofillMessage: '',
     // CP
     cpGlobalContext: fd.cp_global_context || '',
     cpActionTypes: Array.isArray(fd.cp_action_types) ? fd.cp_action_types.slice() : [],
@@ -418,6 +421,16 @@
       ['E', t('crit_ee_E', 'Reflection'), 4],
     ];
     return `
+      <div class="ee-autofill">
+        <button type="button" id="eeAutofillBtn" class="btn btn-outline-primary btn-sm">
+          ${t('ee_autofill_btn', 'Auto-fill from commentary PDF')}
+        </button>
+        <input type="file" id="eeAutofillFile" accept="application/pdf,.pdf" hidden>
+        <span id="eeAutofillStatus" class="ee-autofill__status ee-autofill__status--${state.eeAutofillStatus || 'idle'}">
+          ${esc(state.eeAutofillMessage || '')}
+        </span>
+      </div>
+
       <div class="section-sub">${t('ee_subject', 'EE Subject')} <span class="req">*</span></div>
       <div class="form-grid">
         <div class="field field--6">
