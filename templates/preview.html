@@ -274,6 +274,7 @@
       {% endif %}
 
       <!-- Abstract Accordion -->
+      {% if not (ib_ee_info and ib_ee_info.is_ib_ee) and not (cp_info and cp_info.is_cp_paper) %}
       <div class="accordion-item bg-transparent">
         <h2 class="accordion-header" id="headingAbstract">
           <button class="accordion-button collapsed px-2 shadow-none bg-transparent fw-semibold" type="button"
@@ -288,6 +289,7 @@
           </div>
         </div>
       </div>
+      {% endif %}
 
       <!-- Metadata Accordion -->
       <div class="accordion-item bg-transparent">

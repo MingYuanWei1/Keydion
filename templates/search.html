@@ -224,6 +224,7 @@
             </span>
           </div>
           {% endif %}
+          {% if not paper.get('ee_core_subject') and not paper.get('cp_global_context') %}
           <p class="text-muted" style="font-size: 12.5px; line-height: 1.5; margin-bottom: 0;">
             {% if paper.abstract %}
             {{ paper.abstract[:200] ~ '...' if paper.abstract|length > 200 else paper.abstract }}
@@ -231,6 +232,7 @@
             {{ _('No abstract available.') }}
             {% endif %}
           </p>
+          {% endif %}
         </div>
         <!-- Item right side buttons -->
         <div class="col-lg-3 d-flex flex-column gap-2 align-items-end justify-content-start">
