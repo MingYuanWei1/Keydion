@@ -3515,3 +3515,526 @@ msgstr "guide"
 
 msgid "new"
 msgstr "new"
+
+
+# ==================== UPLOAD WIZARD (JS) ====================
+
+#: static/js/upload-wizard.js
+msgid "Paper Type"
+msgstr "Paper Type"
+
+#: static/js/upload-wizard.js
+msgid "Metadata"
+msgstr "Metadata"
+
+#: static/js/upload-wizard.js
+msgid "Authors"
+msgstr "Authors"
+
+#: static/js/upload-wizard.js
+msgid "File"
+msgstr "File"
+
+#: static/js/upload-wizard.js
+msgid "Step %(n)s"
+msgstr "Step %(n)s"
+
+#: static/js/upload-wizard.js
+msgid "Continue →"
+msgstr "Continue →"
+
+#: static/js/upload-wizard.js
+msgid "← Back"
+msgstr "← Back"
+
+#: static/js/upload-wizard.js
+msgid "Choose paper type"
+msgstr "Choose paper type"
+
+#: static/js/upload-wizard.js
+msgid "What kind of paper are you submitting?"
+msgstr "What kind of paper are you submitting?"
+
+#: static/js/upload-wizard.js
+msgid "The fields you'll be asked for next depend on this. You can come back and change it before submitting."
+msgstr "The fields you'll be asked for next depend on this. You can come back and change it before submitting."
+
+#: static/js/upload-wizard.js
+msgid "Independent Research"
+msgstr "Independent Research"
+
+#: static/js/upload-wizard.js
+msgid "Standard Paper"
+msgstr "Standard Paper"
+
+#: static/js/upload-wizard.js
+msgid "A self-directed research paper, conference paper, or article that is not part of the IB Diploma framework."
+msgstr "A self-directed research paper, conference paper, or article that is not part of the IB Diploma framework."
+
+#: static/js/upload-wizard.js
+msgid "Title · authors · abstract · subject"
+msgstr "Title · authors · abstract · subject"
+
+#: static/js/upload-wizard.js
+msgid "IB Diploma"
+msgstr "IB Diploma"
+
+#: static/js/upload-wizard.js
+msgid "Extended Essay (EE)"
+msgstr "Extended Essay (EE)"
+
+#: static/js/upload-wizard.js
+msgid "A 4,000-word IB Diploma research essay with structured criterion scores (A–E) and an EE subject from the six IB subject groups."
+msgstr "A 4,000-word IB Diploma research essay with structured criterion scores (A–E) and an EE subject from the six IB subject groups."
+
+#: static/js/upload-wizard.js
+msgid "Research Question · EE subject · criterion scores A–E"
+msgstr "Research Question · EE subject · criterion scores A–E"
+
+#: static/js/upload-wizard.js
+msgid "IB Diploma"
+msgstr "IB Diploma"
+
+#: static/js/upload-wizard.js
+msgid "Community Project (CP)"
+msgstr "Community Project (CP)"
+
+#: static/js/upload-wizard.js
+msgid "An IB MYP Community Project graded against Criteria A–D, with a Global Context and a chosen type of action."
+msgstr "An IB MYP Community Project graded against Criteria A–D, with a Global Context and a chosen type of action."
+
+#: static/js/upload-wizard.js
+msgid "Title · Global Context · type of action · criteria A–D"
+msgstr "Title · Global Context · type of action · criteria A–D"
+
+#: static/js/upload-wizard.js
+msgid "Research Question"
+msgstr "Research Question"
+
+#: static/js/upload-wizard.js
+msgid "e.g. To what extent did monetary policy contribute to the 2008 financial crisis?"
+msgstr "e.g. To what extent did monetary policy contribute to the 2008 financial crisis?"
+
+#: static/js/upload-wizard.js
+msgid "Enter the complete paper title"
+msgstr "Enter the complete paper title"
+
+#: static/js/upload-wizard.js
+msgid "Tell us about your essay"
+msgstr "Tell us about your essay"
+
+#: static/js/upload-wizard.js
+msgid "Tell us about your community project"
+msgstr "Tell us about your community project"
+
+#: static/js/upload-wizard.js
+msgid "Tell us about your paper"
+msgstr "Tell us about your paper"
+
+#: static/js/upload-wizard.js
+msgid "IB grading information and bibliographic details for the submission."
+msgstr "IB grading information and bibliographic details for the submission."
+
+#: static/js/upload-wizard.js
+msgid "Bibliographic information that will appear on the public paper page."
+msgstr "Bibliographic information that will appear on the public paper page."
+
+#: static/js/upload-wizard.js
+msgid "Paper details"
+msgstr "Paper details"
+
+#: static/js/upload-wizard.js
+msgid "Bibliographic"
+msgstr "Bibliographic"
+
+#: static/js/upload-wizard.js
+msgid "Choose a subject category…"
+msgstr "Choose a subject category…"
+
+#: static/js/upload-wizard.js
+msgid "Add another…"
+msgstr "Add another…"
+
+#: static/js/upload-wizard.js
+msgid "Type a keyword and press Enter"
+msgstr "Type a keyword and press Enter"
+
+#: static/js/upload-wizard.js
+msgid "Press Enter or comma to add. Aim for 3–6 keywords."
+msgstr "Press Enter or comma to add. Aim for 3–6 keywords."
+
+#: static/js/upload-wizard.js
+msgid "added"
+msgstr "added"
+
+#: static/js/upload-wizard.js
+msgid "Briefly describe your research background, methods, and conclusions…"
+msgstr "Briefly describe your research background, methods, and conclusions…"
+
+#: static/js/upload-wizard.js
+msgid "A short summary that appears in search results."
+msgstr "A short summary that appears in search results."
+
+#: static/js/upload-wizard.js
+msgid "This is an IB Sample Paper"
+msgstr "This is an IB Sample Paper"
+
+#: static/js/upload-wizard.js
+msgid "Sample papers are reference essays without an identified author. Checking this will skip the Authors step."
+msgstr "Sample papers are reference essays without an identified author. Checking this will skip the Authors step."
+
+#: static/js/upload-wizard.js
+msgid "Framework for the essay"
+msgstr "Framework for the essay"
+
+#: static/js/upload-wizard.js
+msgid "Knowledge and understanding"
+msgstr "Knowledge and understanding"
+
+#: static/js/upload-wizard.js
+msgid "Analysis and line of argument"
+msgstr "Analysis and line of argument"
+
+#: static/js/upload-wizard.js
+msgid "Discussion and evaluation"
+msgstr "Discussion and evaluation"
+
+#: static/js/upload-wizard.js
+msgid "Reflection"
+msgstr "Reflection"
+
+#: static/js/upload-wizard.js
+msgid "EE Subject"
+msgstr "EE Subject"
+
+#: static/js/upload-wizard.js
+msgid "Core Subject"
+msgstr "Core Subject"
+
+#: static/js/upload-wizard.js
+msgid "Select a core subject…"
+msgstr "Select a core subject…"
+
+#: static/js/upload-wizard.js
+msgid "Interdisciplinary"
+msgstr "Interdisciplinary"
+
+#: static/js/upload-wizard.js
+msgid "Optional — select if applicable…"
+msgstr "Optional — select if applicable…"
+
+#: static/js/upload-wizard.js
+msgid "Criterion Scores"
+msgstr "Criterion Scores"
+
+#: static/js/upload-wizard.js
+msgid "Crit."
+msgstr "Crit."
+
+#: static/js/upload-wizard.js
+msgid "Criterion"
+msgstr "Criterion"
+
+#: static/js/upload-wizard.js
+msgid "Score"
+msgstr "Score"
+
+#: static/js/upload-wizard.js
+msgid "Overall Grade"
+msgstr "Overall Grade"
+
+#: static/js/upload-wizard.js
+msgid "Calculated server-side from the criteria above"
+msgstr "Calculated server-side from the criteria above"
+
+#: static/js/upload-wizard.js
+msgid "Criterion Commentaries"
+msgstr "Criterion Commentaries"
+
+#: static/js/upload-wizard.js
+msgid "Include commentaries for all criteria"
+msgstr "Include commentaries for all criteria"
+
+#: static/js/upload-wizard.js
+msgid "Provide short remarks on each criterion plus an optional overall holistic commentary."
+msgstr "Provide short remarks on each criterion plus an optional overall holistic commentary."
+
+#: static/js/upload-wizard.js
+msgid "Commentary for Criterion %(k)s…"
+msgstr "Commentary for Criterion %(k)s…"
+
+#: static/js/upload-wizard.js
+msgid "Holistic Commentary"
+msgstr "Holistic Commentary"
+
+#: static/js/upload-wizard.js
+msgid "An overall holistic commentary for the essay…"
+msgstr "An overall holistic commentary for the essay…"
+
+#: static/js/upload-wizard.js
+msgid "Investigating"
+msgstr "Investigating"
+
+#: static/js/upload-wizard.js
+msgid "Planning"
+msgstr "Planning"
+
+#: static/js/upload-wizard.js
+msgid "Taking Action"
+msgstr "Taking Action"
+
+#: static/js/upload-wizard.js
+msgid "Reflecting"
+msgstr "Reflecting"
+
+#: static/js/upload-wizard.js
+msgid "Global Context"
+msgstr "Global Context"
+
+#: static/js/upload-wizard.js
+msgid "Select a Global Context…"
+msgstr "Select a Global Context…"
+
+#: static/js/upload-wizard.js
+msgid "Global Contexts"
+msgstr "Global Contexts"
+
+#: static/js/upload-wizard.js
+msgid "Type of Action"
+msgstr "Type of Action"
+
+#: static/js/upload-wizard.js
+msgid "Mean of the four criterion scores, rounded"
+msgstr "Mean of the four criterion scores, rounded"
+
+#: static/js/upload-wizard.js
+msgid "Author information"
+msgstr "Author information"
+
+#: static/js/upload-wizard.js
+msgid "Who wrote this?"
+msgstr "Who wrote this?"
+
+#: static/js/upload-wizard.js
+msgid "The first author's contact details are required. Add co-authors as needed."
+msgstr "The first author's contact details are required. Add co-authors as needed."
+
+#: static/js/upload-wizard.js
+msgid "School / Institution"
+msgstr "School / Institution"
+
+#: static/js/upload-wizard.js
+msgid "Remove author"
+msgstr "Remove author"
+
+#: static/js/upload-wizard.js
+msgid "+ Add another author"
+msgstr "+ Add another author"
+
+#: static/js/upload-wizard.js
+msgid "File upload"
+msgstr "File upload"
+
+#: static/js/upload-wizard.js
+msgid "Upload your PDF"
+msgstr "Upload your PDF"
+
+#: static/js/upload-wizard.js
+msgid "Submit a single PDF, up to 50 MB. You can change this before publishing."
+msgstr "Submit a single PDF, up to 50 MB. You can change this before publishing."
+
+#: static/js/upload-wizard.js
+msgid "No file chosen"
+msgstr "No file chosen"
+
+#: static/js/upload-wizard.js
+msgid "PDF only · single file"
+msgstr "PDF only · single file"
+
+#: static/js/upload-wizard.js
+msgid "Replace"
+msgstr "Replace"
+
+#: static/js/upload-wizard.js
+msgid "Choose file"
+msgstr "Choose file"
+
+#: static/js/upload-wizard.js
+msgid "If you'd like to come back to this later, click Save Draft below — your form will be restored next time you visit."
+msgstr "If you'd like to come back to this later, click Save Draft below — your form will be restored next time you visit."
+
+#: static/js/upload-wizard.js
+msgid "Paper Type"
+msgstr "Paper Type"
+
+#: static/js/upload-wizard.js
+msgid "First author (name, email, school)"
+msgstr "First author (name, email, school)"
+
+#: static/js/upload-wizard.js
+msgid "EE core subject"
+msgstr "EE core subject"
+
+#: static/js/upload-wizard.js
+msgid "EE criterion score %(k)s"
+msgstr "EE criterion score %(k)s"
+
+#: static/js/upload-wizard.js
+msgid "Global context"
+msgstr "Global context"
+
+#: static/js/upload-wizard.js
+msgid "Type of action"
+msgstr "Type of action"
+
+#: static/js/upload-wizard.js
+msgid "CP criterion score %(k)s"
+msgstr "CP criterion score %(k)s"
+
+#: static/js/upload-wizard.js
+msgid "PDF file"
+msgstr "PDF file"
+
+#: static/js/upload-wizard.js
+msgid "Independent Research Paper"
+msgstr "Independent Research Paper"
+
+#: static/js/upload-wizard.js
+msgid "IB Extended Essay"
+msgstr "IB Extended Essay"
+
+#: static/js/upload-wizard.js
+msgid "IB Community Project"
+msgstr "IB Community Project"
+
+#: static/js/upload-wizard.js
+msgid "Review & submit"
+msgstr "Review & submit"
+
+#: static/js/upload-wizard.js
+msgid "Almost there — review your submission"
+msgstr "Almost there — review your submission"
+
+#: static/js/upload-wizard.js
+msgid "Make sure everything looks right. You can jump back to any section to make changes."
+msgstr "Make sure everything looks right. You can jump back to any section to make changes."
+
+#: static/js/upload-wizard.js
+msgid "1 field still needs attention"
+msgstr "1 field still needs attention"
+
+#: static/js/upload-wizard.js
+msgid "%(n)s fields still need attention"
+msgstr "%(n)s fields still need attention"
+
+#: static/js/upload-wizard.js
+msgid "go to %(step)s"
+msgstr "go to %(step)s"
+
+#: static/js/upload-wizard.js
+msgid "Everything required is filled in."
+msgstr "Everything required is filled in."
+
+#: static/js/upload-wizard.js
+msgid "Click Submit Paper below to send your submission for review."
+msgstr "Click Submit Paper below to send your submission for review."
+
+#: static/js/upload-wizard.js
+msgid "Type"
+msgstr "Type"
+
+#: static/js/upload-wizard.js
+msgid "Metadata"
+msgstr "Metadata"
+
+#: static/js/upload-wizard.js
+msgid "Research Q."
+msgstr "Research Q."
+
+#: static/js/upload-wizard.js
+msgid "Not provided"
+msgstr "Not provided"
+
+#: static/js/upload-wizard.js
+msgid "Not chosen"
+msgstr "Not chosen"
+
+#: static/js/upload-wizard.js
+msgid "None"
+msgstr "None"
+
+#: static/js/upload-wizard.js
+msgid "Not written"
+msgstr "Not written"
+
+#: static/js/upload-wizard.js
+msgid "IB Sample"
+msgstr "IB Sample"
+
+#: static/js/upload-wizard.js
+msgid "Yes — author info skipped"
+msgstr "Yes — author info skipped"
+
+#: static/js/upload-wizard.js
+msgid "Authors"
+msgstr "Authors"
+
+#: static/js/upload-wizard.js
+msgid "File"
+msgstr "File"
+
+#: static/js/upload-wizard.js
+msgid "No file uploaded"
+msgstr "No file uploaded"
+
+#: static/js/upload-wizard.js
+msgid "EE Details"
+msgstr "EE Details"
+
+#: static/js/upload-wizard.js
+msgid "Total"
+msgstr "Total"
+
+#: static/js/upload-wizard.js
+msgid "CP Details"
+msgstr "CP Details"
+
+#: static/js/upload-wizard.js
+msgid "None selected"
+msgstr "None selected"
+
+#: static/js/upload-wizard.js
+msgid "Avg. Grade"
+msgstr "Avg. Grade"
+
+#: static/js/upload-wizard.js
+msgid "Saving…"
+msgstr "Saving…"
+
+#: static/js/upload-wizard.js
+msgid "Draft saved · %(time)s"
+msgstr "Draft saved · %(time)s"
+
+#: static/js/upload-wizard.js
+msgid "Unsaved changes from earlier"
+msgstr "Unsaved changes from earlier"
+
+#: static/js/upload-wizard.js
+msgid "Your last session in this browser had changes you didn't save. Restore them?"
+msgstr "Your last session in this browser had changes you didn't save. Restore them?"
+
+#: static/js/upload-wizard.js
+msgid "Discard"
+msgstr "Discard"
+
+#: static/js/upload-wizard.js
+msgid "Restore"
+msgstr "Restore"
+
+#: static/js/upload-wizard.js
+msgid "Search…"
+msgstr "Search…"
+
+#: static/js/upload-wizard.js
+msgid "No matches"
+msgstr "No matches"
