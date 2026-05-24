@@ -129,7 +129,7 @@
     switch (step.id) {
       case 'type': html = renderType(); break;
       case 'metadata': html = renderMetadata(); break;
-      case 'authors': html = '<div class="wizard-card"><p>Step 3 placeholder</p></div>'; break;
+      case 'authors': html = renderAuthors(); break;
       case 'file': html = '<div class="wizard-card"><p>Step 4 placeholder</p></div>'; break;
       case 'review': html = '<div class="wizard-card"><p>Step 5 placeholder</p></div>'; break;
     }
@@ -140,6 +140,7 @@
   function bindStep(id) {
     if (id === 'type') bindType();
     if (id === 'metadata') bindMetadata();
+    if (id === 'authors') bindAuthors();
   }
 
   function renderFooter() {
@@ -576,6 +577,58 @@
         cb.closest('.pill-check').classList.toggle('is-checked', cb.checked);
         touch();
       });
+    });
+  }
+
+  // ─── Step 3: Authors ───────────────────────────────────────
+  function renderAuthors() {
+    return `
+      <div class="wizard-card">
+        <div class="wizard-card__head">
+          <div class="wizard-card__crumb">${t('step_label', 'Step %(n)s', { n: 3 })} · ${t('author_info', 'Author information')}</div>
+          <h2 class="wizard-card__title">${t('who_wrote', 'Who wrote this?')}</h2>
+          <p class="wizard-card__sub">${t('authors_sub', "The first author's contact details are required. Add co-authors as needed.")}</p>
+        </div>
+
+        <div id="authorsList">
+          ${state.authors.map((a, i) => `
+            <div class="author-row" data-i="${i}">
+              <input class="input" type="text" placeholder="${t('name', 'Name')}${i === 0 ? ' *' : ''}" value="${esc(a.name)}" data-field="name">
+              <input class="input" type="email" placeholder="${t('email', 'Email')}${i === 0 ? ' *' : ''}" value="${esc(a.email)}" data-field="email">
+              <input class="input" type="text" placeholder="${t('school', 'School / Institution')}${i === 0 ? ' *' : ''}" value="${esc(a.school)}" data-field="school">
+              <button type="button" class="author-row__remove" data-i="${i}" ${state.authors.length === 1 ? 'disabled' : ''} aria-label="${t('remove_author', 'Remove author')}">×</button>
+            </div>
+          `).join('')}
+        </div>
+
+        <button type="button" class="btn-add-author" id="addAuthorBtn">${t('add_author', '+ Add another author')}</button>
+      </div>
+    `;
+  }
+
+  function bindAuthors() {
+    stepsContainer.querySelectorAll('.author-row').forEach(row => {
+      const i = parseInt(row.dataset.i, 10);
+      row.querySelectorAll('input').forEach(inp => {
+        inp.addEventListener('input', e => {
+          state.authors[i][inp.dataset.field] = e.target.value;
+          touch();
+        });
+      });
+      const rem = row.querySelector('.author-row__remove');
+      rem.addEventListener('click', () => {
+        if (state.authors.length > 1) {
+          state.authors.splice(i, 1);
+          renderStep();
+          touch();
+        }
+      });
+    });
+    const add = stepsContainer.querySelector('#addAuthorBtn');
+    if (add) add.addEventListener('click', () => {
+      state.authors.push({ name: '', email: '', school: '' });
+      renderStep();
+      touch();
     });
   }
 
