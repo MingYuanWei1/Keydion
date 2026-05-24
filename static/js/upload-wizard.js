@@ -871,7 +871,7 @@
           <dt>${t('crit', 'Crit.')} B</dt><dd>${state.cpScores.B || 0} / 8</dd>
           <dt>${t('crit', 'Crit.')} C</dt><dd>${state.cpScores.C || 0} / 8</dd>
           <dt>${t('crit', 'Crit.')} D</dt><dd>${state.cpScores.D || 0} / 8</dd>
-          <dt>${t('total', 'Total')}</dt><dd><strong>${avg} / 8</strong></dd>
+          <dt>${t('avg_grade', 'Avg. Grade')}</dt><dd><strong>${avg} / 8</strong></dd>
         </dl>
       </div>
     `;
