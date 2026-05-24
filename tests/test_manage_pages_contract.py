@@ -279,5 +279,42 @@ class GuideTogglePublishedEndpointTest(unittest.TestCase):
         self.assertEqual(resp.status_code, 401)
 
 
+class RevampedTemplateWiringTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.news_tpl = (ROOT / "templates" / "news_manage.html").read_text(encoding="utf-8")
+        cls.guide_tpl = (ROOT / "templates" / "guide_manage.html").read_text(encoding="utf-8")
+
+    def test_news_template_loads_manage_css(self):
+        self.assertIn("css/manage.css", self.news_tpl)
+
+    def test_news_template_enables_bulk_and_wires_url(self):
+        self.assertIn("BULK_ENABLED = true", self.news_tpl)
+        self.assertIn("BULK_URL =", self.news_tpl)
+        self.assertIn("url_for('news_bulk_action')", self.news_tpl)
+        # The fragile conditional must be gone.
+        self.assertNotIn("config.get('ROUTES')", self.news_tpl)
+
+    def test_news_template_does_not_parseInt_row_ids(self):
+        # NewsArticleModel.id is a 12-char hex string; parseInt would yield NaN.
+        # Specifically the bulk-op collector must not call parseInt on c.value.
+        self.assertNotRegex(self.news_tpl, r"parseInt\(\s*c\.value")
+
+    def test_guide_template_loads_manage_css(self):
+        self.assertIn("css/manage.css", self.guide_tpl)
+
+    def test_guide_template_wires_reorder_url(self):
+        self.assertIn("REORDER_URL =", self.guide_tpl)
+        self.assertIn("url_for('admin_guides_reorder')", self.guide_tpl)
+        # Must not still be `null` on either var.
+        self.assertNotIn("REORDER_URL = null", self.guide_tpl)
+
+    def test_guide_template_wires_toggle_url_template(self):
+        self.assertIn("TOGGLE_URL_TEMPLATE =", self.guide_tpl)
+        self.assertIn("admin_guide_toggle_published", self.guide_tpl)
+        self.assertIn("{id}", self.guide_tpl)
+        self.assertNotIn("TOGGLE_URL_TEMPLATE = null", self.guide_tpl)
+
+
 if __name__ == "__main__":
     unittest.main()
