@@ -2469,6 +2469,32 @@ def create_app() -> Flask:
         save_categories(cats)
         return jsonify(categories=cats)
 
+    @app.route("/dashboard/news/bulk_action", methods=["POST"], endpoint="news_bulk_action")
+    def news_bulk_action():
+        user = require_login(level=2)
+        if not user:
+            return jsonify(error="Unauthorized"), 401
+        data = request.get_json(silent=True) or {}
+        ids = [str(x) for x in (data.get("ids") or [])]
+        op = data.get("op")
+        if op not in {"publish", "unpublish", "delete"}:
+            return jsonify(error="bad op"), 400
+        affected = 0
+        with db_session() as db:
+            rows = db.query(NewsArticleModel).filter(NewsArticleModel.id.in_(ids)).all()
+            for r in rows:
+                if op == "publish":
+                    r.status = "published"
+                    if not r.published_at:
+                        r.published_at = datetime.utcnow().strftime("%Y-%m-%d %H:%M")
+                elif op == "unpublish":
+                    r.status = "pending"
+                elif op == "delete":
+                    db.delete(r)
+                affected += 1
+            db.commit()
+        return jsonify(ok=True, affected=affected)
+
     # ---------- Legacy redirects (curator news routes) ----------
     @app.route("/news/publish", endpoint="news_publish_legacy")
     def news_publish_legacy():
@@ -2627,6 +2653,51 @@ def create_app() -> Flask:
         else:
             flash(_("Guide not found."), "warning")
         return redirect(url_for("admin_guides_manage"))
+
+    @app.route("/dashboard/admin/guides/reorder", methods=["POST"], endpoint="admin_guides_reorder")
+    def admin_guides_reorder():
+        user = require_login(level=3)
+        if not user:
+            return jsonify(error="Unauthorized"), 401
+        data = request.get_json(silent=True) or {}
+        items = data.get("items") or []
+        with db_session() as db:
+            for it in items:
+                try:
+                    gid = int(it.get("id"))
+                except (TypeError, ValueError):
+                    continue
+                g = db.query(GuideModel).filter_by(id=gid).first()
+                if not g:
+                    continue
+                try:
+                    g.sort_order = int(it.get("sort_order"))
+                except (TypeError, ValueError):
+                    pass
+                if "category" in it:
+                    g.category = (it.get("category") or "").strip()
+                g.updated_at = datetime.utcnow().isoformat()
+            db.commit()
+        return jsonify(ok=True)
+
+    @app.route("/dashboard/admin/guides/<int:guide_id>/toggle", methods=["POST"], endpoint="admin_guide_toggle_published")
+    def admin_guide_toggle_published(guide_id: int):
+        user = require_login(level=3)
+        if not user:
+            return jsonify(error="Unauthorized"), 401
+        data = request.get_json(silent=True) or {}
+        with db_session() as db:
+            g = db.query(GuideModel).filter_by(id=guide_id).first()
+            if not g:
+                return jsonify(error="not found"), 404
+            if "published" in data:
+                g.published = bool(data["published"])
+            else:
+                g.published = not bool(g.published)
+            g.updated_at = datetime.utcnow().isoformat()
+            new_state = bool(g.published)
+            db.commit()
+        return jsonify(ok=True, published=new_state)
 
     @app.route("/dashboard/admin/guides/preview", methods=["POST"], endpoint="admin_guide_preview")
     def admin_guide_preview():
