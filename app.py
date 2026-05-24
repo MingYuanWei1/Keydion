@@ -364,6 +364,48 @@ def build_cp_data_from_form(form) -> str:
         ensure_ascii=False,
     )
 
+
+def parse_ib_ee_data_for_form(json_str) -> dict:
+    """Flatten ib_ee_data JSON back into form-style keys for draft hydration.
+
+    Returns {} for missing/invalid input so callers can safely .update() the result.
+    """
+    if not json_str:
+        return {}
+    try:
+        data = json.loads(json_str)
+    except (json.JSONDecodeError, TypeError):
+        return {}
+    out = {
+        "ib_ee_core_subject": data.get("core_subject", ""),
+        "ib_ee_interdisciplinary_subject": data.get("interdisciplinary_subject", ""),
+        "ib_holistic_comment": data.get("holistic_comment", ""),
+    }
+    for letter, criterion in (data.get("criteria") or {}).items():
+        out[f"ib_crit_{letter}_score"] = str(criterion.get("score", ""))
+        out[f"ib_crit_{letter}_comment"] = criterion.get("comment", "")
+    return out
+
+
+def parse_cp_data_for_form(json_str) -> dict:
+    """Flatten cp_data JSON back into form-style keys for draft hydration.
+
+    Returns {} for missing/invalid input.
+    """
+    if not json_str:
+        return {}
+    try:
+        data = json.loads(json_str)
+    except (json.JSONDecodeError, TypeError):
+        return {}
+    out = {
+        "cp_global_context": data.get("global_context", ""),
+        "cp_action_types": data.get("action_types") or [],
+    }
+    for letter, criterion in (data.get("criteria") or {}).items():
+        out[f"cp_crit_{letter}_score"] = str(criterion.get("score", ""))
+    return out
+
 def _is_ee_paper(record: dict) -> bool:
     raw = record.get("ib_ee_data", "")
     if not raw:
