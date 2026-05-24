@@ -2,735 +2,634 @@
 {% block title %}{{ _('Manage News · Keydion') }}{% endblock %}
 {% block panel %}
 
-<style>
-    /* ========== Category Modal ========== */
-    .cat-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, .45);
-        backdrop-filter: blur(4px);
-        z-index: 9000;
-        display: none;
-        align-items: center;
-        justify-content: center;
-        animation: catFadeIn .2s ease;
-    }
+{# =============================================================
+   templates/news_manage.html — Editorial table (variant A)
 
-    .cat-overlay.show {
-        display: flex;
-    }
+   Visual language: cream + serif + crimson, matching dashboard.css.
+   Loads styles from static/css/manage.css.
 
-    @keyframes catFadeIn {
-        from {
-            opacity: 0
-        }
+   Existing endpoints used (unchanged):
+     news_publish, news_detail, news_edit, news_delete,
+     news_categories_add, news_categories_rename, news_categories_delete
 
-        to {
-            opacity: 1
-        }
-    }
+   NEW backend endpoint expected (see PORT_NOTES.md):
+     news_bulk_action  POST {ids: [int], op: 'publish'|'unpublish'|'delete'}
+   The bulk bar gracefully falls back to per-row delete if the endpoint
+   is missing — wired with a feature flag at the top of the JS.
+   ============================================================= #}
 
-    @keyframes catSlideUp {
-        from {
-            opacity: 0;
-            transform: translateY(24px)
-        }
+<link rel="stylesheet" href="{{ url_for('static', filename='css/manage.css') }}">
 
-        to {
-            opacity: 1;
-            transform: translateY(0)
-        }
-    }
-
-    .cat-modal {
-        background: #fff;
-        border-radius: 16px;
-        width: 520px;
-        max-width: 95vw;
-        max-height: 85vh;
-        box-shadow: 0 25px 60px rgba(0, 0, 0, .25), 0 0 0 1px rgba(0, 0, 0, .05);
-        display: flex;
-        flex-direction: column;
-        animation: catSlideUp .3s ease;
-        overflow: hidden;
-    }
-
-    .cat-modal-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 20px 24px 16px;
-        border-bottom: 1px solid #f0f0f0;
-    }
-
-    .cat-modal-header h3 {
-        margin: 0;
-        font-size: 18px;
-        font-weight: 700;
-        color: #111827;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .cat-modal-header h3 svg {
-        width: 22px;
-        height: 22px;
-        color: #6366f1;
-    }
-
-    .cat-close-btn {
-        width: 32px;
-        height: 32px;
-        border: none;
-        background: #f3f4f6;
-        border-radius: 8px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #6b7280;
-        transition: all .15s;
-    }
-
-    .cat-close-btn:hover {
-        background: #e5e7eb;
-        color: #111827;
-    }
-
-    /* Add category form */
-    .cat-add-form {
-        display: flex;
-        gap: 8px;
-        padding: 16px 24px;
-        border-bottom: 1px solid #f0f0f0;
-        background: #fafbfc;
-    }
-
-    .cat-add-input {
-        flex: 1;
-        padding: 9px 14px;
-        border: 1.5px solid #d1d5db;
-        border-radius: 10px;
-        font-size: 14px;
-        color: #111827;
-        outline: none;
-        transition: border-color .15s, box-shadow .15s;
-    }
-
-    .cat-add-input:focus {
-        border-color: #6366f1;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, .12);
-    }
-
-    .cat-add-btn {
-        padding: 9px 18px;
-        border: none;
-        border-radius: 10px;
-        background: linear-gradient(135deg, #6366f1, #818cf8);
-        color: #fff;
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all .15s;
-        white-space: nowrap;
-    }
-
-    .cat-add-btn:hover {
-        background: linear-gradient(135deg, #4f46e5, #6366f1);
-        transform: translateY(-1px);
-    }
-
-    .cat-add-btn:disabled {
-        opacity: .5;
-        cursor: not-allowed;
-        transform: none;
-    }
-
-    /* Category list */
-    .cat-list-area {
-        flex: 1;
-        overflow-y: auto;
-        padding: 8px 24px 16px;
-        max-height: 400px;
-    }
-
-    .cat-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 12px;
-        border-radius: 10px;
-        transition: background .12s;
-        position: relative;
-    }
-
-    .cat-item:hover {
-        background: #f9fafb;
-    }
-
-    .cat-item+.cat-item {
-        border-top: 1px solid #f3f4f6;
-    }
-
-    .cat-badge {
-        flex: 1;
-        font-size: 14px;
-        font-weight: 500;
-        color: #1f2937;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        min-width: 0;
-    }
-
-    .cat-badge .cat-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #6366f1;
-        flex-shrink: 0;
-    }
-
-    .cat-badge span {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .cat-count {
-        font-size: 12px;
-        color: #9ca3af;
-        background: #f3f4f6;
-        padding: 2px 8px;
-        border-radius: 6px;
-        font-weight: 500;
-        white-space: nowrap;
-    }
-
-    .cat-actions {
-        display: flex;
-        gap: 4px;
-        opacity: 0;
-        transition: opacity .12s;
-    }
-
-    .cat-item:hover .cat-actions {
-        opacity: 1;
-    }
-
-    .cat-action-btn {
-        width: 30px;
-        height: 30px;
-        border: none;
-        border-radius: 8px;
-        background: transparent;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #6b7280;
-        transition: all .15s;
-    }
-
-    .cat-action-btn:hover {
-        background: #e5e7eb;
-        color: #111827;
-    }
-
-    .cat-action-btn.danger:hover {
-        background: #fef2f2;
-        color: #ef4444;
-    }
-
-    .cat-action-btn svg {
-        width: 15px;
-        height: 15px;
-    }
-
-    /* Rename inline form */
-    .cat-rename-form {
-        display: none;
-        flex: 1;
-        gap: 6px;
-        align-items: center;
-    }
-
-    .cat-rename-form.active {
-        display: flex;
-    }
-
-    .cat-rename-form input {
-        flex: 1;
-        padding: 5px 10px;
-        border: 1.5px solid #6366f1;
-        border-radius: 8px;
-        font-size: 13px;
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, .12);
-    }
-
-    .cat-rename-form button {
-        padding: 5px 10px;
-        border: none;
-        border-radius: 8px;
-        font-size: 12px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all .15s;
-    }
-
-    .cat-rename-ok {
-        background: #6366f1;
-        color: #fff;
-    }
-
-    .cat-rename-ok:hover {
-        background: #4f46e5;
-    }
-
-    .cat-rename-cancel {
-        background: #f3f4f6;
-        color: #374151;
-    }
-
-    .cat-rename-cancel:hover {
-        background: #e5e7eb;
-    }
-
-    /* Empty state */
-    .cat-empty {
-        text-align: center;
-        padding: 32px 16px;
-        color: #9ca3af;
-        font-size: 14px;
-    }
-
-    .cat-empty svg {
-        width: 40px;
-        height: 40px;
-        margin-bottom: 8px;
-        color: #d1d5db;
-    }
-
-    /* Success feedback */
-    .cat-toast {
-        position: fixed;
-        bottom: 24px;
-        left: 50%;
-        transform: translateX(-50%) translateY(80px);
-        background: #1f2937;
-        color: #fff;
-        padding: 10px 20px;
-        border-radius: 10px;
-        font-size: 14px;
-        font-weight: 500;
-        z-index: 9999;
-        transition: transform .3s ease;
-        pointer-events: none;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, .2);
-    }
-
-    .cat-toast.show {
-        transform: translateX(-50%) translateY(0);
-    }
-
-    /* Confirm delete popover */
-    .cat-confirm-popover {
-        position: absolute;
-        right: 0;
-        top: 100%;
-        background: #fff;
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
-        padding: 12px 16px;
-        z-index: 10;
-        width: 220px;
-        display: none;
-        animation: catSlideUp .15s ease;
-    }
-
-    .cat-confirm-popover.show {
-        display: block;
-    }
-
-    .cat-confirm-popover p {
-        margin: 0 0 10px;
-        font-size: 13px;
-        color: #374151;
-        line-height: 1.5;
-    }
-
-    .cat-confirm-popover .cat-confirm-btns {
-        display: flex;
-        gap: 6px;
-        justify-content: flex-end;
-    }
-
-    .cat-confirm-popover .cat-confirm-btns button {
-        padding: 5px 14px;
-        border: none;
-        border-radius: 8px;
-        font-size: 12px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all .15s;
-    }
-
-    .cat-del-confirm {
-        background: #ef4444;
-        color: #fff;
-    }
-
-    .cat-del-confirm:hover {
-        background: #dc2626;
-    }
-
-    .cat-del-dismiss {
-        background: #f3f4f6;
-        color: #374151;
-    }
-
-    .cat-del-dismiss:hover {
-        background: #e5e7eb;
-    }
-
-    /* Manage Categories button */
-    .btn-manage-cats {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 8px 16px;
-        border: 1.5px solid #d1d5db;
-        border-radius: 10px;
-        background: #fff;
-        color: #374151;
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all .15s;
-        text-decoration: none;
-    }
-
-    .btn-manage-cats:hover {
-        border-color: #6366f1;
-        color: #6366f1;
-        background: #f5f3ff;
-    }
-
-    .btn-manage-cats svg {
-        width: 16px;
-        height: 16px;
-    }
-</style>
-
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="display-6 fw-semibold text-primary">{{ _('Manage News') }}</h1>
-    <div class="d-flex gap-2 align-items-center">
-        <button type="button" class="btn-manage-cats" id="openCatModalBtn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                stroke-linejoin="round">
-                <path d="M4 7h16M4 12h10M4 17h13" />
-                <circle cx="19" cy="12" r="2.5" />
-            </svg>
-            {{ _('Manage Categories') }}
-        </button>
-        <a class="btn btn-primary" href="{{ url_for('news_publish') }}">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                class="bi bi-plus-lg me-1" viewBox="0 0 16 16" style="vertical-align:-2px">
-                <path
-                    d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2" />
-            </svg>
-            {{ _('Publish New Article') }}
-        </a>
+<div class="kp-head">
+  <div class="kp-head__left">
+    <div class="kp-crumb">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h11a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3v5a2 2 0 0 0 2 2"/><path d="M3 14V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v9"/></svg>
+      <span>{{ _('News') }} · {{ _('Editorial') }}</span>
     </div>
+    <h1 class="kp-title">{{ _('Manage News') }}</h1>
+    <p class="kp-sub">{{ _('Articles, announcements, and editorial pieces published on Keydion. Drafts stay private until you publish.') }}</p>
+  </div>
+  <div class="kp-head__right">
+    <button type="button" class="kp-btn kp-btn--ghost" id="openCatModalBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h10M4 17h13"/><circle cx="19" cy="12" r="2.5"/></svg>
+      <span>{{ _('Manage Categories') }}</span>
+    </button>
+    <a class="kp-btn kp-btn--primary" href="{{ url_for('news_publish') }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      <span>{{ _('Publish new article') }}</span>
+    </a>
+  </div>
 </div>
 
 {% if articles|length == 0 %}
-<div class="text-center py-5">
-    <p class="text-muted fs-5 mb-3">{{ _('No news articles yet.') }}</p>
-    <a href="{{ url_for('news_publish') }}" class="btn btn-outline-primary">{{ _('Publish your first article') }}</a>
-</div>
+  {# ─── Empty state ──────────────────────────────────────── #}
+  <div class="kp-empty">
+    <svg class="kp-empty__art" width="200" height="148" viewBox="0 0 200 148" fill="none">
+      <defs>
+        <pattern id="newsLines" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(135)">
+          <line x1="0" y1="0" x2="0" y2="6" stroke="#8b1a1a" stroke-opacity="0.12" stroke-width="1"/>
+        </pattern>
+      </defs>
+      <rect x="38" y="18" width="120" height="120" rx="4" fill="#fffdf9" stroke="#e0dbd0" stroke-width="1.2" transform="rotate(-6 98 78)"/>
+      <rect x="38" y="18" width="120" height="40" fill="url(#newsLines)" transform="rotate(-6 98 78)"/>
+      <rect x="42" y="18" width="120" height="120" rx="4" fill="#fffdf9" stroke="#e0dbd0" stroke-width="1.4"/>
+      <line x1="56" y1="40"  x2="148" y2="40"  stroke="#8b1a1a" stroke-width="2.2"/>
+      <line x1="56" y1="56"  x2="124" y2="56"  stroke="#1a1a1a" stroke-opacity="0.5" stroke-width="1.4"/>
+      <line x1="56" y1="68"  x2="148" y2="68"  stroke="#1a1a1a" stroke-opacity="0.25" stroke-width="1"/>
+      <line x1="56" y1="78"  x2="148" y2="78"  stroke="#1a1a1a" stroke-opacity="0.25" stroke-width="1"/>
+      <line x1="56" y1="88"  x2="140" y2="88"  stroke="#1a1a1a" stroke-opacity="0.25" stroke-width="1"/>
+      <line x1="56" y1="98"  x2="148" y2="98"  stroke="#1a1a1a" stroke-opacity="0.25" stroke-width="1"/>
+      <line x1="56" y1="108" x2="132" y2="108" stroke="#1a1a1a" stroke-opacity="0.25" stroke-width="1"/>
+      <line x1="56" y1="118" x2="148" y2="118" stroke="#1a1a1a" stroke-opacity="0.25" stroke-width="1"/>
+      <circle cx="158" cy="34" r="14" fill="#8b1a1a"/>
+      <text x="158" y="38" text-anchor="middle" fill="#fffdf9" font-family="Cormorant Garamond, Georgia, serif" font-size="14" font-weight="600">K</text>
+      <path d="M30 130 L52 108 L62 118 L40 140 Z" fill="#fffdf9" stroke="#8b1a1a" stroke-width="1.4"/>
+      <line x1="32" y1="138" x2="22" y2="142" stroke="#1a1a1a" stroke-width="1.2"/>
+    </svg>
+    <h3>{{ _('No articles yet') }}</h3>
+    <p>{{ _("Articles published here surface on the public News page, in the category landing pages, and in newsletter digests. Pick a category to start with — you can always add more later.") }}</p>
+    <div style="display:inline-flex; gap:10px;">
+      <a href="{{ url_for('news_publish') }}" class="kp-btn kp-btn--primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        <span>{{ _('Publish your first article') }}</span>
+      </a>
+      <button type="button" class="kp-btn kp-btn--ghost" id="openCatModalBtnEmpty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h10M4 17h13"/><circle cx="19" cy="12" r="2.5"/></svg>
+        <span>{{ _('Set up categories') }}</span>
+      </button>
+    </div>
+  </div>
 {% else %}
-<div class="table-responsive">
-    <table class="table table-hover align-middle">
-        <thead class="table-light">
-            <tr>
-                <th style="min-width:300px">{{ _('Title') }}</th>
-                <th>{{ _('Category') }}</th>
-                <th>{{ _('Status') }}</th>
-                <th>{{ _('Author') }}</th>
-                <th>{{ _('Published') }}</th>
-                <th class="text-end" style="min-width:150px">{{ _('Actions') }}</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in articles %}
-            <tr>
-                <td>
-                    <a href="{{ url_for('news_detail', news_id=item.id) }}" class="fw-semibold text-decoration-none">{{
-                        item.title }}</a>
-                    {% if item.abstract %}
-                    <div class="text-muted small text-truncate" style="max-width:400px">{{ item.abstract }}</div>
-                    {% endif %}
-                </td>
-                <td><span class="badge bg-secondary">{{ item.category }}</span></td>
-                <td>
-                    {% if item.status == 'pending' %}
-                    <span class="badge bg-warning text-dark">{{ _('Draft') }}</span>
-                    {% elif item.status == 'published' %}
-                    <span class="badge bg-success">{{ _('Published') }}</span>
-                    {% else %}
-                    <span class="badge bg-secondary">{{ item.status or _('Published') }}</span>
-                    {% endif %}
-                </td>
-                <td>{{ item.author }}</td>
-                <td class="text-muted small">{{ item.published_at }}</td>
-                <td class="text-end">
-                    <a href="{{ url_for('news_edit', news_id=item.id) }}" class="btn btn-sm btn-outline-primary me-1">{{
-                        _('Edit') }}</a>
-                    <form method="post" action="{{ url_for('news_delete', news_id=item.id) }}" class="d-inline"
-                        onsubmit="return confirm('{{ _('Are you sure you want to delete this article?') }}')">
-                        <button type="submit" class="btn btn-sm btn-outline-danger">{{ _('Delete') }}</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+
+{# ─── Filter toolbar ──────────────────────────────────────── #}
+<div class="kp-toolbar" id="newsToolbar">
+  <div class="kp-search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input type="text" id="newsSearch" placeholder="{{ _('Search by title, abstract, or author…') }}" autocomplete="off">
+  </div>
+
+  <div class="kp-chip-group" role="tablist" aria-label="{{ _('Filter by status') }}">
+    {% set draft_count = articles | selectattr('status', 'equalto', 'pending') | list | length %}
+    {% set pub_count   = articles | selectattr('status', 'equalto', 'published') | list | length %}
+    {% set sched_count = articles | selectattr('status', 'equalto', 'scheduled') | list | length %}
+    <button type="button" class="kp-chip is-active" data-status-filter="all">{{ _('All') }} <span class="kp-chip__count">{{ articles|length }}</span></button>
+    <button type="button" class="kp-chip" data-status-filter="published">{{ _('Published') }} <span class="kp-chip__count">{{ pub_count }}</span></button>
+    <button type="button" class="kp-chip" data-status-filter="pending">{{ _('Draft') }} <span class="kp-chip__count">{{ draft_count }}</span></button>
+    {% if sched_count > 0 %}
+    <button type="button" class="kp-chip" data-status-filter="scheduled">{{ _('Scheduled') }} <span class="kp-chip__count">{{ sched_count }}</span></button>
+    {% endif %}
+  </div>
+
+  <span class="kp-divider"></span>
+
+  <select class="kp-select" id="newsCategoryFilter" aria-label="{{ _('Filter by category') }}">
+    <option value="all">{{ _('Category: All') }}</option>
+    {% for cat in categories %}
+      <option value="{{ cat }}">{{ cat }}</option>
+    {% endfor %}
+  </select>
+
+  <select class="kp-select" id="newsDateFilter" aria-label="{{ _('Date range') }}">
+    <option value="all">{{ _('Any date') }}</option>
+    <option value="30">{{ _('Last 30 days') }}</option>
+    <option value="90">{{ _('Last 90 days') }}</option>
+    <option value="365">{{ _('Last year') }}</option>
+  </select>
+
+  <select class="kp-select" id="newsSort" aria-label="{{ _('Sort') }}">
+    <option value="date-desc">{{ _('Newest first') }}</option>
+    <option value="date-asc">{{ _('Oldest first') }}</option>
+    <option value="title-asc">{{ _('Title A → Z') }}</option>
+    <option value="title-desc">{{ _('Title Z → A') }}</option>
+  </select>
 </div>
+
+{# ─── Bulk action bar (hidden until selection) ─────────────── #}
+<div class="kp-bulkbar" id="newsBulkbar" style="display:none;">
+  <div class="kp-bulkbar__count"><strong id="bulkCount">0</strong> <span id="bulkLabel">{{ _('articles selected') }}</span></div>
+  <div class="kp-bulkbar__spacer"></div>
+  <button type="button" data-bulk-op="publish">{{ _('Publish') }}</button>
+  <button type="button" data-bulk-op="unpublish">{{ _('Move to draft') }}</button>
+  <button type="button" class="is-danger" data-bulk-op="delete">{{ _('Delete') }}</button>
+  <button type="button" id="bulkClear" title="{{ _('Clear selection') }}">{{ _('Cancel') }}</button>
+</div>
+
+{# ─── Table ────────────────────────────────────────────────── #}
+<div class="kp-card">
+  <table class="kp-table" id="newsTable">
+    <thead>
+      <tr>
+        <th style="width:36px; padding-right:0;">
+          <input type="checkbox" class="kp-check" id="newsSelectAll" aria-label="{{ _('Select all') }}">
+        </th>
+        <th style="min-width:340px;">{{ _('Article') }}</th>
+        <th>{{ _('Category') }}</th>
+        <th>{{ _('Status') }}</th>
+        <th>{{ _('Author') }}</th>
+        <th class="th-sortable th-sorted" data-sort-key="date">{{ _('Published') }} ↓</th>
+        <th class="text-end" style="width:130px;">{{ _('Actions') }}</th>
+      </tr>
+    </thead>
+    <tbody id="newsTbody">
+      {% for item in articles %}
+        <tr data-row
+            data-id="{{ item.id }}"
+            data-title="{{ (item.title or '')|lower }}"
+            data-abstract="{{ (item.abstract or '')|lower }}"
+            data-author="{{ (item.author or '')|lower }}"
+            data-category="{{ item.category or '' }}"
+            data-status="{{ item.status or 'published' }}"
+            data-date="{{ item.published_at }}">
+          <td style="padding-right:0;">
+            <input type="checkbox" class="kp-check news-row-check" value="{{ item.id }}" aria-label="{{ _('Select article') }}">
+          </td>
+          <td>
+            <span class="td-title">
+              <a href="{{ url_for('news_detail', news_id=item.id) }}">{{ item.title }}</a>
+            </span>
+            {% if item.abstract %}
+              <div class="td-sub">{{ item.abstract }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {% if item.category %}
+              <span class="kp-cat"><span class="kp-cat__dot"></span>{{ item.category }}</span>
+            {% else %}
+              <span class="td-meta">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if item.status == 'pending' %}
+              <span class="kp-pill kp-pill--draft"><span class="kp-pill__dot"></span>{{ _('Draft') }}</span>
+            {% elif item.status == 'scheduled' %}
+              <span class="kp-pill kp-pill--scheduled"><span class="kp-pill__dot"></span>{{ _('Scheduled') }}</span>
+            {% elif item.status == 'archived' %}
+              <span class="kp-pill kp-pill--archived"><span class="kp-pill__dot"></span>{{ _('Archived') }}</span>
+            {% else %}
+              <span class="kp-pill kp-pill--published"><span class="kp-pill__dot"></span>{{ _('Published') }}</span>
+            {% endif %}
+          </td>
+          <td style="font-family: Georgia, serif; color: var(--ink-soft);">{{ item.author }}</td>
+          <td><span class="td-meta">{{ item.published_at }}</span></td>
+          <td class="text-end">
+            <div class="td-actions">
+              <a class="kp-row-icon" href="{{ url_for('news_detail', news_id=item.id) }}" title="{{ _('Preview') }}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+              </a>
+              <a class="kp-row-icon" href="{{ url_for('news_edit', news_id=item.id) }}" title="{{ _('Edit') }}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+              </a>
+              <form method="post" action="{{ url_for('news_delete', news_id=item.id) }}" class="d-inline" onsubmit="return confirm('{{ _('Are you sure you want to delete this article?') }}')">
+                <button type="submit" class="kp-row-icon" title="{{ _('Delete') }}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="kp-foot">
+  <span id="newsCountLabel">{{ _('Showing') }} {{ articles|length }} {{ _('of') }} {{ articles|length }} {{ _('articles') }}</span>
+  <a href="{{ url_for('news_list') }}">{{ _('Preview public news page') }} →</a>
+</div>
+
+{# ─── No-results placeholder (toggled via JS when filters trim everything) ─── #}
+<div class="kp-empty" id="newsNoResults" style="display:none; margin-top:20px;">
+  <h3>{{ _('No articles match these filters') }}</h3>
+  <p>{{ _('Try a different status, category, or date range — or clear the search box.') }}</p>
+  <button type="button" class="kp-btn kp-btn--ghost" id="newsClearFilters">{{ _('Clear filters') }}</button>
+</div>
+
 {% endif %}
 
-<!-- ============ CATEGORY MANAGEMENT MODAL ============ -->
+{# ─── Category modal (restyled cream/serif) ─────────────────── #}
 <div class="cat-overlay" id="catOverlay">
-    <div class="cat-modal">
-        <div class="cat-modal-header">
-            <h3>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                    stroke-linejoin="round">
-                    <path d="M4 7h16M4 12h10M4 17h13" />
-                    <circle cx="19" cy="12" r="2.5" />
-                </svg>
-                {{ _('Manage Categories') }}
-            </h3>
-            <button type="button" class="cat-close-btn" id="closeCatModal" title="{{ _('Close') }}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
-        <div class="cat-add-form">
-            <input type="text" class="cat-add-input" id="catNewName" placeholder="{{ _('New category name…') }}"
-                maxlength="50">
-            <button type="button" class="cat-add-btn" id="catAddBtn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"
-                    style="vertical-align:-1px;margin-right:4px">
-                    <path
-                        d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2" />
-                </svg>
-                {{ _('Add') }}
-            </button>
-        </div>
-        <div class="cat-list-area" id="catListArea">
-            <!-- populated by JS -->
-        </div>
+  <div class="cat-modal" role="dialog" aria-labelledby="catModalTitle">
+    <div class="cat-modal-header">
+      <h3 id="catModalTitle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h10M4 17h13"/><circle cx="19" cy="12" r="2.5"/></svg>
+        {{ _('Manage Categories') }}
+      </h3>
+      <button type="button" class="cat-close-btn" id="closeCatModal" title="{{ _('Close') }}" aria-label="{{ _('Close') }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
     </div>
+    <div class="cat-add-form">
+      <input type="text" class="cat-add-input" id="catNewName" placeholder="{{ _('New category name…') }}" maxlength="50" autocomplete="off">
+      <button type="button" class="kp-btn kp-btn--primary" id="catAddBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        <span>{{ _('Add') }}</span>
+      </button>
+    </div>
+    <div class="cat-list-area" id="catListArea">
+      <!-- populated by JS -->
+    </div>
+  </div>
 </div>
 
-<!-- Toast -->
-<div class="cat-toast" id="catToast"></div>
+<div class="kp-toast" id="catToast"></div>
 
 <script>
-    (function () {
-        // ---- State ----
-        var categories = {{ categories | tojson
-    }};
-    var articles = {{ articles | tojson }};
+(function () {
+  /* ============ State ============ */
+  var categories = {{ categories | tojson }};
+  var articles = {{ articles | tojson }};
 
-    // Count articles per category
-    function countArticles(catName) {
-        var c = 0;
-        for (var i = 0; i < articles.length; i++) {
-            if (articles[i].category === catName) c++;
+  /* === Bulk action endpoint === */
+  var BULK_URL = "{{ url_for('news_bulk_action') }}";
+
+  /* ============ Helpers ============ */
+  function escHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+  function showToast(msg) {
+    var t = document.getElementById('catToast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(function () { t.classList.remove('show'); }, 2200);
+  }
+  function countArticles(catName) {
+    var c = 0;
+    for (var i = 0; i < articles.length; i++) if (articles[i].category === catName) c++;
+    return c;
+  }
+
+  /* ============ Filtering & sorting (client-side) ============ */
+  var state = { status: 'all', category: 'all', search: '', days: 'all', sort: 'date-desc' };
+
+  function applyFilters() {
+    var rows = document.querySelectorAll('#newsTbody tr[data-row]');
+    var visible = 0;
+    var nowMs = Date.now();
+    rows.forEach(function (tr) {
+      var ok = true;
+      if (state.status !== 'all' && tr.dataset.status !== state.status) ok = false;
+      if (ok && state.category !== 'all' && tr.dataset.category !== state.category) ok = false;
+      if (ok && state.search) {
+        var s = state.search;
+        if (tr.dataset.title.indexOf(s) === -1 &&
+            tr.dataset.abstract.indexOf(s) === -1 &&
+            tr.dataset.author.indexOf(s) === -1) ok = false;
+      }
+      if (ok && state.days !== 'all') {
+        var d = Date.parse(tr.dataset.date);
+        if (!isNaN(d)) {
+          var ageDays = (nowMs - d) / 86400000;
+          if (ageDays > parseInt(state.days, 10)) ok = false;
         }
-        return c;
-    }
-
-    // ---- Modal open / close ----
-    var overlay = document.getElementById('catOverlay');
-    document.getElementById('openCatModalBtn').addEventListener('click', function () {
-        renderCatList();
-        overlay.classList.add('show');
+      }
+      tr.classList.toggle('is-hidden', !ok);
+      if (ok) visible++;
     });
-    document.getElementById('closeCatModal').addEventListener('click', function () {
-        overlay.classList.remove('show');
-    });
-    overlay.addEventListener('click', function (e) {
-        if (e.target === overlay) overlay.classList.remove('show');
-    });
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && overlay.classList.contains('show')) overlay.classList.remove('show');
-    });
-
-    // ---- Toast ----
-    function showToast(msg) {
-        var t = document.getElementById('catToast');
-        t.textContent = msg;
-        t.classList.add('show');
-        setTimeout(function () { t.classList.remove('show'); }, 2200);
+    document.getElementById('newsCountLabel').textContent =
+      "{{ _('Showing') }} " + visible + " {{ _('of') }} " + rows.length + " {{ _('articles') }}";
+    var noResults = document.getElementById('newsNoResults');
+    var table = document.querySelector('#newsTable').closest('.kp-card');
+    if (noResults) {
+      noResults.style.display = (visible === 0 && rows.length > 0) ? '' : 'none';
+      if (table) table.style.display = (visible === 0 && rows.length > 0) ? 'none' : '';
     }
+  }
 
-    // ---- Render category list ----
-    function renderCatList() {
-        var area = document.getElementById('catListArea');
-        if (categories.length === 0) {
-            area.innerHTML = '<div class="cat-empty">' +
-                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 7h16M4 12h10M4 17h13"/></svg>' +
-                '<p>' + "{{ _('No categories yet. Add one above.') }}" + '</p></div>';
-            return;
-        }
-        var html = '';
-        for (var i = 0; i < categories.length; i++) {
-            var name = categories[i];
-            var count = countArticles(name);
-            var esc = escHtml(name);
-            html += '<div class="cat-item" data-cat="' + esc + '">' +
-                '<div class="cat-badge"><span class="cat-dot"></span><span>' + esc + '</span></div>' +
-                '<span class="cat-count">' + count + ' ' + "{{ _('articles') }}" + '</span>' +
-                '<div class="cat-actions">' +
-                '<button type="button" class="cat-action-btn" onclick="catStartRename(this)" title="' + "{{ _('Rename') }}" + '">' +
-                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>' +
-                '</button>' +
-                '<button type="button" class="cat-action-btn danger" onclick="catConfirmDelete(this)" title="' + "{{ _('Delete') }}" + '">' +
-                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>' +
-                '</button>' +
-                '</div>' +
-                '<div class="cat-rename-form">' +
-                '<input type="text" value="' + esc + '" maxlength="50">' +
-                '<button type="button" class="cat-rename-ok" onclick="catDoRename(this)">✓</button>' +
-                '<button type="button" class="cat-rename-cancel" onclick="catCancelRename(this)">✕</button>' +
-                '</div>' +
-                '<div class="cat-confirm-popover">' +
-                '<p>' + "{{ _('Delete this category? Articles using it will keep their current category label.') }}" + '</p>' +
-                '<div class="cat-confirm-btns">' +
-                '<button type="button" class="cat-del-dismiss" onclick="catDismissDelete(this)">' + "{{ _('Cancel') }}" + '</button>' +
-                '<button type="button" class="cat-del-confirm" onclick="catDoDelete(this)">' + "{{ _('Delete') }}" + '</button>' +
-                '</div>' +
-                '</div>' +
-                '</div>';
-        }
-        area.innerHTML = html;
+  function sortRows() {
+    var tbody = document.getElementById('newsTbody');
+    if (!tbody) return;
+    var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr[data-row]'));
+    // Drafts have no real date ("—"); we keep them at the BOTTOM regardless of asc/desc.
+    function dateKey(s) {
+      var t = Date.parse(s);
+      return isNaN(t) ? null : t;
     }
+    rows.sort(function (a, b) {
+      var da = dateKey(a.dataset.date), db = dateKey(b.dataset.date);
+      switch (state.sort) {
+        case 'date-asc':
+          if (da === null && db === null) return 0;
+          if (da === null) return 1;
+          if (db === null) return -1;
+          return da - db;
+        case 'date-desc':
+          if (da === null && db === null) return 0;
+          if (da === null) return 1;
+          if (db === null) return -1;
+          return db - da;
+        case 'title-asc':  return cmp(a.dataset.title, b.dataset.title);
+        case 'title-desc': return cmp(b.dataset.title, a.dataset.title);
+      }
+      return 0;
+    });
+    rows.forEach(function (r) { tbody.appendChild(r); });
+    var th = document.querySelector('th[data-sort-key="date"]');
+    if (th) th.textContent = "{{ _('Published') }} " + (state.sort === 'date-asc' ? '↑' : '↓');
+  }
+  function cmp(a, b) { if (a < b) return -1; if (a > b) return 1; return 0; }
 
-    function escHtml(s) {
-        var d = document.createElement('div');
-        d.textContent = s;
-        return d.innerHTML;
+  /* ============ Bulk selection ============ */
+  function refreshBulkbar() {
+    var checked = document.querySelectorAll('.news-row-check:checked');
+    var bar = document.getElementById('newsBulkbar');
+    if (!bar) return;
+    if (checked.length === 0) {
+      bar.style.display = 'none';
+    } else {
+      bar.style.display = '';
+      document.getElementById('bulkCount').textContent = checked.length;
+      document.getElementById('bulkLabel').textContent =
+        checked.length === 1 ? "{{ _('article selected') }}" : "{{ _('articles selected') }}";
     }
+    // Update rows + select-all indeterminate
+    document.querySelectorAll('.news-row-check').forEach(function (c) {
+      c.closest('tr').classList.toggle('is-selected', c.checked);
+    });
+    var all = document.getElementById('newsSelectAll');
+    var visibleChecks = document.querySelectorAll('#newsTbody tr:not(.is-hidden) .news-row-check');
+    var visibleChecked = document.querySelectorAll('#newsTbody tr:not(.is-hidden) .news-row-check:checked');
+    if (all) {
+      all.checked = visibleChecks.length > 0 && visibleChecked.length === visibleChecks.length;
+      all.indeterminate = visibleChecked.length > 0 && visibleChecked.length < visibleChecks.length;
+    }
+  }
 
-    // ---- API helpers ----
-    function catApi(url, body, cb) {
-        fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
+  /* ============ Wire-up ============ */
+  document.addEventListener('DOMContentLoaded', wireUp);
+  if (document.readyState !== 'loading') wireUp();
+  var _wired = false;
+  function wireUp() {
+    if (_wired) return; _wired = true;
+
+    // Status chips
+    document.querySelectorAll('[data-status-filter]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('[data-status-filter]').forEach(function (b) { b.classList.remove('is-active'); });
+        btn.classList.add('is-active');
+        state.status = btn.dataset.statusFilter;
+        applyFilters();
+        refreshBulkbar();
+      });
+    });
+
+    // Selects
+    var cat = document.getElementById('newsCategoryFilter');
+    if (cat) cat.addEventListener('change', function () { state.category = cat.value; applyFilters(); refreshBulkbar(); });
+    var dateF = document.getElementById('newsDateFilter');
+    if (dateF) dateF.addEventListener('change', function () { state.days = dateF.value; applyFilters(); refreshBulkbar(); });
+    var sortS = document.getElementById('newsSort');
+    if (sortS) sortS.addEventListener('change', function () { state.sort = sortS.value; sortRows(); });
+
+    // Search
+    var srch = document.getElementById('newsSearch');
+    if (srch) srch.addEventListener('input', function () { state.search = srch.value.trim().toLowerCase(); applyFilters(); refreshBulkbar(); });
+
+    // Clear filters (no-results state)
+    var clr = document.getElementById('newsClearFilters');
+    if (clr) clr.addEventListener('click', function () {
+      state = { status: 'all', category: 'all', search: '', days: 'all', sort: state.sort };
+      if (srch)  srch.value = '';
+      if (cat)   cat.value = 'all';
+      if (dateF) dateF.value = 'all';
+      document.querySelectorAll('[data-status-filter]').forEach(function (b) {
+        b.classList.toggle('is-active', b.dataset.statusFilter === 'all');
+      });
+      applyFilters();
+      refreshBulkbar();
+    });
+
+    // Selection
+    var selAll = document.getElementById('newsSelectAll');
+    if (selAll) selAll.addEventListener('change', function () {
+      document.querySelectorAll('#newsTbody tr:not(.is-hidden) .news-row-check').forEach(function (c) {
+        c.checked = selAll.checked;
+      });
+      refreshBulkbar();
+    });
+    document.querySelectorAll('.news-row-check').forEach(function (c) {
+      c.addEventListener('change', refreshBulkbar);
+    });
+
+    // Bulk ops
+    document.querySelectorAll('[data-bulk-op]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var op = btn.dataset.bulkOp;
+        var ids = Array.prototype.map.call(document.querySelectorAll('.news-row-check:checked'), function (c) {
+          return c.value;
+        });
+        if (ids.length === 0) return;
+        if (op === 'delete' && !confirm("{{ _('Delete') }} " + ids.length + " {{ _('articles? This cannot be undone.') }}")) return;
+
+        fetch(BULK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: ids, op: op })
         })
-            .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
-            .then(function (res) {
-                if (res.ok) {
-                    categories = res.data.categories;
-                    renderCatList();
-                    cb(null);
-                } else {
-                    cb(res.data.error || 'Error');
-                }
-            })
-            .catch(function (err) { cb(err.message || 'Network error'); });
-    }
-
-    // ---- Add ----
-    document.getElementById('catAddBtn').addEventListener('click', doAdd);
-    document.getElementById('catNewName').addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') doAdd();
+        .then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+        .then(function () { location.reload(); })
+        .catch(function () { alert("{{ _('Bulk action failed.') }}"); });
+      });
     });
-    function doAdd() {
-        var inp = document.getElementById('catNewName');
-        var name = inp.value.trim();
-        if (!name) { inp.focus(); return; }
-        catApi("{{ url_for('news_categories_add') }}", { name: name }, function (err) {
-            if (err) { alert(err); return; }
-            inp.value = '';
-            showToast("{{ _('Category added') }}");
-        });
+
+    var bulkClear = document.getElementById('bulkClear');
+    if (bulkClear) bulkClear.addEventListener('click', function () {
+      document.querySelectorAll('.news-row-check').forEach(function (c) { c.checked = false; });
+      refreshBulkbar();
+    });
+
+    // Sortable header (date)
+    var dateHead = document.querySelector('th[data-sort-key="date"]');
+    if (dateHead) dateHead.addEventListener('click', function () {
+      state.sort = (state.sort === 'date-desc') ? 'date-asc' : 'date-desc';
+      if (sortS) sortS.value = state.sort;
+      sortRows();
+    });
+
+    // Category modal
+    var overlay = document.getElementById('catOverlay');
+    function openModal()  { renderCatList(); overlay.classList.add('show'); }
+    function closeModal() { overlay.classList.remove('show'); }
+    var openBtn = document.getElementById('openCatModalBtn');
+    if (openBtn) openBtn.addEventListener('click', openModal);
+    var openBtn2 = document.getElementById('openCatModalBtnEmpty');
+    if (openBtn2) openBtn2.addEventListener('click', openModal);
+    document.getElementById('closeCatModal').addEventListener('click', closeModal);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) closeModal(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && overlay.classList.contains('show')) closeModal();
+    });
+
+    // Initial paint
+    sortRows();
+    applyFilters();
+    refreshBulkbar();
+  }
+
+  /* ============ Category modal CRUD ============ */
+  function renderCatList() {
+    var area = document.getElementById('catListArea');
+    if (categories.length === 0) {
+      area.innerHTML = '<div class="cat-empty">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 7h16M4 12h10M4 17h13"/></svg>' +
+        '<p>' + "{{ _('No categories yet. Add one above.') }}" + '</p></div>';
+      return;
     }
+    var html = '';
+    for (var i = 0; i < categories.length; i++) {
+      var name = categories[i];
+      var count = countArticles(name);
+      var esc = escHtml(name);
+      html +=
+        '<div class="cat-item" data-cat="' + esc + '">' +
+        '<div class="cat-badge"><span class="cat-dot"></span><span>' + esc + '</span></div>' +
+        '<span class="cat-count">' + count + ' ' + "{{ _('articles') }}" + '</span>' +
+        '<div class="cat-actions">' +
+        '<button type="button" class="cat-action-btn" onclick="catStartRename(this)" title="' + "{{ _('Rename') }}" + '">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>' +
+        '</button>' +
+        '<button type="button" class="cat-action-btn danger" onclick="catConfirmDelete(this)" title="' + "{{ _('Delete') }}" + '">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>' +
+        '</button>' +
+        '</div>' +
+        '<div class="cat-rename-form">' +
+        '<input type="text" value="' + esc + '" maxlength="50">' +
+        '<button type="button" class="cat-rename-ok" onclick="catDoRename(this)">' + "{{ _('Save') }}" + '</button>' +
+        '<button type="button" class="cat-rename-cancel" onclick="catCancelRename(this)">' + "{{ _('Cancel') }}" + '</button>' +
+        '</div>' +
+        '<div class="cat-confirm-popover">' +
+        '<p>' + "{{ _('Delete this category? Articles using it will keep their current category label.') }}" + '</p>' +
+        '<div class="cat-confirm-btns">' +
+        '<button type="button" class="cat-del-dismiss" onclick="catDismissDelete(this)">' + "{{ _('Cancel') }}" + '</button>' +
+        '<button type="button" class="cat-del-confirm" onclick="catDoDelete(this)">' + "{{ _('Delete') }}" + '</button>' +
+        '</div>' +
+        '</div>' +
+        '</div>';
+    }
+    area.innerHTML = html;
+  }
 
-    // ---- Rename ----
-    window.catStartRename = function (btn) {
-        var item = btn.closest('.cat-item');
-        item.querySelector('.cat-badge').style.display = 'none';
-        item.querySelector('.cat-count').style.display = 'none';
-        item.querySelector('.cat-actions').style.display = 'none';
-        var form = item.querySelector('.cat-rename-form');
-        form.classList.add('active');
-        var inp = form.querySelector('input');
-        inp.focus();
-        inp.select();
-    };
-    window.catCancelRename = function (btn) {
-        var item = btn.closest('.cat-item');
-        item.querySelector('.cat-badge').style.display = '';
-        item.querySelector('.cat-count').style.display = '';
-        item.querySelector('.cat-actions').style.display = '';
-        item.querySelector('.cat-rename-form').classList.remove('active');
-    };
-    window.catDoRename = function (btn) {
-        var item = btn.closest('.cat-item');
-        var oldName = item.dataset.cat;
-        var newName = item.querySelector('.cat-rename-form input').value.trim();
-        if (!newName || newName === oldName) { catCancelRename(btn); return; }
-        catApi("{{ url_for('news_categories_rename') }}", { old_name: oldName, new_name: newName }, function (err) {
-            if (err) { alert(err); return; }
-            // Update local articles data model
-            for (var i = 0; i < articles.length; i++) {
-                if (articles[i].category === oldName) articles[i].category = newName;
-            }
-            // Update main table UI
-            document.querySelectorAll('.table tbody tr').forEach(function (tr) {
-                var badge = tr.querySelector('.badge');
-                if (badge && badge.textContent.trim() === oldName) {
-                    badge.textContent = newName;
-                }
-            });
-            showToast("{{ _('Category renamed') }}");
-        });
-    };
-
-    // ---- Delete ----
-    window.catConfirmDelete = function (btn) {
-        // Close any other open popovers
-        document.querySelectorAll('.cat-confirm-popover.show').forEach(function (p) { p.classList.remove('show'); });
-        btn.closest('.cat-item').querySelector('.cat-confirm-popover').classList.add('show');
-    };
-    window.catDismissDelete = function (btn) {
-        btn.closest('.cat-confirm-popover').classList.remove('show');
-    };
-    window.catDoDelete = function (btn) {
-        var item = btn.closest('.cat-item');
-        var name = item.dataset.cat;
-        catApi("{{ url_for('news_categories_delete') }}", { name: name }, function (err) {
-            if (err) { alert(err); return; }
-            showToast("{{ _('Category deleted') }}");
-        });
-    };
-
-    // Close popovers on outside click
-    document.addEventListener('mousedown', function (e) {
-        if (!e.target.closest('.cat-confirm-popover') && !e.target.closest('.cat-action-btn')) {
-            document.querySelectorAll('.cat-confirm-popover.show').forEach(function (p) { p.classList.remove('show'); });
+  function catApi(url, body, cb) {
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+      .then(function (res) {
+        if (res.ok) {
+          categories = res.data.categories;
+          renderCatList();
+          // Also update the category filter dropdown to reflect the new set
+          var sel = document.getElementById('newsCategoryFilter');
+          if (sel) {
+            var curr = sel.value;
+            sel.innerHTML = '<option value="all">' + "{{ _('Category: All') }}" + '</option>' +
+              categories.map(function (c) { return '<option value="' + escHtml(c) + '">' + escHtml(c) + '</option>'; }).join('');
+            sel.value = categories.indexOf(curr) !== -1 ? curr : 'all';
+            state.category = sel.value;
+          }
+          cb(null);
+        } else {
+          cb(res.data.error || 'Error');
         }
+      })
+      .catch(function (err) { cb(err.message || 'Network error'); });
+  }
+
+  var catAddBtn = document.getElementById('catAddBtn');
+  if (catAddBtn) catAddBtn.addEventListener('click', doAdd);
+  var catNewName = document.getElementById('catNewName');
+  if (catNewName) catNewName.addEventListener('keydown', function (e) { if (e.key === 'Enter') doAdd(); });
+  function doAdd() {
+    var inp = document.getElementById('catNewName');
+    var name = inp.value.trim();
+    if (!name) { inp.focus(); return; }
+    catApi("{{ url_for('news_categories_add') }}", { name: name }, function (err) {
+      if (err) { alert(err); return; }
+      inp.value = '';
+      showToast("{{ _('Category added') }}");
     });
-}) ();
+  }
+
+  window.catStartRename = function (btn) {
+    var item = btn.closest('.cat-item');
+    item.querySelector('.cat-badge').style.display = 'none';
+    item.querySelector('.cat-count').style.display = 'none';
+    item.querySelector('.cat-actions').style.display = 'none';
+    var form = item.querySelector('.cat-rename-form');
+    form.classList.add('active');
+    var inp = form.querySelector('input');
+    inp.focus();
+    inp.select();
+  };
+  window.catCancelRename = function (btn) {
+    var item = btn.closest('.cat-item');
+    item.querySelector('.cat-badge').style.display = '';
+    item.querySelector('.cat-count').style.display = '';
+    item.querySelector('.cat-actions').style.display = '';
+    item.querySelector('.cat-rename-form').classList.remove('active');
+  };
+  window.catDoRename = function (btn) {
+    var item = btn.closest('.cat-item');
+    var oldName = item.dataset.cat;
+    var newName = item.querySelector('.cat-rename-form input').value.trim();
+    if (!newName || newName === oldName) { catCancelRename(btn); return; }
+    catApi("{{ url_for('news_categories_rename') }}", { old_name: oldName, new_name: newName }, function (err) {
+      if (err) { alert(err); return; }
+      for (var i = 0; i < articles.length; i++) {
+        if (articles[i].category === oldName) articles[i].category = newName;
+      }
+      document.querySelectorAll('#newsTbody tr').forEach(function (tr) {
+        if (tr.dataset.category === oldName) {
+          tr.dataset.category = newName;
+          var chip = tr.querySelector('.kp-cat');
+          if (chip) chip.lastChild.nodeValue = newName;
+        }
+      });
+      showToast("{{ _('Category renamed') }}");
+    });
+  };
+  window.catConfirmDelete = function (btn) {
+    document.querySelectorAll('.cat-confirm-popover.show').forEach(function (p) { p.classList.remove('show'); });
+    btn.closest('.cat-item').querySelector('.cat-confirm-popover').classList.add('show');
+  };
+  window.catDismissDelete = function (btn) {
+    btn.closest('.cat-confirm-popover').classList.remove('show');
+  };
+  window.catDoDelete = function (btn) {
+    var item = btn.closest('.cat-item');
+    var name = item.dataset.cat;
+    catApi("{{ url_for('news_categories_delete') }}", { name: name }, function (err) {
+      if (err) { alert(err); return; }
+      showToast("{{ _('Category deleted') }}");
+    });
+  };
+
+  document.addEventListener('mousedown', function (e) {
+    if (!e.target.closest('.cat-confirm-popover') && !e.target.closest('.cat-action-btn')) {
+      document.querySelectorAll('.cat-confirm-popover.show').forEach(function (p) { p.classList.remove('show'); });
+    }
+  });
+})();
 </script>
 
 {% endblock %}
