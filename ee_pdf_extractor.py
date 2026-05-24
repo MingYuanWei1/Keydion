@@ -12,11 +12,16 @@ Parsing strategy:
 from __future__ import annotations
 
 import io
+import json
 import re
+from functools import lru_cache
+from pathlib import Path
 from typing import Optional
 
 from PyPDF2 import PdfReader
 from PyPDF2.errors import PdfReadError
+
+_DATA_DIR = Path(__file__).resolve().parent / "data"
 
 
 class EePdfExtractionError(Exception):
@@ -187,6 +192,60 @@ def _extract_via_regex(text: str) -> dict:
     return result
 
 
+@lru_cache(maxsize=1)
+def _canonical_subjects() -> dict:
+    """Return a {lowercase_name: CanonicalName} mapping from ee_subjects.json."""
+    path = _DATA_DIR / "ee_subjects.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    out: dict[str, str] = {}
+    for group in data.get("groups", []):
+        for subject in group.get("subjects", []):
+            out[subject.lower()] = subject
+    return out
+
+
+def _normalise_subject(raw: str) -> tuple[str, Optional[str]]:
+    """Map a raw subject string to a canonical IB subject name.
+
+    Returns (canonical_name, warning_or_None). Empty input returns ("", None)
+    — only an unrecognised non-empty value yields a warning.
+    """
+    raw = (raw or "").strip()
+    if not raw:
+        return "", None
+    canonical = _canonical_subjects().get(raw.lower())
+    if canonical:
+        return canonical, None
+    return "", (
+        f"Subject '{raw}' not recognised — please pick from the dropdown manually."
+    )
+
+
+def _finalise_warnings(result: dict) -> None:
+    """Append warnings for missing fields and the framework gap. Mutates in place."""
+    missing: list[str] = []
+    if not result["research_question"]:
+        missing.append("research question")
+    if not result["core_subject"]:
+        missing.append("core subject")
+    for letter in "ABCDE":
+        crit = result["criteria"][letter]
+        if crit["score"] is None:
+            missing.append(f"Criterion {letter} score")
+    if missing:
+        result["warnings"].append(
+            f"Could not extract: {', '.join(missing)}. Please fill these fields manually."
+        )
+    if result["framework"]:
+        result["warnings"].append(
+            f"Interdisciplinary framework '{result['framework']}' has no field on this form — "
+            "please add it to the holistic comment if relevant."
+        )
+
+
 def extract_ee_metadata(file_bytes: bytes) -> dict:
     """Parse an IB EE commentary PDF. See module docstring for contract."""
     if not file_bytes:
@@ -194,4 +253,16 @@ def extract_ee_metadata(file_bytes: bytes) -> dict:
 
     text = _read_pdf_text(file_bytes)
     result = _extract_via_regex(text)
+
+    # Normalise both subject fields against the canonical IB subject list.
+    core, core_warn = _normalise_subject(result["core_subject"])
+    inter, inter_warn = _normalise_subject(result["interdisciplinary_subject"])
+    result["core_subject"] = core
+    result["interdisciplinary_subject"] = inter
+    if core_warn:
+        result["warnings"].append(core_warn)
+    if inter_warn:
+        result["warnings"].append(inter_warn)
+
+    _finalise_warnings(result)
     return result
