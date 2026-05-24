@@ -14,6 +14,10 @@
 {% extends "base.html" %}
 {% block title %}{{ _('User Hub · Keydion') }}{% endblock %}
 
+{% block head_extra %}{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
 {% block content %}
 <style>
   main.py-4 > .container { max-width: none !important; padding: 0 !important; }
@@ -21,8 +25,6 @@
   body { padding-bottom: 0 !important; }
   footer { display: none !important; }
 </style>
-
-<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
 
 {% set role = user.role|int %}
 {% set display_name = user.display_name or (user.first_name ~ ' ' ~ user.last_name)|trim or user.email or user.username %}
