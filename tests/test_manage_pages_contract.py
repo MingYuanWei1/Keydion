@@ -288,12 +288,13 @@ class RevampedTemplateWiringTest(unittest.TestCase):
     def test_news_template_loads_manage_css(self):
         self.assertIn("css/manage.css", self.news_tpl)
 
-    def test_news_template_enables_bulk_and_wires_url(self):
-        self.assertIn("BULK_ENABLED = true", self.news_tpl)
+    def test_news_template_wires_bulk_url(self):
         self.assertIn("BULK_URL =", self.news_tpl)
         self.assertIn("url_for('news_bulk_action')", self.news_tpl)
-        # The fragile conditional must be gone.
+        # The fragile conditional and the dead feature-flag branch must be gone.
         self.assertNotIn("config.get('ROUTES')", self.news_tpl)
+        self.assertNotIn("BULK_ENABLED", self.news_tpl)
+        self.assertNotIn("chainDelete", self.news_tpl)
 
     def test_news_template_does_not_parseInt_row_ids(self):
         # NewsArticleModel.id is a 12-char hex string; parseInt would yield NaN.

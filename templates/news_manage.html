@@ -259,8 +259,7 @@
   var categories = {{ categories | tojson }};
   var articles = {{ articles | tojson }};
 
-  /* === Endpoint URLs (wired to /dashboard/news/bulk_action) === */
-  var BULK_ENABLED = true;
+  /* === Bulk action endpoint === */
   var BULK_URL = "{{ url_for('news_bulk_action') }}";
 
   /* ============ Helpers ============ */
@@ -440,33 +439,16 @@
         if (ids.length === 0) return;
         if (op === 'delete' && !confirm("{{ _('Delete') }} " + ids.length + " {{ _('articles? This cannot be undone.') }}")) return;
 
-        if (BULK_ENABLED) {
-          fetch(BULK_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ids: ids, op: op })
-          })
-          .then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
-          .then(function () { location.reload(); })
-          .catch(function () { alert("{{ _('Bulk action failed.') }}"); });
-        } else {
-          // Fallback: only delete is wired to existing per-row endpoint
-          if (op === 'delete') {
-            chainDelete(ids, 0);
-          } else {
-            alert("{{ _('Bulk ') }}" + op + "{{ _(' is not yet enabled. Enable BULK_ENABLED in news_manage.html once the /news/bulk_action endpoint is live.') }}");
-          }
-        }
+        fetch(BULK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: ids, op: op })
+        })
+        .then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+        .then(function () { location.reload(); })
+        .catch(function () { alert("{{ _('Bulk action failed.') }}"); });
       });
     });
-
-    function chainDelete(ids, i) {
-      if (i >= ids.length) { location.reload(); return; }
-      var f = new FormData();
-      fetch("{{ url_for('news_delete', news_id=0) }}".replace('/0', '/' + ids[i]), {
-        method: 'POST', body: f
-      }).finally(function () { chainDelete(ids, i + 1); });
-    }
 
     var bulkClear = document.getElementById('bulkClear');
     if (bulkClear) bulkClear.addEventListener('click', function () {
