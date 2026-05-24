@@ -400,7 +400,7 @@
 
     window.confirmDelete = function (filename, title) {
       document.getElementById('delFname').textContent = title || filename;
-      document.getElementById('delForm').action = '/paper/' + encodeURIComponent(filename) + '/delete';
+      document.getElementById('delForm').action = '/dashboard/paper/' + encodeURIComponent(filename) + '/delete';
       delOverlay.classList.add('show');
     };
 
