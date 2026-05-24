@@ -289,6 +289,17 @@ ROLE_OPTIONS = [
     ("3", "Admin"),
 ]
 
+_MISSING_FIELD_MESSAGES = {
+    "title": "Please enter the paper title",
+    "category": "Please select a subject category",
+    "language": "Please select a language",
+    "keywords": "Please enter keywords",
+    "abstract": "Please enter the abstract",
+    "author_name": "Please enter the author name",
+    "author_email": "Please enter the contact email",
+    "author_school": "Please enter the school name",
+}
+
 # CP Paper (MYP Community Project) constants
 IB_EE_CRITERIA_DEFS = [
     ("A", "Framework for the essay", 6),
@@ -1353,6 +1364,19 @@ def create_app() -> Flask:
             journal_id_map=get_journal_id_map(),
         )
 
+    def _render_upload(user, form_data, draft_id):
+        """Render upload.html with the standard kwargs the wizard needs."""
+        return render_template("upload.html",
+            user=user,
+            form_data=form_data,
+            journals=get_journal_names(),
+            paper_categories=load_paper_categories(),
+            ee_subjects=load_ee_subjects(),
+            cp_global_contexts=CP_GLOBAL_CONTEXTS,
+            cp_action_types=CP_ACTION_TYPES,
+            draft_id=draft_id,
+        )
+
     @app.route("/dashboard/upload", methods=["GET", "POST"])
     def upload():
         user = require_login(level=1)
@@ -1379,9 +1403,7 @@ def create_app() -> Flask:
                     "author_school": draft.get("author_school", ""),
                     "published_at": today,
                 }
-                return render_template("upload.html", user=user, form_data=form_data,
-                    journals=get_journal_names(), paper_categories=load_paper_categories(),
-                    ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES, draft_id=draft_id)
+                return _render_upload(user, form_data, draft_id)
 
         raw_names = request.form.getlist("author_name")
         raw_emails = request.form.getlist("author_email")
@@ -1438,9 +1460,7 @@ def create_app() -> Flask:
             if "save_draft" in request.form:
                 if not form_data["title"]:
                     flash(_("Please enter at least a paper title to save a draft."), "warning")
-                    return render_template("upload.html", user=user, form_data=form_data,
-                        journals=get_journal_names(), paper_categories=load_paper_categories(),
-                        draft_id=draft_id)
+                    return _render_upload(user, form_data, draft_id)
                 # Format keywords
                 if form_data["keywords"]:
                     form_data["keywords"] = ", ".join(
@@ -1495,69 +1515,35 @@ def create_app() -> Flask:
                 flash(_("Draft saved successfully."), "success")
                 return redirect(url_for("my_submissions"))
 
-            # 验证必填字段
-            if not form_data["title"]:
-                flash(_("Please enter the paper title"), "danger")
-                return render_template("upload.html", user=user, form_data=form_data,
-                    journals=get_journal_names(), paper_categories=load_paper_categories(), ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES, draft_id=draft_id)
-            if not form_data["category"]:
-                flash(_("Please select a subject category"), "danger")
-                return render_template("upload.html", user=user, form_data=form_data,
-                    journals=get_journal_names(), paper_categories=load_paper_categories(), ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES, draft_id=draft_id)
-            if not form_data["language"]:
-                flash(_("Please select a language"), "danger")
-                return render_template("upload.html", user=user, form_data=form_data,
-                    journals=get_journal_names(), paper_categories=load_paper_categories(), ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES, draft_id=draft_id)
-            if not form_data["keywords"]:
-                flash(_("Please enter keywords"), "danger")
-                return render_template("upload.html", user=user, form_data=form_data,
-                    ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES)
-            if not form_data["abstract"]:
-                flash(_("Please enter the abstract"), "danger")
-                return render_template("upload.html", user=user, form_data=form_data,
-                    ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES)
+            # Per-type required-field cascade. Keywords/abstract apply to Standard
+            # papers only; author fields are skipped for IB Sample submissions.
+            required = ["title", "category", "language"]
+            if not (is_ib_ee or is_cp_paper):
+                required += ["keywords", "abstract"]
             if not is_ib_sample:
-                if not form_data["author_name"]:
-                    flash(_("Please enter the author name"), "danger")
-                    return render_template("upload.html", user=user, form_data=form_data,
-                        ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES)
-                if not form_data["author_email"]:
-                    flash(_("Please enter the contact email"), "danger")
-                    return render_template("upload.html", user=user, form_data=form_data,
-                        ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES)
-                if not form_data["author_school"]:
-                    flash(_("Please enter the school name"), "danger")
-                    return render_template("upload.html", user=user, form_data=form_data,
-                        ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES)
-            if is_ib_ee and not form_data.get("ib_ee_data"):
-                pass  # handled below
+                required += ["author_name", "author_email", "author_school"]
+
+            for field in required:
+                if not form_data.get(field):
+                    flash(_(_MISSING_FIELD_MESSAGES[field]), "danger")
+                    return _render_upload(user, form_data, draft_id)
+
             if is_ib_ee and is_cp_paper:
                 flash(_("A paper cannot be both an Extended Essay and a CP Paper."), "danger")
-                return render_template("upload.html", user=user, form_data=form_data,
-                    journals=get_journal_names(), paper_categories=load_paper_categories(),
-                    ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS,
-                    cp_action_types=CP_ACTION_TYPES, draft_id=draft_id)
+                return _render_upload(user, form_data, draft_id)
             if is_ib_ee:
                 ib_data = json.loads(form_data["ib_ee_data"])
                 if not ib_data.get("core_subject"):
                     flash(_("Please select an EE core subject."), "danger")
-                    return render_template("upload.html", user=user, form_data=form_data,
-                        journals=get_journal_names(), paper_categories=load_paper_categories(),
-                        ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES, draft_id=draft_id)
+                    return _render_upload(user, form_data, draft_id)
             if is_cp_paper:
                 cp_data = json.loads(form_data["cp_data"])
                 if not cp_data.get("global_context"):
                     flash(_("Please select a Global Context."), "danger")
-                    return render_template("upload.html", user=user, form_data=form_data,
-                        journals=get_journal_names(), paper_categories=load_paper_categories(),
-                        ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS,
-                        cp_action_types=CP_ACTION_TYPES, draft_id=draft_id)
+                    return _render_upload(user, form_data, draft_id)
                 if not cp_data.get("action_types"):
                     flash(_("Please select at least one Type of Action."), "danger")
-                    return render_template("upload.html", user=user, form_data=form_data,
-                        journals=get_journal_names(), paper_categories=load_paper_categories(),
-                        ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS,
-                        cp_action_types=CP_ACTION_TYPES, draft_id=draft_id)
+                    return _render_upload(user, form_data, draft_id)
 
             # 格式化关键词
             if form_data["keywords"]:
@@ -1670,7 +1656,7 @@ def create_app() -> Flask:
                             _save_submission(submission)
                         return redirect(url_for("upload_success", title=form_data["title"]))
 
-        return render_template("upload.html", user=user, form_data=form_data, journals=get_journal_names(), paper_categories=load_paper_categories(), ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES, draft_id=request.args.get("draft", ""))
+        return _render_upload(user, form_data, request.args.get("draft", ""))
 
     @app.route("/dashboard/upload/success")
     def upload_success():
