@@ -1,5 +1,8 @@
 {% extends "_bare.html" if partial else "_dashboard_shell.html" %}
 {% block title %}{{ _('Manage News · Keydion') }}{% endblock %}
+{% block head_extra %}{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/manage.css') }}">
+{% endblock %}
 {% block panel %}
 
 {# =============================================================
@@ -18,7 +21,7 @@
    is missing — wired with a feature flag at the top of the JS.
    ============================================================= #}
 
-<link rel="stylesheet" href="{{ url_for('static', filename='css/manage.css') }}">
+{% if partial %}<link rel="stylesheet" href="{{ url_for('static', filename='css/manage.css') }}">{% endif %}
 
 <div class="kp-head">
   <div class="kp-head__left">
