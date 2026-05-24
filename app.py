@@ -2680,6 +2680,25 @@ def create_app() -> Flask:
             db.commit()
         return jsonify(ok=True)
 
+    @app.route("/dashboard/admin/guides/<int:guide_id>/toggle", methods=["POST"], endpoint="admin_guide_toggle_published")
+    def admin_guide_toggle_published(guide_id: int):
+        user = require_login(level=3)
+        if not user:
+            return jsonify(error="Unauthorized"), 401
+        data = request.get_json(silent=True) or {}
+        with db_session() as db:
+            g = db.query(GuideModel).filter_by(id=guide_id).first()
+            if not g:
+                return jsonify(error="not found"), 404
+            if "published" in data:
+                g.published = bool(data["published"])
+            else:
+                g.published = not bool(g.published)
+            g.updated_at = datetime.utcnow().isoformat()
+            new_state = bool(g.published)
+            db.commit()
+        return jsonify(ok=True, published=new_state)
+
     @app.route("/dashboard/admin/guides/preview", methods=["POST"], endpoint="admin_guide_preview")
     def admin_guide_preview():
         user = require_login(level=3)

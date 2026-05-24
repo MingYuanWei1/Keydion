@@ -214,5 +214,70 @@ class GuideReorderEndpointTest(unittest.TestCase):
         self.assertEqual(resp.status_code, 401)
 
 
+class GuideTogglePublishedEndpointTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app, cls.app_module = _build_app()
+
+    def _seed_guide(self, slug, published):
+        with self.app_module.db_session() as db:
+            g = self.app_module.GuideModel(
+                slug=slug, category="c", sort_order=10,
+                published=published, title_en=slug, title_zh="",
+                summary_en="", summary_zh="", body_en="", body_zh="",
+                created_at="", updated_at="",
+            )
+            db.add(g)
+            db.commit()
+            return db.query(self.app_module.GuideModel).filter_by(slug=slug).first().id
+
+    def test_route_is_registered(self):
+        rules = [r.rule for r in self.app.url_map.iter_rules()
+                 if r.endpoint == "admin_guide_toggle_published"]
+        self.assertEqual(rules, ["/dashboard/admin/guides/<int:guide_id>/toggle"])
+
+    def test_toggle_with_explicit_published_true_publishes(self):
+        gid = self._seed_guide("toggle-1", published=False)
+        client = self.app.test_client()
+        _login_as(client, self.app_module, level=3)
+        resp = client.post(f"/dashboard/admin/guides/{gid}/toggle",
+                           data=json.dumps({"published": True}),
+                           content_type="application/json")
+        self.assertEqual(resp.status_code, 200)
+        body = resp.get_json()
+        self.assertTrue(body["ok"])
+        self.assertTrue(body["published"])
+        with self.app_module.db_session() as db:
+            row = db.query(self.app_module.GuideModel).filter_by(id=gid).first()
+            self.assertTrue(row.published)
+
+    def test_toggle_without_body_flips_current_state(self):
+        gid = self._seed_guide("toggle-2", published=True)
+        client = self.app.test_client()
+        _login_as(client, self.app_module, level=3)
+        resp = client.post(f"/dashboard/admin/guides/{gid}/toggle",
+                           data="",
+                           content_type="application/json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(resp.get_json()["published"])
+
+    def test_unknown_guide_returns_404(self):
+        client = self.app.test_client()
+        _login_as(client, self.app_module, level=3)
+        resp = client.post("/dashboard/admin/guides/9999999/toggle",
+                           data=json.dumps({}),
+                           content_type="application/json")
+        self.assertEqual(resp.status_code, 404)
+
+    def test_level_2_user_is_forbidden(self):
+        gid = self._seed_guide("toggle-3", published=False)
+        client = self.app.test_client()
+        _login_as(client, self.app_module, level=2)
+        resp = client.post(f"/dashboard/admin/guides/{gid}/toggle",
+                           data=json.dumps({"published": True}),
+                           content_type="application/json")
+        self.assertEqual(resp.status_code, 401)
+
+
 if __name__ == "__main__":
     unittest.main()
