@@ -318,7 +318,7 @@
         </div>
 
         ${isEE ? renderEEFieldset() : ''}
-        ${isCP ? '<!-- CP fieldset (Task 11) -->' : ''}
+        ${isCP ? renderCPFieldset() : ''}
       </div>
     `;
   }
@@ -497,7 +497,87 @@
     });
   }
 
-  function bindCPFieldset() { /* implemented in Task 11 */ }
+  // ─── CP fieldset ───────────────────────────────────────────
+  function renderCPFieldset() {
+    const criteria = [
+      ['A', t('crit_cp_A', 'Investigating')],
+      ['B', t('crit_cp_B', 'Planning')],
+      ['C', t('crit_cp_C', 'Taking Action')],
+      ['D', t('crit_cp_D', 'Reflecting')],
+    ];
+    const filled = Object.values(state.cpScores).filter(v => v !== '' && !isNaN(parseInt(v, 10)));
+    const avg = filled.length ? Math.round(sumScores(state.cpScores) / 4) : 0;
+    const contexts = BOOT.cp_global_contexts || [];
+    const actions = BOOT.cp_action_types || [];
+
+    return `
+      <div class="section-sub">${t('global_context', 'Global Context')} <span class="req">*</span></div>
+      <div class="field">
+        ${renderCombobox('cp-global', state.cpGlobalContext, t('select_global', 'Select a Global Context…'),
+          [{ name: t('global_contexts', 'Global Contexts'), subjects: contexts }])}
+      </div>
+
+      <div class="section-sub" style="margin-top:24px;">${t('type_of_action', 'Type of Action')} <span class="req">*</span></div>
+      <div class="pill-checks">
+        ${actions.map(a => `
+          <label class="pill-check ${state.cpActionTypes.includes(a) ? 'is-checked' : ''}">
+            <input type="checkbox" value="${esc(a)}" ${state.cpActionTypes.includes(a) ? 'checked' : ''}>${esc(a)}
+          </label>
+        `).join('')}
+      </div>
+
+      <div class="section-sub" style="margin-top:24px;">${t('crit_scores', 'Criterion Scores')} <span class="req">*</span></div>
+      <table class="crit-table" id="cpCriteria">
+        <thead><tr><th>${t('crit', 'Crit.')}</th><th>${t('criterion', 'Criterion')}</th><th style="width:140px;">${t('score', 'Score')}</th></tr></thead>
+        <tbody>
+          ${criteria.map(([k, name]) => `
+            <tr>
+              <td class="crit-letter">${k}</td>
+              <td class="crit-name">${esc(name)}</td>
+              <td class="crit-score">
+                <span class="crit-score__input">
+                  <input type="number" min="0" max="8" value="${esc(state.cpScores[k])}" data-crit="${k}" placeholder="0">
+                  <span class="crit-score__max">/ 8</span>
+                </span>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+
+      <div class="total-readout">
+        <div>
+          <div class="total-readout__label">${t('overall_grade', 'Overall Grade')}</div>
+          <div class="total-readout__sub">${t('overall_cp_sub', 'Mean of the four criterion scores, rounded')}</div>
+        </div>
+        <div class="total-readout__value"><span id="cpTotal">${avg}</span><small>/ 8</small></div>
+      </div>
+    `;
+  }
+
+  function bindCPFieldset() {
+    stepsContainer.querySelectorAll('#cpCriteria input[data-crit]').forEach(inp => {
+      inp.addEventListener('input', e => {
+        const k = inp.dataset.crit;
+        let v = parseInt(e.target.value, 10);
+        if (!isNaN(v)) { if (v < 0) v = 0; if (v > 8) v = 8; }
+        state.cpScores[k] = isNaN(v) ? '' : String(v);
+        const filled = Object.values(state.cpScores).filter(x => x !== '' && !isNaN(parseInt(x, 10)));
+        const totalEl = stepsContainer.querySelector('#cpTotal');
+        if (totalEl) totalEl.textContent = filled.length ? Math.round(sumScores(state.cpScores) / 4) : 0;
+        touch();
+      });
+    });
+    stepsContainer.querySelectorAll('.pill-check input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const v = cb.value;
+        if (cb.checked && !state.cpActionTypes.includes(v)) state.cpActionTypes.push(v);
+        if (!cb.checked) state.cpActionTypes = state.cpActionTypes.filter(x => x !== v);
+        cb.closest('.pill-check').classList.toggle('is-checked', cb.checked);
+        touch();
+      });
+    });
+  }
 
   // ─── Combobox component ────────────────────────────────────
   function renderCombobox(id, value, placeholder, groups) {
