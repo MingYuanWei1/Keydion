@@ -128,7 +128,7 @@
     let html = '';
     switch (step.id) {
       case 'type': html = renderType(); break;
-      case 'metadata': html = '<div class="wizard-card"><p>Step 2 placeholder</p></div>'; break;
+      case 'metadata': html = renderMetadata(); break;
       case 'authors': html = '<div class="wizard-card"><p>Step 3 placeholder</p></div>'; break;
       case 'file': html = '<div class="wizard-card"><p>Step 4 placeholder</p></div>'; break;
       case 'review': html = '<div class="wizard-card"><p>Step 5 placeholder</p></div>'; break;
@@ -139,6 +139,7 @@
 
   function bindStep(id) {
     if (id === 'type') bindType();
+    if (id === 'metadata') bindMetadata();
   }
 
   function renderFooter() {
@@ -226,6 +227,164 @@
         touch();
         render();
       });
+    });
+  }
+
+  // ─── Step 2: Metadata ──────────────────────────────────────
+  function renderMetadata() {
+    const isEE = state.paperType === 'ee';
+    const isCP = state.paperType === 'cp';
+    const isIbType = isEE || isCP;
+    const titleLabel = isEE ? t('research_question', 'Research Question') : t('paper_title', 'Paper Title');
+    const titlePlaceholder = isEE
+      ? t('research_question_ph', 'e.g. To what extent did monetary policy contribute to the 2008 financial crisis?')
+      : t('paper_title_ph', 'Enter the complete paper title');
+    const head = isEE ? t('tell_us_ee', 'Tell us about your essay')
+      : isCP ? t('tell_us_cp', 'Tell us about your community project')
+      : t('tell_us_std', 'Tell us about your paper');
+    const sub = isIbType
+      ? t('metadata_sub_ib', 'IB grading information and bibliographic details for the submission.')
+      : t('metadata_sub_std', 'Bibliographic information that will appear on the public paper page.');
+
+    return `
+      <div class="wizard-card">
+        <div class="wizard-card__head">
+          <div class="wizard-card__crumb">${t('step_label', 'Step %(n)s', { n: 2 })} · ${t('paper_details', 'Paper details')}</div>
+          <h2 class="wizard-card__title">${esc(head)}</h2>
+          <p class="wizard-card__sub">${esc(sub)}</p>
+        </div>
+
+        <div class="section-sub">${t('bibliographic', 'Bibliographic')} <span class="req">*</span></div>
+        <div class="form-grid">
+          <div class="field">
+            <label class="field__label" for="f-title">${esc(titleLabel)} <span class="req">*</span></label>
+            <input class="input" type="text" id="f-title" value="${esc(state.title)}" placeholder="${esc(titlePlaceholder)}">
+          </div>
+
+          <div class="field field--6">
+            <label class="field__label">${t('language', 'Language')} <span class="req">*</span></label>
+            <div class="segmented" role="radiogroup">
+              <button type="button" class="segmented__opt ${state.language === 'en' ? 'is-active' : ''}" data-lang="en">${t('english', 'English')}</button>
+              <button type="button" class="segmented__opt ${state.language === 'zh' ? 'is-active' : ''}" data-lang="zh">${t('chinese', 'Chinese')}</button>
+            </div>
+          </div>
+
+          <div class="field field--6">
+            <label class="field__label" for="f-category">${t('subject_category', 'Subject Category')} <span class="req">*</span></label>
+            <select class="select" id="f-category">
+              <option value="">${t('choose_category', 'Choose a subject category…')}</option>
+              ${(BOOT.paper_categories || []).map(c => {
+                const value = typeof c === 'string' ? c : c.value;
+                const label = typeof c === 'string' ? c : c.label;
+                return `<option value="${esc(value)}" ${state.category === value ? 'selected' : ''}>${esc(label)}</option>`;
+              }).join('')}
+            </select>
+          </div>
+
+          ${!isIbType ? `
+          <div class="field">
+            <label class="field__label" for="f-keywords">${t('keywords', 'Keywords')} <span class="req">*</span></label>
+            <div class="chips" id="chipsContainer">
+              ${state.keywords.map((kw, i) => `<span class="chip">${esc(kw)}<button type="button" class="chip__x" data-i="${i}">\xd7</button></span>`).join('')}
+              <input class="chips__input" id="f-keywords" type="text" placeholder="${state.keywords.length ? t('add_another', 'Add another…') : t('keyword_ph', 'Type a keyword and press Enter')}">
+            </div>
+            <div class="field__hint field__hint--inline">
+              <span class="field__hint">${t('keyword_hint', 'Press Enter or comma to add. Aim for 3–6 keywords.')}</span>
+              <span class="field__count">${state.keywords.length} ${t('added', 'added')}</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="f-abstract">${t('abstract', 'Abstract')} <span class="req">*</span></label>
+            <textarea class="textarea" id="f-abstract" rows="6" placeholder="${t('abstract_ph', 'Briefly describe your research background, methods, and conclusions…')}">${esc(state.abstract)}</textarea>
+            <div class="field__hint field__hint--inline">
+              <span class="field__hint">${t('abstract_hint', 'A short summary that appears in search results.')}</span>
+              <span class="field__count" id="abstractCount">${state.abstract.length} / 2000</span>
+            </div>
+          </div>
+          ` : ''}
+
+          ${isIbType ? `
+            <div class="field">
+              <label class="checkfield">
+                <input type="checkbox" id="f-ibsample" ${state.isIbSample ? 'checked' : ''}>
+                <span class="checkfield__body">
+                  <span class="checkfield__title">${t('is_ib_sample', 'This is an IB Sample Paper')}</span>
+                  <span class="checkfield__hint">${t('is_ib_sample_hint', 'Sample papers are reference essays without an identified author. Checking this will skip the Authors step.')}</span>
+                </span>
+              </label>
+            </div>
+          ` : ''}
+        </div>
+
+        ${isEE ? '<!-- EE fieldset (Task 10) -->' : ''}
+        ${isCP ? '<!-- CP fieldset (Task 11) -->' : ''}
+      </div>
+    `;
+  }
+
+  function bindMetadata() {
+    const titleEl = stepsContainer.querySelector('#f-title');
+    if (titleEl) titleEl.addEventListener('input', e => { state.title = e.target.value; touch(); });
+
+    stepsContainer.querySelectorAll('[data-lang]').forEach(b => {
+      b.addEventListener('click', () => {
+        state.language = b.dataset.lang;
+        stepsContainer.querySelectorAll('[data-lang]').forEach(x => x.classList.toggle('is-active', x.dataset.lang === state.language));
+        touch();
+      });
+    });
+
+    const catEl = stepsContainer.querySelector('#f-category');
+    if (catEl) catEl.addEventListener('change', e => { state.category = e.target.value; touch(); });
+
+    const abstractEl = stepsContainer.querySelector('#f-abstract');
+    const abstractCount = stepsContainer.querySelector('#abstractCount');
+    if (abstractEl) abstractEl.addEventListener('input', e => {
+      state.abstract = e.target.value;
+      if (abstractCount) abstractCount.textContent = `${state.abstract.length} / 2000`;
+      touch();
+    });
+
+    const chipsContainer = stepsContainer.querySelector('#chipsContainer');
+    const chipsInput = stepsContainer.querySelector('#f-keywords');
+    if (chipsInput) {
+      chipsInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ',') {
+          e.preventDefault();
+          const val = chipsInput.value.trim().replace(/,$/, '');
+          if (val) {
+            state.keywords.push(val);
+            chipsInput.value = '';
+            renderStep();
+            const fresh = stepsContainer.querySelector('#f-keywords');
+            if (fresh) fresh.focus();
+            touch();
+          }
+        } else if (e.key === 'Backspace' && chipsInput.value === '' && state.keywords.length) {
+          state.keywords.pop();
+          renderStep();
+          const fresh = stepsContainer.querySelector('#f-keywords');
+          if (fresh) fresh.focus();
+          touch();
+        }
+      });
+    }
+    if (chipsContainer) {
+      chipsContainer.querySelectorAll('.chip__x').forEach(x => {
+        x.addEventListener('click', () => {
+          state.keywords.splice(parseInt(x.dataset.i, 10), 1);
+          renderStep();
+          touch();
+        });
+      });
+    }
+
+    const ibSampleEl = stepsContainer.querySelector('#f-ibsample');
+    if (ibSampleEl) ibSampleEl.addEventListener('change', e => {
+      state.isIbSample = e.target.checked;
+      render();   // re-render stepper too (Authors step appears/disappears)
+      touch();
     });
   }
 
