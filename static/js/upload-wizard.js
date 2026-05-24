@@ -130,7 +130,7 @@
       case 'type': html = renderType(); break;
       case 'metadata': html = renderMetadata(); break;
       case 'authors': html = renderAuthors(); break;
-      case 'file': html = '<div class="wizard-card"><p>Step 4 placeholder</p></div>'; break;
+      case 'file': html = renderFile(); break;
       case 'review': html = '<div class="wizard-card"><p>Step 5 placeholder</p></div>'; break;
     }
     stepsContainer.innerHTML = html;
@@ -141,6 +141,7 @@
     if (id === 'type') bindType();
     if (id === 'metadata') bindMetadata();
     if (id === 'authors') bindAuthors();
+    if (id === 'file') bindFile();
   }
 
   function renderFooter() {
@@ -630,6 +631,56 @@
       renderStep();
       touch();
     });
+  }
+
+  // ─── Step 4: File ──────────────────────────────────────────
+  function renderFile() {
+    const fileIdx = getSteps().findIndex(s => s.id === 'file') + 1;
+    return `
+      <div class="wizard-card">
+        <div class="wizard-card__head">
+          <div class="wizard-card__crumb">${t('step_label', 'Step %(n)s', { n: fileIdx })} · ${t('file_upload', 'File upload')}</div>
+          <h2 class="wizard-card__title">${t('upload_pdf', 'Upload your PDF')}</h2>
+          <p class="wizard-card__sub">${t('upload_pdf_sub', 'Submit a single PDF, up to 50 MB. You can change this before publishing.')}</p>
+        </div>
+
+        <label class="filefield" id="fileLabel">
+          <span class="filefield__icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>
+            </svg>
+          </span>
+          <span class="filefield__body">
+            <span class="filefield__name" id="fileName">${state.file ? esc(state.file.name) : t('no_file_chosen', 'No file chosen')}</span>
+            <span class="filefield__meta" id="fileMeta">${state.file ? formatBytes(state.file.size) + ' · PDF' : t('pdf_only_single', 'PDF only · single file')}</span>
+          </span>
+          <span class="filefield__btn">
+            <span class="btn-file" id="chooseFileBtn">${state.file ? t('replace_file', 'Replace') : t('choose_file', 'Choose file')}</span>
+          </span>
+        </label>
+        <p class="field__hint" style="margin-top:10px;">${t('file_save_hint', "If you'd like to come back to this later, click Save Draft below — your form will be restored next time you visit.")}</p>
+      </div>
+    `;
+  }
+
+  function bindFile() {
+    const choose = stepsContainer.querySelector('#chooseFileBtn');
+    const realInput = document.getElementById('uploadFormFile');
+    if (choose && realInput) {
+      choose.addEventListener('click', () => realInput.click());
+      realInput.addEventListener('change', () => {
+        const f = realInput.files && realInput.files[0];
+        if (f) {
+          state.file = { name: f.name, size: f.size };
+          const nameEl = stepsContainer.querySelector('#fileName');
+          const metaEl = stepsContainer.querySelector('#fileMeta');
+          if (nameEl) nameEl.textContent = f.name;
+          if (metaEl) metaEl.textContent = formatBytes(f.size) + ' · PDF';
+          choose.textContent = t('replace_file', 'Replace');
+          touch();
+        }
+      });
+    }
   }
 
   // ─── Combobox component ────────────────────────────────────
