@@ -1795,14 +1795,12 @@ msgid ""
 msgstr "指南显示在 /help 的公开帮助中心，按分类分组并按你在此设置的顺序排列。从一篇“入门”开始 — 多数读者从这里出发。"
 
 #: templates/guide_manage.html:67
-#, fuzzy
 msgid "Write your first guide"
 msgstr "创建第一篇指南"
 
 #: templates/guide_manage.html:76
-#, fuzzy
 msgid "Search by title or slug…"
-msgstr "搜索论文标题、作者或关键词..."
+msgstr "按标题或 slug 搜索…"
 
 #: templates/guide_manage.html:81 templates/news_manage.html:91
 msgid "Filter by status"
@@ -1838,18 +1836,16 @@ msgid "Drag to reorder"
 msgstr "拖动以重新排序"
 
 #: templates/guide_manage.html:155
-#, fuzzy
 msgid "words"
-msgstr "关键词"
+msgstr "字"
 
 #: templates/guide_manage.html:162 templates/guide_manage.html:231
 msgid "Click to publish or unpublish"
 msgstr "点击发布或取消发布"
 
 #: templates/guide_manage.html:163
-#, fuzzy
 msgid "Toggle published"
-msgstr "指南已发布。"
+msgstr "切换发布状态"
 
 #: templates/guide_manage.html:165 templates/guide_manage.html:233
 #: templates/guide_manage.html:420 templates/guide_publish.html:55
@@ -1869,9 +1865,8 @@ msgid "Delete this guide?"
 msgstr "删除此指南？"
 
 #: templates/guide_manage.html:199
-#, fuzzy
 msgid "Uncategorised"
-msgstr "论文分类"
+msgstr "未分类"
 
 #: templates/guide_manage.html:257
 msgid "Order on the live site"
@@ -2459,44 +2454,36 @@ msgid "Oldest first"
 msgstr "最早优先"
 
 #: templates/news_manage.html:122
-#, fuzzy
 msgid "Title A → Z"
-msgstr "标题（中文）"
+msgstr "标题 A → Z"
 
 #: templates/news_manage.html:123
-#, fuzzy
 msgid "Title Z → A"
-msgstr "标题（中文）"
+msgstr "标题 Z → A"
 
 #: templates/news_manage.html:129 templates/news_manage.html:362
-#, fuzzy
 msgid "articles selected"
-msgstr "本地用户已删除。"
+msgstr "已选择文章"
 
 #: templates/news_manage.html:131
-#, fuzzy
 msgid "Publish"
-msgstr "发表时间"
+msgstr "发布"
 
 #: templates/news_manage.html:132
-#, fuzzy
 msgid "Move to draft"
-msgstr "保存草稿"
+msgstr "转为草稿"
 
 #: templates/news_manage.html:134
-#, fuzzy
 msgid "Clear selection"
-msgstr "反思"
+msgstr "清除选择"
 
 #: templates/news_manage.html:143
-#, fuzzy
 msgid "Select all"
-msgstr "— 请选择 —"
+msgstr "全选"
 
 #: templates/news_manage.html:145
-#, fuzzy
 msgid "Article"
-msgstr "篇"
+msgstr "文章"
 
 #: templates/news_manage.html:164
 msgid "Select article"
@@ -2507,9 +2494,8 @@ msgid "Archived"
 msgstr "已归档"
 
 #: templates/news_manage.html:216 templates/news_manage.html:309
-#, fuzzy
 msgid "Showing"
-msgstr "强"
+msgstr "显示"
 
 #: templates/news_manage.html:216 templates/news_manage.html:309
 msgid "of"
@@ -2517,33 +2503,28 @@ msgstr "共"
 
 #: templates/news_manage.html:216 templates/news_manage.html:309
 #: templates/news_manage.html:522
-#, fuzzy
 msgid "articles"
-msgstr "完整文章"
+msgstr "篇文章"
 
 #: templates/news_manage.html:217
-#, fuzzy
 msgid "Preview public news page"
-msgstr "公开页面"
+msgstr "预览公开新闻页面"
 
 #: templates/news_manage.html:222
-#, fuzzy
 msgid "No articles match these filters"
-msgstr "没有符合所选筛选条件的投稿。"
+msgstr "没有文章匹配这些筛选条件"
 
 #: templates/news_manage.html:223
 msgid "Try a different status, category, or date range — or clear the search box."
 msgstr "试试不同的状态、分类或日期范围 — 或清空搜索框。"
 
 #: templates/news_manage.html:242
-#, fuzzy
 msgid "New category name…"
-msgstr "新分类名称..."
+msgstr "新分类名称…"
 
 #: templates/news_manage.html:362
-#, fuzzy
 msgid "article selected"
-msgstr "本地用户已删除。"
+msgstr "已选择文章"
 
 #: templates/news_manage.html:441
 msgid "articles? This cannot be undone."
@@ -2564,9 +2545,8 @@ msgid ""
 msgstr " 尚未启用。一旦 /news/bulk_action 端点上线，请在 news_manage.html 中启用 BULK_ENABLED。"
 
 #: templates/news_manage.html:511
-#, fuzzy
 msgid "No categories yet. Add one above."
-msgstr "暂无分类，请在下方添加。"
+msgstr "还没有分类，请在上方添加。"
 
 #: templates/news_manage.html:524 templates/paper_manage.html:117
 #: templates/paper_manage.html:249
@@ -2580,19 +2560,16 @@ msgid ""
 msgstr "删除此分类？使用该分类的文章将保留当前分类标签。"
 
 #: templates/news_manage.html:587
-#, fuzzy
 msgid "Category added"
-msgstr "学科类别"
+msgstr "分类已添加"
 
 #: templates/news_manage.html:626
-#, fuzzy
 msgid "Category renamed"
-msgstr "新分类名称..."
+msgstr "分类已重命名"
 
 #: templates/news_manage.html:641
-#, fuzzy
 msgid "Category deleted"
-msgstr "本地用户已删除。"
+msgstr "分类已删除"
 
 # ==================== SEARCH PAGE ====================
 #: templates/news_publish.html:2
