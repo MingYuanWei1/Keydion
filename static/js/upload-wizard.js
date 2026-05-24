@@ -127,14 +127,18 @@
     if (!step) { state.step = 0; renderStep(); return; }
     let html = '';
     switch (step.id) {
-      case 'type': html = '<div class="wizard-card"><p>Step 1 placeholder</p></div>'; break;
+      case 'type': html = renderType(); break;
       case 'metadata': html = '<div class="wizard-card"><p>Step 2 placeholder</p></div>'; break;
       case 'authors': html = '<div class="wizard-card"><p>Step 3 placeholder</p></div>'; break;
       case 'file': html = '<div class="wizard-card"><p>Step 4 placeholder</p></div>'; break;
       case 'review': html = '<div class="wizard-card"><p>Step 5 placeholder</p></div>'; break;
     }
     stepsContainer.innerHTML = html;
-    // bindStep(step.id) — added in later tasks
+    bindStep(step.id);
+  }
+
+  function bindStep(id) {
+    if (id === 'type') bindType();
   }
 
   function renderFooter() {
@@ -170,6 +174,63 @@
     const main = document.getElementById('dashboardMain');
     if (main) main.scrollTo({ top: 0, behavior: 'smooth' });
   }
+
+  // ─── Step 1: Paper Type ────────────────────────────────────
+  function renderType() {
+    return `
+      <div class="wizard-card">
+        <div class="wizard-card__head">
+          <div class="wizard-card__crumb">${t('step_label', 'Step %(n)s', { n: 1 })} · ${t('choose_paper_type', 'Choose paper type')}</div>
+          <h2 class="wizard-card__title">${t('what_kind', 'What kind of paper are you submitting?')}</h2>
+          <p class="wizard-card__sub">${t('what_kind_sub', "The fields you'll be asked for next depend on this. You can come back and change it before submitting.")}</p>
+        </div>
+        <div class="type-grid">
+          ${renderTypeCard('standard',
+            t('type_tag_standard', 'Independent Research'),
+            t('type_title_standard', 'Standard Paper'),
+            t('type_body_standard', 'A self-directed research paper, conference paper, or article that is not part of the IB Diploma framework.'),
+            t('type_meta_standard', 'Title · authors · abstract · subject'))}
+          ${renderTypeCard('ee',
+            t('type_tag_ee', 'IB Diploma'),
+            t('type_title_ee', 'Extended Essay (EE)'),
+            t('type_body_ee', 'A 4,000-word IB Diploma research essay with structured criterion scores (A–E) and an EE subject from the six IB subject groups.'),
+            t('type_meta_ee', 'Research Question · EE subject · criterion scores A–E'))}
+          ${renderTypeCard('cp',
+            t('type_tag_cp', 'IB Diploma'),
+            t('type_title_cp', 'Community Project (CP)'),
+            t('type_body_cp', 'An IB MYP Community Project graded against Criteria A–D, with a Global Context and a chosen type of action.'),
+            t('type_meta_cp', 'Title · Global Context · type of action · criteria A–D'))}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderTypeCard(value, tag, title, body, meta) {
+    const selected = state.paperType === value;
+    return `
+      <button type="button" class="type-card ${selected ? 'is-selected' : ''}" data-type="${value}">
+        <span class="type-card__radio"></span>
+        <span class="type-card__tag">${esc(tag)}</span>
+        <h3 class="type-card__title">${esc(title)}</h3>
+        <p class="type-card__body">${esc(body)}</p>
+        <div class="type-card__meta">${esc(meta)}</div>
+      </button>
+    `;
+  }
+
+  function bindType() {
+    stepsContainer.querySelectorAll('.type-card').forEach(card => {
+      card.addEventListener('click', () => {
+        state.paperType = card.dataset.type;
+        if (state.paperType === 'standard') state.isIbSample = false;
+        touch();
+        render();
+      });
+    });
+  }
+
+  // ─── Mutation marker (used later by localStorage mirror) ───
+  function touch() { state.lastModified = Date.now(); }
 
   // ─── Helpers ───────────────────────────────────────────────
   function esc(s) {
