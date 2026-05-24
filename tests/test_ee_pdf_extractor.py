@@ -80,5 +80,66 @@ class ExtractorValuesTest(unittest.TestCase):
         self.assertEqual(self.result["warnings"], [])
 
 
+class SubjectNormalisationTest(unittest.TestCase):
+    """Subjects are matched (case-insensitive exact) against ee_subjects.json."""
+
+    def test_known_subject_lower_case_normalised(self):
+        from ee_pdf_extractor import _normalise_subject
+
+        self.assertEqual(_normalise_subject("biology")[0], "Biology")
+        self.assertEqual(_normalise_subject("BIOLOGY")[0], "Biology")
+        self.assertEqual(_normalise_subject("Biology")[0], "Biology")
+
+    def test_unknown_subject_returns_blank_and_warning(self):
+        from ee_pdf_extractor import _normalise_subject
+
+        value, warning = _normalise_subject("Quantum Underwater Basketweaving")
+        self.assertEqual(value, "")
+        self.assertIn("Quantum Underwater Basketweaving", warning)
+
+    def test_empty_subject_returns_blank_no_warning(self):
+        from ee_pdf_extractor import _normalise_subject
+
+        self.assertEqual(_normalise_subject("")[0], "")
+        self.assertIsNone(_normalise_subject("")[1])
+
+
+class FrameworkWarningTest(unittest.TestCase):
+    """Interdisciplinary framework value must produce a guidance warning."""
+
+    def test_framework_value_produces_warning(self):
+        from ee_pdf_extractor import _finalise_warnings
+
+        partial = {
+            "core_subject": "Biology",
+            "interdisciplinary_subject": "",
+            "framework": "Culture, language and identity",
+            "research_question": "RQ",
+            "criteria": {l: {"score": 4, "comment": "c"} for l in "ABCDE"},
+            "holistic_comment": "h",
+            "warnings": [],
+        }
+        _finalise_warnings(partial)
+        joined = " | ".join(partial["warnings"])
+        self.assertIn("framework", joined.lower())
+        self.assertIn("Culture, language and identity", joined)
+
+    def test_missing_field_produces_warning(self):
+        from ee_pdf_extractor import _finalise_warnings
+
+        partial = {
+            "core_subject": "",
+            "interdisciplinary_subject": "",
+            "framework": "",
+            "research_question": "",
+            "criteria": {l: {"score": None, "comment": ""} for l in "ABCDE"},
+            "holistic_comment": "",
+            "warnings": [],
+        }
+        _finalise_warnings(partial)
+        joined = " | ".join(partial["warnings"]).lower()
+        self.assertIn("could not extract", joined)
+
+
 if __name__ == "__main__":
     unittest.main()
