@@ -289,6 +289,17 @@ ROLE_OPTIONS = [
     ("3", "Admin"),
 ]
 
+_MISSING_FIELD_MESSAGES = {
+    "title": _l("Please enter the paper title"),
+    "category": _l("Please select a subject category"),
+    "language": _l("Please select a language"),
+    "keywords": _l("Please enter keywords"),
+    "abstract": _l("Please enter the abstract"),
+    "author_name": _l("Please enter the author name"),
+    "author_email": _l("Please enter the contact email"),
+    "author_school": _l("Please enter the school name"),
+}
+
 # CP Paper (MYP Community Project) constants
 IB_EE_CRITERIA_DEFS = [
     ("A", "Framework for the essay", 6),
@@ -363,6 +374,50 @@ def build_cp_data_from_form(form) -> str:
         },
         ensure_ascii=False,
     )
+
+
+def parse_ib_ee_data_for_form(json_str) -> dict:
+    """Flatten ib_ee_data JSON back into form-style keys for draft hydration.
+
+    Returns {} for missing/invalid input so callers can safely .update() the result.
+    """
+    if not json_str:
+        return {}
+    try:
+        data = json.loads(json_str)
+    except (json.JSONDecodeError, TypeError):
+        return {}
+    out = {
+        "is_ib_ee": "1",
+        "ib_ee_core_subject": data.get("core_subject", ""),
+        "ib_ee_interdisciplinary_subject": data.get("interdisciplinary_subject", ""),
+        "ib_holistic_comment": data.get("holistic_comment", ""),
+    }
+    for letter, criterion in (data.get("criteria") or {}).items():
+        out[f"ib_crit_{letter}_score"] = str(criterion.get("score", ""))
+        out[f"ib_crit_{letter}_comment"] = criterion.get("comment", "")
+    return out
+
+
+def parse_cp_data_for_form(json_str) -> dict:
+    """Flatten cp_data JSON back into form-style keys for draft hydration.
+
+    Returns {} for missing/invalid input.
+    """
+    if not json_str:
+        return {}
+    try:
+        data = json.loads(json_str)
+    except (json.JSONDecodeError, TypeError):
+        return {}
+    out = {
+        "is_cp_paper": "1",
+        "cp_global_context": data.get("global_context", ""),
+        "cp_action_types": data.get("action_types") or [],
+    }
+    for letter, criterion in (data.get("criteria") or {}).items():
+        out[f"cp_crit_{letter}_score"] = str(criterion.get("score", ""))
+    return out
 
 def _is_ee_paper(record: dict) -> bool:
     raw = record.get("ib_ee_data", "")
@@ -1311,6 +1366,67 @@ def create_app() -> Flask:
             journal_id_map=get_journal_id_map(),
         )
 
+    def _render_upload(user, form_data, draft_id):
+        """Render upload.html with the wizard_boot context the JS needs."""
+        wizard_boot = {
+            "submit_url": url_for("upload"),
+            "draft_id": draft_id or "",
+            "form_data": form_data,
+            "paper_categories": load_paper_categories(),
+            "ee_subjects": load_ee_subjects(),
+            "cp_global_contexts": CP_GLOBAL_CONTEXTS,
+            "cp_action_types": CP_ACTION_TYPES,
+            "user_key": user.get("username", ""),
+            "i18n": {
+                "saving": _("Saving…"),
+                "draft_saved_at": _("Draft saved · %(time)s"),
+                "no_file_chosen": _("No file chosen"),
+                "pdf_only_single": _("PDF only · single file"),
+                "choose_file": _("Choose file"),
+                "replace_file": _("Replace"),
+                "missing_fields_one": _("1 field still needs attention"),
+                "missing_fields_many": _("%(n)s fields still need attention"),
+                "everything_filled": _("Everything required is filled in."),
+                "submit_cta": _("Click Submit Paper below to send your submission for review."),
+                "go_to": _("go to %(step)s"),
+                "restore_banner_title": _("Unsaved changes from earlier"),
+                "restore_banner_body": _("Your last session in this browser had changes you didn't save. Restore them?"),
+                "restore_btn": _("Restore"),
+                "discard_btn": _("Discard"),
+                "edit": _("Edit"),
+                "back": _("← Back"),
+                "continue": _("Continue →"),
+                "submit_paper": _("Submit Paper"),
+                "save_draft": _("Save Draft"),
+                "add_author": _("+ Add another author"),
+                "remove_author": _("Remove author"),
+                "step_label": _("Step %(n)s"),
+                "not_provided": _("Not provided"),
+                "not_chosen": _("Not chosen"),
+                "not_written": _("Not written"),
+                "no_file_uploaded": _("No file uploaded"),
+                "yes_skipped": _("Yes — author info skipped"),
+                "no": _("No"),
+                "type_standard": _("Independent Research Paper"),
+                "type_ee": _("IB Extended Essay"),
+                "type_cp": _("IB Community Project"),
+                "english": _("English"),
+                "chinese": _("Chinese"),
+                "avg_grade": _("Avg. Grade"),
+            },
+        }
+        return render_template("upload.html",
+            user=user,
+            form_data=form_data,
+            journals=get_journal_names(),
+            paper_categories=load_paper_categories(),
+            ee_subjects=load_ee_subjects(),
+            cp_global_contexts=CP_GLOBAL_CONTEXTS,
+            cp_action_types=CP_ACTION_TYPES,
+            draft_id=draft_id,
+            wizard_boot=wizard_boot,
+        )
+
     @app.route("/dashboard/upload", methods=["GET", "POST"])
     def upload():
         user = require_login(level=1)
@@ -1335,11 +1451,15 @@ def create_app() -> Flask:
                     "author_name": draft.get("author_name", ""),
                     "author_email": draft.get("author_email", ""),
                     "author_school": draft.get("author_school", ""),
+                    "is_ib_sample": draft.get("is_ib_sample", ""),
+                    "ib_ee_data": draft.get("ib_ee_data", ""),
+                    "cp_data": draft.get("cp_data", ""),
                     "published_at": today,
                 }
-                return render_template("upload.html", user=user, form_data=form_data,
-                    journals=get_journal_names(), paper_categories=load_paper_categories(),
-                    ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES, draft_id=draft_id)
+                # Hydrate EE/CP fieldsets so the wizard can repopulate them.
+                form_data.update(parse_ib_ee_data_for_form(draft.get("ib_ee_data", "")))
+                form_data.update(parse_cp_data_for_form(draft.get("cp_data", "")))
+                return _render_upload(user, form_data, draft_id)
 
         raw_names = request.form.getlist("author_name")
         raw_emails = request.form.getlist("author_email")
@@ -1380,6 +1500,7 @@ def create_app() -> Flask:
         is_ib_ee = request.form.get("is_ib_ee") == "1"
         if is_ib_ee:
             form_data["ib_ee_data"] = build_ib_ee_data_from_form(request.form)
+            form_data["is_ib_ee"] = "1"
         else:
             form_data["ib_ee_data"] = ""
 
@@ -1387,6 +1508,7 @@ def create_app() -> Flask:
         is_cp_paper = request.form.get("is_cp_paper") == "1"
         if is_cp_paper:
             form_data["cp_data"] = build_cp_data_from_form(request.form)
+            form_data["is_cp_paper"] = "1"
         else:
             form_data["cp_data"] = ""
 
@@ -1396,9 +1518,7 @@ def create_app() -> Flask:
             if "save_draft" in request.form:
                 if not form_data["title"]:
                     flash(_("Please enter at least a paper title to save a draft."), "warning")
-                    return render_template("upload.html", user=user, form_data=form_data,
-                        journals=get_journal_names(), paper_categories=load_paper_categories(),
-                        draft_id=draft_id)
+                    return _render_upload(user, form_data, draft_id)
                 # Format keywords
                 if form_data["keywords"]:
                     form_data["keywords"] = ", ".join(
@@ -1453,69 +1573,35 @@ def create_app() -> Flask:
                 flash(_("Draft saved successfully."), "success")
                 return redirect(url_for("my_submissions"))
 
-            # 验证必填字段
-            if not form_data["title"]:
-                flash(_("Please enter the paper title"), "danger")
-                return render_template("upload.html", user=user, form_data=form_data,
-                    journals=get_journal_names(), paper_categories=load_paper_categories(), ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES, draft_id=draft_id)
-            if not form_data["category"]:
-                flash(_("Please select a subject category"), "danger")
-                return render_template("upload.html", user=user, form_data=form_data,
-                    journals=get_journal_names(), paper_categories=load_paper_categories(), ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES, draft_id=draft_id)
-            if not form_data["language"]:
-                flash(_("Please select a language"), "danger")
-                return render_template("upload.html", user=user, form_data=form_data,
-                    journals=get_journal_names(), paper_categories=load_paper_categories(), ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES, draft_id=draft_id)
-            if not form_data["keywords"]:
-                flash(_("Please enter keywords"), "danger")
-                return render_template("upload.html", user=user, form_data=form_data,
-                    ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES)
-            if not form_data["abstract"]:
-                flash(_("Please enter the abstract"), "danger")
-                return render_template("upload.html", user=user, form_data=form_data,
-                    ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES)
+            # Per-type required-field cascade. Keywords/abstract apply to Standard
+            # papers only; author fields are skipped for IB Sample submissions.
+            required = ["title", "category", "language"]
+            if not (is_ib_ee or is_cp_paper):
+                required += ["keywords", "abstract"]
             if not is_ib_sample:
-                if not form_data["author_name"]:
-                    flash(_("Please enter the author name"), "danger")
-                    return render_template("upload.html", user=user, form_data=form_data,
-                        ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES)
-                if not form_data["author_email"]:
-                    flash(_("Please enter the contact email"), "danger")
-                    return render_template("upload.html", user=user, form_data=form_data,
-                        ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES)
-                if not form_data["author_school"]:
-                    flash(_("Please enter the school name"), "danger")
-                    return render_template("upload.html", user=user, form_data=form_data,
-                        ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES)
-            if is_ib_ee and not form_data.get("ib_ee_data"):
-                pass  # handled below
+                required += ["author_name", "author_email", "author_school"]
+
+            for field in required:
+                if not form_data.get(field):
+                    flash(_MISSING_FIELD_MESSAGES[field], "danger")
+                    return _render_upload(user, form_data, draft_id)
+
             if is_ib_ee and is_cp_paper:
                 flash(_("A paper cannot be both an Extended Essay and a CP Paper."), "danger")
-                return render_template("upload.html", user=user, form_data=form_data,
-                    journals=get_journal_names(), paper_categories=load_paper_categories(),
-                    ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS,
-                    cp_action_types=CP_ACTION_TYPES, draft_id=draft_id)
+                return _render_upload(user, form_data, draft_id)
             if is_ib_ee:
                 ib_data = json.loads(form_data["ib_ee_data"])
                 if not ib_data.get("core_subject"):
                     flash(_("Please select an EE core subject."), "danger")
-                    return render_template("upload.html", user=user, form_data=form_data,
-                        journals=get_journal_names(), paper_categories=load_paper_categories(),
-                        ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES, draft_id=draft_id)
+                    return _render_upload(user, form_data, draft_id)
             if is_cp_paper:
                 cp_data = json.loads(form_data["cp_data"])
                 if not cp_data.get("global_context"):
                     flash(_("Please select a Global Context."), "danger")
-                    return render_template("upload.html", user=user, form_data=form_data,
-                        journals=get_journal_names(), paper_categories=load_paper_categories(),
-                        ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS,
-                        cp_action_types=CP_ACTION_TYPES, draft_id=draft_id)
+                    return _render_upload(user, form_data, draft_id)
                 if not cp_data.get("action_types"):
                     flash(_("Please select at least one Type of Action."), "danger")
-                    return render_template("upload.html", user=user, form_data=form_data,
-                        journals=get_journal_names(), paper_categories=load_paper_categories(),
-                        ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS,
-                        cp_action_types=CP_ACTION_TYPES, draft_id=draft_id)
+                    return _render_upload(user, form_data, draft_id)
 
             # 格式化关键词
             if form_data["keywords"]:
@@ -1628,7 +1714,7 @@ def create_app() -> Flask:
                             _save_submission(submission)
                         return redirect(url_for("upload_success", title=form_data["title"]))
 
-        return render_template("upload.html", user=user, form_data=form_data, journals=get_journal_names(), paper_categories=load_paper_categories(), ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES, draft_id=request.args.get("draft", ""))
+        return _render_upload(user, form_data, request.args.get("draft", ""))
 
     @app.route("/dashboard/upload/success")
     def upload_success():
