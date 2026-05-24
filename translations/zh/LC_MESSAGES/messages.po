@@ -3306,6 +3306,35 @@ msgstr "完成"
 msgid "View My Submissions"
 msgstr "查看提交内容"
 
+# ==================== EE PDF AUTO-FILL ====================
+
+msgid "Auto-fill from commentary PDF"
+msgstr "从评语 PDF 自动填充"
+
+msgid "Replace your existing EE entries with values from the PDF?"
+msgstr "用 PDF 中的值替换现有的 EE 内容吗？"
+
+msgid "Extracting…"
+msgstr "正在提取…"
+
+msgid "Extracted all fields."
+msgstr "已提取全部字段。"
+
+msgid "Extracted %(filled)s of %(total)s fields."
+msgstr "已提取 %(filled)s / %(total)s 个字段。"
+
+msgid "Auto-fill failed — try again or fill manually."
+msgstr "自动填充失败——请重试或手动填写。"
+
+msgid "No file provided"
+msgstr "未提供文件"
+
+msgid "File must be a PDF"
+msgstr "文件必须是 PDF"
+
+msgid "File is not a valid PDF"
+msgstr "文件不是有效的 PDF"
+
 #~ msgid "Please use the Microsoft button to sign in."
 #~ msgstr "请使用微软按钮登录。"
 
