@@ -2080,6 +2080,7 @@ def create_app() -> Flask:
                             form_data=form_data,
                             categories=load_categories(),
                             editing=False,
+                            user=user,
                         )
                 article = {
                     "id": article_id,
@@ -2104,6 +2105,7 @@ def create_app() -> Flask:
             form_data=form_data,
             categories=load_categories(),
             editing=False,
+            user=user,
         )
 
     @app.route("/dashboard/news/<news_id>/edit", methods=["GET", "POST"])
@@ -2164,6 +2166,7 @@ def create_app() -> Flask:
                             form_data=form_data,
                             categories=load_categories(),
                             editing=True,
+                            user=user,
                         )
                 if request.form.get("remove_image") == "1":
                     form_data["image_url"] = ""
@@ -2180,6 +2183,7 @@ def create_app() -> Flask:
             form_data=form_data,
             categories=load_categories(),
             editing=True,
+            user=user,
         )
 
     @app.route("/dashboard/news/<news_id>/delete", methods=["POST"])
