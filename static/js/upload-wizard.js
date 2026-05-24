@@ -317,7 +317,7 @@
           ` : ''}
         </div>
 
-        ${isEE ? '<!-- EE fieldset (Task 10) -->' : ''}
+        ${isEE ? renderEEFieldset() : ''}
         ${isCP ? '<!-- CP fieldset (Task 11) -->' : ''}
       </div>
     `;
@@ -386,7 +386,211 @@
       render();   // re-render stepper too (Authors step appears/disappears)
       touch();
     });
+
+    if (state.paperType === 'ee') bindEEFieldset();
+    if (state.paperType === 'cp') bindCPFieldset();   // hooked up in Task 11
+    bindComboboxes();
   }
+
+  // ─── EE fieldset ───────────────────────────────────────────
+  function renderEEFieldset() {
+    const total = sumScores(state.eeScores);
+    const criteria = [
+      ['A', t('crit_ee_A', 'Framework for the essay'), 6],
+      ['B', t('crit_ee_B', 'Knowledge and understanding'), 6],
+      ['C', t('crit_ee_C', 'Analysis and line of argument'), 6],
+      ['D', t('crit_ee_D', 'Discussion and evaluation'), 8],
+      ['E', t('crit_ee_E', 'Reflection'), 4],
+    ];
+    return `
+      <div class="section-sub">${t('ee_subject', 'EE Subject')} <span class="req">*</span></div>
+      <div class="form-grid">
+        <div class="field field--6">
+          <label class="field__label">${t('core_subject', 'Core Subject')} <span class="req">*</span></label>
+          ${renderCombobox('ee-core', state.eeCoreSubject, t('select_core', 'Select a core subject…'), (BOOT.ee_subjects && BOOT.ee_subjects.groups) || [])}
+        </div>
+        <div class="field field--6">
+          <label class="field__label">${t('inter_subject', 'Interdisciplinary Subject')} <span class="opt">${t('optional', 'Optional')}</span></label>
+          ${renderCombobox('ee-inter', state.eeInterSubject, t('select_inter', 'Optional — select if applicable…'), (BOOT.ee_subjects && BOOT.ee_subjects.groups) || [])}
+        </div>
+      </div>
+
+      <div class="section-sub">${t('crit_scores', 'Criterion Scores')} <span class="req">*</span></div>
+      <table class="crit-table" id="eeCriteria">
+        <thead><tr><th>${t('crit', 'Crit.')}</th><th>${t('criterion', 'Criterion')}</th><th style="width:140px;">${t('score', 'Score')}</th></tr></thead>
+        <tbody>
+          ${criteria.map(([k, name, max]) => `
+            <tr>
+              <td class="crit-letter">${k}</td>
+              <td class="crit-name">${esc(name)}</td>
+              <td class="crit-score">
+                <span class="crit-score__input">
+                  <input type="number" min="0" max="${max}" value="${esc(state.eeScores[k])}" data-crit="${k}" placeholder="0">
+                  <span class="crit-score__max">/ ${max}</span>
+                </span>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+
+      <div class="total-readout">
+        <div>
+          <div class="total-readout__label">${t('overall_grade', 'Overall Grade')}</div>
+          <div class="total-readout__sub">${t('overall_ee_sub', 'Calculated server-side from the criteria above')}</div>
+        </div>
+        <div class="total-readout__value"><span id="eeTotal">${total}</span><small>/ 30</small></div>
+      </div>
+
+      <div class="section-sub" style="margin-top:28px;">${t('crit_comments', 'Criterion Commentaries')} <span class="opt">${t('optional', 'Optional')}</span></div>
+      <label class="checkfield">
+        <input type="checkbox" id="eeIncComments" ${state.eeIncludeComments ? 'checked' : ''}>
+        <span class="checkfield__body">
+          <span class="checkfield__title">${t('include_comments', 'Include commentaries for all criteria')}</span>
+          <span class="checkfield__hint">${t('include_comments_hint', 'Provide short remarks on each criterion plus an optional overall holistic commentary.')}</span>
+        </span>
+      </label>
+      <div id="eeCommentsBox" class="${state.eeIncludeComments ? '' : 'is-hidden'}" style="margin-top:16px;">
+        ${criteria.map(([k, name]) => `
+          <div class="field" style="margin-bottom:14px;">
+            <label class="field__label">${t('crit', 'Crit.')} ${k} — ${esc(name)}</label>
+            <textarea class="textarea" rows="2" data-comment="${k}" placeholder="${t('crit_comment_ph', 'Commentary for Criterion %(k)s…', { k: k })}">${esc(state.eeComments[k] || '')}</textarea>
+          </div>
+        `).join('')}
+        <div class="field">
+          <label class="field__label">${t('holistic_comment', 'Holistic Commentary')} <span class="opt">${t('optional', 'Optional')}</span></label>
+          <textarea class="textarea" rows="3" data-comment="holistic" placeholder="${t('holistic_ph', 'An overall holistic commentary for the essay…')}">${esc(state.eeComments.holistic || '')}</textarea>
+        </div>
+      </div>
+    `;
+  }
+
+  function sumScores(obj) {
+    return Object.values(obj).reduce((s, v) => s + (parseInt(v, 10) || 0), 0);
+  }
+
+  function bindEEFieldset() {
+    stepsContainer.querySelectorAll('#eeCriteria input[data-crit]').forEach(inp => {
+      inp.addEventListener('input', e => {
+        const k = inp.dataset.crit;
+        const max = parseInt(inp.max, 10);
+        let v = parseInt(e.target.value, 10);
+        if (!isNaN(v)) { if (v < 0) v = 0; if (v > max) v = max; }
+        state.eeScores[k] = isNaN(v) ? '' : String(v);
+        const totalEl = stepsContainer.querySelector('#eeTotal');
+        if (totalEl) totalEl.textContent = sumScores(state.eeScores);
+        touch();
+      });
+    });
+    const inc = stepsContainer.querySelector('#eeIncComments');
+    if (inc) inc.addEventListener('change', e => {
+      state.eeIncludeComments = e.target.checked;
+      const box = stepsContainer.querySelector('#eeCommentsBox');
+      if (box) box.classList.toggle('is-hidden', !state.eeIncludeComments);
+      touch();
+    });
+    stepsContainer.querySelectorAll('#eeCommentsBox textarea[data-comment]').forEach(ta => {
+      ta.addEventListener('input', e => {
+        state.eeComments[ta.dataset.comment] = e.target.value;
+        touch();
+      });
+    });
+  }
+
+  function bindCPFieldset() { /* implemented in Task 11 */ }
+
+  // ─── Combobox component ────────────────────────────────────
+  function renderCombobox(id, value, placeholder, groups) {
+    return `
+      <div class="combobox" data-cb="${id}">
+        <button type="button" class="combobox__toggle ${value ? 'has-value' : ''}">
+          <span class="${value ? '' : 'placeholder'}">${value ? esc(value) : esc(placeholder)}</span>
+          <svg class="combobox__chevron" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 6l5 5 5-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="combobox__panel">
+          <input class="combobox__search" type="text" placeholder="${t('search', 'Search…')}" autocomplete="off">
+          <div class="combobox__list">
+            ${groups.map(g => `
+              <div class="combobox__group">
+                ${g.name ? `<div class="combobox__group-label">${esc(g.name)}</div>` : ''}
+                ${(g.subjects || []).map(s => `<button type="button" class="combobox__option ${value === s ? 'is-selected' : ''}" data-value="${esc(s)}">${esc(s)}</button>`).join('')}
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function bindComboboxes() {
+    stepsContainer.querySelectorAll('.combobox').forEach(cb => {
+      const id = cb.dataset.cb;
+      const toggle = cb.querySelector('.combobox__toggle');
+      const search = cb.querySelector('.combobox__search');
+      const options = cb.querySelectorAll('.combobox__option');
+      const labelEl = toggle.querySelector('span');
+
+      toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const open = cb.classList.toggle('is-open');
+        if (open) {
+          stepsContainer.querySelectorAll('.combobox').forEach(other => { if (other !== cb) other.classList.remove('is-open'); });
+          setTimeout(() => search && search.focus(), 50);
+        }
+      });
+      if (search) search.addEventListener('input', () => {
+        const q = search.value.toLowerCase();
+        let anyMatch = 0;
+        cb.querySelectorAll('.combobox__group').forEach(g => {
+          let groupAny = false;
+          g.querySelectorAll('.combobox__option').forEach(o => {
+            const m = o.textContent.toLowerCase().includes(q);
+            o.style.display = m ? '' : 'none';
+            if (m) groupAny = true;
+          });
+          const lbl = g.querySelector('.combobox__group-label');
+          if (lbl) lbl.style.display = groupAny ? '' : 'none';
+          if (groupAny) anyMatch++;
+        });
+        let empty = cb.querySelector('.combobox__empty');
+        if (anyMatch === 0) {
+          if (!empty) {
+            empty = document.createElement('div');
+            empty.className = 'combobox__empty';
+            empty.textContent = t('no_matches', 'No matches');
+            cb.querySelector('.combobox__list').appendChild(empty);
+          }
+        } else if (empty) empty.remove();
+      });
+
+      options.forEach(opt => {
+        opt.addEventListener('click', () => {
+          const value = opt.dataset.value;
+          if (id === 'ee-core') {
+            if (state.eeInterSubject === value) state.eeInterSubject = '';
+            state.eeCoreSubject = value;
+          } else if (id === 'ee-inter') {
+            if (state.eeCoreSubject === value) return;
+            state.eeInterSubject = value;
+          } else if (id === 'cp-global') {
+            state.cpGlobalContext = value;
+          }
+          labelEl.textContent = value;
+          labelEl.classList.remove('placeholder');
+          toggle.classList.add('has-value');
+          options.forEach(o => o.classList.toggle('is-selected', o === opt));
+          cb.classList.remove('is-open');
+          touch();
+        });
+      });
+    });
+  }
+
+  document.addEventListener('click', (e) => {
+    document.querySelectorAll('.combobox.is-open').forEach(cb => {
+      if (!cb.contains(e.target)) cb.classList.remove('is-open');
+    });
+  });
 
   // ─── Mutation marker (used later by localStorage mirror) ───
   function touch() { state.lastModified = Date.now(); }
