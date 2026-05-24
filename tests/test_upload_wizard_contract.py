@@ -112,5 +112,28 @@ class UploadValidatorContractTest(unittest.TestCase):
             self.assertIn(f'"{key}":', self.app_source)
 
 
+class DraftHydrationContractTest(unittest.TestCase):
+    """Loading a draft must call parse_*_for_form so EE/CP fields rehydrate."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.app_source = (ROOT / "app.py").read_text(encoding="utf-8")
+
+    def test_upload_get_calls_parse_ee_and_parse_cp(self):
+        # Locate the draft-load branch inside upload() and confirm both
+        # parse helpers are referenced there.
+        # The exact slice is between `if request.method == "GET" and draft_id:`
+        # and the next `return _render_upload(`.
+        marker = 'if request.method == "GET" and draft_id:'
+        start = self.app_source.find(marker)
+        self.assertNotEqual(start, -1, "draft GET branch not found")
+        end = self.app_source.find("return _render_upload(", start)
+        slice_ = self.app_source[start:end]
+        self.assertIn("parse_ib_ee_data_for_form(", slice_)
+        self.assertIn("parse_cp_data_for_form(", slice_)
+        # And the parsed dicts get merged into form_data.
+        self.assertIn("form_data.update(", slice_)
+
+
 if __name__ == "__main__":
     unittest.main()

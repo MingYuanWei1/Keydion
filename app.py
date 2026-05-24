@@ -1401,8 +1401,14 @@ def create_app() -> Flask:
                     "author_name": draft.get("author_name", ""),
                     "author_email": draft.get("author_email", ""),
                     "author_school": draft.get("author_school", ""),
+                    "is_ib_sample": draft.get("is_ib_sample", ""),
+                    "ib_ee_data": draft.get("ib_ee_data", ""),
+                    "cp_data": draft.get("cp_data", ""),
                     "published_at": today,
                 }
+                # Hydrate EE/CP fieldsets so the wizard can repopulate them.
+                form_data.update(parse_ib_ee_data_for_form(draft.get("ib_ee_data", "")))
+                form_data.update(parse_cp_data_for_form(draft.get("cp_data", "")))
                 return _render_upload(user, form_data, draft_id)
 
         raw_names = request.form.getlist("author_name")
