@@ -290,14 +290,14 @@ ROLE_OPTIONS = [
 ]
 
 _MISSING_FIELD_MESSAGES = {
-    "title": "Please enter the paper title",
-    "category": "Please select a subject category",
-    "language": "Please select a language",
-    "keywords": "Please enter keywords",
-    "abstract": "Please enter the abstract",
-    "author_name": "Please enter the author name",
-    "author_email": "Please enter the contact email",
-    "author_school": "Please enter the school name",
+    "title": _l("Please enter the paper title"),
+    "category": _l("Please select a subject category"),
+    "language": _l("Please select a language"),
+    "keywords": _l("Please enter keywords"),
+    "abstract": _l("Please enter the abstract"),
+    "author_name": _l("Please enter the author name"),
+    "author_email": _l("Please enter the contact email"),
+    "author_school": _l("Please enter the school name"),
 }
 
 # CP Paper (MYP Community Project) constants
@@ -1525,7 +1525,7 @@ def create_app() -> Flask:
 
             for field in required:
                 if not form_data.get(field):
-                    flash(_(_MISSING_FIELD_MESSAGES[field]), "danger")
+                    flash(_MISSING_FIELD_MESSAGES[field], "danger")
                     return _render_upload(user, form_data, draft_id)
 
             if is_ib_ee and is_cp_paper:
