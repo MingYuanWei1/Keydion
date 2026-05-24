@@ -2534,16 +2534,6 @@ msgstr "篇文章？此操作无法撤销。"
 msgid "Bulk action failed."
 msgstr "批量操作失败。"
 
-#: templates/news_manage.html:457
-msgid "Bulk "
-msgstr "批量"
-
-#: templates/news_manage.html:457
-msgid ""
-" is not yet enabled. Enable BULK_ENABLED in news_manage.html once the "
-"/news/bulk_action endpoint is live."
-msgstr " 尚未启用。一旦 /news/bulk_action 端点上线，请在 news_manage.html 中启用 BULK_ENABLED。"
-
 #: templates/news_manage.html:511
 msgid "No categories yet. Add one above."
 msgstr "还没有分类，请在上方添加。"
