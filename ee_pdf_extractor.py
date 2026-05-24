@@ -18,6 +18,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Optional
 
+import pdfplumber
 from PyPDF2 import PdfReader
 from PyPDF2.errors import PdfReadError
 
@@ -246,15 +247,132 @@ def _finalise_warnings(result: dict) -> None:
         )
 
 
+def _extract_via_pdfplumber(file_bytes: bytes) -> Optional[dict]:
+    """Extract by walking pdfplumber's table rows. Returns None if unrecognised.
+
+    Structural observations from the IB EE commentary fixture:
+      - Most rows use the layout: [label_cell, None, value_cell, comment_cell, ...]
+        where None cells are literal None (not empty strings).
+      - Criteria rows: [label_with_max_mark, None, score_str, comment_str, ...]
+        The score cell contains only digits (e.g. '4').
+      - Holistic comment row: [label_cell, value_cell, None]
+      - The `_row_value_cells` helper skips None and empty-string cells, so
+        `row[1:]` filtered for truthiness reliably yields [score, comment] for
+        criteria rows and [value] for metadata rows.
+      - Criterion E's continuation row on page 2 ('[Maximum possible mark: 4]'...)
+        has no score digit, so its comment fragment is appended to E's comment.
+    """
+    result = _empty_result()
+    found_anything = False
+    try:
+        with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
+            rows: list[list[str]] = []
+            for page in pdf.pages:
+                for table in page.extract_tables() or []:
+                    for row in table:
+                        rows.append([(cell or "").strip() for cell in row])
+    except Exception:
+        return None
+
+    def _row_label(row: list[str]) -> str:
+        return row[0] if row else ""
+
+    def _row_value_cells(row: list[str]) -> list[str]:
+        # Skip None→"" cells; only return genuinely non-empty cells after [0].
+        return [c for c in row[1:] if c]
+
+    for row in rows:
+        label = _row_label(row).lower()
+
+        if label.startswith("dp subject:"):
+            cells = _row_value_cells(row)
+            if cells:
+                result["core_subject"] = _collapse(cells[0])
+                found_anything = True
+
+        elif label.startswith("dp subjects:"):
+            cells = _row_value_cells(row)
+            if cells:
+                raw = _collapse(" ".join(cells))
+                parts = re.split(r"\s*(?:,|\band\b|;|/)\s*", raw, maxsplit=1)
+                if parts:
+                    if not result["core_subject"]:
+                        result["core_subject"] = parts[0]
+                    if len(parts) > 1:
+                        result["interdisciplinary_subject"] = parts[1]
+                found_anything = True
+
+        elif label.startswith("interdisciplinary") and "framework" in label:
+            cells = _row_value_cells(row)
+            if cells:
+                result["framework"] = _collapse(" ".join(cells))
+                found_anything = True
+
+        elif label.startswith("research question"):
+            cells = _row_value_cells(row)
+            if cells:
+                result["research_question"] = _collapse(" ".join(cells))
+                found_anything = True
+
+        elif label.startswith("holistic comment"):
+            cells = _row_value_cells(row)
+            if cells:
+                result["holistic_comment"] = _collapse(" ".join(cells))
+                found_anything = True
+
+        elif len(label) >= 2 and label[0].lower() in "abcde" and label[1] == ":":
+            letter = label[0].upper()
+            # Expected row layout (after None→"" normalisation):
+            #   [letter-with-name-and-max-mark, "", score_str, comment_str, ...]
+            # _row_value_cells filters blanks, giving [score_str, comment_str, ...]
+            cells = _row_value_cells(row)
+            # Score is usually the first numeric-only cell.
+            score: Optional[int] = None
+            comment_parts: list[str] = []
+            for cell in cells:
+                if score is None and cell.strip().isdigit():
+                    score = int(cell.strip())
+                else:
+                    comment_parts.append(cell)
+            if score is not None or comment_parts:
+                result["criteria"][letter] = {
+                    "score": score,
+                    "comment": _collapse(" ".join(comment_parts)),
+                }
+                found_anything = True
+
+    return result if found_anything else None
+
+
 def extract_ee_metadata(file_bytes: bytes) -> dict:
     """Parse an IB EE commentary PDF. See module docstring for contract."""
     if not file_bytes:
         raise EePdfExtractionError("Empty file")
 
+    # Always read the text first — also covers encrypted / scanned detection
+    # before we attempt the more expensive pdfplumber pass.
     text = _read_pdf_text(file_bytes)
-    result = _extract_via_regex(text)
 
-    # Normalise both subject fields against the canonical IB subject list.
+    plumber = _extract_via_pdfplumber(file_bytes)
+    regex_result = _extract_via_regex(text)
+
+    if plumber is None:
+        result = regex_result
+    else:
+        # Merge: pdfplumber wins where it has a value; regex fills gaps.
+        result = _empty_result()
+        for key in ("core_subject", "interdisciplinary_subject", "framework",
+                    "research_question", "holistic_comment"):
+            result[key] = plumber.get(key) or regex_result.get(key) or ""
+        for letter in "ABCDE":
+            p_crit = plumber["criteria"].get(letter, {})
+            r_crit = regex_result["criteria"].get(letter, {})
+            result["criteria"][letter] = {
+                "score": p_crit.get("score") if p_crit.get("score") is not None else r_crit.get("score"),
+                "comment": p_crit.get("comment") or r_crit.get("comment") or "",
+            }
+
+    # Subject normalisation (same as before).
     core, core_warn = _normalise_subject(result["core_subject"])
     inter, inter_warn = _normalise_subject(result["interdisciplinary_subject"])
     result["core_subject"] = core

@@ -141,5 +141,24 @@ class FrameworkWarningTest(unittest.TestCase):
         self.assertIn("could not extract", joined)
 
 
+class PdfplumberPathTest(unittest.TestCase):
+    """The pdfplumber primary path returns a usable dict for the fixture."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.pdf_bytes = (FIXTURES / "ee_commentary_subject_focused.pdf").read_bytes()
+
+    def test_pdfplumber_path_alone_extracts_subject_and_scores(self):
+        from ee_pdf_extractor import _extract_via_pdfplumber
+
+        result = _extract_via_pdfplumber(self.pdf_bytes)
+        self.assertIsNotNone(result, "pdfplumber path returned None on a clean fixture")
+        # Pre-normalisation: raw 'Biology' string from the table cell.
+        self.assertIn("Biology", result.get("core_subject", ""))
+        # Scores should be parsed for at least the obvious criteria.
+        a_score = result.get("criteria", {}).get("A", {}).get("score")
+        self.assertEqual(a_score, 4)
+
+
 if __name__ == "__main__":
     unittest.main()
