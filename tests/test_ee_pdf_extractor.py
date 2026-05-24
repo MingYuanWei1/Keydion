@@ -160,5 +160,21 @@ class PdfplumberPathTest(unittest.TestCase):
         self.assertEqual(a_score, 4)
 
 
+class ExtractorErrorPathsTest(unittest.TestCase):
+    def test_empty_bytes_raise_extraction_error(self):
+        with self.assertRaises(EePdfExtractionError):
+            extract_ee_metadata(b"")
+
+    def test_garbage_bytes_raise_extraction_error(self):
+        with self.assertRaises(EePdfExtractionError):
+            extract_ee_metadata(b"this is not a pdf, just bytes")
+
+    def test_pdf_header_without_content_raises(self):
+        # A bare PDF header is enough to start parsing but yields no text.
+        # PyPDF2 will likely throw, which we wrap as EePdfExtractionError.
+        with self.assertRaises(EePdfExtractionError):
+            extract_ee_metadata(b"%PDF-1.4\n%%EOF\n")
+
+
 if __name__ == "__main__":
     unittest.main()
