@@ -388,6 +388,7 @@ def parse_ib_ee_data_for_form(json_str) -> dict:
     except (json.JSONDecodeError, TypeError):
         return {}
     out = {
+        "is_ib_ee": "1",
         "ib_ee_core_subject": data.get("core_subject", ""),
         "ib_ee_interdisciplinary_subject": data.get("interdisciplinary_subject", ""),
         "ib_holistic_comment": data.get("holistic_comment", ""),
@@ -410,6 +411,7 @@ def parse_cp_data_for_form(json_str) -> dict:
     except (json.JSONDecodeError, TypeError):
         return {}
     out = {
+        "is_cp_paper": "1",
         "cp_global_context": data.get("global_context", ""),
         "cp_action_types": data.get("action_types") or [],
     }
@@ -1498,6 +1500,7 @@ def create_app() -> Flask:
         is_ib_ee = request.form.get("is_ib_ee") == "1"
         if is_ib_ee:
             form_data["ib_ee_data"] = build_ib_ee_data_from_form(request.form)
+            form_data["is_ib_ee"] = "1"
         else:
             form_data["ib_ee_data"] = ""
 
@@ -1505,6 +1508,7 @@ def create_app() -> Flask:
         is_cp_paper = request.form.get("is_cp_paper") == "1"
         if is_cp_paper:
             form_data["cp_data"] = build_cp_data_from_form(request.form)
+            form_data["is_cp_paper"] = "1"
         else:
             form_data["cp_data"] = ""
 

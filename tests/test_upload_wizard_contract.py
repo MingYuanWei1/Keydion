@@ -156,5 +156,46 @@ class WizardBootContractTest(unittest.TestCase):
             self.assertIn(key, helper_src, f"wizard_boot is missing key {key}")
 
 
+class PaperTypeHydrationContractTest(unittest.TestCase):
+    """Drafts and post-validation re-renders must carry is_ib_ee / is_cp_paper
+    so the wizard JS rehydrates the correct paper type."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.app_source = (ROOT / "app.py").read_text(encoding="utf-8")
+
+    def test_parse_ee_sets_is_ib_ee_flag(self):
+        out = parse_ib_ee_data_for_form('{"core_subject":"Economics","criteria":{}}')
+        self.assertEqual(out.get("is_ib_ee"), "1")
+
+    def test_parse_cp_sets_is_cp_paper_flag(self):
+        out = parse_cp_data_for_form('{"global_context":"Fairness","criteria":{}}')
+        self.assertEqual(out.get("is_cp_paper"), "1")
+
+    def test_parse_helpers_omit_flags_for_empty_input(self):
+        # Don't set is_ib_ee on empty/invalid input — only on valid EE data.
+        self.assertEqual(parse_ib_ee_data_for_form(""), {})
+        self.assertEqual(parse_ib_ee_data_for_form(None), {})
+        self.assertEqual(parse_cp_data_for_form(""), {})
+        self.assertEqual(parse_cp_data_for_form(None), {})
+
+    def test_upload_post_sets_is_ib_ee_flag_on_form_data(self):
+        # When is_ib_ee=1 in request.form, the POST branch must set
+        # form_data["is_ib_ee"] = "1" so a re-render carries the flag.
+        marker = 'form_data["ib_ee_data"] = build_ib_ee_data_from_form(request.form)'
+        idx = self.app_source.find(marker)
+        self.assertNotEqual(idx, -1)
+        # Next few lines should contain the flag assignment.
+        nearby = self.app_source[idx:idx + 300]
+        self.assertIn('form_data["is_ib_ee"] = "1"', nearby)
+
+    def test_upload_post_sets_is_cp_paper_flag_on_form_data(self):
+        marker = 'form_data["cp_data"] = build_cp_data_from_form(request.form)'
+        idx = self.app_source.find(marker)
+        self.assertNotEqual(idx, -1)
+        nearby = self.app_source[idx:idx + 300]
+        self.assertIn('form_data["is_cp_paper"] = "1"', nearby)
+
+
 if __name__ == "__main__":
     unittest.main()

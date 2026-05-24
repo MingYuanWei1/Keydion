@@ -1012,6 +1012,7 @@
     stepsContainer.appendChild(banner);
     banner.querySelector('#restoreApplyBtn').addEventListener('click', () => {
       Object.assign(state, stored.state);
+      state.file = null;   // real file input is empty after a tab close; force re-pick
       state.visitedSteps = new Set(stored.state.visitedSteps || [0]);
       banner.remove();
       render();
