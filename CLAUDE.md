@@ -5,8 +5,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build & Run
 
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+# Install dependencies (use python3/pip3 on macOS — there is no `python` binary)
+pip3 install -r requirements.txt
 
 # Start dev server (macOS/Linux)
 ./start_local.sh
@@ -14,18 +14,18 @@ pip install -r requirements.txt
 # Start with Docker Compose
 docker-compose up -d
 
-# Run all tests
-python -m unittest discover -s tests -p "test_*.py" -v
+# Run all tests (178 contract tests, ~4s)
+python3 -m unittest discover -s tests -p "test_*.py" -v
 
 # Run a single test file
-python -m unittest tests/test_ee_total_grade_contract.py -v
+python3 -m unittest tests/test_ee_total_grade_contract.py -v
 
-# Compile translations after editing .po files
-python tools/compile_translations.py
+# Compile translations after editing .po files (restart dev server to pick up new .mo)
+python3 tools/compile_translations.py
 
 # Manage users (CLI)
-python tools/manage_passwords.py set --username <name> --password <pw> --role 3
-python tools/manage_passwords.py list
+python3 tools/manage_passwords.py set --username <name> --password <pw> --role 3
+python3 tools/manage_passwords.py list
 ```
 
 Environment variables (set via `.env` or shell):
@@ -35,7 +35,11 @@ Environment variables (set via `.env` or shell):
 
 ## Architecture
 
-**Single-file Flask app** — all routes, models, and business logic live in `app.py` (~3,500 lines). The app is created via `create_app()` which sets up Flask, Babel (i18n), and SQLAlchemy.
+**Single-file Flask app** — all routes, models, and business logic live in `app.py` (~4,400 lines). The app is created via `create_app()` which sets up Flask, Babel (i18n), and SQLAlchemy. EE PDF parsing is the one exception, factored out into `ee_pdf_extractor.py`.
+
+**Dashboard URL nesting** — authenticated admin routes live under `/dashboard/...` (e.g. `/dashboard/admin/users`, `/dashboard/admin/guides`). Bare `/admin/*` paths exist only as 301-redirect legacy endpoints. Enforced by `test_dashboard_url_nesting_contract.py`.
+
+**Partial rendering** — most dashboard templates start with `{% extends "_bare.html" if partial else "_dashboard_shell.html" %}`. Sidebar nav links carry `data-partial-href` so client JS fetches `?partial=1` and swaps the panel without a full page reload. Routes pass `partial=request.args.get("partial")` to `render_template`.
 
 **Data layer** — MySQL via SQLAlchemy ORM with models defined at module level in `app.py`:
 - `LocalUser` / `MsUser` — local password auth and Microsoft Graph OAuth users
@@ -58,13 +62,15 @@ Environment variables (set via `.env` or shell):
 | Path | Purpose |
 |------|---------|
 | `app.py` | Entire application: models, routes, auth, helpers |
-| `templates/` | Jinja2 templates (30+ files) |
-| `static/css/styles.css` | Custom CSS (no build step) |
+| `ee_pdf_extractor.py` | Standalone PDF parser for IB EE auto-fill (imported by `app.py`) |
+| `templates/` | Jinja2 templates (~36 files) |
+| `static/css/` | Per-page stylesheets (`styles.css`, `dashboard.css`, `guides.css`, `manage.css`, `upload.css`) — no build step |
 | `static/vendor/` | Bootstrap CSS/JS (manually vendored) |
-| `data/` | JSON configs for categories, EE subjects; runtime `pending_papers/` |
+| `data/` | JSON configs for categories, EE subjects, guide categories; runtime `pending_papers/` |
 | `papers/` | Uploaded PDF storage (gitignored) |
 | `tools/` | CLI scripts: user management, translation compilation |
 | `tests/` | Contract tests using `unittest` — parse app.py with AST + render Jinja2 templates |
+| `deploy/keydion.nginx.conf` | Production nginx config (host-managed, not docker) |
 
 ## Testing approach
 
@@ -82,3 +88,5 @@ Conventional commits (`feat:`, `fix:`, with optional scope like `fix(i18n):`) ar
 - **News body** supports a JSON block format: `[{"type": "text", "content": "..."}, {"type": "image", "url": "...", "caption": "..."}]`, with a `parse_body_blocks` template filter for backward compat with plain-text bodies
 - DB migrations are ad-hoc in `init_db()` — ALTER TABLE statements wrapped in try/except for idempotency
 - Paper metadata is both in the DB (`papers_metadata` table) and optionally in the filesystem (`data/paper_metadata.json`); routes read from DB via `_load_papers()` which queries `PaperMetadataModel`
+- **Production deploy** uses host-managed nginx + systemd gunicorn (`gunicorn.conf.py` + `run_prod.sh`). The bundled `docker-compose.prod.yml` exists but is **not** what runs in prod — don't propose Docker-based deploy fixes.
+- **Translation cache**: Flask-Babel loads `.mo` files at startup. After `tools/compile_translations.py`, the dev server must be restarted for new translations to appear.
