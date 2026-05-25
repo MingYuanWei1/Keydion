@@ -1233,6 +1233,94 @@ msgstr "退出登录"
 msgid "Show sidebar"
 msgstr "显示侧边栏"
 
+# ==================== DASHBOARD OVERVIEW ====================
+#: templates/_dashboard/overview.html:13
+#, python-format
+msgid "Hello, %(name)s."
+msgstr "你好，%(name)s。"
+
+#: templates/_dashboard/overview.html:14
+msgid "Manage your account access, uploads, and the Keydion library."
+msgstr "管理你的账户、上传以及 Keydion 文献库。"
+
+#: templates/_dashboard/overview.html:19
+#, python-format
+msgid "Access valid through %(date)s"
+msgstr "访问有效期至 %(date)s"
+
+#: templates/_dashboard/overview.html:25
+msgid "At a glance"
+msgstr "概况"
+
+#: templates/_dashboard/overview.html:29
+msgid "Papers in library"
+msgstr "文献库总数"
+
+#: templates/_dashboard/overview.html:40
+msgid "Pending reviews"
+msgstr "待审稿件"
+
+#: templates/_dashboard/overview.html:50
+msgid "Published news"
+msgstr "已发布新闻"
+
+#: templates/_dashboard/overview.html:57
+msgid "Pending news"
+msgstr "新闻草稿"
+
+#: templates/_dashboard/overview.html:65 templates/_dashboard/overview.html:67
+msgid "Quick actions"
+msgstr "快速操作"
+
+#: templates/_dashboard/overview.html:72
+msgid "Share a new paper for peers to explore. Supports PDF with metadata extraction."
+msgstr "分享新的研究文献，支持 PDF 元数据提取。"
+
+#: templates/_dashboard/overview.html:73
+msgid "Open uploader"
+msgstr "打开上传"
+
+#: templates/_dashboard/overview.html:78
+msgid "Review the queue"
+msgstr "审核队列"
+
+#: templates/_dashboard/overview.html:81
+#, python-format
+msgid "%(n)d submissions are waiting for editorial decision."
+msgstr "有 %(n)d 篇投稿待编辑处理。"
+
+#: templates/_dashboard/overview.html:83
+msgid "Accept or reject papers submitted by readers."
+msgstr "接受或拒绝读者提交的文献。"
+
+#: templates/_dashboard/overview.html:86
+msgid "Open queue"
+msgstr "打开队列"
+
+#: templates/_dashboard/overview.html:93
+msgid "Publish updates, announcements and stories for the Keydion community."
+msgstr "为 Keydion 社区发布更新、公告和文章。"
+
+#: templates/_dashboard/overview.html:94
+msgid "Open editor"
+msgstr "打开编辑器"
+
+#: templates/_dashboard/overview.html:101
+msgid "Review local and Microsoft-linked accounts, adjust roles, set passwords."
+msgstr "管理本地账户和 Microsoft 关联账户，调整角色与密码。"
+
+#: templates/_dashboard/overview.html:102
+msgid "Open admin"
+msgstr "打开管理"
+
+#: templates/_dashboard/overview.html:108
+msgid "Set or change your account password."
+msgstr "设置或修改你的账户密码。"
+
+#: templates/_dashboard/overview.html:109
+msgid "Update security"
+msgstr "更新密码"
+
 # ==================== REGISTER PAGE ====================
 #: templates/account_register.html:2
 #, fuzzy

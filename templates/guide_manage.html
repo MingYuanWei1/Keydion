@@ -30,7 +30,7 @@
       <span>{{ _('Collection') }} · {{ _('Help') }}</span>
     </div>
     <h1 class="kp-title">{{ _('Manage Guides') }}</h1>
-    <p class="kp-sub">{{ _('Long-form documentation served at /help. Each guide supports English and Chinese, and appears in a sidebar grouped by category. Drag entries to reorder or recategorise.') }}</p>
+    <p class="kp-sub">{{ _('Long-form documentation served at /guides. Each guide supports English and Chinese, and appears in a sidebar grouped by category. Drag entries to reorder or recategorise.') }}</p>
   </div>
   <div class="kp-head__right">
     <a class="kp-btn kp-btn--primary" href="{{ url_for('admin_guide_new') }}">
@@ -64,7 +64,7 @@
       <path d="M130 28 L130 70 L138 64 L146 70 L146 30" fill="#8b1a1a" stroke="#6b1212" stroke-width="0.8"/>
     </svg>
     <h3>{{ _('No guides yet') }}</h3>
-    <p>{{ _("Guides appear in the public help center at /help, grouped by category and sorted by the order you set here. Start with a “Getting Started” piece — that's where most readers begin.") }}</p>
+    <p>{{ _("Guides appear in the public help center at /guides, grouped by category and sorted by the order you set here. Start with a “Getting Started” piece — that's where most readers begin.") }}</p>
     <a href="{{ url_for('admin_guide_new') }}" class="kp-btn kp-btn--primary">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
       <span>{{ _('Write your first guide') }}</span>
@@ -151,7 +151,7 @@
             <div class="guide-row__zh"><span class="flag-zh">ZH</span>{{ g.title_zh or '—' }}</div>
           </div>
           <div class="guide-row__slug-cell">
-            <code class="guide-row__slug">/help/{{ g.slug }}</code>
+            <code class="guide-row__slug">/guides/{{ g.slug }}</code>
           </div>
           <div class="guide-row__meta-cell guide-row__updated">
             {% if g.updated_at %}{{ g.updated_at }}{% else %}—{% endif %}
@@ -169,13 +169,13 @@
             </button>
           </div>
           <div class="guide-row__actions">
-            <a class="kp-row-icon" href="/help/{{ g.slug }}" target="_blank" rel="noopener" title="{{ _('Preview public') }}">
+            <a class="kp-row-icon" href="/guides/{{ g.slug }}" target="_blank" rel="noopener" title="{{ _('Preview public') }}">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
             </a>
             <a class="kp-row-icon" href="{{ url_for('admin_guide_edit', guide_id=g.id) }}" title="{{ _('Edit') }}">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
             </a>
-            <button type="button" class="kp-row-icon" data-copy-slug="/help/{{ g.slug }}" title="{{ _('Copy link') }}">
+            <button type="button" class="kp-row-icon" data-copy-slug="/guides/{{ g.slug }}" title="{{ _('Copy link') }}">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-2 2"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l2-2"/></svg>
             </button>
             <form method="post" action="{{ url_for('admin_guide_delete', guide_id=g.id) }}" onsubmit="return confirm('{{ _('Delete this guide?') }}')">
@@ -221,7 +221,7 @@
             <div class="guide-row__zh"><span class="flag-zh">ZH</span>{{ g.title_zh or '—' }}</div>
           </div>
           <div class="guide-row__slug-cell">
-            <code class="guide-row__slug">/help/{{ g.slug }}</code>
+            <code class="guide-row__slug">/guides/{{ g.slug }}</code>
           </div>
           <div class="guide-row__meta-cell guide-row__updated">
             {% if g.updated_at %}{{ g.updated_at }}{% else %}—{% endif %}
