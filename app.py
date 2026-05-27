@@ -1348,7 +1348,7 @@ def create_app() -> Flask:
                 try:
                     cp_info = json.loads(raw_cp)
                     if cp_info.get("is_cp_paper"):
-                        p["paper_type"] = "CP Paper"
+                        p["paper_type"] = "Community Project"
                         p["cp_global_context"] = cp_info.get("global_context", "")
                         p["cp_action_types"] = cp_info.get("action_types", [])
                         p["cp_total_score"] = cp_info.get("total_score", 0)

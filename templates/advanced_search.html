@@ -7,13 +7,28 @@
 
     <div id="advanced-search"
         style="background: #fff; padding: 32px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-        <h2 style="margin-bottom: 24px; font-size: 1.25rem;">{{ _('Find articles…') }}</h2>
         <form action="{{ url_for('search') }}" method="get" class="advanced-search-form">
-            <label for="advanced-search-keywords" style="display: block; margin-bottom: 8px;">{{ _('that contain these')
-                }} <b>{{ _('terms') }}</b></label>
-            <input type="search" id="advanced-search-keywords" name="q"
-                placeholder="{{ _('Keywords, e.g., neural networks') }}"
-                style="width: 100%; padding: 12px; margin-bottom: 24px; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem;">
+
+            <!-- Paper Type (moved to top — controls which fields below are shown) -->
+            <fieldset style="border: none; padding: 0; margin-bottom: 24px;">
+                <legend style="display: block; margin-bottom: 8px;"><b>{{ _('Paper Type') }}</b></legend>
+                <select name="paper_type" id="advPaperType"
+                    style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; width: 100%;">
+                    <option value="">{{ _('Any Type') }}</option>
+                    <option value="ee">{{ _('Extended Essay') }}</option>
+                    <option value="cp">{{ _('Community Project') }}</option>
+                    <option value="independent">{{ _('Independent Research') }}</option>
+                </select>
+            </fieldset>
+
+            <h2 style="margin-bottom: 24px; font-size: 1.25rem;">{{ _('Find articles…') }}</h2>
+            <div id="advTermsField">
+                <label for="advanced-search-keywords" style="display: block; margin-bottom: 8px;">{{ _('that contain these')
+                    }} <b>{{ _('terms') }}</b></label>
+                <input type="search" id="advanced-search-keywords" name="q"
+                    placeholder="{{ _('Keywords, e.g., neural networks') }}"
+                    style="width: 100%; padding: 12px; margin-bottom: 24px; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem;">
+            </div>
 
             <label for="author" style="display: block; margin-bottom: 8px;">{{ _('where the list of') }} <b>{{
                     _('authors') }}</b> {{ _('contains') }}</label>
@@ -26,18 +41,6 @@
                 style="width: 100%; padding: 12px; margin-bottom: 32px; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem;">
 
             <h2 style="margin-bottom: 24px; font-size: 1.25rem;">{{ _('Refine your results by…') }}</h2>
-
-            <!-- Paper Type -->
-            <fieldset style="border: none; padding: 0; margin-bottom: 24px;">
-                <legend style="display: block; margin-bottom: 8px;"><b>{{ _('Paper Type') }}</b></legend>
-                <select name="paper_type" id="advPaperType"
-                    style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; width: 100%;">
-                    <option value="">{{ _('Any Type') }}</option>
-                    <option value="ee">{{ _('Extended Essay') }}</option>
-                    <option value="cp">{{ _('CP Paper') }}</option>
-                    <option value="independent">{{ _('Independent Research') }}</option>
-                </select>
-            </fieldset>
 
             <!-- EE Subject (shown when Extended Essay) -->
             <fieldset id="advEeSubject" style="border: none; padding: 0; margin-bottom: 24px; display: none;">
@@ -93,8 +96,18 @@
 </div>
 <script>
 document.getElementById('advPaperType').addEventListener('change', function() {
-  document.getElementById('advEeSubject').style.display = this.value === 'ee' ? '' : 'none';
-  document.getElementById('advCpContext').style.display = this.value === 'cp' ? '' : 'none';
+  var isEE = this.value === 'ee';
+  var isCP = this.value === 'cp';
+  document.getElementById('advEeSubject').style.display = isEE ? '' : 'none';
+  document.getElementById('advCpContext').style.display = isCP ? '' : 'none';
+  // EE and CP papers don't have meaningful free-text keywords — hide the terms field
+  var termsField = document.getElementById('advTermsField');
+  if (isEE || isCP) {
+    termsField.style.display = 'none';
+    document.getElementById('advanced-search-keywords').value = '';
+  } else {
+    termsField.style.display = '';
+  }
 });
 </script>
 {% endblock %}

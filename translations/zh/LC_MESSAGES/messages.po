@@ -1562,11 +1562,6 @@ msgstr "类型"
 msgid "Extended Essay"
 msgstr "IB 拓展论文（EE）"
 
-#: templates/advanced_search.html:37 templates/search.html:214
-#, fuzzy
-msgid "CP Paper"
-msgstr "论文数"
-
 #: templates/advanced_search.html:47 templates/search.html:33
 #: templates/search.html:68
 msgid "Any Subject"
