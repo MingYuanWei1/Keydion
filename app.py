@@ -258,6 +258,7 @@ MAX_SEARCH_RESULTS = 20
 PASSWORD_SCHEME = "pbkdf2_sha256"
 SUPPORTED_LOCALES = ("en", "zh")
 SESSION_TIMEOUT_SECONDS = int(os.environ.get("PAPERQUERY_SESSION_TIMEOUT", "3600"))
+OPEN_ACCESS = os.environ.get("PAPERQUERY_OPEN_ACCESS", "0").strip().lower() in ("1", "true", "yes", "on")
 SESSION_TIMEOUT = timedelta(seconds=SESSION_TIMEOUT_SECONDS)
 METADATA_FIELDS = ["filename", "title", "journal", "category", "language", "keywords", "abstract", "author_name", "author_email", "author_school", "published_at", "ib_ee_data", "is_ib_sample", "cp_data"]
 MS_USER_FIELDS = [
@@ -759,6 +760,7 @@ def create_app() -> Flask:
             "current_year": datetime.utcnow().year,
             "site_name": "Keydion",
             "ms_enabled": is_ms_configured(),
+            "open_access": OPEN_ACCESS,
         }
 
     # ---- Template filter: parse block-based article body ----
