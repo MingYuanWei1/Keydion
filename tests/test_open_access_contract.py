@@ -28,3 +28,17 @@ class OpenAccessContractTest(unittest.TestCase):
     def test_context_processor_exposes_open_access(self):
         src = self._function_source("inject_global_vars")
         self.assertIn('"open_access": OPEN_ACCESS', src)
+
+    def test_paper_file_gate_is_conditional(self):
+        src = self._function_source("paper_file")
+        self.assertIn("if not OPEN_ACCESS:", src)
+        self.assertIn("require_login()", src)
+
+    def test_download_gate_is_conditional(self):
+        src = self._function_source("download")
+        self.assertIn("if not OPEN_ACCESS:", src)
+        self.assertIn("require_login()", src)
+
+    def test_preview_serves_full_pdf_when_open_access(self):
+        src = self._function_source("preview_paper")
+        self.assertIn("not is_guest or OPEN_ACCESS", src)

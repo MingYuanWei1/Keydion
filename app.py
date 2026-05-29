@@ -2134,7 +2134,7 @@ def create_app() -> Flask:
                 if p.get("category") == paper.get("category") and p.get("filename") != filename
             ][:5]
 
-        pdf_url = url_for("paper_preview", filename=filename) if is_guest else url_for("paper_file", filename=filename)
+        pdf_url = url_for("paper_file", filename=filename) if (not is_guest or OPEN_ACCESS) else url_for("paper_preview", filename=filename)
         
         # Parse authors
         names = paper.get("author_name", "").split(", ")
@@ -2201,9 +2201,10 @@ def create_app() -> Flask:
 
     @app.route("/papers/raw/<path:filename>")
     def paper_file(filename: str):
-        user = require_login()
-        if not user:
-            return redirect(url_for("login"))
+        if not OPEN_ACCESS:
+            user = require_login()
+            if not user:
+                return redirect(url_for("login"))
         pdf_path = PAPERS_DIR / filename
         if not pdf_path.exists():
             abort(404)
@@ -2211,9 +2212,10 @@ def create_app() -> Flask:
 
     @app.route("/papers/<path:filename>")
     def download(filename: str):
-        user = require_login()
-        if not user:
-            return redirect(url_for("login"))
+        if not OPEN_ACCESS:
+            user = require_login()
+            if not user:
+                return redirect(url_for("login"))
         return send_from_directory(PAPERS_DIR, filename, as_attachment=True)
 
     # ==================== NEWS ROUTES ====================
