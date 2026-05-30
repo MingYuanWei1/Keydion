@@ -31,7 +31,23 @@ PAPERQUERY_DATABASE_URL="mysql+pymysql://user:password@host:port/dbname"
 PAPERQUERY_MS_CLIENT_ID=your_client_id
 PAPERQUERY_MS_CLIENT_SECRET=your_client_secret
 PAPERQUERY_MS_REDIRECT_URI=https://yourdomain.com/auth/callback
+
+# AI assist — abstract & keyword auto-fill on upload (Optional)
+# Uses any OpenAI-compatible API. Without LLM_API_KEY the feature is disabled:
+# the "Generate abstract & keywords from PDF" button is hidden and the endpoint
+# returns a friendly error — nothing else is affected.
+LLM_API_KEY=your_api_key
+# Optional — point at a non-OpenAI / self-hosted OpenAI-compatible endpoint
+# (e.g. http://localhost:11434/v1 for Ollama). Omit entirely for OpenAI itself.
+LLM_BASE_URL=
+# Optional — chat model to use; defaults to gpt-4o-mini.
+LLM_MODEL=gpt-4o-mini
 ```
+
+> The abstract/keyword button only appears for Contributors (role ≥ 2) when
+> `LLM_API_KEY` is set. It drafts the abstract and keywords from the uploaded
+> PDF; the uploader reviews and edits before submitting. See
+> [`LLM_DEPLOYMENT_IDEAS.md`](LLM_DEPLOYMENT_IDEAS.md) for other planned LLM uses.
 
 ### 2. Using Docker (Recommended)
 
@@ -80,6 +96,11 @@ download routes (`/papers/*`) proxy through to Flask so auth checks run.
    PAPERQUERY_MS_CLIENT_ID=...
    PAPERQUERY_MS_CLIENT_SECRET=...
    PAPERQUERY_MS_REDIRECT_URI=https://yourdomain.com/auth/callback
+
+   # AI assist — abstract & keyword auto-fill (Optional; OpenAI-compatible API)
+   LLM_API_KEY=...
+   LLM_BASE_URL=            # optional; omit for OpenAI, set for a local/compatible provider
+   LLM_MODEL=gpt-4o-mini    # optional; defaults to gpt-4o-mini
 
    # Optional gunicorn tuning
    GUNICORN_WORKERS=4
