@@ -859,6 +859,35 @@
   flex-wrap: wrap;
   margin-bottom: 16px;
 }
+/* The auto-fill triggers carry Bootstrap class names but this page has no
+   Bootstrap, so style them here as compact outline buttons in the wizard's
+   accent aesthetic. Covers both the EE and abstract/keyword buttons. */
+.kd-upload-wizard .ee-autofill button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--accent);
+  font-family: Georgia, serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.kd-upload-wizard .ee-autofill button:hover:not(:disabled) {
+  background: var(--accent);
+  color: #fff;
+}
+.kd-upload-wizard .ee-autofill button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
 .ee-autofill__status { font-size: 0.875rem; }
 .ee-autofill__status--ok      { color: var(--bs-success, #198754); }
 .ee-autofill__status--partial { color: var(--bs-warning, #fd7e14); }
