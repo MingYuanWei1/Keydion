@@ -51,6 +51,9 @@
     // EE auto-fill UI
     eeAutofillStatus: '',    // '' | 'loading' | 'ok' | 'partial' | 'error'
     eeAutofillMessage: '',
+    // Abstract/keyword auto-fill UI (standard papers)
+    metaAutofillStatus: '',  // '' | 'loading' | 'ok' | 'partial' | 'error'
+    metaAutofillMessage: '',
     // CP
     cpGlobalContext: fd.cp_global_context || '',
     cpActionTypes: Array.isArray(fd.cp_action_types) ? fd.cp_action_types.slice() : [],
@@ -300,6 +303,17 @@
           </div>
 
           ${!isIbType ? `
+          ${BOOT.llm_metadata_enabled ? `
+          <div class="ee-autofill">
+            <button type="button" id="metaAutofillBtn" class="btn btn-outline-primary btn-sm" ${state.metaAutofillStatus === 'loading' ? 'disabled' : ''}>
+              ${t('meta_autofill_btn', 'Generate abstract & keywords from PDF')}
+            </button>
+            <input type="file" id="metaAutofillFile" accept="application/pdf,.pdf" hidden>
+            <span id="metaAutofillStatus" class="ee-autofill__status ee-autofill__status--${state.metaAutofillStatus || 'idle'}">
+              ${esc(state.metaAutofillMessage || '')}
+            </span>
+          </div>
+          ` : ''}
           <div class="field">
             <label class="field__label" for="f-keywords">${t('keywords', 'Keywords')} <span class="req">*</span></label>
             <div class="chips" id="chipsContainer">
@@ -395,6 +409,25 @@
           renderStep();
           touch();
         });
+      });
+    }
+
+    // ── Abstract/keyword auto-fill (standard papers) ───────────
+    const metaBtn = stepsContainer.querySelector('#metaAutofillBtn');
+    const metaFile = stepsContainer.querySelector('#metaAutofillFile');
+    if (metaBtn && metaFile) {
+      metaBtn.addEventListener('click', () => {
+        // Reuse the PDF already chosen in the File step if present.
+        const existing = document.getElementById('uploadFormFile');
+        const chosen = existing && existing.files && existing.files[0];
+        if (chosen) { runMetaAutofill(chosen); }
+        else { metaFile.click(); }
+      });
+      metaFile.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        e.target.value = '';   // allow re-selecting the same file
+        if (!file) return;
+        await runMetaAutofill(file);
       });
     }
 
@@ -644,6 +677,67 @@
         'Extracted %(filled)s of %(total)s fields.', { filled: String(filled), total: String(max) })
         + tail,
     };
+  }
+
+  // ─── Abstract/keyword auto-fill (standard papers) ──────────
+  async function runMetaAutofill(file) {
+    if (state.metaAutofillStatus === 'loading') return;   // re-entrancy guard
+    state.metaAutofillStatus = 'loading';
+    state.metaAutofillMessage = t('meta_autofill_extracting', 'Generating…');
+    render();
+
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('language', state.language || 'en');
+      const resp = await fetch('/api/upload/generate-abstract-keywords', {
+        method: 'POST',
+        body: form,
+        credentials: 'same-origin',
+      });
+      const data = await resp.json().catch(() => ({}));
+
+      if (!resp.ok) {
+        state.metaAutofillStatus = 'error';
+        state.metaAutofillMessage = data.error || t('meta_autofill_error',
+          'Generation failed — try again or fill manually.');
+        render();
+        return;
+      }
+
+      if (isMetaDirty()) {
+        const ok = window.confirm(t('meta_autofill_overwrite',
+          'Replace your existing abstract and keywords with AI-generated ones?'));
+        if (!ok) {
+          state.metaAutofillStatus = '';
+          state.metaAutofillMessage = '';
+          render();
+          return;
+        }
+      }
+
+      state.abstract = (data.abstract || '').slice(0, 2000);
+      state.keywords = Array.isArray(data.keywords) ? data.keywords.slice() : [];
+      const warnings = data.warnings || [];
+      if (warnings.length) {
+        state.metaAutofillStatus = 'partial';
+        state.metaAutofillMessage = warnings.join(' ');
+      } else {
+        state.metaAutofillStatus = 'ok';
+        state.metaAutofillMessage = t('meta_autofill_ok', 'Generated abstract and keywords.');
+      }
+      touch();
+      render();
+    } catch (err) {
+      state.metaAutofillStatus = 'error';
+      state.metaAutofillMessage = t('meta_autofill_error',
+        'Generation failed — try again or fill manually.');
+      render();
+    }
+  }
+
+  function isMetaDirty() {
+    return !!(state.abstract || '').trim() || (state.keywords && state.keywords.length > 0);
   }
 
   // ─── CP fieldset ───────────────────────────────────────────

@@ -46,6 +46,7 @@ from flask_babel import Babel, gettext as _, get_locale, lazy_gettext as _l
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
 from ee_pdf_extractor import extract_ee_metadata, EePdfExtractionError
+from llm_metadata import generate_abstract_keywords, LLMMetadataError
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -1390,6 +1391,10 @@ def create_app() -> Flask:
 
     def _render_upload(user, form_data, draft_id):
         """Render upload.html with the wizard_boot context the JS needs."""
+        try:
+            _role = int(user.get("role", "1"))
+        except (TypeError, ValueError):
+            _role = 1
         wizard_boot = {
             "submit_url": url_for("upload"),
             "draft_id": draft_id or "",
@@ -1399,6 +1404,7 @@ def create_app() -> Flask:
             "cp_global_contexts": CP_GLOBAL_CONTEXTS,
             "cp_action_types": CP_ACTION_TYPES,
             "user_key": user.get("username", ""),
+            "llm_metadata_enabled": bool(os.environ.get("LLM_API_KEY")) and _role >= 2,
             "i18n": {
                 "step_name_type": _("Paper Type"),
                 "step_name_metadata": _("Metadata"),
@@ -1554,6 +1560,11 @@ def create_app() -> Flask:
                 "ee_autofill_partial": _("Extracted %(filled)s of %(total)s fields."),
                 "ee_autofill_error": _("Auto-fill failed — try again or fill manually."),
                 "ee_autofill_overwrite": _("Replace your existing EE entries with values from the PDF?"),
+                "meta_autofill_btn": _("Generate abstract & keywords from PDF"),
+                "meta_autofill_extracting": _("Generating…"),
+                "meta_autofill_ok": _("Generated abstract and keywords."),
+                "meta_autofill_error": _("Generation failed — try again or fill manually."),
+                "meta_autofill_overwrite": _("Replace your existing abstract and keywords with AI-generated ones?"),
             },
         }
         return render_template("upload.html",
@@ -2274,6 +2285,30 @@ def create_app() -> Flask:
         try:
             result = extract_ee_metadata(raw)
         except EePdfExtractionError as exc:
+            return jsonify({"error": str(exc)}), 400
+
+        return jsonify(result), 200
+
+    @app.route("/api/upload/generate-abstract-keywords", methods=["POST"])
+    def api_generate_abstract_keywords():
+        user = require_login(level=2)
+        if not user:
+            return jsonify({"error": str(_("Unauthorized"))}), 401
+
+        upload = request.files.get("file")
+        if not upload or not upload.filename:
+            return jsonify({"error": str(_("No file provided"))}), 400
+        if not upload.filename.lower().endswith(".pdf"):
+            return jsonify({"error": str(_("File must be a PDF"))}), 400
+
+        raw = upload.read()
+        if not raw.startswith(b"%PDF-"):
+            return jsonify({"error": str(_("File is not a valid PDF"))}), 400
+
+        language = request.form.get("language", "en")
+        try:
+            result = generate_abstract_keywords(raw, language)
+        except LLMMetadataError as exc:
             return jsonify({"error": str(exc)}), 400
 
         return jsonify(result), 200
