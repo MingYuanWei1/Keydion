@@ -4519,3 +4519,18 @@ msgstr "文件不是有效的 PDF"
 #~ msgid "Could not load this section."
 #~ msgstr "无法加载该部分。"
 
+msgid "Generate abstract & keywords from PDF"
+msgstr "从 PDF 生成摘要和关键词"
+
+msgid "Generating…"
+msgstr "生成中…"
+
+msgid "Generated abstract and keywords."
+msgstr "已生成摘要和关键词。"
+
+msgid "Generation failed — try again or fill manually."
+msgstr "生成失败——请重试或手动填写。"
+
+msgid "Replace your existing abstract and keywords with AI-generated ones?"
+msgstr "用 AI 生成的内容替换现有的摘要和关键词吗？"
+
