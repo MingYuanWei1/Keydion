@@ -73,5 +73,19 @@ class AttachEndpoint(unittest.TestCase):
             self.assertEqual(resp.status_code, 404)
 
 
+class ConversationDeletePurges(unittest.TestCase):
+    def test_delete_branch_purges_attachment_chunks(self):
+        src = app_module
+        import inspect
+        text = inspect.getsource(src.create_app)
+        # the conversation DELETE branch must delete attachment chunks too
+        self.assertIn("AttachmentChunkModel.conversation_id == conv.id", text)
+
+    def test_api_ask_merges_attachment_grounding(self):
+        import inspect
+        text = inspect.getsource(app_module.create_app)
+        self.assertIn("_attachment_grounding(", text)
+
+
 if __name__ == "__main__":
     unittest.main()

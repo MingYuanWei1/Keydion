@@ -2475,6 +2475,8 @@ def create_app() -> Flask:
             if request.method == "DELETE":
                 db.query(ChatMessageModel).filter(
                     ChatMessageModel.conversation_id == conv.id).delete()
+                db.query(AttachmentChunkModel).filter(
+                    AttachmentChunkModel.conversation_id == conv.id).delete()
                 db.delete(conv)
                 return jsonify({"ok": True})
             if request.method == "PATCH":
@@ -2494,7 +2496,12 @@ def create_app() -> Flask:
                 except (ValueError, TypeError):
                     cites = []
                 out.append({"role": m.role, "content": m.content, "citations": cites})
-            return jsonify({"title": conv.title, "messages": out})
+            att = (db.query(AttachmentChunkModel.filename)
+                     .filter(AttachmentChunkModel.conversation_id == conv.id)
+                     .distinct().all())
+            attachments = [a[0] for a in att]
+            return jsonify({"title": conv.title, "messages": out,
+                            "attachments": attachments})
 
     @app.route("/api/ask/papers")
     def api_ask_papers():
@@ -2622,24 +2629,28 @@ def create_app() -> Flask:
 
         locale_code = str(get_locale() or "en")
 
-        # Retrieve grounding (forced papers in Phase 3 override automatic retrieval).
+        # Retrieve grounding: attached docs first (highest priority), then forced
+        # papers (Phase 3) or automatic retrieval, capped to a shared budget.
         try:
+            attach_hits = _attachment_grounding(question, db_conv_id)
             if forced:
-                hits = _forced_grounding(question, forced)
+                lib_hits = _forced_grounding(question, forced)
             else:
-                hits = rag_index.retrieve(question)
+                lib_hits = rag_index.retrieve(question)
+            hits = (attach_hits + lib_hits)[:6]
         except Exception:
             app.logger.exception("retrieval failed")
             hits = []
 
         model = llm_client.think_model() if mode == "think" else llm_client.flash_model()
-        system = _build_ask_prompt(question, hits, locale_code)
         citations = [
             {"n": i + 1, "filename": h["filename"], "title": h["title"],
              "authors": h.get("author_name", ""),
-             "url": url_for("paper_info", filename=h["filename"])}
+             "url": (None if h.get("is_attachment")
+                     else url_for("paper_info", filename=h["filename"]))}
             for i, h in enumerate(hits)
         ]
+        system = _build_ask_prompt(question, hits, locale_code)
 
         def generate():
             import json as _json
