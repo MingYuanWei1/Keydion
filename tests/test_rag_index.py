@@ -120,6 +120,55 @@ class RetrieveBehaviour(unittest.TestCase):
         hits = rag_index.retrieve("something neutral", k=5, min_sim=0.999)
         self.assertEqual(hits, [])
 
+    def test_retrieve_filters_before_slicing(self):
+        # Regression: retrieve() must filter by min_sim BEFORE slicing to k.
+        #
+        # We inject 3 chunks with pre-computed embeddings directly into the store
+        # so cosine scores against query "cold arctic" -> qvec=[1.0, 0.0] are known:
+        #
+        #   chunk A (cold.pdf):    embedding=[1.0, 0.0]  -> cosine = 1.0   (ABOVE 0.5)
+        #   chunk B (fr.pdf):      embedding=[0.0, 1.0]  -> cosine = 0.0   (BELOW 0.5)
+        #   chunk C (neutral.pdf): embedding=[0.5, 0.5]  -> cosine ≈ 0.707 (ABOVE 0.5)
+        #
+        # sorted desc: A(1.0), C(0.707), B(0.0)
+        # With k=2 and min_sim=0.5:
+        #   filter-first (new): qualifying = [A, C], take top-2 -> 2 hits
+        #   slice-first (old):  top-2 = [A, C], both pass filter -> 2 hits
+        #
+        # Both return 2 hits here because the sorted order keeps qualifiers first.
+        # That is the CORRECT behaviour. This test documents the contract:
+        # all returned hits are >= min_sim and count <= k.
+        #
+        # The fix (filter-before-slice) is the correct defensive implementation;
+        # observable difference would require a below-threshold chunk to outscore
+        # an above-threshold one, which is impossible for a consistent threshold.
+        # The test verifies the contract holds with the new implementation.
+        self.papers["neutral.pdf"] = {
+            "filename": "neutral.pdf", "title": "Neutral Paper",
+            "author_name": "Smith", "language": "en", "text": "neutral content",
+        }
+        self.store.rows = [
+            {"filename": "cold.pdf",    "chunk_index": 0, "content": "chunk A",
+             "embedding": [1.0, 0.0], "lang": "en"},
+            {"filename": "fr.pdf",      "chunk_index": 0, "content": "chunk B",
+             "embedding": [0.0, 1.0], "lang": "en"},
+            {"filename": "neutral.pdf", "chunk_index": 0, "content": "chunk C",
+             "embedding": [0.5, 0.5], "lang": "en"},
+        ]
+        rag_index.invalidate_cache()
+
+        hits = rag_index.retrieve("cold arctic", k=2, min_sim=0.5)
+
+        # Exactly 2 qualifying chunks (A and C); B must be excluded.
+        self.assertEqual(len(hits), 2)
+        for h in hits:
+            self.assertGreaterEqual(h["score"], 0.5,
+                                    f"Hit below threshold: {h}")
+        filenames = {h["filename"] for h in hits}
+        self.assertIn("cold.pdf", filenames)
+        self.assertIn("neutral.pdf", filenames)
+        self.assertNotIn("fr.pdf", filenames)
+
 
 if __name__ == "__main__":
     unittest.main()

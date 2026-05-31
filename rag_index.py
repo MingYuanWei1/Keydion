@@ -137,7 +137,7 @@ def retrieve(query: str, k: int = 6, min_sim: float = 0.20) -> list[dict]:
         scored.append((cosine(qvec, vector), filename, chunk_index, content))
     scored.sort(key=lambda t: t[0], reverse=True)
     hits = []
-    for score, filename, chunk_index, content in scored[:k]:
+    for score, filename, chunk_index, content in scored:
         if score < min_sim:
             continue
         meta = _DEPS["paper_meta"](filename) or {}
@@ -149,4 +149,6 @@ def retrieve(query: str, k: int = 6, min_sim: float = 0.20) -> list[dict]:
             "title": meta.get("title", filename),
             "author_name": meta.get("author_name", ""),
         })
+        if len(hits) >= k:
+            break
     return hits

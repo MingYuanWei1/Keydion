@@ -4506,8 +4506,13 @@ def _forced_grounding(question, filenames):
     for filename, idx, content, vec in chunks:
         scored.append((rag_index.cosine(qvec, vec), filename, content))
     scored.sort(key=lambda t: t[0], reverse=True)
+    min_sim = 0.20
+    qualifying = [t for t in scored if t[0] >= min_sim]
+    # If no chunk meets the threshold, fall back to the single best chunk so that
+    # explicitly selected papers always contribute at least one grounding snippet.
+    candidates = qualifying[:6] if qualifying else scored[:1]
     hits = []
-    for score, filename, content in scored[:6]:
+    for score, filename, content in candidates:
         meta = build_paper_record(filename)
         hits.append({"filename": filename, "content": content, "score": score,
                      "title": meta.get("title", filename),
