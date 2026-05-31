@@ -48,6 +48,7 @@ from werkzeug.utils import secure_filename
 from ee_pdf_extractor import extract_ee_metadata, EePdfExtractionError
 from llm_metadata import generate_abstract_keywords, LLMMetadataError
 import llm_client
+import rag_index
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -728,6 +729,7 @@ def create_app() -> Flask:
     PAPERS_DIR.mkdir(parents=True, exist_ok=True)
     PENDING_PAPERS_DIR.mkdir(parents=True, exist_ok=True)
     init_db()
+    configure_rag()
     babel.init_app(app, locale_selector=select_locale)
 
     @app.context_processor
@@ -2116,6 +2118,10 @@ def create_app() -> Flask:
         remove_paper_metadata(filename)
         paper_path.unlink(missing_ok=True)
         flash(_("Deleted %(filename)s.", filename=filename), "success")
+        try:
+            rag_index.purge(filename)
+        except Exception:
+            app.logger.exception("Failed to purge chunks for deleted paper")
         return redirect(url_for("manage"))
 
     @app.route("/set-language/<locale_code>")
@@ -3353,6 +3359,11 @@ def create_app() -> Flask:
             "reviewer": reviewer_name,
         })
         flash(_("Paper accepted and published."), "success")
+        try:
+            if llm_client.llm_enabled():
+                rag_index.build_index([filename])
+        except Exception:
+            app.logger.exception("Failed to index accepted paper")
         return redirect(url_for("review_list"))
 
     @app.route("/dashboard/review/<sub_id>/reject", methods=["POST"])
@@ -4058,6 +4069,63 @@ def gather_paper_records() -> List[Dict[str, str]]:
         records.append(build_paper_record(pdf_path.name, metadata_index))
     records.sort(key=lambda row: (row.get("published_at") or "", row.get("title") or row["filename"]), reverse=True)
     return records
+
+
+def _rag_iter_papers():
+    index = {row["filename"]: row for row in load_paper_metadata()}
+    return [build_paper_record(p.name, index) for p in PAPERS_DIR.glob("*.pdf")]
+
+
+def _rag_paper_text(filename):
+    return extract_pdf_text(PAPERS_DIR / filename)
+
+
+def _rag_paper_meta(filename):
+    return build_paper_record(filename)
+
+
+def _rag_store_replace(filename, rows):
+    with db_session() as db:
+        db.query(PaperChunkModel).filter(PaperChunkModel.filename == filename).delete()
+        for r in rows:
+            db.add(PaperChunkModel(
+                filename=r["filename"],
+                chunk_index=r["chunk_index"],
+                content=r["content"],
+                embedding=json.dumps(r["embedding"]),
+                lang=r.get("lang", ""),
+            ))
+
+
+def _rag_store_all():
+    with db_session() as db:
+        out = []
+        for row in db.query(PaperChunkModel).all():
+            try:
+                vec = json.loads(row.embedding) if row.embedding else []
+            except (ValueError, TypeError):
+                vec = []
+            out.append({"filename": row.filename, "chunk_index": row.chunk_index,
+                        "content": row.content, "embedding": vec})
+        return out
+
+
+def _rag_store_delete(filename):
+    with db_session() as db:
+        db.query(PaperChunkModel).filter(PaperChunkModel.filename == filename).delete()
+
+
+def configure_rag():
+    rag_index.configure(
+        build_embed_client=llm_client.build_embed_client,
+        embed_model=llm_client.embed_model,
+        iter_papers=_rag_iter_papers,
+        paper_text=_rag_paper_text,
+        paper_meta=_rag_paper_meta,
+        store_replace=_rag_store_replace,
+        store_all=_rag_store_all,
+        store_delete=_rag_store_delete,
+    )
 
 
 def upsert_paper_metadata(filename: str, data: Dict[str, str]) -> None:
