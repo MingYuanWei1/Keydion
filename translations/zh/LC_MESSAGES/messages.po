@@ -28,12 +28,8 @@ msgstr "查找医疗保健领域机器学习相关论文。"
 
 #: app.py:851 templates/ask.html:6 templates/base.html:66
 #: templates/landing.html:829 templates/landing.html:980
-msgid "Ask the Library"
-msgstr "向资料库提问"
-
-#: app.py:852
-msgid "Ask Keydion"
-msgstr "向 Keydion 提问"
+msgid "Keydion AI"
+msgstr "Keydion AI"
 
 #: app.py:853
 msgid "Ask a question and I'll answer from the published library, with citations."
@@ -4485,4 +4481,3 @@ msgstr "查看提交内容"
 
 #~ msgid "Grounded in the published library"
 #~ msgstr "基于已发布的论文库"
-

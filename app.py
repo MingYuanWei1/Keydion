@@ -785,6 +785,11 @@ def create_app() -> Flask:
         """
         return request.headers.get("X-Partial-Content") == "1"
 
+    def require_ask_api_access():
+        if OPEN_ACCESS or get_active_user():
+            return None
+        return jsonify({"error": str(_("Please sign in first."))}), 401
+
     @app.context_processor
     def inject_partial_flag():
         return {"partial": is_partial_request()}
@@ -838,6 +843,10 @@ def create_app() -> Flask:
 
     @app.route("/ask")
     def ask_library():
+        if not OPEN_ACCESS:
+            user = require_login()
+            if not user:
+                return redirect(url_for("login"))
         suggestions = [
             _("What does the research say about climate adaptation in plants?"),
             _("Summarize recent Extended Essays in economics."),
@@ -848,8 +857,8 @@ def create_app() -> Flask:
             "api_url": url_for("api_ask"),
             "enabled": llm_client.llm_enabled(),
             "i18n": {
-                "title": _("Ask the Library"),
-                "empty_title": _("Ask Keydion"),
+                "title": "Keydion AI",
+                "empty_title": "Keydion AI",
                 "empty_sub": _("Ask a question and I'll answer from the published library, with citations."),
                 "placeholder": _("Message Keydion AI…"),
                 "flash": _("Flash"),
@@ -2375,6 +2384,9 @@ def create_app() -> Flask:
 
     @app.route("/api/conversations", methods=["GET", "POST"])
     def api_conversations():
+        blocked = require_ask_api_access()
+        if blocked:
+            return blocked
         owner = _ask_owner_key()
         if request.method == "POST":
             now = datetime.utcnow().isoformat()
@@ -2395,6 +2407,9 @@ def create_app() -> Flask:
 
     @app.route("/api/conversations/<int:cid>", methods=["GET", "PATCH", "DELETE"])
     def api_conversation_item(cid):
+        blocked = require_ask_api_access()
+        if blocked:
+            return blocked
         owner = _ask_owner_key()
         with db_session() as db:
             conv = db.query(ConversationModel).filter(
@@ -2428,6 +2443,9 @@ def create_app() -> Flask:
 
     @app.route("/api/ask/papers")
     def api_ask_papers():
+        blocked = require_ask_api_access()
+        if blocked:
+            return blocked
         q = (request.args.get("q") or "").strip()
         records = search_papers(q) if q else gather_paper_records()
         items = [{
@@ -2441,6 +2459,9 @@ def create_app() -> Flask:
 
     @app.route("/api/ask", methods=["POST"])
     def api_ask():
+        blocked = require_ask_api_access()
+        if blocked:
+            return blocked
         if not llm_client.llm_enabled():
             return jsonify({"error": str(_("AI assistant is not configured."))}), 503
 

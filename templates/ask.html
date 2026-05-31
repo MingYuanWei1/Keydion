@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ _('Ask the Library') }} · {{ _('Keydion') }}</title>
+  <title>Keydion AI · {{ _('Keydion') }}</title>
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='K.png') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -58,7 +58,7 @@
       <div class="kd-thread">
         <div class="kd-thread__inner" id="kd-thread">
         <div class="kd-empty" id="kd-empty">
-          <h1 class="kd-empty__title">{{ _('Ask') }} <em style="color:rgb(5,5,5)">Keydion</em></h1>
+          <h1 class="kd-empty__title">Keydion <em style="color:rgb(5,5,5)">AI</em></h1>
           <p class="kd-empty__sub">{{ _("Chat or cite papers straight from your library. I'll reason over the sources and keep the references attached.") }}</p>
           <div class="kd-suggest">
             {% for s in suggestions %}

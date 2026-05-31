@@ -31,11 +31,7 @@ msgstr ""
 
 #: app.py:851 templates/ask.html:6 templates/base.html:66
 #: templates/landing.html:829 templates/landing.html:980
-msgid "Ask the Library"
-msgstr ""
-
-#: app.py:852
-msgid "Ask Keydion"
+msgid "Keydion AI"
 msgstr ""
 
 #: app.py:853
@@ -3397,4 +3393,3 @@ msgstr ""
 #: templates/upload_success.html:184
 msgid "View My Submissions"
 msgstr ""
-

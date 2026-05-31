@@ -1,4 +1,4 @@
-// static/js/ask.js — Ask the Library chat client (vanilla JS, no build step)
+// static/js/ask.js — Keydion AI chat client (vanilla JS, no build step)
 (function () {
   "use strict";
   var bootEl = document.getElementById("ask-boot");

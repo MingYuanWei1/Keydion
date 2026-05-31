@@ -28,14 +28,8 @@ msgstr ""
 
 #: app.py:851 templates/ask.html:6 templates/base.html:66
 #: templates/landing.html:829 templates/landing.html:980
-#, fuzzy
-msgid "Ask the Library"
-msgstr "No papers in the library yet."
-
-#: app.py:852
-#, fuzzy
-msgid "Ask Keydion"
-msgstr "Keydion"
+msgid "Keydion AI"
+msgstr "Keydion AI"
 
 #: app.py:853
 msgid "Ask a question and I'll answer from the published library, with citations."
@@ -4864,4 +4858,3 @@ msgstr "View My Submissions"
 
 #~ msgid "Grounded in the published library"
 #~ msgstr ""
-
