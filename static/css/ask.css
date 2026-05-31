@@ -608,8 +608,9 @@ button { font-family: inherit; cursor: pointer; }
   background: var(--wash-deep); color: var(--accent);
 }
 .kd-pop__ico--blue { background: #e3eaf6; color: var(--primary); }
-.kd-pop__t { font-family: var(--serif-ui); font-size: 13.5px; font-weight: 600; color: var(--ink); }
-.kd-pop__d { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+.kd-pop__copy { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.kd-pop__t { display: block; font-family: var(--serif-ui); font-size: 13.5px; font-weight: 600; color: var(--ink); line-height: 1.25; }
+.kd-pop__d { display: block; font-size: 11.5px; color: var(--muted); line-height: 1.35; }
 
 /* ── Modal (cite from library) ──────────────────────────────── */
 .kd-overlay {
