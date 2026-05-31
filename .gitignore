@@ -51,6 +51,10 @@ data/active_sessions.json
 data/active_sessions
 data/pending_papers/
 data/papersz
+
+# Superpowers plans/specs (local only)
+docs/superpowers/
+
 # Utility / migration scripts
 test_db.py
 remigrate_unicode.py
