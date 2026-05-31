@@ -30,7 +30,7 @@ class ConversationModels(unittest.TestCase):
         src = _read("app.py")
         self.assertIn("def _ask_llm_messages(", src)
         self.assertIn("history_rows = (db.query(ChatMessageModel)", src)
-        self.assertIn("llm_messages = _ask_llm_messages(question, history_rows)", src)
+        self.assertIn('{"role": row.role, "content": row.content}', src)
         self.assertIn('messages=[{"role": "system", "content": system}] + llm_messages', src)
 
 

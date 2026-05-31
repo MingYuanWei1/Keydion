@@ -2499,6 +2499,7 @@ def create_app() -> Flask:
                     history_rows = (db.query(ChatMessageModel)
                                       .filter(ChatMessageModel.conversation_id == conv_id)
                                       .order_by(ChatMessageModel.id.asc()).all())
+                    history_rows = [{"role": row.role, "content": row.content} for row in history_rows]
                 else:
                     conv_id = None
         llm_messages = _ask_llm_messages(question, history_rows)
@@ -4429,8 +4430,14 @@ def _build_ask_prompt(question, hits, locale_code):
 def _ask_llm_messages(question, history_rows):
     messages = []
     for row in history_rows or []:
-        role = row.role if row.role in ("user", "assistant") else ""
-        content = (row.content or "").strip()
+        if isinstance(row, dict):
+            raw_role = row.get("role")
+            raw_content = row.get("content")
+        else:
+            raw_role = row.role
+            raw_content = row.content
+        role = raw_role if raw_role in ("user", "assistant") else ""
+        content = (raw_content or "").strip()
         if role and content:
             messages.append({"role": role, "content": content})
     if not messages or messages[-1] != {"role": "user", "content": question}:
