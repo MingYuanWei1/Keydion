@@ -41,6 +41,9 @@ def web_search(query: str, max_results: int = 5) -> list:
     if not query or not web_search_enabled():
         return []
     provider = (os.environ.get("WEB_SEARCH_PROVIDER") or "tavily").strip().lower()
-    if provider == "tavily":
-        return _tavily(query, max_results)
+    try:
+        if provider == "tavily":
+            return _tavily(query, max_results)
+    except Exception:
+        return []
     return []

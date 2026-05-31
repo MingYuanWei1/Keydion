@@ -34,6 +34,13 @@ class WebSearchModule(unittest.TestCase):
         self.assertIn("body one", out[0]["content"])
         self.assertIn("api.tavily.com", post.call_args[0][0])
 
+    def test_provider_exception_returns_empty(self):
+        with mock.patch.dict(os.environ, {"WEB_SEARCH_API_KEY": "k",
+                                          "WEB_SEARCH_PROVIDER": "tavily"}, clear=False):
+            with mock.patch("web_search.requests.post", side_effect=Exception("boom")):
+                out = web_search.web_search("hello")
+        self.assertEqual(out, [])
+
 
 if __name__ == "__main__":
     unittest.main()
