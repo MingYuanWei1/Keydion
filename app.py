@@ -28,6 +28,7 @@ import re
 import msal
 import requests
 from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, String, Text, Unicode, UnicodeText, create_engine
+from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.orm import declarative_base, sessionmaker
 from flask import (
     Flask,
@@ -570,7 +571,7 @@ class PaperChunkModel(BASE):
     filename = Column(Unicode(255), index=True)
     chunk_index = Column(Integer)
     content = Column(UnicodeText)
-    embedding = Column(UnicodeText)   # JSON-encoded list[float]
+    embedding = Column(UnicodeText().with_variant(MEDIUMTEXT(), "mysql"))   # JSON list[float]; MEDIUMTEXT: Gemini vectors exceed TEXT's 64KB
     lang = Column(Unicode(10))
 
 
@@ -601,7 +602,7 @@ class AttachmentChunkModel(BASE):
     filename = Column(Unicode(255))
     chunk_index = Column(Integer)
     content = Column(UnicodeText)
-    embedding = Column(UnicodeText)   # JSON-encoded list[float]
+    embedding = Column(UnicodeText().with_variant(MEDIUMTEXT(), "mysql"))   # JSON list[float]; MEDIUMTEXT: Gemini vectors exceed TEXT's 64KB
     created_at = Column(Unicode(40))
 
 
@@ -712,6 +713,16 @@ def init_db() -> None:
                 conn.commit()
         except Exception:
             pass
+        # Migrate: widen embedding columns — Gemini vectors (gemini-embedding-001,
+        # 3072-dim) serialize to ~68KB JSON, over MySQL TEXT's 64KB cap.
+        for _emb_tbl in ("papers_chunks", "attachment_chunks"):
+            try:
+                with _ENGINE.connect() as conn:
+                    from sqlalchemy import text
+                    conn.execute(text(f"ALTER TABLE {_emb_tbl} MODIFY embedding MEDIUMTEXT"))
+                    conn.commit()
+            except Exception:
+                pass
         # Migrate: add is_ib_sample column to submissions if it doesn't exist
         try:
             with _ENGINE.connect() as conn:
