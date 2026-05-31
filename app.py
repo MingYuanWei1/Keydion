@@ -2480,21 +2480,28 @@ def create_app() -> Flask:
 
         conv_id = data.get("conversation_id")
         owner = _ask_owner_key()
+        history_rows = []
         if conv_id is not None:
             with db_session() as db:
                 conv = db.query(ConversationModel).filter(
                     ConversationModel.id == conv_id,
                     ConversationModel.owner_key == owner).first()
                 if conv:
+                    now = datetime.utcnow().isoformat()
                     db.add(ChatMessageModel(conversation_id=conv_id, role="user",
                                             content=question, citations="",
-                                            created_at=datetime.utcnow().isoformat()))
+                                            created_at=now))
                     # title the conversation from its first question
                     if conv.title == str(_("New conversation")):
                         conv.title = question[:60]
-                    conv.updated_at = datetime.utcnow().isoformat()
+                    conv.updated_at = now
+                    db.flush()
+                    history_rows = (db.query(ChatMessageModel)
+                                      .filter(ChatMessageModel.conversation_id == conv_id)
+                                      .order_by(ChatMessageModel.id.asc()).all())
                 else:
                     conv_id = None
+        llm_messages = _ask_llm_messages(question, history_rows)
 
         locale_code = str(get_locale() or "en")
 
@@ -2524,8 +2531,7 @@ def create_app() -> Flask:
                 client = llm_client.build_client()
                 stream = client.chat.completions.create(
                     model=model, temperature=0.2, stream=True,
-                    messages=[{"role": "system", "content": system},
-                              {"role": "user", "content": question}],
+                    messages=[{"role": "system", "content": system}] + llm_messages,
                 )
                 for chunk in stream:
                     delta = ""
@@ -4418,6 +4424,18 @@ def _build_ask_prompt(question, hits, locale_code):
             "relevant was found, and invite the user to rephrase. Do not invent sources."
         )
     return system
+
+
+def _ask_llm_messages(question, history_rows):
+    messages = []
+    for row in history_rows or []:
+        role = row.role if row.role in ("user", "assistant") else ""
+        content = (row.content or "").strip()
+        if role and content:
+            messages.append({"role": role, "content": content})
+    if not messages or messages[-1] != {"role": "user", "content": question}:
+        messages.append({"role": "user", "content": question})
+    return messages
 
 
 def _forced_grounding(question, filenames):

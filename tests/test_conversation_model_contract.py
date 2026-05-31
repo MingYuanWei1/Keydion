@@ -26,6 +26,13 @@ class ConversationModels(unittest.TestCase):
     def test_owner_key_helper(self):
         self.assertIn("def _ask_owner_key(", _read("app.py"))
 
+    def test_llm_messages_include_prior_conversation_context(self):
+        src = _read("app.py")
+        self.assertIn("def _ask_llm_messages(", src)
+        self.assertIn("history_rows = (db.query(ChatMessageModel)", src)
+        self.assertIn("llm_messages = _ask_llm_messages(question, history_rows)", src)
+        self.assertIn('messages=[{"role": "system", "content": system}] + llm_messages', src)
+
 
 if __name__ == "__main__":
     unittest.main()
