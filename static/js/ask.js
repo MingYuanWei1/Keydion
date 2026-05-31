@@ -21,6 +21,115 @@
     return n;
   }
 
+  // --- Markdown renderer (safe subset, XSS-proof) ---
+  function renderMarkdown(src) {
+    // Step 1: escape HTML in the raw source (critical XSS defence)
+    var escaped = src
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+
+    // Step 2: extract fenced code blocks to protect them from further processing
+    var codeBlocks = [];
+    escaped = escaped.replace(/```[\s\S]*?```/g, function (match) {
+      var inner = match.slice(3, -3).replace(/^[^\n]*\n?/, ""); // strip language tag line
+      codeBlocks.push("<pre><code>" + inner + "</code></pre>");
+      return "\x00CODE" + (codeBlocks.length - 1) + "\x00";
+    });
+
+    // Step 3: extract inline code spans to protect them
+    var codeSpans = [];
+    escaped = escaped.replace(/`([^`]+)`/g, function (_, inner) {
+      codeSpans.push("<code class=\"kd-icode\">" + inner + "</code>");
+      return "\x00SPAN" + (codeSpans.length - 1) + "\x00";
+    });
+
+    // Step 4: process block-level markdown line by line
+    var lines = escaped.split("\n");
+    var out = [];
+    var inUl = false;
+    var inOl = false;
+
+    function closeList() {
+      if (inUl) { out.push("</ul>"); inUl = false; }
+      if (inOl) { out.push("</ol>"); inOl = false; }
+    }
+
+    lines.forEach(function (line) {
+      // fenced code block placeholder (whole line)
+      if (/^\x00CODE\d+\x00$/.test(line.trim())) {
+        closeList();
+        out.push(line.trim());
+        return;
+      }
+      // headings
+      var hm = line.match(/^(#{1,6})\s+(.*)/);
+      if (hm) {
+        closeList();
+        var level = Math.min(hm[1].length, 6);
+        out.push("<h" + level + ">" + applyInline(hm[2]) + "</h" + level + ">");
+        return;
+      }
+      // unordered list items
+      var ulm = line.match(/^[ \t]*[-*]\s+(.*)/);
+      if (ulm) {
+        if (inOl) { out.push("</ol>"); inOl = false; }
+        if (!inUl) { out.push("<ul>"); inUl = true; }
+        out.push("<li>" + applyInline(ulm[1]) + "</li>");
+        return;
+      }
+      // ordered list items
+      var olm = line.match(/^[ \t]*\d+\.\s+(.*)/);
+      if (olm) {
+        if (inUl) { out.push("</ul>"); inUl = false; }
+        if (!inOl) { out.push("<ol>"); inOl = true; }
+        out.push("<li>" + applyInline(olm[1]) + "</li>");
+        return;
+      }
+      // blank line — close lists, end paragraphs
+      if (line.trim() === "") {
+        closeList();
+        out.push("<br>");
+        return;
+      }
+      // regular paragraph line
+      closeList();
+      out.push("<p>" + applyInline(line) + "</p>");
+    });
+
+    closeList();
+
+    var html = out.join("\n");
+
+    // Step 5: restore code spans and code blocks
+    html = html.replace(/\x00SPAN(\d+)\x00/g, function (_, i) { return codeSpans[+i]; });
+    html = html.replace(/\x00CODE(\d+)\x00/g, function (_, i) { return codeBlocks[+i]; });
+
+    return html;
+  }
+
+  function applyInline(text) {
+    // bold: **x** or __x__
+    text = text.replace(/\*\*(.+?)\*\*|__(.+?)__/g, function (_, a, b) {
+      return "<strong>" + (a !== undefined ? a : b) + "</strong>";
+    });
+    // italic: *x* or _x_ (single, not double)
+    text = text.replace(/\*([^*\n]+?)\*|_([^_\n]+?)_/g, function (_, a, b) {
+      return "<em>" + (a !== undefined ? a : b) + "</em>";
+    });
+    // links: [text](url) — only http/https/relative; reject javascript:/data:/etc.
+    text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, function (_, linkText, url) {
+      var safe = /^(https?:\/\/|\/)/.test(url.trim());
+      if (!safe) return linkText; // render as plain text, no anchor
+      return "<a href=\"" + url.trim() + "\" target=\"_blank\" rel=\"noopener noreferrer\">" + linkText + "</a>";
+    });
+    // citation refs: [1], [23], etc. — standalone digit-only bracket refs
+    text = text.replace(/\[(\d+)\]/g, "<sup class=\"kd-cite-ref\">[$1]</sup>");
+    return text;
+  }
+
   function iconButton(label, svg) {
     var btn = el("button", "kd-iconbtn");
     btn.type = "button";
@@ -106,7 +215,7 @@
     var name = el("div", "kd-ai__name", "Keydion AI ");
     name.appendChild(el("span", "kd-ai__mode", mode === "think" ? (I18N.thinking || "Thinking") : (I18N.flash || "Flash")));
     var prose = el("div", "kd-prose");
-    var bubble = el("p");
+    var bubble = el("div", "kd-md");
     var typing = el("div", "kd-typing");
     typing.appendChild(el("span")); typing.appendChild(el("span")); typing.appendChild(el("span"));
     prose.appendChild(typing);
@@ -213,7 +322,7 @@
       if (ai.typing && ai.typing.parentNode) ai.typing.remove();
       ensureBubble(ai);
       ai.text += evt.text;
-      ai.bubble.textContent = ai.text;
+      ai.bubble.innerHTML = renderMarkdown(ai.text);
       scroll();
     } else if (evt.type === "citations") {
       renderSources(ai.body, evt.items);
@@ -313,7 +422,7 @@
         if (m.role === "user") { addUser(m.content); }
         else {
           var ai = addAi(); if (ai.typing) ai.typing.remove();
-          ensureBubble(ai); ai.text = m.content; ai.bubble.textContent = m.content;
+          ensureBubble(ai); ai.text = m.content; ai.bubble.innerHTML = renderMarkdown(m.content);
           renderSources(ai.body, m.citations);
           addActions(ai.body, (function (t) { return function () { return t; }; })(m.content));
         }
