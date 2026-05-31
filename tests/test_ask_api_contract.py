@@ -9,18 +9,13 @@ import app as app_module
 
 
 def _make_client():
-    """Build a test client, self-skipping if MySQL is unreachable in this env.
-
-    create_app() calls init_db() which opens a real DB connection; where no DB is
-    available the validation paths still can't be exercised, so we skip rather than
-    fail. Where a DB exists (e.g. CI with MySQL) the assertions run for real.
-    """
+    """Build a test client, self-skipping if MySQL is unreachable in this env."""
     try:
         app = app_module.create_app()
     except Exception as exc:  # pragma: no cover - environment dependent
         msg = str(exc).lower()
         if "connect" in msg or "refused" in msg or "mysql" in msg or "2003" in msg:
-            raise unittest.SkipTest(f"database unavailable: {exc}")
+            raise unittest.SkipTest("database unavailable: %s" % exc)
         raise
     app.config["TESTING"] = True
     return app.test_client()
