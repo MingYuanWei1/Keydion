@@ -4293,6 +4293,26 @@ def extract_pdf_text(pdf_path: Path) -> str:
     return "\n".join(text_parts)
 
 
+def extract_text_from_upload(filename: str, raw: bytes) -> str:
+    """Extract plain text from an uploaded attachment by extension.
+
+    Supports PDF (PyPDF2), DOCX (python-docx), and TXT/MD (utf-8). Raises
+    ValueError for anything else.
+    """
+    name = (filename or "").lower()
+    if name.endswith(".pdf"):
+        from PyPDF2 import PdfReader
+        reader = PdfReader(BytesIO(raw))
+        return "\n".join((page.extract_text() or "") for page in reader.pages)
+    if name.endswith(".docx"):
+        from docx import Document
+        doc = Document(BytesIO(raw))
+        return "\n".join(p.text for p in doc.paragraphs)
+    if name.endswith((".txt", ".md")):
+        return raw.decode("utf-8", "ignore")
+    raise ValueError("unsupported file type")
+
+
 def set_pdf_metadata(pdf_path: Path, title: str, author: str) -> None:
     try:
         from PyPDF2 import PdfReader, PdfWriter
