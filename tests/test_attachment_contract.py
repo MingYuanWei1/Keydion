@@ -33,5 +33,45 @@ class AttachmentModelContract(unittest.TestCase):
         self.assertTrue(callable(getattr(app_module, "_attachment_grounding")))
 
 
+from io import BytesIO
+from unittest import mock
+
+
+def _make_client():
+    try:
+        app = app_module.create_app()
+    except Exception as exc:  # pragma: no cover - environment dependent
+        msg = str(exc).lower()
+        if "connect" in msg or "refused" in msg or "mysql" in msg or "2003" in msg:
+            raise unittest.SkipTest("database unavailable: %s" % exc)
+        raise
+    app.config["TESTING"] = True
+    return app.test_client()
+
+
+class AttachEndpoint(unittest.TestCase):
+    def setUp(self):
+        self.client = _make_client()
+
+    def test_disabled_when_no_api_key(self):
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("LLM_API_KEY", None)
+            resp = self.client.post(
+                "/api/ask/attach",
+                data={"conversation_id": "zzzzzz",
+                      "file": (BytesIO(b"hello"), "a.txt")},
+                content_type="multipart/form-data")
+            self.assertEqual(resp.status_code, 503)
+
+    def test_unknown_conversation_404(self):
+        with mock.patch.dict(os.environ, {"LLM_API_KEY": "k"}, clear=False):
+            resp = self.client.post(
+                "/api/ask/attach",
+                data={"conversation_id": "nope00",
+                      "file": (BytesIO(b"hello"), "a.txt")},
+                content_type="multipart/form-data")
+            self.assertEqual(resp.status_code, 404)
+
+
 if __name__ == "__main__":
     unittest.main()

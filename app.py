@@ -2512,6 +2512,65 @@ def create_app() -> Flask:
         } for r in records[:50]]
         return jsonify({"papers": items})
 
+    @app.route("/api/ask/attach", methods=["POST", "DELETE"])
+    def api_ask_attach():
+        blocked = require_ask_api_access()
+        if blocked:
+            return blocked
+        if not llm_client.llm_enabled():
+            return jsonify({"error": str(_("AI assistant is not configured."))}), 503
+        owner = _ask_owner_key()
+        conv_serial = (request.values.get("conversation_id") or "").strip()
+        with db_session() as db:
+            conv = db.query(ConversationModel).filter(
+                ConversationModel.serial == conv_serial,
+                ConversationModel.owner_key == owner).first()
+            conv_id = conv.id if conv else None
+        if conv_id is None:
+            return jsonify({"error": str(_("Conversation not found."))}), 404
+
+        if request.method == "DELETE":
+            fname = (request.values.get("filename") or "").strip()
+            with db_session() as db:
+                db.query(AttachmentChunkModel).filter(
+                    AttachmentChunkModel.conversation_id == conv_id,
+                    AttachmentChunkModel.filename == fname).delete()
+            return jsonify({"ok": True})
+
+        upload = request.files.get("file")
+        if not upload or not upload.filename:
+            return jsonify({"error": str(_("No file provided"))}), 400
+        name = upload.filename
+        if not name.lower().endswith((".pdf", ".docx", ".txt", ".md")):
+            return jsonify({"error": str(_("Unsupported file type. Use PDF, DOCX, TXT, or Markdown."))}), 400
+        raw = upload.read()
+        if len(raw) > MAX_ATTACH_BYTES:
+            return jsonify({"error": str(_("File is too large (max 5 MB)."))}), 400
+        try:
+            text = extract_text_from_upload(name, raw)
+        except Exception:
+            app.logger.exception("attachment extraction failed")
+            return jsonify({"error": str(_("Could not read the file."))}), 400
+        chunks = rag_index.chunk_text(text)
+        if not chunks:
+            return jsonify({"error": str(_("No readable text found in the file."))}), 400
+        try:
+            vectors = rag_index.embed_texts(chunks)
+        except Exception:
+            app.logger.exception("attachment embedding failed")
+            return jsonify({"error": str(_("Something went wrong. Please try again."))}), 502
+        display = name[:255]
+        now = datetime.utcnow().isoformat()
+        with db_session() as db:
+            db.query(AttachmentChunkModel).filter(
+                AttachmentChunkModel.conversation_id == conv_id,
+                AttachmentChunkModel.filename == display).delete()
+            for i, ch in enumerate(chunks):
+                db.add(AttachmentChunkModel(
+                    conversation_id=conv_id, filename=display, chunk_index=i,
+                    content=ch, embedding=json.dumps(vectors[i]), created_at=now))
+        return jsonify({"ok": True, "filename": display, "chunks": len(chunks)})
+
     @app.route("/api/ask", methods=["POST"])
     def api_ask():
         blocked = require_ask_api_access()
@@ -4465,6 +4524,7 @@ def configure_rag():
 
 
 MAX_QUESTION_CHARS = 2000
+MAX_ATTACH_BYTES = 5 * 1024 * 1024   # 5 MB cap on ad-hoc attachments
 _ASK_HITS: dict = {}   # ip -> list[timestamp]; best-effort per worker
 ASK_RATE_LIMIT = 20    # requests
 ASK_RATE_WINDOW = 60   # seconds
