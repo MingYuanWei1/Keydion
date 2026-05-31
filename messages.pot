@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 16:09+0800\n"
+"POT-Creation-Date: 2026-05-31 18:03+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,60 +16,6 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
-
-#: app.py:300
-msgid "Please enter the paper title"
-msgstr ""
-
-#: app.py:301
-msgid "Please select a subject category"
-msgstr ""
-
-#: app.py:302
-msgid "Please select a language"
-msgstr ""
-
-#: app.py:303
-msgid "Please enter keywords"
-msgstr ""
-
-#: app.py:304
-msgid "Please enter the abstract"
-msgstr ""
-
-#: app.py:305
-msgid "Please enter the author name"
-msgstr ""
-
-#: app.py:306
-msgid "Please enter the contact email"
-msgstr ""
-
-#: app.py:307
-msgid "Please enter the school name"
-msgstr ""
-
-#: app.py:503
-msgid "Reader - View & Download"
-msgstr ""
-
-#: app.py:504
-msgid "Contributor - Upload Enabled"
-msgstr ""
-
-#: app.py:505
-msgid "Curator - Full Access"
-msgstr ""
-
-#: app.py:508 app.py:1498 templates/paper_modify.html:68
-#: templates/search.html:99
-msgid "English"
-msgstr ""
-
-#: app.py:509 app.py:1499 templates/paper_modify.html:66
-#: templates/search.html:98
-msgid "Chinese"
-msgstr ""
 
 #: app.py:823
 msgid "What does the research say about climate adaptation in plants?"
@@ -83,7 +29,8 @@ msgstr ""
 msgid "Find papers about machine learning in healthcare."
 msgstr ""
 
-#: app.py:832 templates/ask.html:2 templates/base.html:67
+#: app.py:832 templates/ask.html:2 templates/base.html:66
+#: templates/landing.html:829 templates/landing.html:980
 msgid "Ask the Library"
 msgstr ""
 
@@ -127,11 +74,11 @@ msgstr ""
 msgid "Thinking…"
 msgstr ""
 
-#: app.py:843
+#: app.py:843 app.py:2409
 msgid "Something went wrong. Please try again."
 msgstr ""
 
-#: app.py:844 templates/ask.html:16
+#: app.py:844 app.py:2351 templates/ask.html:16
 msgid "AI assistant is not configured."
 msgstr ""
 
@@ -308,7 +255,7 @@ msgstr ""
 msgid "Metadata"
 msgstr ""
 
-#: app.py:1463 app.py:1592 templates/landing.html:956
+#: app.py:1463 app.py:1592 templates/landing.html:957
 msgid "Authors"
 msgstr ""
 
@@ -454,6 +401,14 @@ msgstr ""
 
 #: app.py:1497 templates/paper_modify.html:62 templates/search.html:94
 msgid "Language"
+msgstr ""
+
+#: app.py:1498 templates/paper_modify.html:68 templates/search.html:99
+msgid "English"
+msgstr ""
+
+#: app.py:1499 templates/paper_modify.html:66 templates/search.html:98
+msgid "Chinese"
 msgstr ""
 
 #: app.py:1500
@@ -1018,183 +973,195 @@ msgstr ""
 msgid "Language not supported."
 msgstr ""
 
-#: app.py:2329 app.py:2352
+#: app.py:2329 app.py:2417
 msgid "Unauthorized"
 msgstr ""
 
-#: app.py:2333 app.py:2356
+#: app.py:2333 app.py:2421
 msgid "No file provided"
 msgstr ""
 
-#: app.py:2335 app.py:2358
+#: app.py:2335 app.py:2423
 msgid "File must be a PDF"
 msgstr ""
 
-#: app.py:2339 app.py:2362
+#: app.py:2339 app.py:2427
 msgid "File is not a valid PDF"
 msgstr ""
 
-#: app.py:2396 app.py:2484
+#: app.py:2355
+msgid "Too many requests — please slow down."
+msgstr ""
+
+#: app.py:2362
+msgid "Please enter a question."
+msgstr ""
+
+#: app.py:2364
+msgid "Your question is too long."
+msgstr ""
+
+#: app.py:2461 app.py:2549
 msgid "Please enter a title."
 msgstr ""
 
-#: app.py:2398 app.py:2486
+#: app.py:2463 app.py:2551
 msgid "Please select a category."
 msgstr ""
 
-#: app.py:2400 app.py:2488
+#: app.py:2465 app.py:2553
 msgid "Please enter an abstract."
 msgstr ""
 
-#: app.py:2402 app.py:2490
+#: app.py:2467 app.py:2555
 msgid "Please write the article body."
 msgstr ""
 
-#: app.py:2415 app.py:2501
+#: app.py:2480 app.py:2566
 msgid "Cover image must be PNG, JPG, GIF, or WebP."
 msgstr ""
 
-#: app.py:2436 app.py:2514
+#: app.py:2501 app.py:2579
 msgid "Draft saved."
 msgstr ""
 
-#: app.py:2438
+#: app.py:2503
 msgid "Article published successfully."
 msgstr ""
 
-#: app.py:2458 app.py:2535 app.py:3137 app.py:3146
+#: app.py:2523 app.py:2600 app.py:3202 app.py:3211
 msgid "Article not found."
 msgstr ""
 
-#: app.py:2516
+#: app.py:2581
 msgid "Article updated."
 msgstr ""
 
-#: app.py:2533
+#: app.py:2598
 msgid "Article deleted."
 msgstr ""
 
-#: app.py:2554 app.py:2603 app.py:2905 app.py:2948
+#: app.py:2619 app.py:2668 app.py:2970 app.py:3013
 msgid "Category name is required."
 msgstr ""
 
-#: app.py:2557 app.py:2908
+#: app.py:2622 app.py:2973
 msgid "Category already exists."
 msgstr ""
 
-#: app.py:2571 app.py:2922
+#: app.py:2636 app.py:2987
 msgid "Both old and new names are required."
 msgstr ""
 
-#: app.py:2574 app.py:2606 app.py:2925 app.py:2951
+#: app.py:2639 app.py:2671 app.py:2990 app.py:3016
 msgid "Category not found."
 msgstr ""
 
-#: app.py:2576 app.py:2927
+#: app.py:2641 app.py:2992
 msgid "A category with that name already exists."
 msgstr ""
 
-#: app.py:2725 app.py:2793
+#: app.py:2790 app.py:2858
 msgid "Guide not found."
 msgstr ""
 
-#: app.py:2751
+#: app.py:2816
 msgid "Please enter a title in at least one language."
 msgstr ""
 
-#: app.py:2753
+#: app.py:2818
 msgid "Please enter a slug."
 msgstr ""
 
-#: app.py:2755
+#: app.py:2820
 msgid "That slug is already taken. Pick another."
 msgstr ""
 
-#: app.py:2762
+#: app.py:2827
 msgid "Guide updated."
 msgstr ""
 
-#: app.py:2765
+#: app.py:2830
 msgid "Guide published."
 msgstr ""
 
-#: app.py:2791
+#: app.py:2856
 msgid "Guide deleted."
 msgstr ""
 
-#: app.py:2965 app.py:2985
+#: app.py:3030 app.py:3050
 msgid "Group ID and subject name are required."
 msgstr ""
 
-#: app.py:2970
+#: app.py:3035
 msgid "Subject already exists in this group."
 msgstr ""
 
-#: app.py:2974 app.py:2996
+#: app.py:3039 app.py:3061
 msgid "Group not found."
 msgstr ""
 
-#: app.py:2990
+#: app.py:3055
 msgid "Subject not found in this group."
 msgstr ""
 
-#: app.py:3005 app.py:3065
+#: app.py:3070 app.py:3130
 msgid "Journal name is required."
 msgstr ""
 
-#: app.py:3009
+#: app.py:3074
 msgid "Journal already exists."
 msgstr ""
 
-#: app.py:3029
+#: app.py:3094
 msgid "Journal ID is required."
 msgstr ""
 
-#: app.py:3033 app.py:3056 app.py:3122
+#: app.py:3098 app.py:3121 app.py:3187
 msgid "Journal not found."
 msgstr ""
 
-#: app.py:3098
+#: app.py:3163
 msgid "Journal updated."
 msgstr ""
 
-#: app.py:3248 app.py:3270 app.py:3341
+#: app.py:3313 app.py:3335 app.py:3406
 msgid "Submission not found."
 msgstr ""
 
-#: app.py:3260
+#: app.py:3325
 msgid "Submission deleted."
 msgstr ""
 
-#: app.py:3353 app.py:3414
+#: app.py:3418 app.py:3479
 msgid "Submission not found or already reviewed."
 msgstr ""
 
-#: app.py:3399
+#: app.py:3464
 msgid "Paper accepted and published."
 msgstr ""
 
-#: app.py:3431
+#: app.py:3496
 msgid "Paper rejected."
 msgstr ""
 
-#: app.py:3916
+#: app.py:3981
 msgid "Please sign in first."
 msgstr ""
 
-#: app.py:3921
+#: app.py:3986
 msgid "Session expired. Please sign in again."
 msgstr ""
 
-#: app.py:3924
+#: app.py:3989
 msgid "Session timed out. Please sign in again."
 msgstr ""
 
-#: app.py:3930
+#: app.py:3995
 msgid "You do not have access to that action."
 msgstr ""
 
-#: app.py:4246
+#: app.py:4356
 #, python-format
 msgid ""
 "This account is already signed in. Please sign out from the other session"
@@ -1299,7 +1266,7 @@ msgid "Manage guides"
 msgstr ""
 
 #: templates/_dashboard_shell.html:119 templates/base.html:65
-#: templates/landing.html:832 templates/landing.html:1000 templates/news.html:8
+#: templates/landing.html:833 templates/landing.html:1002 templates/news.html:8
 #: templates/news.html:567 templates/news.html:602
 #: templates/news_article.html:645 templates/news_manage.html:30
 msgid "News"
@@ -1330,8 +1297,8 @@ msgstr ""
 msgid "Change password"
 msgstr ""
 
-#: templates/_dashboard_shell.html:163 templates/base.html:78
-#: templates/landing.html:844 templates/news.html:577
+#: templates/_dashboard_shell.html:163 templates/base.html:76
+#: templates/landing.html:845 templates/news.html:577
 #: templates/news_article.html:655
 msgid "Sign out"
 msgstr ""
@@ -1357,8 +1324,8 @@ msgid "We will use your Microsoft email as the username."
 msgstr ""
 
 #: templates/account_register.html:16 templates/admin_login.html:19
-#: templates/admin_users.html:138 templates/base.html:142
-#: templates/landing.html:1067 templates/news.html:710
+#: templates/admin_users.html:138 templates/base.html:140
+#: templates/landing.html:1069 templates/news.html:710
 #: templates/news_article.html:821 templates/register.html:35
 msgid "Password"
 msgstr ""
@@ -1391,10 +1358,10 @@ msgstr ""
 msgid "e.g. admin"
 msgstr ""
 
-#: templates/admin_login.html:22 templates/base.html:82 templates/base.html:128
-#: templates/base.html:145 templates/landing.html:848
-#: templates/landing.html:981 templates/landing.html:1054
-#: templates/landing.html:1070 templates/news.html:581 templates/news.html:710
+#: templates/admin_login.html:22 templates/base.html:80 templates/base.html:126
+#: templates/base.html:143 templates/landing.html:849
+#: templates/landing.html:983 templates/landing.html:1056
+#: templates/landing.html:1072 templates/news.html:581 templates/news.html:710
 #: templates/news_article.html:659 templates/news_article.html:821
 #: templates/register.html:49
 msgid "Sign in"
@@ -1505,8 +1472,8 @@ msgstr ""
 msgid "Add"
 msgstr ""
 
-#: templates/advanced_search.html:2 templates/landing.html:880
-#: templates/landing.html:1012
+#: templates/advanced_search.html:2 templates/landing.html:881
+#: templates/landing.html:1014
 msgid "Advanced Search"
 msgstr ""
 
@@ -1601,8 +1568,8 @@ msgstr ""
 msgid "to"
 msgstr ""
 
-#: templates/advanced_search.html:91 templates/landing.html:876
-#: templates/landing.html:999 templates/search.html:142
+#: templates/advanced_search.html:91 templates/landing.html:877
+#: templates/landing.html:1001 templates/search.html:142
 #: templates/search.html:147
 msgid "Search"
 msgstr ""
@@ -1629,34 +1596,34 @@ msgstr ""
 msgid "Navigation"
 msgstr ""
 
-#: templates/base.html:70 templates/landing.html:834 templates/news.html:569
+#: templates/base.html:68 templates/landing.html:835 templates/news.html:569
 #: templates/news_article.html:647
 msgid "Manage"
 msgstr ""
 
-#: templates/base.html:77 templates/landing.html:843 templates/news.html:576
+#: templates/base.html:75 templates/landing.html:844 templates/news.html:576
 #: templates/news_article.html:654 templates/upload.html:11
 msgid "Dashboard"
 msgstr ""
 
-#: templates/base.html:131 templates/landing.html:1057 templates/news.html:710
+#: templates/base.html:129 templates/landing.html:1059 templates/news.html:710
 #: templates/news_article.html:821
 msgid "Sign in with Microsoft"
 msgstr ""
 
-#: templates/base.html:133 templates/landing.html:1058 templates/news.html:710
+#: templates/base.html:131 templates/landing.html:1060 templates/news.html:710
 #: templates/news_article.html:821
 msgid "or sign in with email"
 msgstr ""
 
-#: templates/base.html:138 templates/landing.html:1063 templates/news.html:710
+#: templates/base.html:136 templates/landing.html:1065 templates/news.html:710
 #: templates/news_article.html:821
 msgid "Email / Username"
 msgstr ""
 
-#: templates/base.html:148 templates/change_password.html:444
+#: templates/base.html:146 templates/change_password.html:444
 #: templates/delete.html:357 templates/guide_publish.html:148
-#: templates/landing.html:1073 templates/news.html:710
+#: templates/landing.html:1075 templates/news.html:710
 #: templates/news_article.html:821 templates/news_manage.html:137
 #: templates/news_manage.html:519 templates/news_manage.html:524
 #: templates/news_publish.html:969 templates/paper_modify.html:314
@@ -2231,40 +2198,40 @@ msgstr ""
 msgid "No journals available yet."
 msgstr ""
 
-#: templates/landing.html:830 templates/landing.html:1001
+#: templates/landing.html:831 templates/landing.html:1003
 #: templates/news.html:565 templates/news_article.html:643
 msgid "Upload"
 msgstr ""
 
-#: templates/landing.html:862
+#: templates/landing.html:863
 msgid "tagline_quote_1"
 msgstr ""
 
-#: templates/landing.html:862
+#: templates/landing.html:863
 msgid "tagline_quote_2"
 msgstr ""
 
-#: templates/landing.html:869
+#: templates/landing.html:870
 msgid "Search by title, author, or keyword..."
 msgstr ""
 
-#: templates/landing.html:870
+#: templates/landing.html:871
 msgid "Search papers"
 msgstr ""
 
-#: templates/landing.html:889
+#: templates/landing.html:890
 msgid "Latest Updates"
 msgstr ""
 
-#: templates/landing.html:890
+#: templates/landing.html:891
 msgid "View All"
 msgstr ""
 
-#: templates/landing.html:945
+#: templates/landing.html:946
 msgid "About Keydion"
 msgstr ""
 
-#: templates/landing.html:946
+#: templates/landing.html:947
 msgid ""
 "Keydion is an academic asset platform designed for high school research. "
 "We focus on student\n"
@@ -2273,19 +2240,19 @@ msgid ""
 "            preserved, searchable, and citable."
 msgstr ""
 
-#: templates/landing.html:952
+#: templates/landing.html:953
 msgid "Papers"
 msgstr ""
 
-#: templates/landing.html:960
+#: templates/landing.html:961
 msgid "Categories"
 msgstr ""
 
-#: templates/landing.html:965
+#: templates/landing.html:966
 msgid "Our Mission"
 msgstr ""
 
-#: templates/landing.html:966
+#: templates/landing.html:967
 msgid ""
 "By building a living archive of student research, we help schools "
 "maintain academic integrity,\n"
@@ -2293,50 +2260,50 @@ msgid ""
 "discoveries of the last."
 msgstr ""
 
-#: templates/landing.html:976
+#: templates/landing.html:977
 msgid "Ready to explore?"
 msgstr ""
 
-#: templates/landing.html:977
+#: templates/landing.html:978
 msgid "Browse the library, upload your research, or sign in to get started."
 msgstr ""
 
-#: templates/landing.html:979
+#: templates/landing.html:981
 msgid "Search Papers"
 msgstr ""
 
-#: templates/landing.html:993
+#: templates/landing.html:995
 msgid ""
 "Dedicated to cultivating academic research skills for young scholars — a "
 "platform for writing,\n"
 "            publishing, and discovery."
 msgstr ""
 
-#: templates/landing.html:997
+#: templates/landing.html:999
 msgid "Navigate"
 msgstr ""
 
-#: templates/landing.html:1002
+#: templates/landing.html:1004
 msgid "FAQ"
 msgstr ""
 
-#: templates/landing.html:1006
+#: templates/landing.html:1008
 msgid "Resources"
 msgstr ""
 
-#: templates/landing.html:1008
+#: templates/landing.html:1010
 msgid "Journal Archives"
 msgstr ""
 
-#: templates/landing.html:1009
+#: templates/landing.html:1011
 msgid "Submission Guide"
 msgstr ""
 
-#: templates/landing.html:1011
+#: templates/landing.html:1013
 msgid "Writing Resources"
 msgstr ""
 
-#: templates/landing.html:1016
+#: templates/landing.html:1018
 msgid "Contact"
 msgstr ""
 

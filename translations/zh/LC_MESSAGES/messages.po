@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Keydion 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-31 16:09+0800\n"
+"POT-Creation-Date: 2026-05-31 18:03+0800\n"
 "PO-Revision-Date: 2025-10-11 00:00+0000\n"
 "Last-Translator: \n"
 "Language: zh\n"
@@ -13,61 +13,6 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
-
-#: app.py:300
-msgid "Please enter the paper title"
-msgstr "请输入论文标题"
-
-#: app.py:301
-msgid "Please select a subject category"
-msgstr "请选择学科类别"
-
-#: app.py:302
-msgid "Please select a language"
-msgstr "请选择语言"
-
-#: app.py:303
-msgid "Please enter keywords"
-msgstr "请输入关键词"
-
-#: app.py:304
-msgid "Please enter the abstract"
-msgstr "请输入摘要"
-
-#: app.py:305
-msgid "Please enter the author name"
-msgstr "请输入作者姓名"
-
-#: app.py:306
-msgid "Please enter the contact email"
-msgstr "请输入联系邮箱"
-
-#: app.py:307
-msgid "Please enter the school name"
-msgstr "请输入学校名称"
-
-#: app.py:503
-msgid "Reader - View & Download"
-msgstr "读者 - 查看与下载"
-
-#: app.py:504
-msgid "Contributor - Upload Enabled"
-msgstr "贡献者 - 可上传"
-
-#: app.py:505
-msgid "Curator - Full Access"
-msgstr "管理员 - 完全权限"
-
-# ==================== LANGUAGE ====================
-#: app.py:508 app.py:1498 templates/paper_modify.html:68
-#: templates/search.html:99
-msgid "English"
-msgstr "英语"
-
-#: app.py:509 app.py:1499 templates/paper_modify.html:66
-#: templates/search.html:98
-msgid "Chinese"
-msgstr "中文"
 
 #: app.py:823
 msgid "What does the research say about climate adaptation in plants?"
@@ -81,25 +26,23 @@ msgstr ""
 msgid "Find papers about machine learning in healthcare."
 msgstr ""
 
-#: app.py:832 templates/ask.html:2 templates/base.html:67
-#, fuzzy
+#: app.py:832 templates/ask.html:2 templates/base.html:66
+#: templates/landing.html:829 templates/landing.html:980
 msgid "Ask the Library"
-msgstr "论文库中暂无论文。"
+msgstr "向资料库提问"
 
 #: app.py:833 templates/ask.html:21
-#, fuzzy
 msgid "Ask Keydion"
-msgstr "Keydion"
+msgstr "向 Keydion 提问"
 
 #: app.py:834 templates/ask.html:22
 msgid "Ask a question and I'll answer from the published library, with citations."
-msgstr "提出问题，我将依据已发布的资料库作答并附引用。"
+msgstr "提出问题，我会基于已发布的论文库作答并附引用。"
 
 # ==================== ADMIN USER MANAGEMENT ====================
 #: app.py:835 templates/ask.html:34
-#, fuzzy
 msgid "Message Keydion AI…"
-msgstr "管理新闻 · Keydion"
+msgstr "向 Keydion AI 提问…"
 
 #: app.py:836 templates/ask.html:38
 msgid "Flash"
@@ -118,32 +61,28 @@ msgid "Cited from your library"
 msgstr "引用自资料库"
 
 #: app.py:840
-#, fuzzy
 msgid "Copy"
-msgstr "复制链接"
+msgstr "复制"
 
 #: app.py:841
-#, fuzzy
 msgid "Regenerate"
-msgstr "生成中…"
+msgstr "重新生成"
 
 #: app.py:842
 msgid "Thinking…"
 msgstr "思考中…"
 
-#: app.py:843
-#, fuzzy
+#: app.py:843 app.py:2409
 msgid "Something went wrong. Please try again."
-msgstr "会话已过期，请重新登录。"
+msgstr "出错了，请重试。"
 
-#: app.py:844 templates/ask.html:16
+#: app.py:844 app.py:2351 templates/ask.html:16
 msgid "AI assistant is not configured."
 msgstr "AI 助手尚未配置。"
 
 #: app.py:845
-#, fuzzy
 msgid "No matching papers were found in the library."
-msgstr "未找到匹配的论文。"
+msgstr "未在资料库中找到匹配的论文。"
 
 # ==================== AUTH FLASH MESSAGES ====================
 #: app.py:889 app.py:903
@@ -319,7 +258,7 @@ msgstr "论文类型"
 msgid "Metadata"
 msgstr "元信息"
 
-#: app.py:1463 app.py:1592 templates/landing.html:956
+#: app.py:1463 app.py:1592 templates/landing.html:957
 msgid "Authors"
 msgstr "作者"
 
@@ -466,6 +405,15 @@ msgstr "文献信息"
 #: app.py:1497 templates/paper_modify.html:62 templates/search.html:94
 msgid "Language"
 msgstr "语言"
+
+# ==================== LANGUAGE ====================
+#: app.py:1498 templates/paper_modify.html:68 templates/search.html:99
+msgid "English"
+msgstr "英语"
+
+#: app.py:1499 templates/paper_modify.html:66 templates/search.html:98
+msgid "Chinese"
+msgstr "中文"
 
 #: app.py:1500
 msgid "Subject Category"
@@ -1035,198 +983,210 @@ msgstr "已删除 %(filename)s。"
 msgid "Language not supported."
 msgstr "不支持此语言。"
 
-#: app.py:2329 app.py:2352
+#: app.py:2329 app.py:2417
 #, fuzzy
 msgid "Unauthorized"
 msgstr "论文分类"
 
-#: app.py:2333 app.py:2356
+#: app.py:2333 app.py:2421
 msgid "No file provided"
 msgstr "未提供文件"
 
-#: app.py:2335 app.py:2358
+#: app.py:2335 app.py:2423
 msgid "File must be a PDF"
 msgstr "文件必须是 PDF"
 
-#: app.py:2339 app.py:2362
+#: app.py:2339 app.py:2427
 msgid "File is not a valid PDF"
 msgstr "文件不是有效的 PDF"
 
-#: app.py:2396 app.py:2484
+#: app.py:2355
+msgid "Too many requests — please slow down."
+msgstr "请求过于频繁，请稍后再试。"
+
+#: app.py:2362
+msgid "Please enter a question."
+msgstr "请输入问题。"
+
+#: app.py:2364
+msgid "Your question is too long."
+msgstr "问题过长。"
+
+#: app.py:2461 app.py:2549
 #, fuzzy
 msgid "Please enter a title."
 msgstr "请输入论文标题"
 
-#: app.py:2398 app.py:2486
+#: app.py:2463 app.py:2551
 #, fuzzy
 msgid "Please select a category."
 msgstr "请选择类别..."
 
-#: app.py:2400 app.py:2488
+#: app.py:2465 app.py:2553
 #, fuzzy
 msgid "Please enter an abstract."
 msgstr "请输入摘要"
 
-#: app.py:2402 app.py:2490
+#: app.py:2467 app.py:2555
 #, fuzzy
 msgid "Please write the article body."
 msgstr "请输入论文标题"
 
-#: app.py:2415 app.py:2501
+#: app.py:2480 app.py:2566
 msgid "Cover image must be PNG, JPG, GIF, or WebP."
 msgstr "封面图片格式必须为 PNG、JPG、GIF 或 WebP。"
 
-#: app.py:2436 app.py:2514
+#: app.py:2501 app.py:2579
 msgid "Draft saved."
 msgstr "草稿已保存。"
 
-#: app.py:2438
+#: app.py:2503
 #, fuzzy
 msgid "Article published successfully."
 msgstr "已成功退出登录。"
 
-#: app.py:2458 app.py:2535 app.py:3137 app.py:3146
+#: app.py:2523 app.py:2600 app.py:3202 app.py:3211
 #, fuzzy
 msgid "Article not found."
 msgstr "未找到论文。"
 
-#: app.py:2516
+#: app.py:2581
 #, fuzzy
 msgid "Article updated."
 msgstr "角色已更新。"
 
-#: app.py:2533
+#: app.py:2598
 #, fuzzy
 msgid "Article deleted."
 msgstr "本地用户已删除。"
 
-#: app.py:2554 app.py:2603 app.py:2905 app.py:2948
+#: app.py:2619 app.py:2668 app.py:2970 app.py:3013
 #, fuzzy
 msgid "Category name is required."
 msgstr "请输入期刊名称。"
 
-#: app.py:2557 app.py:2908
+#: app.py:2622 app.py:2973
 #, fuzzy
 msgid "Category already exists."
 msgstr "该期刊已存在。"
 
-#: app.py:2571 app.py:2922
+#: app.py:2636 app.py:2987
 msgid "Both old and new names are required."
 msgstr "旧名称和新名称都为必填项。"
 
-#: app.py:2574 app.py:2606 app.py:2925 app.py:2951
+#: app.py:2639 app.py:2671 app.py:2990 app.py:3016
 #, fuzzy
 msgid "Category not found."
 msgstr "未找到论文。"
 
-#: app.py:2576 app.py:2927
+#: app.py:2641 app.py:2992
 #, fuzzy
 msgid "A category with that name already exists."
 msgstr "已存在同名期刊。"
 
-#: app.py:2725 app.py:2793
+#: app.py:2790 app.py:2858
 msgid "Guide not found."
 msgstr "未找到该指南。"
 
-#: app.py:2751
+#: app.py:2816
 msgid "Please enter a title in at least one language."
 msgstr "请至少输入一种语言的标题。"
 
-#: app.py:2753
+#: app.py:2818
 msgid "Please enter a slug."
 msgstr "请输入链接标识。"
 
-#: app.py:2755
+#: app.py:2820
 msgid "That slug is already taken. Pick another."
 msgstr "该链接标识已被使用，请换一个。"
 
-#: app.py:2762
+#: app.py:2827
 msgid "Guide updated."
 msgstr "指南已更新。"
 
-#: app.py:2765
+#: app.py:2830
 msgid "Guide published."
 msgstr "指南已发布。"
 
-#: app.py:2791
+#: app.py:2856
 msgid "Guide deleted."
 msgstr "指南已删除。"
 
-#: app.py:2965 app.py:2985
+#: app.py:3030 app.py:3050
 #, fuzzy
 msgid "Group ID and subject name are required."
 msgstr "旧名称和新名称都为必填项。"
 
-#: app.py:2970
+#: app.py:3035
 msgid "Subject already exists in this group."
 msgstr "该学科已在此分组中。"
 
-#: app.py:2974 app.py:2996
+#: app.py:3039 app.py:3061
 #, fuzzy
 msgid "Group not found."
 msgstr "未找到该指南。"
 
-#: app.py:2990
+#: app.py:3055
 msgid "Subject not found in this group."
 msgstr "该学科未在此分组中找到。"
 
-#: app.py:3005 app.py:3065
+#: app.py:3070 app.py:3130
 msgid "Journal name is required."
 msgstr "请输入期刊名称。"
 
-#: app.py:3009
+#: app.py:3074
 msgid "Journal already exists."
 msgstr "该期刊已存在。"
 
-#: app.py:3029
+#: app.py:3094
 msgid "Journal ID is required."
 msgstr "请提供期刊ID。"
 
-#: app.py:3033 app.py:3056 app.py:3122
+#: app.py:3098 app.py:3121 app.py:3187
 msgid "Journal not found."
 msgstr "未找到该期刊。"
 
-#: app.py:3098
+#: app.py:3163
 msgid "Journal updated."
 msgstr "期刊已更新。"
 
-#: app.py:3248 app.py:3270 app.py:3341
+#: app.py:3313 app.py:3335 app.py:3406
 msgid "Submission not found."
 msgstr "未找到该投稿。"
 
-#: app.py:3260
+#: app.py:3325
 msgid "Submission deleted."
 msgstr "投稿已删除。"
 
-#: app.py:3353 app.py:3414
+#: app.py:3418 app.py:3479
 msgid "Submission not found or already reviewed."
 msgstr "未找到该投稿或已被审核。"
 
-#: app.py:3399
+#: app.py:3464
 msgid "Paper accepted and published."
 msgstr "论文已接受并发布。"
 
-#: app.py:3431
+#: app.py:3496
 msgid "Paper rejected."
 msgstr "论文已拒绝。"
 
-#: app.py:3916
+#: app.py:3981
 msgid "Please sign in first."
 msgstr "请先登录。"
 
-#: app.py:3921
+#: app.py:3986
 msgid "Session expired. Please sign in again."
 msgstr "会话已过期，请重新登录。"
 
-#: app.py:3924
+#: app.py:3989
 msgid "Session timed out. Please sign in again."
 msgstr "会话已超时，请重新登录。"
 
-#: app.py:3930
+#: app.py:3995
 msgid "You do not have access to that action."
 msgstr "您没有权限执行此操作。"
 
-#: app.py:4246
+#: app.py:4356
 #, python-format
 msgid ""
 "This account is already signed in. Please sign out from the other session"
@@ -1331,7 +1291,7 @@ msgid "Manage guides"
 msgstr "管理指南"
 
 #: templates/_dashboard_shell.html:119 templates/base.html:65
-#: templates/landing.html:832 templates/landing.html:1000 templates/news.html:8
+#: templates/landing.html:833 templates/landing.html:1002 templates/news.html:8
 #: templates/news.html:567 templates/news.html:602
 #: templates/news_article.html:645 templates/news_manage.html:30
 msgid "News"
@@ -1362,8 +1322,8 @@ msgstr "账户"
 msgid "Change password"
 msgstr "修改密码"
 
-#: templates/_dashboard_shell.html:163 templates/base.html:78
-#: templates/landing.html:844 templates/news.html:577
+#: templates/_dashboard_shell.html:163 templates/base.html:76
+#: templates/landing.html:845 templates/news.html:577
 #: templates/news_article.html:655
 msgid "Sign out"
 msgstr "退出登录"
@@ -1393,8 +1353,8 @@ msgid "We will use your Microsoft email as the username."
 msgstr "我们将使用您的微软邮箱作为用户名。"
 
 #: templates/account_register.html:16 templates/admin_login.html:19
-#: templates/admin_users.html:138 templates/base.html:142
-#: templates/landing.html:1067 templates/news.html:710
+#: templates/admin_users.html:138 templates/base.html:140
+#: templates/landing.html:1069 templates/news.html:710
 #: templates/news_article.html:821 templates/register.html:35
 msgid "Password"
 msgstr "密码"
@@ -1429,10 +1389,10 @@ msgstr "用户名"
 msgid "e.g. admin"
 msgstr "例如 admin"
 
-#: templates/admin_login.html:22 templates/base.html:82 templates/base.html:128
-#: templates/base.html:145 templates/landing.html:848
-#: templates/landing.html:981 templates/landing.html:1054
-#: templates/landing.html:1070 templates/news.html:581 templates/news.html:710
+#: templates/admin_login.html:22 templates/base.html:80 templates/base.html:126
+#: templates/base.html:143 templates/landing.html:849
+#: templates/landing.html:983 templates/landing.html:1056
+#: templates/landing.html:1072 templates/news.html:581 templates/news.html:710
 #: templates/news_article.html:659 templates/news_article.html:821
 #: templates/register.html:49
 msgid "Sign in"
@@ -1544,8 +1504,8 @@ msgstr "关闭"
 msgid "Add"
 msgstr "添加"
 
-#: templates/advanced_search.html:2 templates/landing.html:880
-#: templates/landing.html:1012
+#: templates/advanced_search.html:2 templates/landing.html:881
+#: templates/landing.html:1014
 msgid "Advanced Search"
 msgstr "高级搜索"
 
@@ -1645,8 +1605,8 @@ msgstr "年份"
 msgid "to"
 msgstr "至"
 
-#: templates/advanced_search.html:91 templates/landing.html:876
-#: templates/landing.html:999 templates/search.html:142
+#: templates/advanced_search.html:91 templates/landing.html:877
+#: templates/landing.html:1001 templates/search.html:142
 #: templates/search.html:147
 msgid "Search"
 msgstr "检索"
@@ -1663,7 +1623,7 @@ msgstr "新对话"
 
 #: templates/ask.html:11
 msgid "Grounded in the published library"
-msgstr "基于已发布的资料库"
+msgstr "基于已发布的论文库"
 
 #: templates/ask.html:45
 msgid "AI can be wrong — verify citations against the source."
@@ -1673,35 +1633,35 @@ msgstr "AI 可能出错——请对照原文核实引用。"
 msgid "Navigation"
 msgstr "导航"
 
-#: templates/base.html:70 templates/landing.html:834 templates/news.html:569
+#: templates/base.html:68 templates/landing.html:835 templates/news.html:569
 #: templates/news_article.html:647
 msgid "Manage"
 msgstr "管理"
 
-#: templates/base.html:77 templates/landing.html:843 templates/news.html:576
+#: templates/base.html:75 templates/landing.html:844 templates/news.html:576
 #: templates/news_article.html:654 templates/upload.html:11
 #, fuzzy
 msgid "Dashboard"
 msgstr "返回控制面板"
 
-#: templates/base.html:131 templates/landing.html:1057 templates/news.html:710
+#: templates/base.html:129 templates/landing.html:1059 templates/news.html:710
 #: templates/news_article.html:821
 msgid "Sign in with Microsoft"
 msgstr "使用微软账号登录"
 
-#: templates/base.html:133 templates/landing.html:1058 templates/news.html:710
+#: templates/base.html:131 templates/landing.html:1060 templates/news.html:710
 #: templates/news_article.html:821
 msgid "or sign in with email"
 msgstr "或使用邮箱登录"
 
-#: templates/base.html:138 templates/landing.html:1063 templates/news.html:710
+#: templates/base.html:136 templates/landing.html:1065 templates/news.html:710
 #: templates/news_article.html:821
 msgid "Email / Username"
 msgstr "邮箱 / 用户名"
 
-#: templates/base.html:148 templates/change_password.html:444
+#: templates/base.html:146 templates/change_password.html:444
 #: templates/delete.html:357 templates/guide_publish.html:148
-#: templates/landing.html:1073 templates/news.html:710
+#: templates/landing.html:1075 templates/news.html:710
 #: templates/news_article.html:821 templates/news_manage.html:137
 #: templates/news_manage.html:519 templates/news_manage.html:524
 #: templates/news_publish.html:969 templates/paper_modify.html:314
@@ -2284,43 +2244,43 @@ msgstr "浏览我们的学术期刊合集。"
 msgid "No journals available yet."
 msgstr "暂无可用期刊。"
 
-#: templates/landing.html:830 templates/landing.html:1001
+#: templates/landing.html:831 templates/landing.html:1003
 #: templates/news.html:565 templates/news_article.html:643
 msgid "Upload"
 msgstr "上传"
 
 # ==================== LANDING PAGE TAGLINE ====================
-#: templates/landing.html:862
+#: templates/landing.html:863
 msgid "tagline_quote_1"
 msgstr "在教室之中探寻真知，在广袤天地领略回响"
 
-#: templates/landing.html:862
+#: templates/landing.html:863
 msgid "tagline_quote_2"
 msgstr "学子学识、科研探究与学术造诣的生命载体"
 
-#: templates/landing.html:869
+#: templates/landing.html:870
 msgid "Search by title, author, or keyword..."
 msgstr "搜索论文标题、作者或关键词..."
 
-#: templates/landing.html:870
+#: templates/landing.html:871
 #, fuzzy
 msgid "Search papers"
 msgstr "搜索论文"
 
 # ==================== LANDING PAGE - SECTIONS & FOOTER ====================
-#: templates/landing.html:889
+#: templates/landing.html:890
 msgid "Latest Updates"
 msgstr "最新动态"
 
-#: templates/landing.html:890
+#: templates/landing.html:891
 msgid "View All"
 msgstr "查看全部"
 
-#: templates/landing.html:945
+#: templates/landing.html:946
 msgid "About Keydion"
 msgstr "关于 Keydion"
 
-#: templates/landing.html:946
+#: templates/landing.html:947
 #, fuzzy
 msgid ""
 "Keydion is an academic asset platform designed for high school research. "
@@ -2333,21 +2293,21 @@ msgstr ""
 "等项目。通过本平台，学生的研究成果将不再被忽视，而是被系统性地保存于 Keydion "
 "数据库中，供师生查阅与参考。同时，教师也可以更全面地了解本校科研项目的内容与整体质量。"
 
-#: templates/landing.html:952
+#: templates/landing.html:953
 #, fuzzy
 msgid "Papers"
 msgstr "论文数"
 
-#: templates/landing.html:960
+#: templates/landing.html:961
 #, fuzzy
 msgid "Categories"
 msgstr "学科类别"
 
-#: templates/landing.html:965
+#: templates/landing.html:966
 msgid "Our Mission"
 msgstr "学术使命"
 
-#: templates/landing.html:966
+#: templates/landing.html:967
 #, fuzzy
 msgid ""
 "By building a living archive of student research, we help schools "
@@ -2358,19 +2318,19 @@ msgstr ""
 "Keydion "
 "同样致力于维护学术诚信，避免撞题以及学术不端误判。我们希望为每一所学校留存这些珍贵的学术成果，让优秀的学生研究经验得以传承，使学术探索不再只是一次性的作业，而成为可以持续积累与发展的知识资产。"
 
-#: templates/landing.html:976
+#: templates/landing.html:977
 msgid "Ready to explore?"
 msgstr "准备好开始探索了吗？"
 
-#: templates/landing.html:977
+#: templates/landing.html:978
 msgid "Browse the library, upload your research, or sign in to get started."
 msgstr "浏览文库，上传你的研究，或登录以开始使用。"
 
-#: templates/landing.html:979
+#: templates/landing.html:981
 msgid "Search Papers"
 msgstr "搜索论文"
 
-#: templates/landing.html:993
+#: templates/landing.html:995
 #, fuzzy
 msgid ""
 "Dedicated to cultivating academic research skills for young scholars — a "
@@ -2378,31 +2338,31 @@ msgid ""
 "            publishing, and discovery."
 msgstr "致力于培养青年学者的学术研究能力——一个写作、发表与发现的平台。"
 
-#: templates/landing.html:997
+#: templates/landing.html:999
 msgid "Navigate"
 msgstr "导航"
 
-#: templates/landing.html:1002
+#: templates/landing.html:1004
 msgid "FAQ"
 msgstr "常见问题"
 
-#: templates/landing.html:1006
+#: templates/landing.html:1008
 msgid "Resources"
 msgstr "资源"
 
-#: templates/landing.html:1008
+#: templates/landing.html:1010
 msgid "Journal Archives"
 msgstr "期刊存档"
 
-#: templates/landing.html:1009
+#: templates/landing.html:1011
 msgid "Submission Guide"
 msgstr "投递指南"
 
-#: templates/landing.html:1011
+#: templates/landing.html:1013
 msgid "Writing Resources"
 msgstr "写作资源"
 
-#: templates/landing.html:1016
+#: templates/landing.html:1018
 #, fuzzy
 msgid "Contact"
 msgstr "联系我们"
@@ -3948,15 +3908,14 @@ msgstr "查看提交内容"
 #~ msgid "未登录用户仅可预览前两页。"
 #~ msgstr "未登录用户仅可预览前两页。"
 
-# ==================== ROLES ====================
 #~ msgid "Reader - View & Download"
 #~ msgstr "读者 - 查看与下载"
 
 #~ msgid "Contributor - Upload Enabled"
-#~ msgstr "投稿者 - 可上传"
+#~ msgstr "贡献者 - 可上传"
 
 #~ msgid "Curator - Full Access"
-#~ msgstr "管理员 - 完整权限"
+#~ msgstr "管理员 - 完全权限"
 
 #~ msgid "International Academy Research Hub"
 #~ msgstr "Keydion"
@@ -4557,4 +4516,28 @@ msgstr "查看提交内容"
 
 #~ msgid "Could not load this section."
 #~ msgstr "无法加载该部分。"
+
+#~ msgid "Please enter the paper title"
+#~ msgstr "请输入论文标题"
+
+#~ msgid "Please select a subject category"
+#~ msgstr "请选择学科类别"
+
+#~ msgid "Please select a language"
+#~ msgstr "请选择语言"
+
+#~ msgid "Please enter keywords"
+#~ msgstr "请输入关键词"
+
+#~ msgid "Please enter the abstract"
+#~ msgstr "请输入摘要"
+
+#~ msgid "Please enter the author name"
+#~ msgstr "请输入作者姓名"
+
+#~ msgid "Please enter the contact email"
+#~ msgstr "请输入联系邮箱"
+
+#~ msgid "Please enter the school name"
+#~ msgstr "请输入学校名称"
 
