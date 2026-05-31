@@ -559,6 +559,17 @@ class PaperMetadataModel(BASE):
     is_ib_sample = Column(Unicode(10))
     cp_data = Column(UnicodeText)
 
+
+class PaperChunkModel(BASE):
+    __tablename__ = "papers_chunks"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    filename = Column(Unicode(255), index=True)
+    chunk_index = Column(Integer)
+    content = Column(UnicodeText)
+    embedding = Column(UnicodeText)   # JSON-encoded list[float]
+    lang = Column(Unicode(10))
+
+
 class NewsArticleModel(BASE):
     __tablename__ = "news_articles"
     id = Column(Unicode(255), primary_key=True)
