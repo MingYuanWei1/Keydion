@@ -517,9 +517,9 @@
     var authors = el("div", "kd-preview__authors");
     authors.textContent = paper.authors || "";
     var absLabel = el("div", "kd-preview__abslabel");
-    absLabel.textContent = "Abstract";
+    absLabel.textContent = I18N.preview_abstract_label || "Abstract";
     var absText = el("div", "kd-preview__abstract");
-    absText.textContent = paper.abstract || "No abstract available.";
+    absText.textContent = paper.abstract || I18N.preview_no_abstract || "No abstract available.";
     if (paper.category) pane.appendChild(kicker);
     pane.appendChild(title);
     if (paper.authors) pane.appendChild(authors);
@@ -534,7 +534,7 @@
     var empty = el("div", "kd-preview__empty");
     var icon = document.createElement("span");
     icon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>';
-    var msg = el("p", null, "Hover a paper to preview its abstract before citing.");
+    var msg = el("p", null, I18N.preview_hint || "Hover a paper to preview its abstract before citing.");
     empty.appendChild(icon);
     empty.appendChild(msg);
     pane.appendChild(empty);

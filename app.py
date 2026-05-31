@@ -916,6 +916,9 @@ def create_app() -> Flask:
                 "no_sources": _("No matching papers were found in the library."),
                 "selected": _("selected"),
                 "select_hint": _("Select papers to attach as citations"),
+                "preview_abstract_label": _("Abstract"),
+                "preview_no_abstract": _("No abstract available."),
+                "preview_hint": _("Hover a paper to preview its abstract before citing."),
             },
             "active_serial": serial,
         }
