@@ -51,6 +51,7 @@ from ee_pdf_extractor import extract_ee_metadata, EePdfExtractionError
 from llm_metadata import generate_abstract_keywords, LLMMetadataError
 import llm_client
 import rag_index
+import web_search
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -904,6 +905,7 @@ def create_app() -> Flask:
             "ask_url": url_for("ask_library"),
             "api_url": url_for("api_ask"),
             "enabled": llm_client.llm_enabled(),
+            "web_enabled": web_search.web_search_enabled(),
             "i18n": {
                 "title": "Keydion AI",
                 "empty_title": "Keydion AI",
@@ -925,6 +927,7 @@ def create_app() -> Flask:
                 "error": _("Something went wrong. Please try again."),
                 "disabled": _("AI assistant is not configured."),
                 "no_sources": _("No matching papers were found in the library."),
+                "searched_web": _("Searched the web"),
                 "selected": _("selected"),
                 "select_hint": _("Select papers to attach as citations"),
                 "preview_abstract_label": _("Abstract"),
@@ -937,6 +940,7 @@ def create_app() -> Flask:
             "ask.html",
             partial=is_partial_request(),
             llm_enabled=llm_client.llm_enabled(),
+            web_enabled=web_search.web_search_enabled(),
             ms_enabled=is_ms_configured(),
             suggestions=suggestions,
             ask_boot=boot,
@@ -2594,6 +2598,7 @@ def create_app() -> Flask:
         question = (data.get("question") or "").strip()
         mode = data.get("mode") if data.get("mode") in ("flash", "think") else "flash"
         forced = data.get("paper_filenames") or []   # Phase 3 (ignored if empty)
+        web_on = bool(data.get("web"))
         if not question:
             return jsonify({"error": str(_("Please enter a question."))}), 400
         if len(question) > MAX_QUESTION_CHARS:
@@ -2650,7 +2655,18 @@ def create_app() -> Flask:
                      else url_for("paper_info", filename=h["filename"]))}
             for i, h in enumerate(hits)
         ]
-        system = _build_ask_prompt(question, hits, locale_code)
+        web_results = []
+        if web_on and web_search.web_search_enabled():
+            try:
+                web_results = web_search.web_search(question)
+            except Exception:
+                app.logger.exception("web search failed")
+                web_results = []
+        system = _build_ask_prompt(question, hits, locale_code, web_results)
+        web_items = [
+            {"n": len(hits) + j + 1, "title": w["title"], "url": w["url"]}
+            for j, w in enumerate(web_results)
+        ]
 
         def generate():
             import json as _json
@@ -2671,6 +2687,8 @@ def create_app() -> Flask:
                         full.append(delta)
                         yield "data: " + _json.dumps({"type": "token", "text": delta}) + "\n\n"
                 yield "data: " + _json.dumps({"type": "citations", "items": citations}) + "\n\n"
+                if web_items:
+                    yield "data: " + _json.dumps({"type": "web", "items": web_items}) + "\n\n"
                 if db_conv_id is not None:
                     try:
                         with db_session() as db:
@@ -4553,18 +4571,24 @@ def _ask_rate_ok(ip: str) -> bool:
     return True
 
 
-def _build_ask_prompt(question, hits, locale_code):
+def _build_ask_prompt(question, hits, locale_code, web_results=None):
     lang = "Chinese" if locale_code == "zh" else "English"
-    if hits:
-        sources = "\n\n".join(
-            f"[{i + 1}] {h['title']} — {h.get('author_name', '')}\n{h['content']}"
-            for i, h in enumerate(hits)
-        )
+    web_results = web_results or []
+    blocks = [
+        f"[{i + 1}] {h['title']} — {h.get('author_name', '')}\n{h['content']}"
+        for i, h in enumerate(hits)
+    ]
+    offset = len(hits)
+    for j, w in enumerate(web_results):
+        blocks.append(f"[{offset + j + 1}] (web) {w['title']}\n{w.get('content', '')}")
+    if blocks:
+        sources = "\n\n".join(blocks)
         system = (
             "You are Keydion's library assistant. Answer the question using ONLY the "
             "numbered sources below. Cite claims with bracketed numbers like [1]. "
-            f"Answer in {lang}. If the sources do not contain the answer, say you "
-            "could not find it in the library.\n\nSOURCES:\n" + sources
+            "Sources marked (web) come from a live web search; all others are library "
+            f"papers. Answer in {lang}. If the sources do not contain the answer, say "
+            "you could not find it.\n\nSOURCES:\n" + sources
         )
     else:
         system = (

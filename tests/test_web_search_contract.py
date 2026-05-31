@@ -42,5 +42,20 @@ class WebSearchModule(unittest.TestCase):
         self.assertEqual(out, [])
 
 
+class ApiAskReadsWebFlag(unittest.TestCase):
+    def test_api_ask_reads_web_flag(self):
+        import inspect
+        import app as app_module
+        text = inspect.getsource(app_module.create_app)
+        self.assertIn('data.get("web")', text)
+        self.assertIn("web_search.web_search(", text)
+
+    def test_prompt_accepts_web_results(self):
+        import app as app_module
+        import inspect
+        sig = inspect.signature(app_module._build_ask_prompt)
+        self.assertIn("web_results", sig.parameters)
+
+
 if __name__ == "__main__":
     unittest.main()
