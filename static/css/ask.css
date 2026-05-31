@@ -167,6 +167,12 @@ button { font-family: inherit; cursor: pointer; }
 .kd-rail__list::-webkit-scrollbar { width: 8px; }
 .kd-rail__list::-webkit-scrollbar-thumb { background: #d9d2c4; border-radius: 8px; }
 
+.kd-rail__empty {
+  padding: 18px 12px;
+  color: var(--muted-2);
+  font-family: var(--serif-ui);
+  font-size: 13px;
+}
 .kd-rail__group { margin-top: 14px; }
 .kd-rail__grouplabel {
   font-family: var(--serif-ui);
@@ -199,7 +205,17 @@ button { font-family: inherit; cursor: pointer; }
   border: none; background: transparent; color: inherit;
   font: inherit; text-align: left;
 }
-.kd-convo__title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kd-convo__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--serif-ui);
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
 .kd-convo:hover { background: var(--wash); color: var(--ink); }
 .kd-convo.is-active { background: var(--wash-deep); color: var(--ink); font-weight: 600; }
 .kd-convo.is-menu { background: var(--wash); }

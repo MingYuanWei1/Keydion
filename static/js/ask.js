@@ -21,6 +21,46 @@
     return n;
   }
 
+  function iconButton(label, svg) {
+    var btn = el("button", "kd-iconbtn");
+    btn.type = "button";
+    btn.title = label;
+    btn.setAttribute("aria-label", label);
+    btn.innerHTML = svg;
+    return btn;
+  }
+
+  function svgNode(svg) {
+    var wrap = document.createElement("span");
+    wrap.innerHTML = svg;
+    return wrap.firstElementChild;
+  }
+
+  function messageIcon() {
+    return svgNode('<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>');
+  }
+
+  function parseConversationTime(c) {
+    var raw = c.updated_at || c.created_at || "";
+    var time = raw ? new Date(raw).getTime() : 0;
+    return Number.isFinite(time) ? time : 0;
+  }
+
+  function conversationGroup(c) {
+    var time = parseConversationTime(c);
+    if (!time) return I18N.older || "Older";
+    var dayMs = 24 * 60 * 60 * 1000;
+    var today = new Date();
+    var todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+    var item = new Date(time);
+    var itemStart = new Date(item.getFullYear(), item.getMonth(), item.getDate()).getTime();
+    var diffDays = Math.floor((todayStart - itemStart) / dayMs);
+    if (diffDays <= 0) return I18N.today || "Today";
+    if (diffDays === 1) return I18N.yesterday || "Yesterday";
+    if (diffDays <= 7) return I18N.previous_7_days || "Previous 7 days";
+    return I18N.older || "Older";
+  }
+
   // --- Flash / Thinking toggle ---
   if (agent) agent.addEventListener("click", function (e) {
     var btn = e.target.closest(".kd-agent__opt");
@@ -99,9 +139,9 @@
 
   function addActions(body, getText) {
     var bar = el("div", "kd-msg__actions");
-    var copy = el("button", "kd-iconbtn", I18N.copy || "Copy");
+    var copy = iconButton(I18N.copy || "Copy", '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>');
     copy.addEventListener("click", function () { navigator.clipboard.writeText(getText()); });
-    var regen = el("button", "kd-iconbtn", I18N.regenerate || "Regenerate");
+    var regen = iconButton(I18N.regenerate || "Regenerate", '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>');
     regen.addEventListener("click", function () { if (window.__lastQuestion) send(window.__lastQuestion); });
     bar.appendChild(copy); bar.appendChild(regen);
     body.appendChild(bar);
@@ -190,29 +230,64 @@
 
   // --- conversation rail ---
   var railList = document.getElementById("kd-rail-list");
+  var railSearch = document.getElementById("kd-rail-search");
   var newChatBtn = document.getElementById("kd-newchat");
   var activeConv = null;
+  var railConversations = [];
   window.__activeConv = function () { return activeConv; };
+
+  function renderConversationGroup(label, items) {
+    var group = el("div", "kd-rail__group");
+    group.appendChild(el("div", "kd-rail__grouplabel", label));
+    items.forEach(function (c) {
+      var row = el("div", "kd-convo" + (c.id === activeConv ? " is-active" : ""));
+      var main = el("button", "kd-convo__main");
+      main.type = "button";
+      main.appendChild(messageIcon());
+      main.appendChild(el("span", "kd-convo__title", c.title));
+      main.addEventListener("click", function () { openConversation(c.id); });
+      var more = el("button", "kd-convo__more", "⋯");
+      more.type = "button";
+      more.title = I18N.rename || "Rename";
+      more.addEventListener("click", function (e) { e.stopPropagation(); renameConversation(c.id, c.title); });
+      var del = el("button", "kd-convo__more", "✕");
+      del.type = "button";
+      del.addEventListener("click", function (e) { e.stopPropagation(); deleteConversation(c.id); });
+      row.appendChild(main); row.appendChild(more); row.appendChild(del);
+      group.appendChild(row);
+    });
+    return group;
+  }
+
+  function renderConversationRail() {
+    if (!railList) return;
+    railList.innerHTML = "";
+    var q = railSearch ? railSearch.value.trim().toLowerCase() : "";
+    var visible = railConversations
+      .filter(function (c) { return !q || (c.title || "").toLowerCase().indexOf(q) !== -1; })
+      .slice()
+      .sort(function (a, b) { return parseConversationTime(b) - parseConversationTime(a); });
+    if (!visible.length) {
+      railList.appendChild(el("div", "kd-rail__empty", I18N.no_conversations_match || "No conversations match."));
+      return;
+    }
+    var groups = [];
+    visible.forEach(function (c) {
+      var label = conversationGroup(c);
+      var group = groups.find(function (g) { return g.label === label; });
+      if (!group) { group = { label: label, items: [] }; groups.push(group); }
+      group.items.push(c);
+    });
+    groups.forEach(function (g) {
+      railList.appendChild(renderConversationGroup(g.label, g.items));
+    });
+  }
 
   function loadConversations() {
     if (!railList) return;
     fetch("/api/conversations").then(function (r) { return r.json(); }).then(function (j) {
-      railList.innerHTML = "";
-      var group = el("div", "kd-rail__group");
-      (j.conversations || []).forEach(function (c) {
-        var row = el("div", "kd-convo" + (c.id === activeConv ? " is-active" : ""));
-        var main = el("button", "kd-convo__main");
-        main.appendChild(el("span", "kd-convo__title", c.title));
-        main.addEventListener("click", function () { openConversation(c.id); });
-        var more = el("button", "kd-convo__more", "⋯");
-        more.title = I18N.rename || "Rename";
-        more.addEventListener("click", function (e) { e.stopPropagation(); renameConversation(c.id, c.title); });
-        var del = el("button", "kd-convo__more", "✕");
-        del.addEventListener("click", function (e) { e.stopPropagation(); deleteConversation(c.id); });
-        row.appendChild(main); row.appendChild(more); row.appendChild(del);
-        group.appendChild(row);
-      });
-      railList.appendChild(group);
+      railConversations = j.conversations || [];
+      renderConversationRail();
     });
   }
 
@@ -262,6 +337,7 @@
     if (empty) { thread.appendChild(empty); empty.style.display = ""; }
     loadConversations();
   });
+  if (railSearch) railSearch.addEventListener("input", renderConversationRail);
   loadConversations();
 
   // --- attach "+" pop menu (upload item inert) ---
