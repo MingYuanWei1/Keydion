@@ -2673,9 +2673,14 @@ def create_app() -> Flask:
             full = []
             try:
                 client = llm_client.build_client()
+                # The think model runs a hybrid model; turn its thinking mode on.
+                create_kwargs = {}
+                if mode == "think":
+                    create_kwargs["extra_body"] = {"thinking": {"type": "enabled"}}
                 stream = client.chat.completions.create(
                     model=model, temperature=0.2, stream=True,
                     messages=[{"role": "system", "content": system}] + llm_messages,
+                    **create_kwargs,
                 )
                 for chunk in stream:
                     delta = ""
