@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Keydion 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-24 18:57+0800\n"
+"POT-Creation-Date: 2026-05-31 16:09+0800\n"
 "PO-Revision-Date: 2025-10-11 00:00+0000\n"
 "Last-Translator: \n"
 "Language: zh\n"
@@ -14,735 +14,811 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#: app.py:293
+#: app.py:300
 msgid "Please enter the paper title"
 msgstr "请输入论文标题"
 
-#: app.py:294
+#: app.py:301
 msgid "Please select a subject category"
 msgstr "请选择学科类别"
 
-#: app.py:295
+#: app.py:302
 msgid "Please select a language"
 msgstr "请选择语言"
 
-#: app.py:296
+#: app.py:303
 msgid "Please enter keywords"
 msgstr "请输入关键词"
 
-#: app.py:297
+#: app.py:304
 msgid "Please enter the abstract"
 msgstr "请输入摘要"
 
-#: app.py:298
+#: app.py:305
 msgid "Please enter the author name"
 msgstr "请输入作者姓名"
 
-#: app.py:299
+#: app.py:306
 msgid "Please enter the contact email"
 msgstr "请输入联系邮箱"
 
-#: app.py:300
+#: app.py:307
 msgid "Please enter the school name"
 msgstr "请输入学校名称"
 
-#: app.py:477
+#: app.py:503
 msgid "Reader - View & Download"
 msgstr "读者 - 查看与下载"
 
-#: app.py:478
+#: app.py:504
 msgid "Contributor - Upload Enabled"
 msgstr "贡献者 - 可上传"
 
-#: app.py:479
+#: app.py:505
 msgid "Curator - Full Access"
 msgstr "管理员 - 完全权限"
 
 # ==================== LANGUAGE ====================
-#: app.py:482 app.py:1418 templates/paper_modify.html:68
+#: app.py:508 app.py:1498 templates/paper_modify.html:68
 #: templates/search.html:99
 msgid "English"
 msgstr "英语"
 
-#: app.py:483 app.py:1419 templates/paper_modify.html:66
+#: app.py:509 app.py:1499 templates/paper_modify.html:66
 #: templates/search.html:98
 msgid "Chinese"
 msgstr "中文"
 
+#: app.py:823
+msgid "What does the research say about climate adaptation in plants?"
+msgstr ""
+
+#: app.py:824
+msgid "Summarize recent Extended Essays in economics."
+msgstr ""
+
+#: app.py:825
+msgid "Find papers about machine learning in healthcare."
+msgstr ""
+
+#: app.py:832 templates/ask.html:2 templates/base.html:67
+#, fuzzy
+msgid "Ask the Library"
+msgstr "论文库中暂无论文。"
+
+#: app.py:833 templates/ask.html:21
+#, fuzzy
+msgid "Ask Keydion"
+msgstr "Keydion"
+
+#: app.py:834 templates/ask.html:22
+msgid "Ask a question and I'll answer from the published library, with citations."
+msgstr "提出问题，我将依据已发布的资料库作答并附引用。"
+
+# ==================== ADMIN USER MANAGEMENT ====================
+#: app.py:835 templates/ask.html:34
+#, fuzzy
+msgid "Message Keydion AI…"
+msgstr "管理新闻 · Keydion"
+
+#: app.py:836 templates/ask.html:38
+msgid "Flash"
+msgstr "快速"
+
+#: app.py:837 templates/ask.html:39
+msgid "Thinking"
+msgstr "深度思考"
+
+#: app.py:838 templates/ask.html:42
+msgid "Send"
+msgstr "发送"
+
+#: app.py:839
+msgid "Cited from your library"
+msgstr "引用自资料库"
+
+#: app.py:840
+#, fuzzy
+msgid "Copy"
+msgstr "复制链接"
+
+#: app.py:841
+#, fuzzy
+msgid "Regenerate"
+msgstr "生成中…"
+
+#: app.py:842
+msgid "Thinking…"
+msgstr "思考中…"
+
+#: app.py:843
+#, fuzzy
+msgid "Something went wrong. Please try again."
+msgstr "会话已过期，请重新登录。"
+
+#: app.py:844 templates/ask.html:16
+msgid "AI assistant is not configured."
+msgstr "AI 助手尚未配置。"
+
+#: app.py:845
+#, fuzzy
+msgid "No matching papers were found in the library."
+msgstr "未找到匹配的论文。"
+
 # ==================== AUTH FLASH MESSAGES ====================
-#: app.py:814 app.py:828
+#: app.py:889 app.py:903
 #, python-format
 msgid "Welcome back, %(username)s!"
 msgstr "欢迎回来，%(username)s！"
 
-#: app.py:831
+#: app.py:906
 #, fuzzy
 msgid "Invalid email or password"
 msgstr "用户名或密码错误"
 
-#: app.py:835 app.py:848 app.py:864
+#: app.py:910 app.py:923 app.py:939
 msgid "Microsoft sign-in is not configured. Please contact the administrator."
 msgstr "Microsoft 登录尚未配置，请联系管理员。"
 
-#: app.py:840
+#: app.py:915
 msgid "Email-based registration is disabled. Please sign in with Microsoft."
 msgstr "已禁用基于邮箱的注册。请使用 Microsoft 账户登录。"
 
-#: app.py:867
+#: app.py:942
 #, fuzzy
 msgid "Login session expired. Please try again."
 msgstr "会话已过期，请重新登录。"
 
-#: app.py:873 app.py:888
+#: app.py:948 app.py:963
 #, python-format
 msgid "Microsoft sign-in failed: %(reason)s"
 msgstr "Microsoft 登录失败：%(reason)s"
 
-#: app.py:878
+#: app.py:953
 msgid "Microsoft sign-in failed. Please try again."
 msgstr "Microsoft 登录失败，请重试。"
 
-#: app.py:893
+#: app.py:968
 msgid "Microsoft sign-in did not return a valid profile."
 msgstr "Microsoft 登录未返回有效的个人资料。"
 
-#: app.py:922
+#: app.py:997
 msgid "Signed out successfully."
 msgstr "已成功退出登录。"
 
-#: app.py:933
+#: app.py:1008
 msgid "Unable to load your profile. Please sign in again."
 msgstr "无法加载您的个人资料，请重新登录。"
 
-#: app.py:941
+#: app.py:1016
 msgid "Please enter your first and last name."
 msgstr "请输入您的名字和姓氏。"
 
-#: app.py:956
+#: app.py:1031
 msgid "Profile saved successfully."
 msgstr "个人资料保存成功。"
 
-#: app.py:995
+#: app.py:1070
 msgid "Current password is incorrect."
 msgstr "当前密码不正确。"
 
-#: app.py:999
+#: app.py:1074
 msgid "Please enter a new password."
 msgstr "请输入新密码。"
 
-#: app.py:1002
+#: app.py:1077
 msgid "Passwords do not match."
 msgstr "两次密码输入不一致。"
 
-#: app.py:1005
+#: app.py:1080
 msgid "Password must be at least 6 characters."
 msgstr "密码长度至少为6个字符。"
 
-#: app.py:1011
+#: app.py:1086
 msgid "Password must contain both letters and numbers."
 msgstr "密码必须包含字母和数字。"
 
-#: app.py:1016
+#: app.py:1091
 msgid "New password must be different from your current password."
 msgstr "新密码必须与当前密码不同。"
 
-#: app.py:1027
+#: app.py:1102
 msgid "Password updated successfully."
 msgstr "密码更新成功。"
 
-#: app.py:1029
+#: app.py:1104
 msgid "Unable to update password."
 msgstr "无法重置密码。"
 
-#: app.py:1068
+#: app.py:1143
 msgid "Role updates saved."
 msgstr "角色更改已保存。"
 
-#: app.py:1080
+#: app.py:1155
 msgid "Username and password are required."
 msgstr "用户名和密码为必填项。"
 
-#: app.py:1083
+#: app.py:1158
 msgid "That username is already taken."
 msgstr "此用户名已被占用。"
 
-#: app.py:1086
+#: app.py:1161
 msgid "Local user created."
 msgstr "本地用户已创建。"
 
-#: app.py:1096 app.py:1138
+#: app.py:1171 app.py:1213
 msgid "Role updated."
 msgstr "角色已更新。"
 
-#: app.py:1098 app.py:1140
+#: app.py:1173 app.py:1215
 msgid "Unable to update role."
 msgstr "无法更新角色。"
 
-#: app.py:1108 app.py:1161
+#: app.py:1183 app.py:1236
 msgid "Password is required."
 msgstr "密码为必填项。"
 
-#: app.py:1111
+#: app.py:1186
 msgid "Password reset successfully."
 msgstr "密码重置成功。"
 
-#: app.py:1113
+#: app.py:1188
 msgid "Unable to reset password."
 msgstr "无法重置密码。"
 
-#: app.py:1122
+#: app.py:1197
 msgid "Local user deleted."
 msgstr "本地用户已删除。"
 
-#: app.py:1124
+#: app.py:1199
 msgid "Unable to delete user."
 msgstr "无法删除用户。"
 
-#: app.py:1149
+#: app.py:1224
 msgid "Microsoft user deleted."
 msgstr "微软用户已删除。"
 
-#: app.py:1151
+#: app.py:1226
 msgid "Unable to delete Microsoft user."
 msgstr "无法删除微软用户。"
 
-#: app.py:1164
+#: app.py:1239
 msgid "Password set successfully."
 msgstr "密码设置成功。"
 
-#: app.py:1166
+#: app.py:1241
 msgid "Unable to set password."
 msgstr "无法设置密码。"
 
-#: app.py:1200
+#: app.py:1275
 #, python-format
 msgid "oldest %(n)d days ago"
 msgstr "最早 %(n)d 天前"
 
-#: app.py:1216
+#: app.py:1291
 #, python-format
 msgid "+%(n)d this month"
 msgstr "本月新增 %(n)d 篇"
 
 # ==================== SEARCH ====================
-#: app.py:1247
+#: app.py:1322
 msgid "Enter a keyword to search."
 msgstr "请输入搜索关键词。"
 
-#: app.py:1312
+#: app.py:1387
 msgid "No matching papers found."
 msgstr "未找到匹配的论文。"
 
 # ==================== UPLOAD WIZARD (JS) ====================
-#: app.py:1381 app.py:1480 templates/advanced_search.html:32
+#: app.py:1461 app.py:1560 templates/advanced_search.html:14
 #: templates/search.html:51
 msgid "Paper Type"
 msgstr "论文类型"
 
-#: app.py:1382 app.py:1501
+#: app.py:1462 app.py:1581
 msgid "Metadata"
 msgstr "元信息"
 
-#: app.py:1383 app.py:1512 templates/landing.html:956
+#: app.py:1463 app.py:1592 templates/landing.html:956
 msgid "Authors"
 msgstr "作者"
 
-#: app.py:1384 app.py:1514
+#: app.py:1464 app.py:1594
 msgid "File"
 msgstr "文件"
 
-#: app.py:1385 templates/_dashboard_shell.html:75 templates/review_list.html:84
+#: app.py:1465 templates/_dashboard_shell.html:80 templates/review_list.html:84
 msgid "Review"
 msgstr "审核"
 
-#: app.py:1386
+#: app.py:1466
 #, python-format
 msgid "Step %(n)s"
 msgstr "第 %(n)s 步"
 
-#: app.py:1387
+#: app.py:1467
 msgid "Submit Paper"
 msgstr "提交论文"
 
-#: app.py:1388
+#: app.py:1468
 msgid "Continue →"
 msgstr "继续 →"
 
-#: app.py:1389
+#: app.py:1469
 msgid "← Back"
 msgstr "← 返回"
 
-#: app.py:1390 templates/news_publish.html:974
+#: app.py:1470 templates/news_publish.html:974
 msgid "Save Draft"
 msgstr "保存草稿"
 
-#: app.py:1391
+#: app.py:1471
 msgid "Choose paper type"
 msgstr "选择论文类型"
 
-#: app.py:1392
+#: app.py:1472
 msgid "What kind of paper are you submitting?"
 msgstr "您要提交的是哪一类论文？"
 
-#: app.py:1393
+#: app.py:1473
 msgid ""
 "The fields you'll be asked for next depend on this. You can come back and"
 " change it before submitting."
 msgstr "接下来需要填写的字段取决于您的选择。提交前您可以随时回到此步骤修改。"
 
-#: app.py:1394 templates/advanced_search.html:38 templates/search.html:57
+#: app.py:1474 templates/advanced_search.html:20 templates/search.html:57
 #: templates/search.html:223
 msgid "Independent Research"
 msgstr "独立研究"
 
-#: app.py:1395
+#: app.py:1475
 msgid "Standard Paper"
 msgstr "标准论文"
 
-#: app.py:1396
+#: app.py:1476
 msgid ""
 "A self-directed research paper, conference paper, or article that is not "
 "part of the IB Diploma framework."
 msgstr "自主选题的研究论文、会议论文或文章，不属于 IB 文凭课程框架。"
 
-#: app.py:1397
+#: app.py:1477
 msgid "Title · authors · abstract · subject"
 msgstr "标题 · 作者 · 摘要 · 学科"
 
-#: app.py:1398 app.py:1402
+#: app.py:1478 app.py:1482
 msgid "IB Diploma"
 msgstr "IB 文凭"
 
-#: app.py:1399
+#: app.py:1479
 msgid "Extended Essay (EE)"
 msgstr "拓展论文（EE）"
 
-#: app.py:1400
+#: app.py:1480
 msgid ""
 "A 4,000-word IB Diploma research essay with structured criterion scores "
 "(A–E) and an EE subject from the six IB subject groups."
 msgstr "约 4,000 字的 IB 文凭研究论文，按 A–E 评分标准评分，从六大 IB 学科组中选定 EE 学科。"
 
-#: app.py:1401
+#: app.py:1481
 msgid "Research Question · EE subject · criterion scores A–E"
 msgstr "研究问题 · EE 学科 · A–E 项评分"
 
-#: app.py:1403
+#: app.py:1483
 msgid "Community Project (CP)"
 msgstr "社区项目（CP）"
 
-#: app.py:1404
+#: app.py:1484
 msgid ""
 "An IB MYP Community Project graded against Criteria A–D, with a Global "
 "Context and a chosen type of action."
 msgstr "IB MYP 社区项目，按 A–D 标准评分，并选择全球语境与行动类型。"
 
-#: app.py:1405
+#: app.py:1485
 msgid "Title · Global Context · type of action · criteria A–D"
 msgstr "标题 · 全球语境 · 行动类型 · A–D 项评分"
 
-#: app.py:1406
+#: app.py:1486
 msgid "Research Question"
 msgstr "研究问题"
 
-#: app.py:1407 templates/my_submissions.html:25 templates/review_list.html:50
+#: app.py:1487 templates/my_submissions.html:25 templates/review_list.html:50
 msgid "Paper Title"
 msgstr "论文标题"
 
-#: app.py:1408
+#: app.py:1488
 msgid ""
 "e.g. To what extent did monetary policy contribute to the 2008 financial "
 "crisis?"
 msgstr "例如：货币政策在多大程度上促成了 2008 年的金融危机？"
 
-#: app.py:1409
+#: app.py:1489
 msgid "Enter the complete paper title"
 msgstr "请输入完整的论文标题"
 
-#: app.py:1410
+#: app.py:1490
 msgid "Tell us about your essay"
 msgstr "请介绍您的论文"
 
-#: app.py:1411
+#: app.py:1491
 msgid "Tell us about your community project"
 msgstr "请介绍您的社区项目"
 
-#: app.py:1412
+#: app.py:1492
 msgid "Tell us about your paper"
 msgstr "请介绍您的论文"
 
-#: app.py:1413
+#: app.py:1493
 msgid "IB grading information and bibliographic details for the submission."
 msgstr "本次提交的 IB 评分信息与文献信息。"
 
-#: app.py:1414
+#: app.py:1494
 msgid "Bibliographic information that will appear on the public paper page."
 msgstr "将在论文公开页面上展示的文献信息。"
 
-#: app.py:1415
+#: app.py:1495
 msgid "Paper details"
 msgstr "论文详情"
 
-#: app.py:1416
+#: app.py:1496
 msgid "Bibliographic"
 msgstr "文献信息"
 
-#: app.py:1417 templates/paper_modify.html:62 templates/search.html:94
+#: app.py:1497 templates/paper_modify.html:62 templates/search.html:94
 msgid "Language"
 msgstr "语言"
 
-#: app.py:1420
+#: app.py:1500
 msgid "Subject Category"
 msgstr "学科类别"
 
-#: app.py:1421
+#: app.py:1501
 msgid "Choose a subject category…"
 msgstr "请选择学科类别…"
 
-#: app.py:1422 templates/delete.html:328 templates/paper_modify.html:73
+#: app.py:1502 templates/delete.html:328 templates/paper_modify.html:73
 #: templates/preview.html:310 templates/review_paper.html:30
 #: templates/submission_detail.html:27
 msgid "Keywords"
 msgstr "关键词"
 
-#: app.py:1423
+#: app.py:1503
 msgid "Add another…"
 msgstr "继续添加…"
 
-#: app.py:1424
+#: app.py:1504
 msgid "Type a keyword and press Enter"
 msgstr "输入关键词后按 Enter 添加"
 
-#: app.py:1425
+#: app.py:1505
 msgid "Press Enter or comma to add. Aim for 3–6 keywords."
 msgstr "按 Enter 或逗号添加，建议 3–6 个关键词。"
 
-#: app.py:1426
+#: app.py:1506
 msgid "added"
 msgstr "已添加"
 
-#: app.py:1427 templates/delete.html:330 templates/paper_modify.html:79
+#: app.py:1507 templates/delete.html:330 templates/paper_modify.html:79
 #: templates/preview.html:283 templates/review_paper.html:33
 #: templates/submission_detail.html:30
 msgid "Abstract"
 msgstr "摘要"
 
-#: app.py:1428
+#: app.py:1508
 msgid "Briefly describe your research background, methods, and conclusions…"
 msgstr "请简要描述您的研究背景、方法与结论…"
 
-#: app.py:1429
+#: app.py:1509
 msgid "A short summary that appears in search results."
 msgstr "搜索结果中显示的简短摘要。"
 
-#: app.py:1430 templates/paper_modify.html:91
+#: app.py:1510 templates/paper_modify.html:91
 msgid "This is an IB Sample Paper"
 msgstr "这是一篇 IB 范文"
 
-#: app.py:1431
+#: app.py:1511
 msgid ""
 "Sample papers are reference essays without an identified author. Checking"
 " this will skip the Authors step."
 msgstr "范文是无明确作者的参考论文。勾选此项将跳过作者填写步骤。"
 
-#: app.py:1432
+#: app.py:1512
 msgid "Framework for the essay"
 msgstr "论文框架"
 
-#: app.py:1433
+#: app.py:1513
 msgid "Knowledge and understanding"
 msgstr "知识与理解"
 
-#: app.py:1434
+#: app.py:1514
 msgid "Analysis and line of argument"
 msgstr "分析与论证"
 
-#: app.py:1435
+#: app.py:1515
 msgid "Discussion and evaluation"
 msgstr "讨论与评估"
 
-#: app.py:1436
+#: app.py:1516
 msgid "Reflection"
 msgstr "反思"
 
-#: app.py:1437 templates/advanced_search.html:44 templates/preview.html:118
+#: app.py:1517 templates/advanced_search.html:47 templates/preview.html:118
 #: templates/search.html:65
 msgid "EE Subject"
 msgstr "EE 学科"
 
-#: app.py:1438 templates/paper_modify.html:140
+#: app.py:1518 templates/paper_modify.html:140
 msgid "Core Subject"
 msgstr "核心学科"
 
-#: app.py:1439
+#: app.py:1519
 msgid "Select a core subject…"
 msgstr "请选择核心学科…"
 
-#: app.py:1440
+#: app.py:1520
 msgid "Interdisciplinary"
 msgstr "跨学科"
 
-#: app.py:1441
+#: app.py:1521
 msgid "Optional"
 msgstr "可选"
 
-#: app.py:1442
+#: app.py:1522
 msgid "Optional — select if applicable…"
 msgstr "可选 — 如适用请选择…"
 
-#: app.py:1443
+#: app.py:1523
 msgid "Criterion Scores"
 msgstr "评分标准得分"
 
-#: app.py:1444 templates/paper_modify.html:180 templates/paper_modify.html:258
+#: app.py:1524 templates/paper_modify.html:180 templates/paper_modify.html:258
 #: templates/preview.html:259
 msgid "Crit."
 msgstr "标准"
 
-#: app.py:1445
+#: app.py:1525
 msgid "Criterion"
 msgstr "评分标准"
 
-#: app.py:1446 templates/paper_modify.html:182 templates/paper_modify.html:260
+#: app.py:1526 templates/paper_modify.html:182 templates/paper_modify.html:260
 msgid "Score"
 msgstr "得分"
 
-#: app.py:1447
+#: app.py:1527
 msgid "Overall Grade"
 msgstr "总评等级"
 
-#: app.py:1448
+#: app.py:1528
 msgid "Calculated server-side from the criteria above"
 msgstr "由以上各项得分在服务器端自动计算"
 
-#: app.py:1449
+#: app.py:1529
 msgid "Criterion Commentaries"
 msgstr "标准评语"
 
-#: app.py:1450
+#: app.py:1530
 msgid "Include commentaries for all criteria"
 msgstr "为每项评分标准填写评语"
 
-#: app.py:1451
+#: app.py:1531
 msgid ""
 "Provide short remarks on each criterion plus an optional overall holistic"
 " commentary."
 msgstr "请为每项标准提供简短评语，并可选填一份整体性总评。"
 
-#: app.py:1452
+#: app.py:1532
 #, python-format
 msgid "Commentary for Criterion %(k)s…"
 msgstr "对评分标准 %(k)s 的评语…"
 
-#: app.py:1453 templates/paper_modify.html:212 templates/preview.html:185
+#: app.py:1533 templates/paper_modify.html:212 templates/preview.html:185
 msgid "Holistic Commentary"
 msgstr "整体性总评"
 
-#: app.py:1454
+#: app.py:1534
 msgid "An overall holistic commentary for the essay…"
 msgstr "对整篇论文的整体性总评…"
 
-#: app.py:1455
+#: app.py:1535
 msgid "Investigating"
 msgstr "调研"
 
-#: app.py:1456
+#: app.py:1536
 msgid "Planning"
 msgstr "规划"
 
-#: app.py:1457
+#: app.py:1537
 msgid "Taking Action"
 msgstr "实施行动"
 
-#: app.py:1458
+#: app.py:1538
 msgid "Reflecting"
 msgstr "反思"
 
-#: app.py:1459 templates/advanced_search.html:56
+#: app.py:1539 templates/advanced_search.html:59
 #: templates/paper_modify.html:231 templates/preview.html:232
 #: templates/search.html:80
 msgid "Global Context"
 msgstr "全球语境"
 
-#: app.py:1460
+#: app.py:1540
 msgid "Select a Global Context…"
 msgstr "请选择全球语境…"
 
-#: app.py:1461
+#: app.py:1541
 msgid "Global Contexts"
 msgstr "全球语境"
 
-#: app.py:1462 templates/paper_modify.html:242 templates/preview.html:240
+#: app.py:1542 templates/paper_modify.html:242 templates/preview.html:240
 msgid "Type of Action"
 msgstr "行动类型"
 
-#: app.py:1463
+#: app.py:1543
 msgid "Mean of the four criterion scores, rounded"
 msgstr "四项标准得分的平均值（四舍五入）"
 
-#: app.py:1464
+#: app.py:1544
 msgid "Author information"
 msgstr "作者信息"
 
-#: app.py:1465
+#: app.py:1545
 msgid "Who wrote this?"
 msgstr "本论文的作者是谁？"
 
-#: app.py:1466
+#: app.py:1546
 msgid "The first author's contact details are required. Add co-authors as needed."
 msgstr "第一作者的联系信息为必填，可根据需要添加合作者。"
 
-#: app.py:1467 templates/paper_modify.html:107
+#: app.py:1547 templates/paper_modify.html:107
 msgid "Name"
 msgstr "姓名"
 
-#: app.py:1468 templates/admin_users.html:78 templates/delete.html:334
+#: app.py:1548 templates/admin_users.html:78 templates/delete.html:334
 #: templates/paper_modify.html:111 templates/register.html:14
 #: templates/review_paper.html:40 templates/submission_detail.html:37
 msgid "Email"
 msgstr "邮箱"
 
-#: app.py:1469
+#: app.py:1549
 msgid "School / Institution"
 msgstr "学校 / 机构"
 
-#: app.py:1470
+#: app.py:1550
 msgid "Remove author"
 msgstr "移除作者"
 
-#: app.py:1471
+#: app.py:1551
 msgid "+ Add another author"
 msgstr "+ 添加作者"
 
-#: app.py:1472
+#: app.py:1552
 msgid "File upload"
 msgstr "文件上传"
 
-#: app.py:1473
+#: app.py:1553
 msgid "Upload your PDF"
 msgstr "上传 PDF 文件"
 
-#: app.py:1474
+#: app.py:1554
 msgid "Submit a single PDF, up to 50 MB. You can change this before publishing."
 msgstr "请提交单个 PDF 文件，最大 50 MB。发布前仍可更换。"
 
-#: app.py:1475
+#: app.py:1555
 msgid "No file chosen"
 msgstr "尚未选择文件"
 
-#: app.py:1476
+#: app.py:1556
 msgid "PDF only · single file"
 msgstr "仅支持 PDF · 单个文件"
 
-#: app.py:1477
+#: app.py:1557
 msgid "Replace"
 msgstr "更换"
 
-#: app.py:1478
+#: app.py:1558
 msgid "Choose file"
 msgstr "选择文件"
 
-#: app.py:1479
+#: app.py:1559
 msgid ""
 "If you'd like to come back to this later, click Save Draft below — your "
 "form will be restored next time you visit."
 msgstr "若想稍后继续，请点击下方的「保存草稿」，下次访问时表单将自动恢复。"
 
-#: app.py:1481
+#: app.py:1561
 msgid "First author (name, email, school)"
 msgstr "第一作者（姓名、邮箱、学校）"
 
-#: app.py:1482
+#: app.py:1562
 msgid "EE core subject"
 msgstr "EE 核心学科"
 
-#: app.py:1483
+#: app.py:1563
 #, python-format
 msgid "EE criterion score %(k)s"
 msgstr "EE 评分标准 %(k)s 得分"
 
-#: app.py:1484
+#: app.py:1564
 msgid "Global context"
 msgstr "全球语境"
 
-#: app.py:1485
+#: app.py:1565
 msgid "Type of action"
 msgstr "行动类型"
 
-#: app.py:1486
+#: app.py:1566
 #, python-format
 msgid "CP criterion score %(k)s"
 msgstr "CP 评分标准 %(k)s 得分"
 
-#: app.py:1487
+#: app.py:1567
 msgid "PDF file"
 msgstr "PDF 文件"
 
-#: app.py:1488
+#: app.py:1568
 msgid "Independent Research Paper"
 msgstr "独立研究论文"
 
-#: app.py:1489 templates/preview.html:106
+#: app.py:1569 templates/preview.html:106
 msgid "IB Extended Essay"
 msgstr "IB 拓展论文（EE）"
 
-#: app.py:1490
+#: app.py:1570
 msgid "IB Community Project"
 msgstr "IB 社区项目（CP）"
 
-#: app.py:1491
+#: app.py:1571
 msgid "Review & submit"
 msgstr "复核并提交"
 
-#: app.py:1492
+#: app.py:1572
 msgid "Almost there — review your submission"
 msgstr "即将完成 — 请复核您的提交内容"
 
-#: app.py:1493
+#: app.py:1573
 msgid ""
 "Make sure everything looks right. You can jump back to any section to "
 "make changes."
 msgstr "请确认所有信息无误，可随时跳回任意步骤进行修改。"
 
-#: app.py:1494
+#: app.py:1574
 msgid "1 field still needs attention"
 msgstr "还有 1 项需要补充"
 
-#: app.py:1495
+#: app.py:1575
 #, python-format
 msgid "%(n)s fields still need attention"
 msgstr "还有 %(n)s 项需要补充"
 
-#: app.py:1496
+#: app.py:1576
 #, python-format
 msgid "go to %(step)s"
 msgstr "前往%(step)s"
 
-#: app.py:1497
+#: app.py:1577
 msgid "Everything required is filled in."
 msgstr "所有必填项已填写完成。"
 
-#: app.py:1498
+#: app.py:1578
 msgid "Click Submit Paper below to send your submission for review."
 msgstr "点击下方「提交论文」按钮发送您的提交以供审核。"
 
-#: app.py:1499 templates/guide_manage.html:172 templates/guide_manage.html:237
+#: app.py:1579 templates/guide_manage.html:175 templates/guide_manage.html:240
 #: templates/guide_publish.html:20 templates/my_submissions.html:58
-#: templates/news_article.html:735 templates/news_manage.html:199
+#: templates/news_article.html:735 templates/news_manage.html:202
 #: templates/paper_manage.html:195
 msgid "Edit"
 msgstr "编辑"
 
-#: app.py:1500
+#: app.py:1580
 msgid "Type"
 msgstr "类型"
 
-#: app.py:1502
+#: app.py:1582
 msgid "Research Q."
 msgstr "研究问题"
 
 # ==================== PAPER METADATA ====================
-#: app.py:1503 templates/delete.html:261 templates/delete.html:324
+#: app.py:1583 templates/delete.html:261 templates/delete.html:324
 #: templates/guide_publish.html:84 templates/guide_publish.html:116
 #: templates/news_publish.html:986 templates/paper_modify.html:33
 #: templates/preview.html:306 templates/review_paper.html:24
@@ -750,344 +826,407 @@ msgstr "研究问题"
 msgid "Title"
 msgstr "标题"
 
-#: app.py:1504
+#: app.py:1584
 msgid "Not provided"
 msgstr "未填写"
 
-#: app.py:1505
+#: app.py:1585
 msgid "Not chosen"
 msgstr "未选择"
 
-#: app.py:1506 templates/search.html:30
+#: app.py:1586 templates/search.html:30
 msgid "Subject"
 msgstr "学科"
 
-#: app.py:1507 templates/paper_modify.html:155
+#: app.py:1587 templates/paper_modify.html:155
 msgid "None"
 msgstr "无"
 
-#: app.py:1508
+#: app.py:1588
 msgid "Not written"
 msgstr "未填写"
 
-#: app.py:1509
+#: app.py:1589
 msgid "IB Sample"
 msgstr "IB 范文"
 
-#: app.py:1510
+#: app.py:1590
 msgid "Yes — author info skipped"
 msgstr "是 — 已跳过作者信息"
 
-#: app.py:1511
+#: app.py:1591
 msgid "No"
 msgstr "否"
 
-#: app.py:1513 templates/delete.html:263 templates/delete.html:332
-#: templates/news_manage.html:148 templates/news_publish.html:1001
+#: app.py:1593 templates/delete.html:263 templates/delete.html:332
+#: templates/news_manage.html:151 templates/news_publish.html:1001
 #: templates/review_paper.html:36 templates/submission_detail.html:33
 msgid "Author"
 msgstr "作者"
 
-#: app.py:1515
+#: app.py:1595
 msgid "No file uploaded"
 msgstr "尚未上传文件"
 
-#: app.py:1516
+#: app.py:1596
 msgid "EE Details"
 msgstr "EE 详情"
 
-#: app.py:1517
+#: app.py:1597
 msgid "Total"
 msgstr "总分"
 
-#: app.py:1518
+#: app.py:1598
 msgid "CP Details"
 msgstr "CP 详情"
 
-#: app.py:1519
+#: app.py:1599
 msgid "None selected"
 msgstr "未选择"
 
-#: app.py:1520
+#: app.py:1600
 msgid "Avg. Grade"
 msgstr "平均得分"
 
-#: app.py:1521
+#: app.py:1601
 msgid "Saving…"
 msgstr "保存中…"
 
-#: app.py:1522
+#: app.py:1602
 #, python-format
 msgid "Draft saved · %(time)s"
 msgstr "草稿已保存 · %(time)s"
 
-#: app.py:1523
+#: app.py:1603
 msgid "Unsaved changes from earlier"
 msgstr "存在未保存的修改"
 
-#: app.py:1524
+#: app.py:1604
 msgid ""
 "Your last session in this browser had changes you didn't save. Restore "
 "them?"
 msgstr "您上次在此浏览器中的更改尚未保存，是否恢复？"
 
-#: app.py:1525
+#: app.py:1605
 msgid "Discard"
 msgstr "放弃"
 
-#: app.py:1526
+#: app.py:1606
 msgid "Restore"
 msgstr "恢复"
 
-#: app.py:1527
+#: app.py:1607
 msgid "Search…"
 msgstr "搜索…"
 
-#: app.py:1528
+#: app.py:1608
 msgid "No matches"
 msgstr "无匹配结果"
 
-#: app.py:1633
+# ==================== EE PDF AUTO-FILL ====================
+#: app.py:1609
+msgid "Auto-fill from commentary PDF"
+msgstr "从评语 PDF 自动填充"
+
+#: app.py:1610
+msgid "Extracting…"
+msgstr "正在提取…"
+
+#: app.py:1611
+msgid "Extracted all fields."
+msgstr "已提取全部字段。"
+
+#: app.py:1612
+#, python-format
+msgid "Extracted %(filled)s of %(total)s fields."
+msgstr "已提取 %(filled)s / %(total)s 个字段。"
+
+#: app.py:1613
+msgid "Auto-fill failed — try again or fill manually."
+msgstr "自动填充失败——请重试或手动填写。"
+
+#: app.py:1614
+msgid "Replace your existing EE entries with values from the PDF?"
+msgstr "用 PDF 中的值替换现有的 EE 内容吗？"
+
+#: app.py:1615
+msgid "Generate abstract & keywords from PDF"
+msgstr "从 PDF 生成摘要和关键词"
+
+#: app.py:1616
+msgid "Generating…"
+msgstr "生成中…"
+
+#: app.py:1617
+msgid "Generated abstract and keywords."
+msgstr "已生成摘要和关键词。"
+
+#: app.py:1618
+msgid "Generation failed — try again or fill manually."
+msgstr "生成失败——请重试或手动填写。"
+
+#: app.py:1619
+msgid "Replace your existing abstract and keywords with AI-generated ones?"
+msgstr "用 AI 生成的内容替换现有的摘要和关键词吗？"
+
+#: app.py:1724
 msgid "Please enter at least a paper title to save a draft."
 msgstr "请至少输入论文标题才能保存草稿。"
 
-#: app.py:1686
+#: app.py:1777
 msgid "Draft saved successfully."
 msgstr "草稿保存成功。"
 
-#: app.py:1703 app.py:2008
+#: app.py:1794 app.py:2094
 msgid "A paper cannot be both an Extended Essay and a CP Paper."
 msgstr "论文不能同时是 Extended Essay 和 CP Paper。"
 
-#: app.py:1708 app.py:2011
+#: app.py:1799 app.py:2097
 #, fuzzy
 msgid "Please select an EE core subject."
 msgstr "请选择核心学科…"
 
-#: app.py:1713 app.py:2014
+#: app.py:1804 app.py:2100
 #, fuzzy
 msgid "Please select a Global Context."
 msgstr "请选择全球语境…"
 
-#: app.py:1716 app.py:2017
+#: app.py:1807 app.py:2103
 #, fuzzy
 msgid "Please select at least one Type of Action."
 msgstr "请选择要上传的文件"
 
-#: app.py:1727
+#: app.py:1818
 msgid "Please select a file to upload"
 msgstr "请选择要上传的文件"
 
-#: app.py:1733
+#: app.py:1824
 msgid "Only PDF files are supported"
 msgstr "仅支持 PDF 文件"
 
-#: app.py:1749
+#: app.py:1835
 msgid "A file with this name already exists"
 msgstr "已存在同名文件"
 
-#: app.py:1771
+#: app.py:1857
 #, python-format
 msgid "Paper %(filename)s uploaded successfully!"
 msgstr "论文 %(filename)s 上传成功！"
 
-#: app.py:1916 app.py:2067 app.py:2101
+#: app.py:2002 app.py:2153 app.py:2191
 msgid "Paper not found."
 msgstr "未找到论文。"
 
-#: app.py:2026
+#: app.py:2112
 #, fuzzy
 msgid "A file with the new name already exists, unable to rename."
 msgstr "已存在同名文件"
 
-#: app.py:2050
+#: app.py:2136
 msgid "Paper information updated."
 msgstr "论文信息已更新。"
 
-#: app.py:2072
+#: app.py:2158
 #, python-format
 msgid "Deleted %(filename)s."
 msgstr "已删除 %(filename)s。"
 
-#: app.py:2078
+#: app.py:2168
 msgid "Language not supported."
 msgstr "不支持此语言。"
 
-#: app.py:2257 app.py:2345
+#: app.py:2329 app.py:2352
+#, fuzzy
+msgid "Unauthorized"
+msgstr "论文分类"
+
+#: app.py:2333 app.py:2356
+msgid "No file provided"
+msgstr "未提供文件"
+
+#: app.py:2335 app.py:2358
+msgid "File must be a PDF"
+msgstr "文件必须是 PDF"
+
+#: app.py:2339 app.py:2362
+msgid "File is not a valid PDF"
+msgstr "文件不是有效的 PDF"
+
+#: app.py:2396 app.py:2484
 #, fuzzy
 msgid "Please enter a title."
 msgstr "请输入论文标题"
 
-#: app.py:2259 app.py:2347
+#: app.py:2398 app.py:2486
 #, fuzzy
 msgid "Please select a category."
 msgstr "请选择类别..."
 
-#: app.py:2261 app.py:2349
+#: app.py:2400 app.py:2488
 #, fuzzy
 msgid "Please enter an abstract."
 msgstr "请输入摘要"
 
-#: app.py:2263 app.py:2351
+#: app.py:2402 app.py:2490
 #, fuzzy
 msgid "Please write the article body."
 msgstr "请输入论文标题"
 
-#: app.py:2276 app.py:2362
+#: app.py:2415 app.py:2501
 msgid "Cover image must be PNG, JPG, GIF, or WebP."
 msgstr "封面图片格式必须为 PNG、JPG、GIF 或 WebP。"
 
-#: app.py:2297 app.py:2375
+#: app.py:2436 app.py:2514
 msgid "Draft saved."
 msgstr "草稿已保存。"
 
-#: app.py:2299
+#: app.py:2438
 #, fuzzy
 msgid "Article published successfully."
 msgstr "已成功退出登录。"
 
-#: app.py:2319 app.py:2396 app.py:2998 app.py:3007
+#: app.py:2458 app.py:2535 app.py:3137 app.py:3146
 #, fuzzy
 msgid "Article not found."
 msgstr "未找到论文。"
 
-#: app.py:2377
+#: app.py:2516
 #, fuzzy
 msgid "Article updated."
 msgstr "角色已更新。"
 
-#: app.py:2394
+#: app.py:2533
 #, fuzzy
 msgid "Article deleted."
 msgstr "本地用户已删除。"
 
-#: app.py:2415 app.py:2464 app.py:2766 app.py:2809
+#: app.py:2554 app.py:2603 app.py:2905 app.py:2948
 #, fuzzy
 msgid "Category name is required."
 msgstr "请输入期刊名称。"
 
-#: app.py:2418 app.py:2769
+#: app.py:2557 app.py:2908
 #, fuzzy
 msgid "Category already exists."
 msgstr "该期刊已存在。"
 
-#: app.py:2432 app.py:2783
+#: app.py:2571 app.py:2922
 msgid "Both old and new names are required."
 msgstr "旧名称和新名称都为必填项。"
 
-#: app.py:2435 app.py:2467 app.py:2786 app.py:2812
+#: app.py:2574 app.py:2606 app.py:2925 app.py:2951
 #, fuzzy
 msgid "Category not found."
 msgstr "未找到论文。"
 
-#: app.py:2437 app.py:2788
+#: app.py:2576 app.py:2927
 #, fuzzy
 msgid "A category with that name already exists."
 msgstr "已存在同名期刊。"
 
-#: app.py:2586 app.py:2654
+#: app.py:2725 app.py:2793
 msgid "Guide not found."
 msgstr "未找到该指南。"
 
-#: app.py:2612
+#: app.py:2751
 msgid "Please enter a title in at least one language."
 msgstr "请至少输入一种语言的标题。"
 
-#: app.py:2614
+#: app.py:2753
 msgid "Please enter a slug."
 msgstr "请输入链接标识。"
 
-#: app.py:2616
+#: app.py:2755
 msgid "That slug is already taken. Pick another."
 msgstr "该链接标识已被使用，请换一个。"
 
-#: app.py:2623
+#: app.py:2762
 msgid "Guide updated."
 msgstr "指南已更新。"
 
-#: app.py:2626
+#: app.py:2765
 msgid "Guide published."
 msgstr "指南已发布。"
 
-#: app.py:2652
+#: app.py:2791
 msgid "Guide deleted."
 msgstr "指南已删除。"
 
-#: app.py:2826 app.py:2846
+#: app.py:2965 app.py:2985
 #, fuzzy
 msgid "Group ID and subject name are required."
 msgstr "旧名称和新名称都为必填项。"
 
-#: app.py:2831
+#: app.py:2970
 msgid "Subject already exists in this group."
 msgstr "该学科已在此分组中。"
 
-#: app.py:2835 app.py:2857
+#: app.py:2974 app.py:2996
 #, fuzzy
 msgid "Group not found."
 msgstr "未找到该指南。"
 
-#: app.py:2851
+#: app.py:2990
 msgid "Subject not found in this group."
 msgstr "该学科未在此分组中找到。"
 
-#: app.py:2866 app.py:2926
+#: app.py:3005 app.py:3065
 msgid "Journal name is required."
 msgstr "请输入期刊名称。"
 
-#: app.py:2870
+#: app.py:3009
 msgid "Journal already exists."
 msgstr "该期刊已存在。"
 
-#: app.py:2890
+#: app.py:3029
 msgid "Journal ID is required."
 msgstr "请提供期刊ID。"
 
-#: app.py:2894 app.py:2917 app.py:2983
+#: app.py:3033 app.py:3056 app.py:3122
 msgid "Journal not found."
 msgstr "未找到该期刊。"
 
-#: app.py:2959
+#: app.py:3098
 msgid "Journal updated."
 msgstr "期刊已更新。"
 
-#: app.py:3109 app.py:3131 app.py:3202
+#: app.py:3248 app.py:3270 app.py:3341
 msgid "Submission not found."
 msgstr "未找到该投稿。"
 
-#: app.py:3121
+#: app.py:3260
 msgid "Submission deleted."
 msgstr "投稿已删除。"
 
-#: app.py:3214 app.py:3268
+#: app.py:3353 app.py:3414
 msgid "Submission not found or already reviewed."
 msgstr "未找到该投稿或已被审核。"
 
-#: app.py:3258
+#: app.py:3399
 msgid "Paper accepted and published."
 msgstr "论文已接受并发布。"
 
-#: app.py:3285
+#: app.py:3431
 msgid "Paper rejected."
 msgstr "论文已拒绝。"
 
-#: app.py:3770
+#: app.py:3916
 msgid "Please sign in first."
 msgstr "请先登录。"
 
-#: app.py:3775
+#: app.py:3921
 msgid "Session expired. Please sign in again."
 msgstr "会话已过期，请重新登录。"
 
-#: app.py:3778
+#: app.py:3924
 msgid "Session timed out. Please sign in again."
 msgstr "会话已超时，请重新登录。"
 
-#: app.py:3784
+#: app.py:3930
 msgid "You do not have access to that action."
 msgstr "您没有权限执行此操作。"
 
-#: app.py:4043
+#: app.py:4246
 #, python-format
 msgid ""
 "This account is already signed in. Please sign out from the other session"
@@ -1142,184 +1281,96 @@ msgstr "返回首页"
 msgid "User Hub · Keydion"
 msgstr "用户中心 · Keydion"
 
-#: templates/_dashboard_shell.html:31
+#: templates/_dashboard_shell.html:36
 msgid "User hub navigation"
 msgstr "用户中心导航"
 
-#: templates/_dashboard_shell.html:42
+#: templates/_dashboard_shell.html:47
 msgid "Cycle sidebar"
 msgstr "切换侧边栏"
 
-#: templates/_dashboard_shell.html:47
+#: templates/_dashboard_shell.html:52
 msgid "Functions"
 msgstr "功能"
 
-#: templates/_dashboard_shell.html:52
+#: templates/_dashboard_shell.html:57
 msgid "Overview"
 msgstr "概览"
 
-#: templates/_dashboard_shell.html:56 templates/upload.html:13
+#: templates/_dashboard_shell.html:61 templates/upload.html:13
 msgid "Workspace"
 msgstr "工作区"
 
-#: templates/_dashboard_shell.html:61
+#: templates/_dashboard_shell.html:66
 msgid "Upload research"
 msgstr "上传研究"
 
-#: templates/_dashboard_shell.html:68
+#: templates/_dashboard_shell.html:73
 msgid "My submissions"
 msgstr "我的投稿"
 
-#: templates/_dashboard_shell.html:80
+#: templates/_dashboard_shell.html:85
 msgid "Review submissions"
 msgstr "审核投稿"
 
-#: templates/_dashboard_shell.html:90 templates/guide_manage.html:27
+#: templates/_dashboard_shell.html:95 templates/guide_manage.html:30
 msgid "Collection"
 msgstr "合集"
 
-#: templates/_dashboard_shell.html:95
+#: templates/_dashboard_shell.html:100
 msgid "Manage papers"
 msgstr "管理文献"
 
-#: templates/_dashboard_shell.html:101
+#: templates/_dashboard_shell.html:106
 msgid "Categories & journals"
 msgstr "分类与期刊"
 
-#: templates/_dashboard_shell.html:107 templates/guide_publish.html:15
+#: templates/_dashboard_shell.html:112 templates/guide_publish.html:15
 #: templates/guide_publish.html:26
 msgid "Manage guides"
 msgstr "管理指南"
 
-#: templates/_dashboard_shell.html:114 templates/base.html:64
+#: templates/_dashboard_shell.html:119 templates/base.html:65
 #: templates/landing.html:832 templates/landing.html:1000 templates/news.html:8
 #: templates/news.html:567 templates/news.html:602
-#: templates/news_article.html:645 templates/news_manage.html:27
+#: templates/news_article.html:645 templates/news_manage.html:30
 msgid "News"
 msgstr "新闻"
 
-#: templates/_dashboard_shell.html:119
+#: templates/_dashboard_shell.html:124
 msgid "Write an article"
 msgstr "撰写文章"
 
-#: templates/_dashboard_shell.html:125
+#: templates/_dashboard_shell.html:130
 msgid "Manage news"
 msgstr "管理新闻"
 
-#: templates/_dashboard_shell.html:135
+#: templates/_dashboard_shell.html:140
 msgid "Admin"
 msgstr "管理"
 
-#: templates/_dashboard_shell.html:140
+#: templates/_dashboard_shell.html:145
 msgid "Manage users"
 msgstr "管理用户"
 
-#: templates/_dashboard_shell.html:147 templates/change_password.html:297
+#: templates/_dashboard_shell.html:152 templates/change_password.html:297
 msgid "Account"
 msgstr "账户"
 
-#: templates/_dashboard_shell.html:152 templates/change_password.html:297
+#: templates/_dashboard_shell.html:157 templates/change_password.html:297
 #: templates/change_password.html:300
 msgid "Change password"
 msgstr "修改密码"
 
-#: templates/_dashboard_shell.html:158 templates/base.html:74
+#: templates/_dashboard_shell.html:163 templates/base.html:78
 #: templates/landing.html:844 templates/news.html:577
 #: templates/news_article.html:655
 msgid "Sign out"
 msgstr "退出登录"
 
-#: templates/_dashboard_shell.html:163
+#: templates/_dashboard_shell.html:168
 msgid "Show sidebar"
 msgstr "显示侧边栏"
-
-# ==================== DASHBOARD OVERVIEW ====================
-#: templates/_dashboard/overview.html:13
-#, python-format
-msgid "Hello, %(name)s."
-msgstr "你好，%(name)s。"
-
-#: templates/_dashboard/overview.html:14
-msgid "Manage your account access, uploads, and the Keydion library."
-msgstr "管理你的账户、上传以及 Keydion 文献库。"
-
-#: templates/_dashboard/overview.html:19
-#, python-format
-msgid "Access valid through %(date)s"
-msgstr "访问有效期至 %(date)s"
-
-#: templates/_dashboard/overview.html:25
-msgid "At a glance"
-msgstr "概况"
-
-#: templates/_dashboard/overview.html:29
-msgid "Papers in library"
-msgstr "文献库总数"
-
-#: templates/_dashboard/overview.html:40
-msgid "Pending reviews"
-msgstr "待审稿件"
-
-#: templates/_dashboard/overview.html:50
-msgid "Published news"
-msgstr "已发布新闻"
-
-#: templates/_dashboard/overview.html:57
-msgid "Pending news"
-msgstr "新闻草稿"
-
-#: templates/_dashboard/overview.html:65 templates/_dashboard/overview.html:67
-msgid "Quick actions"
-msgstr "快速操作"
-
-#: templates/_dashboard/overview.html:72
-msgid "Share a new paper for peers to explore. Supports PDF with metadata extraction."
-msgstr "分享新的研究文献，支持 PDF 元数据提取。"
-
-#: templates/_dashboard/overview.html:73
-msgid "Open uploader"
-msgstr "打开上传"
-
-#: templates/_dashboard/overview.html:78
-msgid "Review the queue"
-msgstr "审核队列"
-
-#: templates/_dashboard/overview.html:81
-#, python-format
-msgid "%(n)d submissions are waiting for editorial decision."
-msgstr "有 %(n)d 篇投稿待编辑处理。"
-
-#: templates/_dashboard/overview.html:83
-msgid "Accept or reject papers submitted by readers."
-msgstr "接受或拒绝读者提交的文献。"
-
-#: templates/_dashboard/overview.html:86
-msgid "Open queue"
-msgstr "打开队列"
-
-#: templates/_dashboard/overview.html:93
-msgid "Publish updates, announcements and stories for the Keydion community."
-msgstr "为 Keydion 社区发布更新、公告和文章。"
-
-#: templates/_dashboard/overview.html:94
-msgid "Open editor"
-msgstr "打开编辑器"
-
-#: templates/_dashboard/overview.html:101
-msgid "Review local and Microsoft-linked accounts, adjust roles, set passwords."
-msgstr "管理本地账户和 Microsoft 关联账户，调整角色与密码。"
-
-#: templates/_dashboard/overview.html:102
-msgid "Open admin"
-msgstr "打开管理"
-
-#: templates/_dashboard/overview.html:108
-msgid "Set or change your account password."
-msgstr "设置或修改你的账户密码。"
-
-#: templates/_dashboard/overview.html:109
-msgid "Update security"
-msgstr "更新密码"
 
 # ==================== REGISTER PAGE ====================
 #: templates/account_register.html:2
@@ -1342,7 +1393,7 @@ msgid "We will use your Microsoft email as the username."
 msgstr "我们将使用您的微软邮箱作为用户名。"
 
 #: templates/account_register.html:16 templates/admin_login.html:19
-#: templates/admin_users.html:138 templates/base.html:138
+#: templates/admin_users.html:138 templates/base.html:142
 #: templates/landing.html:1067 templates/news.html:710
 #: templates/news_article.html:821 templates/register.html:35
 msgid "Password"
@@ -1378,8 +1429,8 @@ msgstr "用户名"
 msgid "e.g. admin"
 msgstr "例如 admin"
 
-#: templates/admin_login.html:22 templates/base.html:78 templates/base.html:124
-#: templates/base.html:141 templates/landing.html:848
+#: templates/admin_login.html:22 templates/base.html:82 templates/base.html:128
+#: templates/base.html:145 templates/landing.html:848
 #: templates/landing.html:981 templates/landing.html:1054
 #: templates/landing.html:1070 templates/news.html:581 templates/news.html:710
 #: templates/news_article.html:659 templates/news_article.html:821
@@ -1427,7 +1478,7 @@ msgstr "角色"
 
 #: templates/admin_users.html:29 templates/admin_users.html:80
 #: templates/delete.html:265 templates/my_submissions.html:28
-#: templates/news_manage.html:150
+#: templates/news_manage.html:153
 msgid "Actions"
 msgstr "操作"
 
@@ -1442,11 +1493,11 @@ msgstr "重置"
 
 #: templates/admin_users.html:54 templates/admin_users.html:108
 #: templates/delete.html:298 templates/delete.html:358
-#: templates/guide_manage.html:179 templates/guide_manage.html:241
+#: templates/guide_manage.html:182 templates/guide_manage.html:244
 #: templates/my_submissions.html:62 templates/news_article.html:744
-#: templates/news_manage.html:133 templates/news_manage.html:203
-#: templates/news_manage.html:441 templates/news_manage.html:527
-#: templates/news_manage.html:540 templates/paper_manage.html:124
+#: templates/news_manage.html:136 templates/news_manage.html:206
+#: templates/news_manage.html:443 templates/news_manage.html:512
+#: templates/news_manage.html:525 templates/paper_manage.html:124
 #: templates/paper_manage.html:202 templates/paper_manage.html:250
 #: templates/paper_manage.html:299
 msgid "Delete"
@@ -1483,11 +1534,11 @@ msgid "No Microsoft users found."
 msgstr "未找到微软用户。"
 
 #: templates/admin_users.html:129 templates/admin_users.html:151
-#: templates/news_manage.html:237
+#: templates/news_manage.html:240
 msgid "Close"
 msgstr "关闭"
 
-#: templates/admin_users.html:152 templates/news_manage.html:245
+#: templates/admin_users.html:152 templates/news_manage.html:248
 #: templates/paper_manage.html:143 templates/paper_manage.html:170
 #: templates/paper_manage.html:221
 msgid "Add"
@@ -1502,138 +1553,157 @@ msgstr "高级搜索"
 msgid "Advanced search"
 msgstr "高级搜索"
 
-#: templates/advanced_search.html:10
-msgid "Find articles…"
-msgstr "查找文章..."
-
-#: templates/advanced_search.html:12
-msgid "that contain these"
-msgstr "关键词包含这些"
-
-#: templates/advanced_search.html:13
-msgid "terms"
-msgstr "词语"
-
-#: templates/advanced_search.html:15
-msgid "Keywords, e.g., neural networks"
-msgstr "关键词，例如 neural networks"
-
-#: templates/advanced_search.html:18
-msgid "where the list of"
-msgstr " "
-
-#: templates/advanced_search.html:19
-msgid "authors"
-msgstr "作者"
-
-#: templates/advanced_search.html:19 templates/advanced_search.html:24
-msgid "contains"
-msgstr "包含"
-
-#: templates/advanced_search.html:20
-msgid "Author name"
-msgstr "作者姓名"
-
-#: templates/advanced_search.html:23
-msgid "where the"
-msgstr "文章"
-
-# ==================== PAPER METADATA ====================
-#: templates/advanced_search.html:23
-msgid "title"
-msgstr "标题"
-
-#: templates/advanced_search.html:25
-msgid "Title keywords"
-msgstr "标题关键词"
-
-#: templates/advanced_search.html:28
-msgid "Refine your results by…"
-msgstr "通过以下条件筛选结果..."
-
-#: templates/advanced_search.html:35 templates/search.html:54
+#: templates/advanced_search.html:17 templates/search.html:54
 #, fuzzy
 msgid "Any Type"
 msgstr "类型"
 
-#: templates/advanced_search.html:36 templates/search.html:55
+#: templates/advanced_search.html:18 templates/search.html:55
 #: templates/search.html:200
 #, fuzzy
 msgid "Extended Essay"
 msgstr "IB 拓展论文（EE）"
 
-#: templates/advanced_search.html:47 templates/search.html:33
+#: templates/advanced_search.html:19 templates/search.html:56
+#: templates/search.html:214
+#, fuzzy
+msgid "Community Project"
+msgstr "IB 社区项目（CP）"
+
+#: templates/advanced_search.html:24
+msgid "Find articles…"
+msgstr "查找文章..."
+
+#: templates/advanced_search.html:26
+msgid "that contain these"
+msgstr "关键词包含这些"
+
+#: templates/advanced_search.html:27
+msgid "terms"
+msgstr "词语"
+
+#: templates/advanced_search.html:29
+msgid "Keywords, e.g., neural networks"
+msgstr "关键词，例如 neural networks"
+
+#: templates/advanced_search.html:33
+msgid "where the list of"
+msgstr " "
+
+#: templates/advanced_search.html:34
+msgid "authors"
+msgstr "作者"
+
+#: templates/advanced_search.html:34 templates/advanced_search.html:39
+msgid "contains"
+msgstr "包含"
+
+#: templates/advanced_search.html:35
+msgid "Author name"
+msgstr "作者姓名"
+
+#: templates/advanced_search.html:38
+msgid "where the"
+msgstr "文章"
+
+# ==================== PAPER METADATA ====================
+#: templates/advanced_search.html:38
+msgid "title"
+msgstr "标题"
+
+#: templates/advanced_search.html:40
+msgid "Title keywords"
+msgstr "标题关键词"
+
+#: templates/advanced_search.html:43
+msgid "Refine your results by…"
+msgstr "通过以下条件筛选结果..."
+
+#: templates/advanced_search.html:50 templates/search.html:33
 #: templates/search.html:68
 msgid "Any Subject"
 msgstr "所有学科"
 
-#: templates/advanced_search.html:59 templates/search.html:83
+#: templates/advanced_search.html:62 templates/search.html:83
 #, fuzzy
 msgid "Any Context"
 msgstr "全球语境"
 
-#: templates/advanced_search.html:67
+#: templates/advanced_search.html:70
 msgid "publication"
 msgstr "发表"
 
-#: templates/advanced_search.html:67
+#: templates/advanced_search.html:70
 msgid "date"
 msgstr "日期"
 
-#: templates/advanced_search.html:72 templates/advanced_search.html:79
+#: templates/advanced_search.html:75 templates/advanced_search.html:82
 msgid "Year"
 msgstr "年份"
 
-#: templates/advanced_search.html:77
+#: templates/advanced_search.html:80
 msgid "to"
 msgstr "至"
 
-#: templates/advanced_search.html:88 templates/landing.html:876
+#: templates/advanced_search.html:91 templates/landing.html:876
 #: templates/landing.html:999 templates/search.html:142
 #: templates/search.html:147
 msgid "Search"
 msgstr "检索"
 
-#: templates/base.html:8 templates/base.html:59 templates/landing.html:824
-#: templates/news.html:559 templates/news_article.html:637
+#: templates/ask.html:2 templates/base.html:8 templates/base.html:60
+#: templates/landing.html:824 templates/news.html:559
+#: templates/news_article.html:637
 msgid "Keydion"
 msgstr "Keydion"
 
-#: templates/base.html:63
+#: templates/ask.html:9
+msgid "New conversation"
+msgstr "新对话"
+
+#: templates/ask.html:11
+msgid "Grounded in the published library"
+msgstr "基于已发布的资料库"
+
+#: templates/ask.html:45
+msgid "AI can be wrong — verify citations against the source."
+msgstr "AI 可能出错——请对照原文核实引用。"
+
+#: templates/base.html:64
 msgid "Navigation"
 msgstr "导航"
 
-#: templates/base.html:66 templates/landing.html:834 templates/news.html:569
+#: templates/base.html:70 templates/landing.html:834 templates/news.html:569
 #: templates/news_article.html:647
 msgid "Manage"
 msgstr "管理"
 
-#: templates/base.html:73 templates/landing.html:843 templates/news.html:576
+#: templates/base.html:77 templates/landing.html:843 templates/news.html:576
 #: templates/news_article.html:654 templates/upload.html:11
 #, fuzzy
 msgid "Dashboard"
 msgstr "返回控制面板"
 
-#: templates/base.html:127 templates/landing.html:1057 templates/news.html:710
+#: templates/base.html:131 templates/landing.html:1057 templates/news.html:710
 #: templates/news_article.html:821
 msgid "Sign in with Microsoft"
 msgstr "使用微软账号登录"
 
-#: templates/base.html:129 templates/landing.html:1058 templates/news.html:710
+#: templates/base.html:133 templates/landing.html:1058 templates/news.html:710
 #: templates/news_article.html:821
 msgid "or sign in with email"
 msgstr "或使用邮箱登录"
 
-#: templates/base.html:134 templates/landing.html:1063 templates/news.html:710
+#: templates/base.html:138 templates/landing.html:1063 templates/news.html:710
 #: templates/news_article.html:821
 msgid "Email / Username"
 msgstr "邮箱 / 用户名"
 
-#: templates/base.html:144 templates/change_password.html:444
+#: templates/base.html:148 templates/change_password.html:444
 #: templates/delete.html:357 templates/guide_publish.html:148
 #: templates/landing.html:1073 templates/news.html:710
-#: templates/news_article.html:821 templates/news_manage.html:134
-#: templates/news_manage.html:534 templates/news_manage.html:539
+#: templates/news_article.html:821 templates/news_manage.html:137
+#: templates/news_manage.html:519 templates/news_manage.html:524
 #: templates/news_publish.html:969 templates/paper_modify.html:314
 msgid "Cancel"
 msgstr "取消"
@@ -1766,7 +1836,7 @@ msgid "Upload your first paper"
 msgstr "上传您的第一篇论文"
 
 #: templates/delete.html:262 templates/delete.html:326
-#: templates/guide_publish.html:35 templates/news_manage.html:146
+#: templates/guide_publish.html:35 templates/news_manage.html:149
 #: templates/news_publish.html:991 templates/paper_modify.html:51
 #: templates/preview.html:308 templates/review_paper.html:27
 #: templates/submission_detail.html:24
@@ -1775,9 +1845,9 @@ msgid "Category"
 msgstr "学科类别"
 
 #: templates/delete.html:264 templates/delete.html:338
-#: templates/guide_manage.html:83 templates/guide_publish.html:51
-#: templates/news_manage.html:96 templates/news_manage.html:149
-#: templates/news_manage.html:189 templates/news_manage.html:347
+#: templates/guide_manage.html:86 templates/guide_publish.html:51
+#: templates/news_manage.html:99 templates/news_manage.html:152
+#: templates/news_manage.html:192 templates/news_manage.html:349
 #: templates/paper_modify.html:299
 msgid "Published"
 msgstr "已发布"
@@ -1847,153 +1917,155 @@ msgstr "没有下一篇"
 msgid "Manage Guides · Keydion"
 msgstr "管理指南 · Keydion"
 
-#: templates/guide_manage.html:27
+#: templates/guide_manage.html:30
 msgid "Help"
 msgstr "帮助"
 
-#: templates/guide_manage.html:29
+#: templates/guide_manage.html:32
 msgid "Manage Guides"
 msgstr "管理指南"
 
-#: templates/guide_manage.html:30
+#: templates/guide_manage.html:33
+#, fuzzy
 msgid ""
-"Long-form documentation served at /help. Each guide supports English and "
-"Chinese, and appears in a sidebar grouped by category. Drag entries to "
-"reorder or recategorise."
+"Long-form documentation served at /guides. Each guide supports English "
+"and Chinese, and appears in a sidebar grouped by category. Drag entries "
+"to reorder or recategorise."
 msgstr "在 /help 提供的长文档。每篇指南支持中英文，并按分类显示在侧边栏中。拖动条目以重新排序或更换分类。"
 
-#: templates/guide_manage.html:35
+#: templates/guide_manage.html:38
 msgid "New guide"
 msgstr "新建指南"
 
-#: templates/guide_manage.html:63
+#: templates/guide_manage.html:66
 msgid "No guides yet"
 msgstr "还没有指南"
 
-#: templates/guide_manage.html:64
+#: templates/guide_manage.html:67
+#, fuzzy
 msgid ""
-"Guides appear in the public help center at /help, grouped by category and"
-" sorted by the order you set here. Start with a “Getting Started” piece —"
-" that's where most readers begin."
+"Guides appear in the public help center at /guides, grouped by category "
+"and sorted by the order you set here. Start with a “Getting Started” "
+"piece — that's where most readers begin."
 msgstr "指南显示在 /help 的公开帮助中心，按分类分组并按你在此设置的顺序排列。从一篇“入门”开始 — 多数读者从这里出发。"
 
-#: templates/guide_manage.html:67
+#: templates/guide_manage.html:70
 msgid "Write your first guide"
 msgstr "创建第一篇指南"
 
-#: templates/guide_manage.html:76
+#: templates/guide_manage.html:79
 msgid "Search by title or slug…"
 msgstr "按标题或 slug 搜索…"
 
-#: templates/guide_manage.html:81 templates/news_manage.html:91
+#: templates/guide_manage.html:84 templates/news_manage.html:94
 msgid "Filter by status"
 msgstr "按状态筛选"
 
-#: templates/guide_manage.html:82 templates/news_manage.html:95
+#: templates/guide_manage.html:85 templates/news_manage.html:98
 #: templates/review_list.html:38
 msgid "All"
 msgstr "全部"
 
-#: templates/guide_manage.html:84 templates/guide_manage.html:165
-#: templates/guide_manage.html:233 templates/guide_manage.html:420
+#: templates/guide_manage.html:87 templates/guide_manage.html:168
+#: templates/guide_manage.html:236 templates/guide_manage.html:423
 #: templates/guide_publish.html:55 templates/my_submissions.html:45
-#: templates/news_manage.html:97 templates/news_manage.html:183
+#: templates/news_manage.html:100 templates/news_manage.html:186
 msgid "Draft"
 msgstr "草稿"
 
-#: templates/guide_manage.html:89 templates/news_manage.html:105
+#: templates/guide_manage.html:92 templates/news_manage.html:108
 msgid "Filter by category"
 msgstr "按分类筛选"
 
-#: templates/guide_manage.html:90 templates/news_manage.html:106
-#: templates/news_manage.html:563
+#: templates/guide_manage.html:93 templates/news_manage.html:109
+#: templates/news_manage.html:548
 msgid "Category: All"
 msgstr "分类：全部"
 
-#: templates/guide_manage.html:129
+#: templates/guide_manage.html:132
 msgid "Add guide to"
 msgstr "添加指南到"
 
-#: templates/guide_manage.html:142 templates/guide_manage.html:212
+#: templates/guide_manage.html:145 templates/guide_manage.html:215
 msgid "Drag to reorder"
 msgstr "拖动以重新排序"
 
-#: templates/guide_manage.html:155
+#: templates/guide_manage.html:158
 msgid "words"
 msgstr "字"
 
-#: templates/guide_manage.html:162 templates/guide_manage.html:231
+#: templates/guide_manage.html:165 templates/guide_manage.html:234
 msgid "Click to publish or unpublish"
 msgstr "点击发布或取消发布"
 
-#: templates/guide_manage.html:163
+#: templates/guide_manage.html:166
 msgid "Toggle published"
 msgstr "切换发布状态"
 
-#: templates/guide_manage.html:165 templates/guide_manage.html:233
-#: templates/guide_manage.html:420 templates/guide_publish.html:55
+#: templates/guide_manage.html:168 templates/guide_manage.html:236
+#: templates/guide_manage.html:423 templates/guide_publish.html:55
 msgid "Live"
 msgstr "已发布"
 
-#: templates/guide_manage.html:169
+#: templates/guide_manage.html:172
 msgid "Preview public"
 msgstr "预览公开页面"
 
-#: templates/guide_manage.html:175 templates/news_article.html:711
+#: templates/guide_manage.html:178 templates/news_article.html:711
 msgid "Copy link"
 msgstr "复制链接"
 
-#: templates/guide_manage.html:178 templates/guide_manage.html:240
+#: templates/guide_manage.html:181 templates/guide_manage.html:243
 msgid "Delete this guide?"
 msgstr "删除此指南？"
 
-#: templates/guide_manage.html:199
+#: templates/guide_manage.html:202
 msgid "Uncategorised"
 msgstr "未分类"
 
-#: templates/guide_manage.html:257
+#: templates/guide_manage.html:260
 msgid "Order on the live site"
 msgstr "线上站点排序"
 
-#: templates/guide_manage.html:257
+#: templates/guide_manage.html:260
 msgid ""
 "follows category order, then the manual order you set here. Drag a row’s "
 "handle to move it within or between categories."
 msgstr "先按分类顺序，再按你在此设置的手动顺序排列。拖动行的手柄以在分类内或分类间移动。"
 
-#: templates/guide_manage.html:261
+#: templates/guide_manage.html:264
 msgid "No guides match these filters"
 msgstr "没有指南匹配这些筛选条件"
 
-#: templates/guide_manage.html:262
+#: templates/guide_manage.html:265
 msgid "Try a different status or category — or clear the search box."
 msgstr "试试不同的状态或分类 — 或清空搜索框。"
 
-#: templates/guide_manage.html:263 templates/news_manage.html:224
+#: templates/guide_manage.html:266 templates/news_manage.html:227
 msgid "Clear filters"
 msgstr "清除筛选"
 
-#: templates/guide_manage.html:396
+#: templates/guide_manage.html:399
 msgid "Order saved locally. Wire admin_guides_reorder to persist."
 msgstr "顺序已在本地保存。请连接 admin_guides_reorder 以持久化。"
 
-#: templates/guide_manage.html:405
+#: templates/guide_manage.html:408
 msgid "Order saved"
 msgstr "顺序已保存"
 
-#: templates/guide_manage.html:406
+#: templates/guide_manage.html:409
 msgid "Could not save order — please refresh."
 msgstr "无法保存顺序 — 请刷新页面。"
 
-#: templates/guide_manage.html:430
+#: templates/guide_manage.html:433
 msgid "Toggled locally. Wire admin_guide_toggle_published to persist."
 msgstr "已在本地切换。请连接 admin_guide_toggle_published 以持久化。"
 
-#: templates/guide_manage.html:443
+#: templates/guide_manage.html:446
 msgid "Could not update — please refresh."
 msgstr "无法更新 — 请刷新页面。"
 
-#: templates/guide_manage.html:454 templates/guide_manage.html:458
+#: templates/guide_manage.html:457 templates/guide_manage.html:461
 msgid "Link copied"
 msgstr "链接已复制"
 
@@ -2065,11 +2137,11 @@ msgstr "删除指南"
 msgid "All changes saved"
 msgstr "已保存所有更改"
 
-#: templates/guide_publish.html:150 templates/news_manage.html:196
+#: templates/guide_publish.html:150 templates/news_manage.html:199
 msgid "Preview"
 msgstr "预览"
 
-#: templates/guide_publish.html:151 templates/news_manage.html:533
+#: templates/guide_publish.html:151 templates/news_manage.html:518
 msgid "Save"
 msgstr "保存"
 
@@ -2361,7 +2433,7 @@ msgstr "提交新论文"
 msgid "Submitted"
 msgstr "提交时间"
 
-#: templates/my_submissions.html:27 templates/news_manage.html:147
+#: templates/my_submissions.html:27 templates/news_manage.html:150
 #: templates/review_list.html:53 templates/review_paper.html:54
 #: templates/submission_detail.html:48
 msgid "Status"
@@ -2440,7 +2512,7 @@ msgstr "匿名"
 msgid "Print"
 msgstr "打印"
 
-#: templates/news_article.html:738 templates/news_manage.html:202
+#: templates/news_article.html:738 templates/news_manage.html:205
 msgid "Are you sure you want to delete this article?"
 msgstr "确定要删除这篇文章吗？"
 
@@ -2453,194 +2525,194 @@ msgstr "阅读更多"
 msgid "Manage News · Keydion"
 msgstr "管理新闻 · Keydion"
 
-#: templates/news_manage.html:27
+#: templates/news_manage.html:30
 msgid "Editorial"
 msgstr "编辑"
 
-#: templates/news_manage.html:29
+#: templates/news_manage.html:32
 msgid "Manage News"
 msgstr "管理新闻"
 
-#: templates/news_manage.html:30
+#: templates/news_manage.html:33
 msgid ""
 "Articles, announcements, and editorial pieces published on Keydion. "
 "Drafts stay private until you publish."
 msgstr "在 Keydion 发布的文章、公告和编辑内容。草稿在发布前对外不可见。"
 
-#: templates/news_manage.html:35 templates/news_manage.html:235
+#: templates/news_manage.html:38 templates/news_manage.html:238
 msgid "Manage Categories"
 msgstr "管理分类"
 
-#: templates/news_manage.html:39
+#: templates/news_manage.html:42
 msgid "Publish new article"
 msgstr "发布新文章"
 
-#: templates/news_manage.html:69
+#: templates/news_manage.html:72
 msgid "No articles yet"
 msgstr "还没有文章"
 
-#: templates/news_manage.html:70
+#: templates/news_manage.html:73
 msgid ""
 "Articles published here surface on the public News page, in the category "
 "landing pages, and in newsletter digests. Pick a category to start with —"
 " you can always add more later."
 msgstr "在此发布的文章会显示在公开新闻页、分类页和邮件摘要中。先选择一个分类开始 — 你随时可以再添加更多。"
 
-#: templates/news_manage.html:74
+#: templates/news_manage.html:77
 msgid "Publish your first article"
 msgstr "发布第一篇文章"
 
-#: templates/news_manage.html:78
+#: templates/news_manage.html:81
 msgid "Set up categories"
 msgstr "设置分类"
 
-#: templates/news_manage.html:88
+#: templates/news_manage.html:91
 msgid "Search by title, abstract, or author…"
 msgstr "按标题、摘要或作者搜索…"
 
-#: templates/news_manage.html:99 templates/news_manage.html:185
+#: templates/news_manage.html:102 templates/news_manage.html:188
 msgid "Scheduled"
 msgstr "已排程"
 
-#: templates/news_manage.html:112
+#: templates/news_manage.html:115
 msgid "Date range"
 msgstr "日期范围"
 
-#: templates/news_manage.html:113
+#: templates/news_manage.html:116
 msgid "Any date"
 msgstr "任意日期"
 
 # ==================== LANDING PAGE - SECTIONS & FOOTER ====================
-#: templates/news_manage.html:114
+#: templates/news_manage.html:117
 msgid "Last 30 days"
 msgstr "最近 30 天"
 
 # ==================== LANDING PAGE - SECTIONS & FOOTER ====================
-#: templates/news_manage.html:115
+#: templates/news_manage.html:118
 msgid "Last 90 days"
 msgstr "最近 90 天"
 
-#: templates/news_manage.html:116
+#: templates/news_manage.html:119
 msgid "Last year"
 msgstr "最近一年"
 
-#: templates/news_manage.html:119
+#: templates/news_manage.html:122
 msgid "Sort"
 msgstr "排序"
 
-#: templates/news_manage.html:120
+#: templates/news_manage.html:123
 msgid "Newest first"
 msgstr "最新优先"
 
-#: templates/news_manage.html:121
+#: templates/news_manage.html:124
 msgid "Oldest first"
 msgstr "最早优先"
 
-#: templates/news_manage.html:122
+#: templates/news_manage.html:125
 msgid "Title A → Z"
 msgstr "标题 A → Z"
 
-#: templates/news_manage.html:123
+#: templates/news_manage.html:126
 msgid "Title Z → A"
 msgstr "标题 Z → A"
 
-#: templates/news_manage.html:129 templates/news_manage.html:362
+#: templates/news_manage.html:132 templates/news_manage.html:364
 msgid "articles selected"
 msgstr "已选择文章"
 
-#: templates/news_manage.html:131
+#: templates/news_manage.html:134
 msgid "Publish"
 msgstr "发布"
 
-#: templates/news_manage.html:132
+#: templates/news_manage.html:135
 msgid "Move to draft"
 msgstr "转为草稿"
 
-#: templates/news_manage.html:134
+#: templates/news_manage.html:137
 msgid "Clear selection"
 msgstr "清除选择"
 
-#: templates/news_manage.html:143
+#: templates/news_manage.html:146
 msgid "Select all"
 msgstr "全选"
 
-#: templates/news_manage.html:145
+#: templates/news_manage.html:148
 msgid "Article"
 msgstr "文章"
 
-#: templates/news_manage.html:164
+#: templates/news_manage.html:167
 msgid "Select article"
 msgstr "选择文章"
 
-#: templates/news_manage.html:187
+#: templates/news_manage.html:190
 msgid "Archived"
 msgstr "已归档"
 
-#: templates/news_manage.html:216 templates/news_manage.html:309
+#: templates/news_manage.html:219 templates/news_manage.html:311
 msgid "Showing"
 msgstr "显示"
 
-#: templates/news_manage.html:216 templates/news_manage.html:309
+#: templates/news_manage.html:219 templates/news_manage.html:311
 msgid "of"
 msgstr "共"
 
-#: templates/news_manage.html:216 templates/news_manage.html:309
-#: templates/news_manage.html:522
+#: templates/news_manage.html:219 templates/news_manage.html:311
+#: templates/news_manage.html:507
 msgid "articles"
 msgstr "篇文章"
 
-#: templates/news_manage.html:217
+#: templates/news_manage.html:220
 msgid "Preview public news page"
 msgstr "预览公开新闻页面"
 
-#: templates/news_manage.html:222
+#: templates/news_manage.html:225
 msgid "No articles match these filters"
 msgstr "没有文章匹配这些筛选条件"
 
-#: templates/news_manage.html:223
+#: templates/news_manage.html:226
 msgid "Try a different status, category, or date range — or clear the search box."
 msgstr "试试不同的状态、分类或日期范围 — 或清空搜索框。"
 
-#: templates/news_manage.html:242
+#: templates/news_manage.html:245
 msgid "New category name…"
 msgstr "新分类名称…"
 
-#: templates/news_manage.html:362
+#: templates/news_manage.html:364
 msgid "article selected"
 msgstr "已选择文章"
 
-#: templates/news_manage.html:441
+#: templates/news_manage.html:443
 msgid "articles? This cannot be undone."
 msgstr "篇文章？此操作无法撤销。"
 
-#: templates/news_manage.html:451
+#: templates/news_manage.html:452
 msgid "Bulk action failed."
 msgstr "批量操作失败。"
 
-#: templates/news_manage.html:511
+#: templates/news_manage.html:496
 msgid "No categories yet. Add one above."
 msgstr "还没有分类，请在上方添加。"
 
-#: templates/news_manage.html:524 templates/paper_manage.html:117
+#: templates/news_manage.html:509 templates/paper_manage.html:117
 #: templates/paper_manage.html:249
 msgid "Rename"
 msgstr "重命名"
 
-#: templates/news_manage.html:537
+#: templates/news_manage.html:522
 msgid ""
 "Delete this category? Articles using it will keep their current category "
 "label."
 msgstr "删除此分类？使用该分类的文章将保留当前分类标签。"
 
-#: templates/news_manage.html:587
+#: templates/news_manage.html:572
 msgid "Category added"
 msgstr "分类已添加"
 
-#: templates/news_manage.html:626
+#: templates/news_manage.html:611
 msgid "Category renamed"
 msgstr "分类已重命名"
 
-#: templates/news_manage.html:641
+#: templates/news_manage.html:626
 msgid "Category deleted"
 msgstr "分类已删除"
 
@@ -3018,7 +3090,7 @@ msgid "Criterion Name"
 msgstr "评分标准"
 
 #: templates/paper_modify.html:203
-#, fuzzy, python-format
+#, fuzzy
 msgid "Commentary for Criterion"
 msgstr "对评分标准 %(k)s 的评语…"
 
@@ -3278,11 +3350,6 @@ msgstr "在结果中搜索"
 msgid "Date"
 msgstr "日期"
 
-#: templates/search.html:56
-#, fuzzy
-msgid "Community Project"
-msgstr "IB 社区项目（CP）"
-
 #: templates/search.html:97
 msgid "Any Language"
 msgstr "所有语言"
@@ -3388,35 +3455,6 @@ msgstr "完成"
 #: templates/upload_success.html:184
 msgid "View My Submissions"
 msgstr "查看提交内容"
-
-# ==================== EE PDF AUTO-FILL ====================
-
-msgid "Auto-fill from commentary PDF"
-msgstr "从评语 PDF 自动填充"
-
-msgid "Replace your existing EE entries with values from the PDF?"
-msgstr "用 PDF 中的值替换现有的 EE 内容吗？"
-
-msgid "Extracting…"
-msgstr "正在提取…"
-
-msgid "Extracted all fields."
-msgstr "已提取全部字段。"
-
-msgid "Extracted %(filled)s of %(total)s fields."
-msgstr "已提取 %(filled)s / %(total)s 个字段。"
-
-msgid "Auto-fill failed — try again or fill manually."
-msgstr "自动填充失败——请重试或手动填写。"
-
-msgid "No file provided"
-msgstr "未提供文件"
-
-msgid "File must be a PDF"
-msgstr "文件必须是 PDF"
-
-msgid "File is not a valid PDF"
-msgstr "文件不是有效的 PDF"
 
 #~ msgid "Please use the Microsoft button to sign in."
 #~ msgstr "请使用微软按钮登录。"
@@ -4454,8 +4492,9 @@ msgstr "文件不是有效的 PDF"
 #~ msgid "Quick actions"
 #~ msgstr "快速操作"
 
+# ==================== DASHBOARD OVERVIEW ====================
 #~ msgid "Hello, %(name)s."
-#~ msgstr "你好,%(name)s。"
+#~ msgstr "你好，%(name)s。"
 
 #~ msgid "Manage your account access, uploads, and the Keydion library."
 #~ msgstr "管理你的账户、上传以及 Keydion 文献库。"
@@ -4476,7 +4515,7 @@ msgstr "文件不是有效的 PDF"
 #~ msgstr "审核队列"
 
 #~ msgid "%(n)d submissions are waiting for editorial decision."
-#~ msgstr "有 %(n)d 篇投稿等待编辑处理。"
+#~ msgstr "有 %(n)d 篇投稿待编辑处理。"
 
 #~ msgid "Accept or reject papers submitted by readers."
 #~ msgstr "接受或拒绝读者提交的文献。"
@@ -4485,7 +4524,7 @@ msgstr "文件不是有效的 PDF"
 #~ "Share a new paper for peers to "
 #~ "explore. Supports PDF with metadata "
 #~ "extraction."
-#~ msgstr "分享新的研究文献,支持 PDF 元数据提取。"
+#~ msgstr "分享新的研究文献，支持 PDF 元数据提取。"
 
 #~ msgid "Publish updates, announcements and stories for the Keydion community."
 #~ msgstr "为 Keydion 社区发布更新、公告和文章。"
@@ -4493,7 +4532,7 @@ msgstr "文件不是有效的 PDF"
 #~ msgid ""
 #~ "Review local and Microsoft-linked "
 #~ "accounts, adjust roles, set passwords."
-#~ msgstr "管理本地账户和 Microsoft 关联账户,调整角色与密码。"
+#~ msgstr "管理本地账户和 Microsoft 关联账户，调整角色与密码。"
 
 #~ msgid "Set or change your account password."
 #~ msgstr "设置或修改你的账户密码。"
@@ -4518,19 +4557,4 @@ msgstr "文件不是有效的 PDF"
 
 #~ msgid "Could not load this section."
 #~ msgstr "无法加载该部分。"
-
-msgid "Generate abstract & keywords from PDF"
-msgstr "从 PDF 生成摘要和关键词"
-
-msgid "Generating…"
-msgstr "生成中…"
-
-msgid "Generated abstract and keywords."
-msgstr "已生成摘要和关键词。"
-
-msgid "Generation failed — try again or fill manually."
-msgstr "生成失败——请重试或手动填写。"
-
-msgid "Replace your existing abstract and keywords with AI-generated ones?"
-msgstr "用 AI 生成的内容替换现有的摘要和关键词吗？"
 
