@@ -54,6 +54,7 @@ data/papersz
 
 # Superpowers plans/specs (local only)
 docs/superpowers/
+LLM_DEPLOYMENT_IDEAS.md
 
 # Utility / migration scripts
 test_db.py
