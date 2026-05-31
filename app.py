@@ -1,7 +1,12 @@
 from __future__ import annotations
 import os
 from dotenv import load_dotenv
-load_dotenv()
+# Prefer .env.prod (production) when present; fall back to .env only if it is absent.
+_ENV_DIR = os.path.dirname(os.path.abspath(__file__))
+_ENV_FILE = os.path.join(_ENV_DIR, ".env.prod")
+if not os.path.exists(_ENV_FILE):
+    _ENV_FILE = os.path.join(_ENV_DIR, ".env")
+load_dotenv(_ENV_FILE)
 
 import base64
 import binascii
