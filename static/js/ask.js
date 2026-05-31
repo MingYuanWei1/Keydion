@@ -246,6 +246,22 @@
     body.querySelector(".kd-prose").appendChild(box);
   }
 
+  function renderWebNote(body, items) {
+    if (!items || !items.length) return;
+    var box = el("div", "kd-webnote");
+    box.appendChild(el("div", "kd-webnote__label", I18N.searched_web || "Searched the web"));
+    var grid = el("div", "kd-webnote__grid");
+    items.forEach(function (it) {
+      var a = el("a", "kd-webnote__item");
+      a.href = it.url; a.target = "_blank"; a.rel = "noopener noreferrer";
+      a.appendChild(el("span", "kd-source__n", "[" + it.n + "]"));
+      a.appendChild(el("span", "kd-webnote__title", it.title));
+      grid.appendChild(a);
+    });
+    box.appendChild(grid);
+    body.querySelector(".kd-prose").appendChild(box);
+  }
+
   function addActions(body, getText) {
     var bar = el("div", "kd-msg__actions");
     var copy = iconButton(I18N.copy || "Copy", '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>');
@@ -273,6 +289,7 @@
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: q, mode: mode, conversation_id: cid,
+                               web: window.__webOn ? window.__webOn() : false,
                                paper_filenames: window.__selectedPapers ? window.__selectedPapers() : [] })
       });
     }).then(function (resp) {
@@ -326,6 +343,9 @@
       scroll();
     } else if (evt.type === "citations") {
       renderSources(ai.body, evt.items);
+      scroll();
+    } else if (evt.type === "web") {
+      renderWebNote(ai.body, evt.items);
       scroll();
     } else if (evt.type === "done") {
       addActions(ai.body, function () { return ai.text; });
@@ -508,6 +528,7 @@
     var on = webToggle.classList.toggle("is-on");
     webToggle.setAttribute("aria-pressed", on ? "true" : "false");
   });
+  window.__webOn = function () { return !!(webToggle && webToggle.classList.contains("is-on")); };
 
   // --- rail show/hide toggle ---
   var railToggle = document.getElementById("kd-railtoggle");

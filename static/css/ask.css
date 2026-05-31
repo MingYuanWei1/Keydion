@@ -532,6 +532,13 @@ button { font-family: inherit; cursor: pointer; }
 .kd-source__title { font-family: var(--serif-ui); font-size: 13.5px; font-weight: 600; color: var(--ink); line-height: 1.3; }
 .kd-source__sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
 
+.kd-webnote { margin-top: 12px; padding: 10px 12px; border: 1px dashed #c9d4f5; border-radius: 10px; background: #f6f8ff; }
+.kd-webnote__label { font-size: 12px; font-weight: 600; color: #1f44b8; margin-bottom: 6px; }
+.kd-webnote__grid { display: flex; flex-direction: column; gap: 4px; }
+.kd-webnote__item { display: flex; gap: 6px; align-items: baseline; color: #1f44b8; text-decoration: none; }
+.kd-webnote__item:hover { text-decoration: underline; }
+.kd-webnote__title { font-size: 13px; }
+
 .kd-msg__actions { display: flex; gap: 4px; margin-top: 12px; }
 .kd-iconbtn {
   width: 30px; height: 30px;

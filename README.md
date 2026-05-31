@@ -49,6 +49,11 @@ LLM_EMBED_MODEL=gemini-embedding-001
 > `LLM_API_KEY` / `LLM_BASE_URL` and `gemini-embedding-001` otherwise. See
 > [`LLM_DEPLOYMENT_IDEAS.md`](LLM_DEPLOYMENT_IDEAS.md) for other planned LLM uses.
 
+| Variable | Purpose | Default |
+|---|---|---|
+| `WEB_SEARCH_PROVIDER` | Web-search backend for the Ask page's "Web access" toggle | `tavily` |
+| `WEB_SEARCH_API_KEY` | API key for the web-search provider. **Unset = web access disabled** (toggle hidden). | unset |
+
 ### 2. Using Docker (Recommended)
 
 The easiest way to run the project is using Docker Compose:
@@ -107,6 +112,10 @@ download routes (`/papers/*`) proxy through to Flask so auth checks run.
    LLM_EMBED_API_KEY=
    LLM_EMBED_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
    LLM_EMBED_MODEL=gemini-embedding-001
+
+   # Optional web search for Ask the Library "Web access" toggle (default provider: Tavily)
+   WEB_SEARCH_PROVIDER=tavily
+   WEB_SEARCH_API_KEY=
 
    # Optional gunicorn tuning
    GUNICORN_WORKERS=4

@@ -93,7 +93,7 @@
                     </button>
                   </div>
                 </div>
-                <button class="kd-tool" id="kd-web-toggle" type="button" title="{{ _('Toggle web access') }}" aria-pressed="false"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/></svg><span>{{ _('Web access') }}</span></button>
+                {% if web_enabled %}<button class="kd-tool" id="kd-web-toggle" type="button" title="{{ _('Toggle web access') }}" aria-pressed="false"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/></svg><span>{{ _('Web access') }}</span></button>{% endif %}
               </div>
               <div class="kd-toolbar__right">
                 <div class="kd-agent" id="kd-agent" role="tablist" aria-label="{{ _('Agent') }}">
@@ -110,7 +110,7 @@
     </main>
   </div>
 
-  <input id="kd-file-input" type="file" accept=".pdf,.doc,.docx,.txt,.md,.rtf" multiple style="display:none">
+  <input id="kd-file-input" type="file" accept=".pdf,.docx,.txt,.md" multiple style="display:none">
 
   {% if not session.get('user') %}
   {% set flash_messages = get_flashed_messages(with_categories=true) %}
