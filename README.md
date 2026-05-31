@@ -33,12 +33,20 @@ PAPERQUERY_MS_REDIRECT_URI=https://yourdomain.com/auth/callback
 
 LLM_API_KEY=your_api_key
 LLM_BASE_URL=
-LLM_MODEL=gpt-4o-mini
+LLM_DEFAULT_FLASH=gpt-4o-mini
+LLM_DEFAULT_THINK=gpt-4o-mini
+
+# Optional separate embedding provider for library search/RAG
+LLM_EMBED_API_KEY=
+LLM_EMBED_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
+LLM_EMBED_MODEL=gemini-embedding-001
 ```
 
 > The abstract/keyword button only appears for Contributors (role ≥ 2) when
 > `LLM_API_KEY` is set. It drafts the abstract and keywords from the uploaded
-> PDF; the uploader reviews and edits before submitting. See
+> PDF; the uploader reviews and edits before submitting. The library assistant
+> uses `LLM_EMBED_*` for retrieval embeddings when set, falling back to
+> `LLM_API_KEY` / `LLM_BASE_URL` and `gemini-embedding-001` otherwise. See
 > [`LLM_DEPLOYMENT_IDEAS.md`](LLM_DEPLOYMENT_IDEAS.md) for other planned LLM uses.
 
 ### 2. Using Docker (Recommended)
@@ -92,7 +100,13 @@ download routes (`/papers/*`) proxy through to Flask so auth checks run.
    # AI assist — abstract & keyword auto-fill (Optional; OpenAI-compatible API)
    LLM_API_KEY=
    LLM_BASE_URL= 
-   LLM_MODEL=
+   LLM_DEFAULT_FLASH=gpt-4o-mini
+   LLM_DEFAULT_THINK=gpt-4o-mini
+
+   # Optional separate embedding provider for library search/RAG
+   LLM_EMBED_API_KEY=
+   LLM_EMBED_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
+   LLM_EMBED_MODEL=gemini-embedding-001
 
    # Optional gunicorn tuning
    GUNICORN_WORKERS=4
