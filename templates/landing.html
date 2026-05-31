@@ -826,6 +826,7 @@
         <span>Keydion</span>
       </a>
       <nav>
+        <a class="nav-link" href="{{ url_for('ask_library') }}">{{ _('Ask the Library') }}</a>
         {% if session.get('user') %}
         <a class="nav-link" href="{{ url_for('upload') }}">{{ _('Upload') }}</a>
         {% endif %}
@@ -976,6 +977,7 @@
       <h2>{{ _('Ready to explore?') }}</h2>
       <p>{{ _('Browse the library, upload your research, or sign in to get started.') }}</p>
       <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
+        <button class="btn-search" onclick="location.href='{{ url_for('ask_library') }}'">{{ _('Ask the Library') }}</button>
         <button class="btn-search" onclick="location.href='{{ url_for('search') }}'">{{ _('Search Papers') }}</button>
         {% if not session.get('user') %}
         <button class="btn-outline-light" onclick="openLoginModal()">{{ _('Sign in') }} →</button>

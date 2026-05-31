@@ -2345,6 +2345,71 @@ def create_app() -> Flask:
 
         return jsonify(result), 200
 
+    @app.route("/api/ask", methods=["POST"])
+    def api_ask():
+        if not llm_client.llm_enabled():
+            return jsonify({"error": str(_("AI assistant is not configured."))}), 503
+
+        ip = request.headers.get("X-Forwarded-For", request.remote_addr or "?").split(",")[0].strip()
+        if not _ask_rate_ok(ip):
+            return jsonify({"error": str(_("Too many requests — please slow down."))}), 429
+
+        data = request.get_json(silent=True) or {}
+        question = (data.get("question") or "").strip()
+        mode = data.get("mode") if data.get("mode") in ("flash", "think") else "flash"
+        forced = data.get("paper_filenames") or []   # Phase 3 (ignored if empty)
+        if not question:
+            return jsonify({"error": str(_("Please enter a question."))}), 400
+        if len(question) > MAX_QUESTION_CHARS:
+            return jsonify({"error": str(_("Your question is too long."))}), 400
+
+        locale_code = str(get_locale() or "en")
+
+        # Retrieve grounding (forced papers in Phase 3 override automatic retrieval).
+        try:
+            if forced:
+                hits = _forced_grounding(question, forced)
+            else:
+                hits = rag_index.retrieve(question)
+        except Exception:
+            app.logger.exception("retrieval failed")
+            hits = []
+
+        model = llm_client.think_model() if mode == "think" else llm_client.flash_model()
+        system = _build_ask_prompt(question, hits, locale_code)
+        citations = [
+            {"n": i + 1, "filename": h["filename"], "title": h["title"],
+             "authors": h.get("author_name", ""),
+             "url": url_for("paper_info", filename=h["filename"])}
+            for i, h in enumerate(hits)
+        ]
+
+        def generate():
+            import json as _json
+            try:
+                client = llm_client.build_client()
+                stream = client.chat.completions.create(
+                    model=model, temperature=0.2, stream=True,
+                    messages=[{"role": "system", "content": system},
+                              {"role": "user", "content": question}],
+                )
+                for chunk in stream:
+                    delta = ""
+                    try:
+                        delta = chunk.choices[0].delta.content or ""
+                    except (AttributeError, IndexError):
+                        delta = ""
+                    if delta:
+                        yield "data: " + _json.dumps({"type": "token", "text": delta}) + "\n\n"
+                yield "data: " + _json.dumps({"type": "citations", "items": citations}) + "\n\n"
+                yield "data: " + _json.dumps({"type": "done"}) + "\n\n"
+            except Exception:
+                app.logger.exception("LLM stream failed")
+                yield "data: " + _json.dumps({"type": "error",
+                       "message": str(_("Something went wrong. Please try again."))}) + "\n\n"
+
+        return Response(stream_with_context(generate()), mimetype="text/event-stream")
+
     @app.route("/api/upload/generate-abstract-keywords", methods=["POST"])
     def api_generate_abstract_keywords():
         user = require_login(level=2)
@@ -4164,6 +4229,51 @@ def configure_rag():
         store_all=_rag_store_all,
         store_delete=_rag_store_delete,
     )
+
+
+MAX_QUESTION_CHARS = 2000
+_ASK_HITS: dict = {}   # ip -> list[timestamp]; best-effort per worker
+ASK_RATE_LIMIT = 20    # requests
+ASK_RATE_WINDOW = 60   # seconds
+
+
+def _ask_rate_ok(ip: str) -> bool:
+    import time
+    now = time.time()
+    hits = [t for t in _ASK_HITS.get(ip, []) if now - t < ASK_RATE_WINDOW]
+    if len(hits) >= ASK_RATE_LIMIT:
+        _ASK_HITS[ip] = hits
+        return False
+    hits.append(now)
+    _ASK_HITS[ip] = hits
+    return True
+
+
+def _build_ask_prompt(question, hits, locale_code):
+    lang = "Chinese" if locale_code == "zh" else "English"
+    if hits:
+        sources = "\n\n".join(
+            f"[{i + 1}] {h['title']} — {h.get('author_name', '')}\n{h['content']}"
+            for i, h in enumerate(hits)
+        )
+        system = (
+            "You are Keydion's library assistant. Answer the question using ONLY the "
+            "numbered sources below. Cite claims with bracketed numbers like [1]. "
+            f"Answer in {lang}. If the sources do not contain the answer, say you "
+            "could not find it in the library.\n\nSOURCES:\n" + sources
+        )
+    else:
+        system = (
+            "You are Keydion's library assistant. You found no relevant papers in the "
+            f"library for this question. Answer in {lang}, briefly explain that nothing "
+            "relevant was found, and invite the user to rephrase. Do not invent sources."
+        )
+    return system
+
+
+def _forced_grounding(question, filenames):
+    # Temporary stub (Phase 3 / Task 17 replaces this with selection-aware grounding).
+    return rag_index.retrieve(question)
 
 
 def upsert_paper_metadata(filename: str, data: Dict[str, str]) -> None:
