@@ -593,6 +593,17 @@ class ChatMessageModel(BASE):
     created_at = Column(Unicode(40))
 
 
+class AttachmentChunkModel(BASE):
+    __tablename__ = "attachment_chunks"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    conversation_id = Column(Integer, index=True)
+    filename = Column(Unicode(255))
+    chunk_index = Column(Integer)
+    content = Column(UnicodeText)
+    embedding = Column(UnicodeText)   # JSON-encoded list[float]
+    created_at = Column(Unicode(40))
+
+
 class NewsArticleModel(BASE):
     __tablename__ = "news_articles"
     id = Column(Unicode(255), primary_key=True)
@@ -4541,6 +4552,35 @@ def _forced_grounding(question, filenames):
         hits.append({"filename": filename, "content": content, "score": score,
                      "title": meta.get("title", filename),
                      "author_name": meta.get("author_name", "")})
+    return hits
+
+
+def _attachment_grounding(question, conv_db_id):
+    """Ground on documents attached to this conversation (transient scope)."""
+    if conv_db_id is None:
+        return []
+    rows_data = []
+    with db_session() as db:
+        rows = (db.query(AttachmentChunkModel)
+                  .filter(AttachmentChunkModel.conversation_id == conv_db_id).all())
+        for r in rows:
+            try:
+                vec = json.loads(r.embedding) if r.embedding else []
+            except (ValueError, TypeError):
+                vec = []
+            rows_data.append((r.filename, r.chunk_index, r.content, vec))
+    if not rows_data:
+        return []
+    qvec = rag_index.embed_texts([question])[0]
+    scored = []
+    for filename, idx, content, vec in rows_data:
+        scored.append((rag_index.cosine(qvec, vec), filename, content))
+    scored.sort(key=lambda t: t[0], reverse=True)
+    hits = []
+    for score, filename, content in scored[:4]:
+        hits.append({"filename": filename, "content": content, "score": score,
+                     "title": filename, "author_name": str(_("Attached document")),
+                     "is_attachment": True})
     return hits
 
 
