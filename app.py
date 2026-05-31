@@ -573,6 +573,25 @@ class PaperChunkModel(BASE):
     lang = Column(Unicode(10))
 
 
+class ConversationModel(BASE):
+    __tablename__ = "conversations"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    owner_key = Column(Unicode(64), index=True)
+    title = Column(Unicode(255))
+    created_at = Column(Unicode(40))
+    updated_at = Column(Unicode(40))
+
+
+class ChatMessageModel(BASE):
+    __tablename__ = "chat_messages"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    conversation_id = Column(Integer, index=True)
+    role = Column(Unicode(16))          # "user" | "assistant"
+    content = Column(UnicodeText)
+    citations = Column(UnicodeText)     # JSON-encoded list
+    created_at = Column(Unicode(40))
+
+
 class NewsArticleModel(BASE):
     __tablename__ = "news_articles"
     id = Column(Unicode(255), primary_key=True)
@@ -839,6 +858,7 @@ def create_app() -> Flask:
                 "sources": _("Cited from your library"),
                 "copy": _("Copy"),
                 "regenerate": _("Regenerate"),
+                "rename": _("Rename"),
                 "thinking_state": _("Thinking…"),
                 "error": _("Something went wrong. Please try again."),
                 "disabled": _("AI assistant is not configured."),
@@ -2345,6 +2365,59 @@ def create_app() -> Flask:
 
         return jsonify(result), 200
 
+    @app.route("/api/conversations", methods=["GET", "POST"])
+    def api_conversations():
+        owner = _ask_owner_key()
+        if request.method == "POST":
+            now = datetime.utcnow().isoformat()
+            with db_session() as db:
+                conv = ConversationModel(owner_key=owner,
+                                         title=str(_("New conversation")),
+                                         created_at=now, updated_at=now)
+                db.add(conv)
+                db.flush()
+                cid = conv.id
+            return jsonify({"id": cid, "title": str(_("New conversation"))}), 201
+        with db_session() as db:
+            rows = (db.query(ConversationModel)
+                      .filter(ConversationModel.owner_key == owner)
+                      .order_by(ConversationModel.updated_at.desc()).all())
+            items = [{"id": r.id, "title": r.title, "updated_at": r.updated_at} for r in rows]
+        return jsonify({"conversations": items})
+
+    @app.route("/api/conversations/<int:cid>", methods=["GET", "PATCH", "DELETE"])
+    def api_conversation_item(cid):
+        owner = _ask_owner_key()
+        with db_session() as db:
+            conv = db.query(ConversationModel).filter(
+                ConversationModel.id == cid,
+                ConversationModel.owner_key == owner).first()
+            if not conv:
+                return jsonify({"error": str(_("Not found"))}), 404
+            if request.method == "DELETE":
+                db.query(ChatMessageModel).filter(
+                    ChatMessageModel.conversation_id == cid).delete()
+                db.delete(conv)
+                return jsonify({"ok": True})
+            if request.method == "PATCH":
+                data = request.get_json(silent=True) or {}
+                title = (data.get("title") or "").strip()
+                if title:
+                    conv.title = title[:255]
+                return jsonify({"ok": True, "title": conv.title})
+            # GET messages
+            msgs = (db.query(ChatMessageModel)
+                      .filter(ChatMessageModel.conversation_id == cid)
+                      .order_by(ChatMessageModel.id.asc()).all())
+            out = []
+            for m in msgs:
+                try:
+                    cites = json.loads(m.citations) if m.citations else []
+                except (ValueError, TypeError):
+                    cites = []
+                out.append({"role": m.role, "content": m.content, "citations": cites})
+            return jsonify({"title": conv.title, "messages": out})
+
     @app.route("/api/ask", methods=["POST"])
     def api_ask():
         if not llm_client.llm_enabled():
@@ -2362,6 +2435,24 @@ def create_app() -> Flask:
             return jsonify({"error": str(_("Please enter a question."))}), 400
         if len(question) > MAX_QUESTION_CHARS:
             return jsonify({"error": str(_("Your question is too long."))}), 400
+
+        conv_id = data.get("conversation_id")
+        owner = _ask_owner_key()
+        if conv_id is not None:
+            with db_session() as db:
+                conv = db.query(ConversationModel).filter(
+                    ConversationModel.id == conv_id,
+                    ConversationModel.owner_key == owner).first()
+                if conv:
+                    db.add(ChatMessageModel(conversation_id=conv_id, role="user",
+                                            content=question, citations="",
+                                            created_at=datetime.utcnow().isoformat()))
+                    # title the conversation from its first question
+                    if conv.title == str(_("New conversation")):
+                        conv.title = question[:60]
+                    conv.updated_at = datetime.utcnow().isoformat()
+                else:
+                    conv_id = None
 
         locale_code = str(get_locale() or "en")
 
@@ -2386,6 +2477,7 @@ def create_app() -> Flask:
 
         def generate():
             import json as _json
+            full = []
             try:
                 client = llm_client.build_client()
                 stream = client.chat.completions.create(
@@ -2400,8 +2492,23 @@ def create_app() -> Flask:
                     except (AttributeError, IndexError):
                         delta = ""
                     if delta:
+                        full.append(delta)
                         yield "data: " + _json.dumps({"type": "token", "text": delta}) + "\n\n"
                 yield "data: " + _json.dumps({"type": "citations", "items": citations}) + "\n\n"
+                if conv_id is not None:
+                    try:
+                        with db_session() as db:
+                            conv = db.query(ConversationModel).filter(
+                                ConversationModel.id == conv_id,
+                                ConversationModel.owner_key == owner).first()
+                            if conv:
+                                db.add(ChatMessageModel(
+                                    conversation_id=conv_id, role="assistant",
+                                    content="".join(full),
+                                    citations=_json.dumps(citations),
+                                    created_at=datetime.utcnow().isoformat()))
+                    except Exception:
+                        app.logger.exception("failed to persist assistant message")
                 yield "data: " + _json.dumps({"type": "done"}) + "\n\n"
             except Exception:
                 app.logger.exception("LLM stream failed")
@@ -4274,6 +4381,16 @@ def _build_ask_prompt(question, hits, locale_code):
 def _forced_grounding(question, filenames):
     # Temporary stub (Phase 3 / Task 17 replaces this with selection-aware grounding).
     return rag_index.retrieve(question)
+
+
+def _ask_owner_key() -> str:
+    """Stable per-browser key for owning conversations without a login."""
+    key = session.get("ask_owner")
+    if not key:
+        import uuid
+        key = uuid.uuid4().hex
+        session["ask_owner"] = key
+    return key
 
 
 def upsert_paper_metadata(filename: str, data: Dict[str, str]) -> None:
