@@ -18,8 +18,22 @@
     </a>
     <div class="kd-header__right">
       <a class="kd-header__icon" href="{{ url_for('search') }}" title="{{ _('Search papers') }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-3.5-3.5"/></svg></a>
-      <a class="kd-avatar" href="{{ url_for('dashboard') if session.get('user') else url_for('index') }}">
-        <img src="{{ url_for('static', filename='usricon.png') }}" alt="{{ _('Account') }}">
+      {% if session.get('user') %}
+      {% set nav_name = session.get('user', {}).get('display_name') or session.get('user', {}).get('username', '') %}
+      <div class="kd-user-menu">
+        <button class="kd-avatar btn-user-circle" type="button" onclick="toggleUserMenu()" title="{{ nav_name }}" aria-label="{{ _('Account') }}" aria-expanded="false">
+          <img src="{{ url_for('static', filename='usricon.png') }}" alt="">
+        </button>
+        <div class="kd-user-dropdown user-dropdown" id="userDropdown">
+          <a href="{{ url_for('dashboard') }}">{{ _('Dashboard') }}</a>
+          <a href="{{ url_for('logout') }}">{{ _('Sign out') }}</a>
+        </div>
+      </div>
+      {% else %}
+      <button class="kd-signin" type="button" onclick="openLoginModal()">{{ _('Sign in') }}</button>
+      {% endif %}
+      <a class="kd-lang-switch" href="{{ url_for('set_language', locale_code='en' if current_locale == 'zh' else 'zh', next=request.full_path) }}">
+        {{ 'EN' if current_locale == 'zh' else '中文' }}
       </a>
     </div>
   </header>
@@ -98,6 +112,41 @@
 
   <input id="kd-file-input" type="file" accept=".pdf,.doc,.docx,.txt,.md,.rtf" multiple style="display:none">
 
+  {% if not session.get('user') %}
+  {% set flash_messages = get_flashed_messages(with_categories=true) %}
+  {% set ns = namespace(has_login_error=false) %}
+  {% for category, message in flash_messages %}
+    {% if category in ['warning', 'danger'] %}{% set ns.has_login_error = true %}{% endif %}
+  {% endfor %}
+  <div id="loginModal" class="kd-login-overlay">
+    <div class="kd-login-modal" role="dialog" aria-modal="true" aria-label="{{ _('Sign in') }}">
+      {% for category, message in flash_messages %}
+        {% if category != 'info' %}<div class="kd-login-flash">{{ message }}</div>{% endif %}
+      {% endfor %}
+      <h3>{{ _('Sign in') }}</h3>
+      {% if ms_enabled %}
+      <button type="button" class="kd-login-btn kd-login-btn--ms" onclick="location.href='{{ url_for('ms_login') }}'">{{ _('Sign in with Microsoft') }}</button>
+      <div class="kd-login-divider"><span>{{ _('or sign in with email') }}</span></div>
+      {% endif %}
+      <form method="post" action="{{ url_for('login') }}" id="loginForm">
+        <input type="hidden" name="next" value="" id="loginNext">
+        <div class="kd-login-field">
+          <label>{{ _('Email / Username') }}</label>
+          <input type="text" name="email" required autofocus>
+        </div>
+        <div class="kd-login-field">
+          <label>{{ _('Password') }}</label>
+          <input type="password" name="password" required>
+        </div>
+        <button type="submit" class="kd-login-btn">{{ _('Sign in') }}</button>
+      </form>
+      <div class="kd-login-links">
+        <a href="#" onclick="closeLoginModal(); return false;">{{ _('Cancel') }}</a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <div class="kd-overlay" id="kd-cite-overlay">
     <div class="kd-modal" role="dialog" aria-modal="true" aria-label="{{ _('Cite from library') }}">
       <div class="kd-modal__head">
@@ -131,5 +180,45 @@
 
   <script type="application/json" id="ask-boot">{{ ask_boot | tojson }}</script>
   <script src="{{ url_for('static', filename='js/ask.js') }}"></script>
+  <script>
+    function toggleUserMenu() {
+      var menu = document.getElementById('userDropdown');
+      if (menu) menu.classList.toggle('open');
+    }
+    document.addEventListener('click', function (e) {
+      var menu = document.getElementById('userDropdown');
+      var btn = document.querySelector('.btn-user-circle');
+      if (menu && btn && !btn.contains(e.target) && !menu.contains(e.target)) {
+        menu.classList.remove('open');
+      }
+    });
+    var loginModal = document.getElementById('loginModal');
+    function openLoginModal() {
+      if (loginModal) {
+        var next = document.getElementById('loginNext');
+        if (next) next.value = window.location.pathname + window.location.search;
+        loginModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+    }
+    function closeLoginModal() {
+      if (loginModal) {
+        loginModal.classList.remove('active');
+        document.body.style.overflow = '';
+      }
+    }
+    if (loginModal) {
+      loginModal.addEventListener('click', function (e) {
+        if (e.target === loginModal) closeLoginModal();
+      });
+    }
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && loginModal && loginModal.classList.contains('active')) closeLoginModal();
+    });
+    {% if not session.get('user') %}
+    {% if ns.has_login_error %}openLoginModal();{% endif %}
+    {% if request.args.get('login') %}openLoginModal();{% endif %}
+    {% endif %}
+  </script>
 </body>
 </html>

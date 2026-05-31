@@ -876,6 +876,7 @@ def create_app() -> Flask:
             "ask.html",
             partial=is_partial_request(),
             llm_enabled=llm_client.llm_enabled(),
+            ms_enabled=is_ms_configured(),
             suggestions=suggestions,
             ask_boot=boot,
         )
