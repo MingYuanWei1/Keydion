@@ -4,9 +4,9 @@ Public surface:
     generate_abstract_keywords(file_bytes, language="en") -> dict
     LLMMetadataError
 
-Provider-agnostic: the client base URL, API key, and model are all read from
-the environment (LLM_BASE_URL / LLM_API_KEY / LLM_MODEL), so the same code
-works against OpenAI, a local model (Ollama/vLLM), or any OpenAI-style API.
+Provider-agnostic: the client base URL, API key, and model are resolved via
+``llm_client`` (LLM_BASE_URL / LLM_API_KEY / LLM_DEFAULT_FLASH), so the same
+code works against OpenAI, a local model (Ollama/vLLM), or any OpenAI-style API.
 """
 
 from __future__ import annotations
@@ -14,14 +14,14 @@ from __future__ import annotations
 import io
 import json
 import logging
-import os
 import re
 
 from PyPDF2 import PdfReader
 from PyPDF2.errors import PdfReadError
 
+import llm_client
+
 MAX_PDF_CHARS = 12_000          # bound the prompt size / token cost
-DEFAULT_MODEL = "gpt-4o-mini"
 MAX_KEYWORDS = 6
 
 _log = logging.getLogger(__name__)
@@ -60,16 +60,13 @@ def _pdf_text_from_bytes(file_bytes: bytes) -> str:
 
 
 def _build_client():
-    """Construct an OpenAI-compatible client from environment configuration."""
-    api_key = os.environ.get("LLM_API_KEY")
-    if not api_key:
+    """Construct the chat client; raise the module error if AI is unconfigured."""
+    if not llm_client.llm_enabled():
         raise LLMMetadataError("AI assist is not configured.")
     try:
-        from openai import OpenAI
+        return llm_client.build_client()
     except ImportError as exc:  # openai not installed
         raise LLMMetadataError("openai package is not installed.") from exc
-    base_url = os.environ.get("LLM_BASE_URL") or None
-    return OpenAI(api_key=api_key, base_url=base_url)
 
 
 def _parse_json(content: str):
@@ -106,7 +103,7 @@ def _normalise_keywords(value) -> list:
 def _complete(client, text: str, language: str) -> dict:
     """Call the chat endpoint and return {abstract, keywords, warnings}."""
     warnings: list = []
-    model = os.environ.get("LLM_MODEL", DEFAULT_MODEL)
+    model = llm_client.flash_model()
     lang_name = "Chinese" if language == "zh" else "English"
     system = (
         "You are an academic editor. Read the paper text and return a JSON object "

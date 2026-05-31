@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="{{ current_locale }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ _('Ask the Library') }} · {{ _('Keydion') }}</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='K.png') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Source+Serif+4:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ask.css') }}">
+</head>
+<body>
+  <header class="kd-header">
+    <a class="kd-logo" href="{{ url_for('index') }}">
+      <img src="{{ url_for('static', filename='K.png') }}" alt="Keydion">
+      <span class="kd-logo__word">Keydion</span>
+    </a>
+    <div class="kd-header__right">
+      <a class="kd-header__icon" href="{{ url_for('search') }}" title="{{ _('Search papers') }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-3.5-3.5"/></svg></a>
+      <a class="kd-avatar" href="{{ url_for('dashboard') if session.get('user') else url_for('index') }}">
+        <img src="{{ url_for('static', filename='usricon.png') }}" alt="{{ _('Account') }}">
+      </a>
+    </div>
+  </header>
+
+  {% if not llm_enabled %}
+  <div class="kd-disabled">{{ _('AI assistant is not configured.') }}</div>
+  {% endif %}
+
+  <div class="kd-app" data-rail="full" id="kd-app">
+    <aside class="kd-rail" aria-label="{{ _('Conversations') }}">
+      <div class="kd-rail__top">
+        <button class="kd-newchat" id="kd-newchat" type="button"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span>{{ _('New conversation') }}</span></button>
+        <div class="kd-railsearch"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-3.5-3.5"/></svg><input id="kd-rail-search" placeholder="{{ _('Search conversations') }}"></div>
+      </div>
+      <div class="kd-rail__list" id="kd-rail-list"></div>
+      <div class="kd-rail__foot">© {{ current_year }} Keydion</div>
+    </aside>
+
+    <main class="kd-main">
+      <button class="kd-railtoggle" id="kd-railtoggle" type="button" title="{{ _('Toggle conversations') }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg></button>
+
+      <div class="kd-thread">
+        <div class="kd-thread__inner" id="kd-thread">
+        <div class="kd-empty" id="kd-empty">
+          <h1 class="kd-empty__title">{{ _('Ask') }} <em style="color:rgb(5,5,5)">Keydion</em></h1>
+          <p class="kd-empty__sub">{{ _("Chat or cite papers straight from your library. I'll reason over the sources and keep the references attached.") }}</p>
+          <div class="kd-suggest">
+            {% for s in suggestions %}
+            <button class="kd-suggest__card" type="button" data-suggest="{{ s }}">
+              <div class="kd-suggest__kicker">{{ _('Suggested') }}</div>
+              <div class="kd-suggest__text">{{ s }}</div>
+            </button>
+            {% endfor %}
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <div class="kd-composer-wrap">
+        <div class="kd-composer">
+          <div class="kd-composer__box">
+            <div class="kd-attachrow" id="kd-attachrow"></div>
+            <textarea id="kd-composer-input" class="kd-composer__input" rows="1"
+                      placeholder="{{ _('Message Keydion AI…') }}" {% if not llm_enabled %}disabled{% endif %}></textarea>
+            <div class="kd-toolbar">
+              <div class="kd-toolbar__left">
+                <div style="position:relative">
+                  <button class="kd-tool kd-tool--round" id="kd-attach-btn" type="button" title="{{ _('Attach') }}" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+                  <div class="kd-pop" id="kd-attach-pop">
+                    <button class="kd-pop__item" id="kd-upload-item" type="button">
+                      <span class="kd-pop__ico kd-pop__ico--blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span>
+                      <span><span class="kd-pop__t">{{ _('Upload a file') }}</span><span class="kd-pop__d">{{ _('PDF, DOCX, TXT, Markdown…') }}</span></span>
+                    </button>
+                    <button class="kd-pop__item" id="kd-cite-open" type="button">
+                      <span class="kd-pop__ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+                      <span><span class="kd-pop__t">{{ _('Cite from library') }}</span><span class="kd-pop__d">{{ _('Reference papers in your collection') }}</span></span>
+                    </button>
+                  </div>
+                </div>
+                <button class="kd-tool" id="kd-web-toggle" type="button" title="{{ _('Toggle web access') }}" aria-pressed="false"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/></svg><span>{{ _('Web access') }}</span></button>
+              </div>
+              <div class="kd-toolbar__right">
+                <div class="kd-agent" id="kd-agent" role="tablist" aria-label="{{ _('Agent') }}">
+                  <button class="kd-agent__opt is-active" data-mode="flash" type="button" role="tab"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z"/></svg>{{ _('Flash') }}</button>
+                  <button class="kd-agent__opt" data-mode="think" type="button" role="tab"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a3 3 0 0 0-3 3 3 3 0 0 0-1 5.8A3 3 0 0 0 7 17a3 3 0 0 0 5 1 3 3 0 0 0 5-1 3 3 0 0 0 2-5.2A3 3 0 0 0 18 6a3 3 0 0 0-3-3 3 3 0 0 0-3 1.5A3 3 0 0 0 9 3z"/></svg>{{ _('Thinking') }}</button>
+                </div>
+                <button class="kd-send" id="kd-send" type="button" {% if not llm_enabled %}disabled{% endif %} aria-label="{{ _('Send') }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+              </div>
+            </div>
+          </div>
+          <p class="kd-composer__hint">{{ _('AI can be wrong — verify citations against the source.') }}</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <input id="kd-file-input" type="file" accept=".pdf,.doc,.docx,.txt,.md,.rtf" multiple style="display:none">
+
+  <div class="kd-overlay" id="kd-cite-overlay">
+    <div class="kd-modal" role="dialog" aria-modal="true" aria-label="{{ _('Cite from library') }}">
+      <div class="kd-modal__head">
+        <div class="kd-modal__titlerow">
+          <div>
+            <div class="kd-modal__kicker">{{ _('Your Library') }}</div>
+            <h2 class="kd-modal__title">{{ _('Cite a paper') }}</h2>
+          </div>
+          <button class="kd-modal__close" id="kd-cite-cancel" type="button" aria-label="{{ _('Close') }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+        </div>
+        <div class="kd-modal__search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-3.5-3.5"/></svg><input id="kd-cite-search" placeholder="{{ _('Search by title, author, or subject…') }}"></div>
+        <div class="kd-filters" id="kd-cite-filters">
+          <button class="kd-filter is-active" type="button">{{ _('All') }}</button>
+        </div>
+      </div>
+      <div class="kd-modal__body">
+        <div class="kd-modal__list" id="kd-cite-list"></div>
+        <div class="kd-modal__preview">
+          <div class="kd-preview__empty"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><p>{{ _('Hover a paper to preview its abstract before citing.') }}</p></div>
+        </div>
+      </div>
+      <div class="kd-modal__foot">
+        <div class="kd-modal__count" id="kd-cite-count">{{ _('Select papers to attach as citations') }}</div>
+        <div class="kd-modal__actions">
+          <button class="kd-btn" id="kd-cite-cancel2" type="button">{{ _('Cancel') }}</button>
+          <button class="kd-btn kd-btn--primary" id="kd-cite-add" type="button">{{ _('Cite papers') }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="application/json" id="ask-boot">{{ ask_boot | tojson }}</script>
+  <script src="{{ url_for('static', filename='js/ask.js') }}"></script>
+</body>
+</html>

@@ -31,6 +31,7 @@ from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, Str
 from sqlalchemy.orm import declarative_base, sessionmaker
 from flask import (
     Flask,
+    Response,
     abort,
     flash,
     jsonify,
@@ -40,6 +41,7 @@ from flask import (
     send_file,
     send_from_directory,
     session,
+    stream_with_context,
     url_for,
 )
 from flask_babel import Babel, gettext as _, get_locale, lazy_gettext as _l
@@ -47,6 +49,8 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
 from ee_pdf_extractor import extract_ee_metadata, EePdfExtractionError
 from llm_metadata import generate_abstract_keywords, LLMMetadataError
+import llm_client
+import rag_index
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -558,6 +562,36 @@ class PaperMetadataModel(BASE):
     is_ib_sample = Column(Unicode(10))
     cp_data = Column(UnicodeText)
 
+
+class PaperChunkModel(BASE):
+    __tablename__ = "papers_chunks"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    filename = Column(Unicode(255), index=True)
+    chunk_index = Column(Integer)
+    content = Column(UnicodeText)
+    embedding = Column(UnicodeText)   # JSON-encoded list[float]
+    lang = Column(Unicode(10))
+
+
+class ConversationModel(BASE):
+    __tablename__ = "conversations"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    owner_key = Column(Unicode(64), index=True)
+    title = Column(Unicode(255))
+    created_at = Column(Unicode(40))
+    updated_at = Column(Unicode(40))
+
+
+class ChatMessageModel(BASE):
+    __tablename__ = "chat_messages"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    conversation_id = Column(Integer, index=True)
+    role = Column(Unicode(16))          # "user" | "assistant"
+    content = Column(UnicodeText)
+    citations = Column(UnicodeText)     # JSON-encoded list
+    created_at = Column(Unicode(40))
+
+
 class NewsArticleModel(BASE):
     __tablename__ = "news_articles"
     id = Column(Unicode(255), primary_key=True)
@@ -716,6 +750,7 @@ def create_app() -> Flask:
     PAPERS_DIR.mkdir(parents=True, exist_ok=True)
     PENDING_PAPERS_DIR.mkdir(parents=True, exist_ok=True)
     init_db()
+    configure_rag()
     babel.init_app(app, locale_selector=select_locale)
 
     @app.context_processor
@@ -800,6 +835,45 @@ def create_app() -> Flask:
                 session.clear()
         latest_news = load_news_articles(status="published")[:4]
         return render_template("landing.html", ms_enabled=is_ms_configured(), latest_news=latest_news)
+
+    @app.route("/ask")
+    def ask_library():
+        suggestions = [
+            _("What does the research say about climate adaptation in plants?"),
+            _("Summarize recent Extended Essays in economics."),
+            _("Find papers about machine learning in healthcare."),
+        ]
+        boot = {
+            "ask_url": url_for("ask_library"),
+            "api_url": url_for("api_ask"),
+            "enabled": llm_client.llm_enabled(),
+            "i18n": {
+                "title": _("Ask the Library"),
+                "empty_title": _("Ask Keydion"),
+                "empty_sub": _("Ask a question and I'll answer from the published library, with citations."),
+                "placeholder": _("Message Keydion AI…"),
+                "flash": _("Flash"),
+                "thinking": _("Thinking"),
+                "send": _("Send"),
+                "sources": _("Cited from your library"),
+                "copy": _("Copy"),
+                "regenerate": _("Regenerate"),
+                "rename": _("Rename"),
+                "thinking_state": _("Thinking…"),
+                "error": _("Something went wrong. Please try again."),
+                "disabled": _("AI assistant is not configured."),
+                "no_sources": _("No matching papers were found in the library."),
+                "selected": _("selected"),
+                "select_hint": _("Select papers to attach as citations"),
+            },
+        }
+        return render_template(
+            "ask.html",
+            partial=is_partial_request(),
+            llm_enabled=llm_client.llm_enabled(),
+            suggestions=suggestions,
+            ask_boot=boot,
+        )
 
     @app.route("/faq")
     def faq():
@@ -1404,7 +1478,7 @@ def create_app() -> Flask:
             "cp_global_contexts": CP_GLOBAL_CONTEXTS,
             "cp_action_types": CP_ACTION_TYPES,
             "user_key": user.get("username", ""),
-            "llm_metadata_enabled": bool(os.environ.get("LLM_API_KEY")) and _role >= 2,
+            "llm_metadata_enabled": llm_client.llm_enabled() and _role >= 2,
             "i18n": {
                 "step_name_type": _("Paper Type"),
                 "step_name_metadata": _("Metadata"),
@@ -2104,6 +2178,10 @@ def create_app() -> Flask:
         remove_paper_metadata(filename)
         paper_path.unlink(missing_ok=True)
         flash(_("Deleted %(filename)s.", filename=filename), "success")
+        try:
+            rag_index.purge(filename)
+        except Exception:
+            app.logger.exception("Failed to purge chunks for deleted paper")
         return redirect(url_for("manage"))
 
     @app.route("/set-language/<locale_code>")
@@ -2288,6 +2366,171 @@ def create_app() -> Flask:
             return jsonify({"error": str(exc)}), 400
 
         return jsonify(result), 200
+
+    @app.route("/api/conversations", methods=["GET", "POST"])
+    def api_conversations():
+        owner = _ask_owner_key()
+        if request.method == "POST":
+            now = datetime.utcnow().isoformat()
+            with db_session() as db:
+                conv = ConversationModel(owner_key=owner,
+                                         title=str(_("New conversation")),
+                                         created_at=now, updated_at=now)
+                db.add(conv)
+                db.flush()
+                cid = conv.id
+            return jsonify({"id": cid, "title": str(_("New conversation"))}), 201
+        with db_session() as db:
+            rows = (db.query(ConversationModel)
+                      .filter(ConversationModel.owner_key == owner)
+                      .order_by(ConversationModel.updated_at.desc()).all())
+            items = [{"id": r.id, "title": r.title, "updated_at": r.updated_at} for r in rows]
+        return jsonify({"conversations": items})
+
+    @app.route("/api/conversations/<int:cid>", methods=["GET", "PATCH", "DELETE"])
+    def api_conversation_item(cid):
+        owner = _ask_owner_key()
+        with db_session() as db:
+            conv = db.query(ConversationModel).filter(
+                ConversationModel.id == cid,
+                ConversationModel.owner_key == owner).first()
+            if not conv:
+                return jsonify({"error": str(_("Not found"))}), 404
+            if request.method == "DELETE":
+                db.query(ChatMessageModel).filter(
+                    ChatMessageModel.conversation_id == cid).delete()
+                db.delete(conv)
+                return jsonify({"ok": True})
+            if request.method == "PATCH":
+                data = request.get_json(silent=True) or {}
+                title = (data.get("title") or "").strip()
+                if title:
+                    conv.title = title[:255]
+                return jsonify({"ok": True, "title": conv.title})
+            # GET messages
+            msgs = (db.query(ChatMessageModel)
+                      .filter(ChatMessageModel.conversation_id == cid)
+                      .order_by(ChatMessageModel.id.asc()).all())
+            out = []
+            for m in msgs:
+                try:
+                    cites = json.loads(m.citations) if m.citations else []
+                except (ValueError, TypeError):
+                    cites = []
+                out.append({"role": m.role, "content": m.content, "citations": cites})
+            return jsonify({"title": conv.title, "messages": out})
+
+    @app.route("/api/ask/papers")
+    def api_ask_papers():
+        q = (request.args.get("q") or "").strip()
+        records = search_papers(q) if q else gather_paper_records()
+        items = [{
+            "filename": r["filename"],
+            "title": r.get("title") or r["filename"],
+            "authors": r.get("author_name", ""),
+            "category": r.get("category", ""),
+            "abstract": (r.get("abstract") or "")[:400],
+        } for r in records[:50]]
+        return jsonify({"papers": items})
+
+    @app.route("/api/ask", methods=["POST"])
+    def api_ask():
+        if not llm_client.llm_enabled():
+            return jsonify({"error": str(_("AI assistant is not configured."))}), 503
+
+        ip = request.headers.get("X-Forwarded-For", request.remote_addr or "?").split(",")[0].strip()
+        if not _ask_rate_ok(ip):
+            return jsonify({"error": str(_("Too many requests — please slow down."))}), 429
+
+        data = request.get_json(silent=True) or {}
+        question = (data.get("question") or "").strip()
+        mode = data.get("mode") if data.get("mode") in ("flash", "think") else "flash"
+        forced = data.get("paper_filenames") or []   # Phase 3 (ignored if empty)
+        if not question:
+            return jsonify({"error": str(_("Please enter a question."))}), 400
+        if len(question) > MAX_QUESTION_CHARS:
+            return jsonify({"error": str(_("Your question is too long."))}), 400
+
+        conv_id = data.get("conversation_id")
+        owner = _ask_owner_key()
+        if conv_id is not None:
+            with db_session() as db:
+                conv = db.query(ConversationModel).filter(
+                    ConversationModel.id == conv_id,
+                    ConversationModel.owner_key == owner).first()
+                if conv:
+                    db.add(ChatMessageModel(conversation_id=conv_id, role="user",
+                                            content=question, citations="",
+                                            created_at=datetime.utcnow().isoformat()))
+                    # title the conversation from its first question
+                    if conv.title == str(_("New conversation")):
+                        conv.title = question[:60]
+                    conv.updated_at = datetime.utcnow().isoformat()
+                else:
+                    conv_id = None
+
+        locale_code = str(get_locale() or "en")
+
+        # Retrieve grounding (forced papers in Phase 3 override automatic retrieval).
+        try:
+            if forced:
+                hits = _forced_grounding(question, forced)
+            else:
+                hits = rag_index.retrieve(question)
+        except Exception:
+            app.logger.exception("retrieval failed")
+            hits = []
+
+        model = llm_client.think_model() if mode == "think" else llm_client.flash_model()
+        system = _build_ask_prompt(question, hits, locale_code)
+        citations = [
+            {"n": i + 1, "filename": h["filename"], "title": h["title"],
+             "authors": h.get("author_name", ""),
+             "url": url_for("paper_info", filename=h["filename"])}
+            for i, h in enumerate(hits)
+        ]
+
+        def generate():
+            import json as _json
+            full = []
+            try:
+                client = llm_client.build_client()
+                stream = client.chat.completions.create(
+                    model=model, temperature=0.2, stream=True,
+                    messages=[{"role": "system", "content": system},
+                              {"role": "user", "content": question}],
+                )
+                for chunk in stream:
+                    delta = ""
+                    try:
+                        delta = chunk.choices[0].delta.content or ""
+                    except (AttributeError, IndexError):
+                        delta = ""
+                    if delta:
+                        full.append(delta)
+                        yield "data: " + _json.dumps({"type": "token", "text": delta}) + "\n\n"
+                yield "data: " + _json.dumps({"type": "citations", "items": citations}) + "\n\n"
+                if conv_id is not None:
+                    try:
+                        with db_session() as db:
+                            conv = db.query(ConversationModel).filter(
+                                ConversationModel.id == conv_id,
+                                ConversationModel.owner_key == owner).first()
+                            if conv:
+                                db.add(ChatMessageModel(
+                                    conversation_id=conv_id, role="assistant",
+                                    content="".join(full),
+                                    citations=_json.dumps(citations),
+                                    created_at=datetime.utcnow().isoformat()))
+                    except Exception:
+                        app.logger.exception("failed to persist assistant message")
+                yield "data: " + _json.dumps({"type": "done"}) + "\n\n"
+            except Exception:
+                app.logger.exception("LLM stream failed")
+                yield "data: " + _json.dumps({"type": "error",
+                       "message": str(_("Something went wrong. Please try again."))}) + "\n\n"
+
+        return Response(stream_with_context(generate()), mimetype="text/event-stream")
 
     @app.route("/api/upload/generate-abstract-keywords", methods=["POST"])
     def api_generate_abstract_keywords():
@@ -3341,6 +3584,11 @@ def create_app() -> Flask:
             "reviewer": reviewer_name,
         })
         flash(_("Paper accepted and published."), "success")
+        try:
+            if llm_client.llm_enabled():
+                rag_index.build_index([filename])
+        except Exception:
+            app.logger.exception("Failed to index accepted paper")
         return redirect(url_for("review_list"))
 
     @app.route("/dashboard/review/<sub_id>/reject", methods=["POST"])
@@ -4046,6 +4294,141 @@ def gather_paper_records() -> List[Dict[str, str]]:
         records.append(build_paper_record(pdf_path.name, metadata_index))
     records.sort(key=lambda row: (row.get("published_at") or "", row.get("title") or row["filename"]), reverse=True)
     return records
+
+
+def _rag_iter_papers():
+    index = {row["filename"]: row for row in load_paper_metadata()}
+    return [build_paper_record(p.name, index) for p in PAPERS_DIR.glob("*.pdf")]
+
+
+def _rag_paper_text(filename):
+    return extract_pdf_text(PAPERS_DIR / filename)
+
+
+def _rag_paper_meta(filename):
+    return build_paper_record(filename)
+
+
+def _rag_store_replace(filename, rows):
+    with db_session() as db:
+        db.query(PaperChunkModel).filter(PaperChunkModel.filename == filename).delete()
+        for r in rows:
+            db.add(PaperChunkModel(
+                filename=r["filename"],
+                chunk_index=r["chunk_index"],
+                content=r["content"],
+                embedding=json.dumps(r["embedding"]),
+                lang=r.get("lang", ""),
+            ))
+
+
+def _rag_store_all():
+    with db_session() as db:
+        out = []
+        for row in db.query(PaperChunkModel).all():
+            try:
+                vec = json.loads(row.embedding) if row.embedding else []
+            except (ValueError, TypeError):
+                vec = []
+            out.append({"filename": row.filename, "chunk_index": row.chunk_index,
+                        "content": row.content, "embedding": vec})
+        return out
+
+
+def _rag_store_delete(filename):
+    with db_session() as db:
+        db.query(PaperChunkModel).filter(PaperChunkModel.filename == filename).delete()
+
+
+def configure_rag():
+    rag_index.configure(
+        build_embed_client=llm_client.build_embed_client,
+        embed_model=llm_client.embed_model,
+        iter_papers=_rag_iter_papers,
+        paper_text=_rag_paper_text,
+        paper_meta=_rag_paper_meta,
+        store_replace=_rag_store_replace,
+        store_all=_rag_store_all,
+        store_delete=_rag_store_delete,
+    )
+
+
+MAX_QUESTION_CHARS = 2000
+_ASK_HITS: dict = {}   # ip -> list[timestamp]; best-effort per worker
+ASK_RATE_LIMIT = 20    # requests
+ASK_RATE_WINDOW = 60   # seconds
+
+
+def _ask_rate_ok(ip: str) -> bool:
+    import time
+    now = time.time()
+    hits = [t for t in _ASK_HITS.get(ip, []) if now - t < ASK_RATE_WINDOW]
+    if len(hits) >= ASK_RATE_LIMIT:
+        _ASK_HITS[ip] = hits
+        return False
+    hits.append(now)
+    _ASK_HITS[ip] = hits
+    return True
+
+
+def _build_ask_prompt(question, hits, locale_code):
+    lang = "Chinese" if locale_code == "zh" else "English"
+    if hits:
+        sources = "\n\n".join(
+            f"[{i + 1}] {h['title']} — {h.get('author_name', '')}\n{h['content']}"
+            for i, h in enumerate(hits)
+        )
+        system = (
+            "You are Keydion's library assistant. Answer the question using ONLY the "
+            "numbered sources below. Cite claims with bracketed numbers like [1]. "
+            f"Answer in {lang}. If the sources do not contain the answer, say you "
+            "could not find it in the library.\n\nSOURCES:\n" + sources
+        )
+    else:
+        system = (
+            "You are Keydion's library assistant. You found no relevant papers in the "
+            f"library for this question. Answer in {lang}, briefly explain that nothing "
+            "relevant was found, and invite the user to rephrase. Do not invent sources."
+        )
+    return system
+
+
+def _forced_grounding(question, filenames):
+    """Ground on user-selected papers: score their stored chunks against the question."""
+    chunks = []
+    with db_session() as db:
+        rows = (db.query(PaperChunkModel)
+                  .filter(PaperChunkModel.filename.in_(filenames)).all())
+        for r in rows:
+            try:
+                vec = json.loads(r.embedding) if r.embedding else []
+            except (ValueError, TypeError):
+                vec = []
+            chunks.append((r.filename, r.chunk_index, r.content, vec))
+    if not chunks:
+        return []
+    qvec = rag_index.embed_texts([question])[0]
+    scored = []
+    for filename, idx, content, vec in chunks:
+        scored.append((rag_index.cosine(qvec, vec), filename, content))
+    scored.sort(key=lambda t: t[0], reverse=True)
+    hits = []
+    for score, filename, content in scored[:6]:
+        meta = build_paper_record(filename)
+        hits.append({"filename": filename, "content": content, "score": score,
+                     "title": meta.get("title", filename),
+                     "author_name": meta.get("author_name", "")})
+    return hits
+
+
+def _ask_owner_key() -> str:
+    """Stable per-browser key for owning conversations without a login."""
+    key = session.get("ask_owner")
+    if not key:
+        import uuid
+        key = uuid.uuid4().hex
+        session["ask_owner"] = key
+    return key
 
 
 def upsert_paper_metadata(filename: str, data: Dict[str, str]) -> None:

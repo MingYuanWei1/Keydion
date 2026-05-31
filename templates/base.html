@@ -63,6 +63,7 @@
       </a>
       <nav aria-label="{{ _('Navigation') }}">
         <a class="nav-link" href="{{ url_for('news_list') }}">{{ _('News') }}</a>
+        <a class="nav-link" href="{{ url_for('ask_library') }}">{{ _('Ask the Library') }}</a>
         {% if session.get('user', {}).get('role', '1')|int >= 3 %}
         <a class="nav-link" href="{{ url_for('manage') }}">{{ _('Manage') }}</a>
         {% endif %}
