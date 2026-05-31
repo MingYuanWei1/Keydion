@@ -108,10 +108,13 @@
     input.value = ""; input.style.height = "auto";
     var ai = addAi();
 
-    fetch(BOOT.api_url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: q, mode: mode })
+    ensureConversation().then(function (cid) {
+      return fetch(BOOT.api_url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: q, mode: mode, conversation_id: cid,
+                               paper_filenames: window.__selectedPapers ? window.__selectedPapers() : [] })
+      });
     }).then(function (resp) {
       if (!resp.ok) {
         return resp.json().catch(function () { return { error: I18N.error }; })
@@ -166,4 +169,130 @@
       ai.bubble.textContent = evt.message || I18N.error;
     }
   }
+  // --- conversation rail ---
+  var railList = document.getElementById("kd-rail-list");
+  var newChatBtn = document.getElementById("kd-newchat");
+  var activeConv = null;
+  window.__activeConv = function () { return activeConv; };
+
+  function loadConversations() {
+    if (!railList) return;
+    fetch("/api/conversations").then(function (r) { return r.json(); }).then(function (j) {
+      railList.innerHTML = "";
+      (j.conversations || []).forEach(function (c) {
+        var row = el("div", "kd-convo" + (c.id === activeConv ? " is-active" : ""));
+        var title = el("span", "kd-convo__title", c.title);
+        title.addEventListener("click", function () { openConversation(c.id); });
+        var menu = el("div", "kd-convo__menu");
+        var ren = el("button", "kd-convo__more", "✎");
+        ren.addEventListener("click", function (e) { e.stopPropagation(); renameConversation(c.id, c.title); });
+        var del = el("button", "kd-convo__more", "✕");
+        del.addEventListener("click", function (e) { e.stopPropagation(); deleteConversation(c.id); });
+        menu.appendChild(ren); menu.appendChild(del);
+        row.appendChild(title); row.appendChild(menu);
+        railList.appendChild(row);
+      });
+    });
+  }
+
+  function ensureConversation() {
+    if (activeConv != null) return Promise.resolve(activeConv);
+    return fetch("/api/conversations", { method: "POST" })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { activeConv = j.id; loadConversations(); return activeConv; });
+  }
+
+  function openConversation(id) {
+    activeConv = id;
+    fetch("/api/conversations/" + id).then(function (r) { return r.json(); }).then(function (j) {
+      thread.innerHTML = "";
+      if (empty) { thread.appendChild(empty); empty.style.display = "none"; }
+      (j.messages || []).forEach(function (m) {
+        if (m.role === "user") { addUser(m.content); }
+        else {
+          var ai = addAi(); if (ai.typing) ai.typing.remove(); ai.text = m.content;
+          ai.bubble.textContent = m.content;
+          renderSources(ai.body, m.citations);
+          addActions(ai.body, (function (t) { return function () { return t; }; })(m.content));
+        }
+      });
+      loadConversations();
+    });
+  }
+
+  function renameConversation(id, current) {
+    var name = window.prompt(I18N.rename || "Rename", current);
+    if (name == null) return;
+    fetch("/api/conversations/" + id, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: name })
+    }).then(loadConversations);
+  }
+
+  function deleteConversation(id) {
+    fetch("/api/conversations/" + id, { method: "DELETE" }).then(function () {
+      if (id === activeConv) { activeConv = null; thread.innerHTML = ""; if (empty) { thread.appendChild(empty); empty.style.display = ""; } }
+      loadConversations();
+    });
+  }
+
+  if (newChatBtn) newChatBtn.addEventListener("click", function () {
+    activeConv = null; thread.innerHTML = "";
+    if (empty) { thread.appendChild(empty); empty.style.display = ""; }
+    loadConversations();
+  });
+  loadConversations();
+
+  // --- cite from library ---
+  var citeOverlay = document.getElementById("kd-cite-overlay");
+  var citeListEl = document.getElementById("kd-cite-list");
+  var citeSearch = document.getElementById("kd-cite-search");
+  var attachRow = document.getElementById("kd-attachrow");
+  var selected = {};
+  window.__selectedPapers = function () { return Object.keys(selected); };
+
+  function openCite() { if (citeOverlay) { citeOverlay.classList.add("is-open"); loadPapers(""); } }
+  function closeCite() { if (citeOverlay) citeOverlay.classList.remove("is-open"); }
+
+  function loadPapers(q) {
+    if (!citeListEl) return;
+    fetch("/api/ask/papers?q=" + encodeURIComponent(q)).then(function (r) { return r.json(); })
+      .then(function (j) {
+        citeListEl.innerHTML = "";
+        (j.papers || []).forEach(function (p) {
+          var row = el("div", "kd-paper" + (selected[p.filename] ? " is-selected" : ""));
+          var meta = el("div");
+          meta.appendChild(el("div", "kd-paper__title", p.title));
+          meta.appendChild(el("div", "kd-paper__authors", p.authors));
+          row.appendChild(meta);
+          row.addEventListener("click", function () {
+            if (selected[p.filename]) { delete selected[p.filename]; row.classList.remove("is-selected"); }
+            else { selected[p.filename] = { title: p.title }; row.classList.add("is-selected"); }
+          });
+          citeListEl.appendChild(row);
+        });
+      });
+  }
+
+  function renderChips() {
+    if (!attachRow) return;
+    attachRow.innerHTML = "";
+    Object.keys(selected).forEach(function (fn) {
+      var chip = el("span", "kd-chip");
+      chip.appendChild(el("span", null, "\U0001F4C4 " + selected[fn].title));
+      var x = el("button", "kd-iconbtn", "✕");
+      x.addEventListener("click", function () { delete selected[fn]; renderChips(); });
+      chip.appendChild(x);
+      attachRow.appendChild(chip);
+    });
+  }
+
+  var citeOpenBtn = document.getElementById("kd-cite-open");
+  if (citeOpenBtn) citeOpenBtn.addEventListener("click", openCite);
+  var citeCancel = document.getElementById("kd-cite-cancel");
+  if (citeCancel) citeCancel.addEventListener("click", closeCite);
+  var citeAdd = document.getElementById("kd-cite-add");
+  if (citeAdd) citeAdd.addEventListener("click", function () { renderChips(); closeCite(); });
+  if (citeSearch) citeSearch.addEventListener("input", function () { loadPapers(citeSearch.value); });
+  if (citeOverlay) citeOverlay.addEventListener("click", function (e) { if (e.target === citeOverlay) closeCite(); });
 })();

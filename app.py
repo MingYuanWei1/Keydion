@@ -2418,6 +2418,19 @@ def create_app() -> Flask:
                 out.append({"role": m.role, "content": m.content, "citations": cites})
             return jsonify({"title": conv.title, "messages": out})
 
+    @app.route("/api/ask/papers")
+    def api_ask_papers():
+        q = (request.args.get("q") or "").strip()
+        records = search_papers(q) if q else gather_paper_records()
+        items = [{
+            "filename": r["filename"],
+            "title": r.get("title") or r["filename"],
+            "authors": r.get("author_name", ""),
+            "category": r.get("category", ""),
+            "abstract": (r.get("abstract") or "")[:400],
+        } for r in records[:50]]
+        return jsonify({"papers": items})
+
     @app.route("/api/ask", methods=["POST"])
     def api_ask():
         if not llm_client.llm_enabled():
@@ -4379,8 +4392,31 @@ def _build_ask_prompt(question, hits, locale_code):
 
 
 def _forced_grounding(question, filenames):
-    # Temporary stub (Phase 3 / Task 17 replaces this with selection-aware grounding).
-    return rag_index.retrieve(question)
+    """Ground on user-selected papers: score their stored chunks against the question."""
+    chunks = []
+    with db_session() as db:
+        rows = (db.query(PaperChunkModel)
+                  .filter(PaperChunkModel.filename.in_(filenames)).all())
+        for r in rows:
+            try:
+                vec = json.loads(r.embedding) if r.embedding else []
+            except (ValueError, TypeError):
+                vec = []
+            chunks.append((r.filename, r.chunk_index, r.content, vec))
+    if not chunks:
+        return []
+    qvec = rag_index.embed_texts([question])[0]
+    scored = []
+    for filename, idx, content, vec in chunks:
+        scored.append((rag_index.cosine(qvec, vec), filename, content))
+    scored.sort(key=lambda t: t[0], reverse=True)
+    hits = []
+    for score, filename, content in scored[:6]:
+        meta = build_paper_record(filename)
+        hits.append({"filename": filename, "content": content, "score": score,
+                     "title": meta.get("title", filename),
+                     "author_name": meta.get("author_name", "")})
+    return hits
 
 
 def _ask_owner_key() -> str:
