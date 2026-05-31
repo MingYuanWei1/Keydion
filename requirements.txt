@@ -11,3 +11,4 @@ pymssql>=2.2.8
 bleach>=6.0
 gunicorn>=22.0
 openai>=1.0
+python-docx>=1.1
