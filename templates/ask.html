@@ -7,7 +7,7 @@
 <div class="kd-app" id="kd-app">
   <aside class="kd-rail" id="kd-rail">
     <button class="kd-newchat" id="kd-newchat" type="button">+ {{ _('New conversation') }}</button>
-    <div class="kd-rail__list" id="kd-rail-list"><!-- conversations injected (Phase 2) --></div>
+    <div class="kd-rail__list" id="kd-rail-list"></div>
     <div class="kd-rail__foot">{{ _('Grounded in the published library') }}</div>
   </aside>
 
@@ -30,21 +30,42 @@
 
     <div class="kd-composer-wrap">
       <div class="kd-composer">
+        <div class="kd-attachrow" id="kd-attachrow"></div>
         <textarea id="kd-composer-input" class="kd-composer__input" rows="1"
                   placeholder="{{ _('Message Keydion AI…') }}"
                   {% if not llm_enabled %}disabled{% endif %}></textarea>
         <div class="kd-toolbar">
-          <div class="kd-agent" id="kd-agent" role="tablist">
-            <button class="kd-agent__opt is-active" data-mode="flash" type="button">{{ _('Flash') }}</button>
-            <button class="kd-agent__opt" data-mode="think" type="button">{{ _('Thinking') }}</button>
+          <div class="kd-toolbar__left">
+            <button class="kd-tool" id="kd-cite-open" type="button">📚 {{ _('Cite from library') }}</button>
           </div>
-          <button class="kd-send" id="kd-send" type="button" {% if not llm_enabled %}disabled{% endif %}
-                  aria-label="{{ _('Send') }}">→</button>
+          <div class="kd-toolbar__right">
+            <div class="kd-agent" id="kd-agent" role="tablist">
+              <button class="kd-agent__opt is-active" data-mode="flash" type="button">{{ _('Flash') }}</button>
+              <button class="kd-agent__opt" data-mode="think" type="button">{{ _('Thinking') }}</button>
+            </div>
+            <button class="kd-send" id="kd-send" type="button" {% if not llm_enabled %}disabled{% endif %}
+                    aria-label="{{ _('Send') }}">→</button>
+          </div>
         </div>
       </div>
       <p class="kd-composer__hint">{{ _('AI can be wrong — verify citations against the source.') }}</p>
     </div>
   </main>
+</div>
+
+<div class="kd-overlay" id="kd-cite-overlay">
+  <div class="kd-modal" role="dialog" aria-modal="true">
+    <div class="kd-modal__head">
+      <h2 class="kd-modal__title">{{ _('Cite a paper') }}</h2>
+      <input id="kd-cite-search" class="kd-modal__search" type="text"
+             placeholder="{{ _('Search by title, author, or subject…') }}">
+    </div>
+    <div class="kd-modal__list" id="kd-cite-list"></div>
+    <div class="kd-modal__foot">
+      <button class="btn-search" id="kd-cite-cancel" type="button">{{ _('Cancel') }}</button>
+      <button class="btn-search" id="kd-cite-add" type="button">{{ _('Add') }}</button>
+    </div>
+  </div>
 </div>
 
 <script type="application/json" id="ask-boot">{{ ask_boot | tojson }}</script>
