@@ -827,6 +827,7 @@ def create_app() -> Flask:
             "site_name": "Keydion",
             "ms_enabled": is_ms_configured(),
             "open_access": OPEN_ACCESS,
+            "llm_enabled": llm_client.llm_enabled(),
         }
 
     # ---- Template filter: parse block-based article body ----
