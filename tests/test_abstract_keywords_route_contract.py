@@ -45,7 +45,7 @@ class AbstractKeywordsRouteContractTest(unittest.TestCase):
         # The enabled flag must require BOTH a configured key AND contributor
         # role (>=2), so role-1 users don't see a button that 401s.
         line = next(l for l in self.source.splitlines() if '"llm_metadata_enabled"' in l)
-        self.assertIn("LLM_API_KEY", line)
+        self.assertIn("llm_client.llm_enabled()", line)
         self.assertIn("_role", line)
 
     def test_i18n_key_present(self):

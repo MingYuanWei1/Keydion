@@ -47,6 +47,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.utils import secure_filename
 from ee_pdf_extractor import extract_ee_metadata, EePdfExtractionError
 from llm_metadata import generate_abstract_keywords, LLMMetadataError
+import llm_client
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -1404,7 +1405,7 @@ def create_app() -> Flask:
             "cp_global_contexts": CP_GLOBAL_CONTEXTS,
             "cp_action_types": CP_ACTION_TYPES,
             "user_key": user.get("username", ""),
-            "llm_metadata_enabled": bool(os.environ.get("LLM_API_KEY")) and _role >= 2,
+            "llm_metadata_enabled": llm_client.llm_enabled() and _role >= 2,
             "i18n": {
                 "step_name_type": _("Paper Type"),
                 "step_name_metadata": _("Metadata"),

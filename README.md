@@ -40,9 +40,28 @@ LLM_API_KEY=your_api_key
 # Optional — point at a non-OpenAI / self-hosted OpenAI-compatible endpoint
 # (e.g. http://localhost:11434/v1 for Ollama). Omit entirely for OpenAI itself.
 LLM_BASE_URL=
-# Optional — chat model to use; defaults to gpt-4o-mini.
-LLM_MODEL=gpt-4o-mini
+# Optional — fast/cheap chat model; defaults to gpt-4o-mini.
+LLM_DEFAULT_FLASH=gpt-4o-mini
+# Optional — deeper reasoning model for the "Thinking" toggle; defaults to the flash model.
+LLM_DEFAULT_THINK=
+# Optional — embedding model for Ask-the-Library retrieval; defaults to gemini-embedding-001.
+LLM_EMBED_MODEL=gemini-embedding-001
+# Optional — embedding provider base URL, e.g.
+# https://generativelanguage.googleapis.com/v1beta/openai/ (falls back to LLM_BASE_URL).
+LLM_EMBED_BASE_URL=
+# Optional — embedding provider API key (falls back to LLM_API_KEY).
+LLM_EMBED_API_KEY=
 ```
+
+- `LLM_API_KEY` — API key for the chat provider (enables all AI features)
+- `LLM_BASE_URL` — base URL for the chat provider (OpenAI-compatible; optional)
+- `LLM_DEFAULT_FLASH` — fast/cheap chat model (default `gpt-4o-mini`)
+- `LLM_DEFAULT_THINK` — deeper reasoning model for the "Thinking" toggle (defaults to the flash model)
+- `LLM_EMBED_MODEL` — embedding model for Ask-the-Library retrieval (default `gemini-embedding-001`)
+- `LLM_EMBED_BASE_URL` — base URL for the embedding provider, e.g. `https://generativelanguage.googleapis.com/v1beta/openai/` (falls back to `LLM_BASE_URL`)
+- `LLM_EMBED_API_KEY` — API key for the embedding provider (falls back to `LLM_API_KEY`)
+
+After deploy, build the retrieval index once: `python3 tools/build_embeddings.py`
 
 > The abstract/keyword button only appears for Contributors (role ≥ 2) when
 > `LLM_API_KEY` is set. It drafts the abstract and keywords from the uploaded
@@ -97,10 +116,15 @@ download routes (`/papers/*`) proxy through to Flask so auth checks run.
    PAPERQUERY_MS_CLIENT_SECRET=...
    PAPERQUERY_MS_REDIRECT_URI=https://yourdomain.com/auth/callback
 
-   # AI assist — abstract & keyword auto-fill (Optional; OpenAI-compatible API)
+   # AI assist + Ask-the-Library (Optional; OpenAI-compatible API)
    LLM_API_KEY=...
-   LLM_BASE_URL=            # optional; omit for OpenAI, set for a local/compatible provider
-   LLM_MODEL=gpt-4o-mini    # optional; defaults to gpt-4o-mini
+   LLM_BASE_URL=                        # optional; omit for OpenAI, set for a local/compatible provider
+   LLM_DEFAULT_FLASH=gpt-4o-mini        # optional; defaults to gpt-4o-mini
+   LLM_DEFAULT_THINK=                   # optional; defaults to the flash model
+   LLM_EMBED_MODEL=gemini-embedding-001 # optional; embedding model for retrieval
+   LLM_EMBED_BASE_URL=                  # optional; embedding provider URL (falls back to LLM_BASE_URL)
+   LLM_EMBED_API_KEY=                   # optional; embedding provider key (falls back to LLM_API_KEY)
+   # After deploy, build the retrieval index once: python3 tools/build_embeddings.py
 
    # Optional gunicorn tuning
    GUNICORN_WORKERS=4
