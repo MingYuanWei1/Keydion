@@ -225,4 +225,4 @@ The project uses Flask-Babel for translations. To update translations:
 
 ## License
 
-Copyright © 2026 Keydion. All rights reserved.
+Copyright © 2026 Keydion. All rights reserved. This is proprietary software; see [LICENSE](LICENSE) for the full terms.
