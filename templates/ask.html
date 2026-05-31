@@ -1,0 +1,52 @@
+{% extends "_bare.html" if partial else "base.html" %}
+{% block title %}{{ _('Ask the Library') }} · {{ _('Keydion') }}{% endblock %}
+{% block head_extra %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ask.css') }}">
+{% endblock %}
+{% block content %}
+<div class="kd-app" id="kd-app">
+  <aside class="kd-rail" id="kd-rail">
+    <button class="kd-newchat" id="kd-newchat" type="button">+ {{ _('New conversation') }}</button>
+    <div class="kd-rail__list" id="kd-rail-list"><!-- conversations injected (Phase 2) --></div>
+    <div class="kd-rail__foot">{{ _('Grounded in the published library') }}</div>
+  </aside>
+
+  <main class="kd-main">
+    {% if not llm_enabled %}
+    <div class="kd-disabled">{{ _('AI assistant is not configured.') }}</div>
+    {% endif %}
+
+    <div class="kd-thread" id="kd-thread">
+      <div class="kd-empty" id="kd-empty">
+        <h1 class="kd-empty__title">{{ _('Ask Keydion') }}</h1>
+        <p class="kd-empty__sub">{{ _("Ask a question and I'll answer from the published library, with citations.") }}</p>
+        <div class="kd-suggest">
+          {% for s in suggestions %}
+          <button class="kd-suggest__card" type="button" data-suggest="{{ s }}">{{ s }}</button>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="kd-composer-wrap">
+      <div class="kd-composer">
+        <textarea id="kd-composer-input" class="kd-composer__input" rows="1"
+                  placeholder="{{ _('Message Keydion AI…') }}"
+                  {% if not llm_enabled %}disabled{% endif %}></textarea>
+        <div class="kd-toolbar">
+          <div class="kd-agent" id="kd-agent" role="tablist">
+            <button class="kd-agent__opt is-active" data-mode="flash" type="button">{{ _('Flash') }}</button>
+            <button class="kd-agent__opt" data-mode="think" type="button">{{ _('Thinking') }}</button>
+          </div>
+          <button class="kd-send" id="kd-send" type="button" {% if not llm_enabled %}disabled{% endif %}
+                  aria-label="{{ _('Send') }}">→</button>
+        </div>
+      </div>
+      <p class="kd-composer__hint">{{ _('AI can be wrong — verify citations against the source.') }}</p>
+    </div>
+  </main>
+</div>
+
+<script type="application/json" id="ask-boot">{{ ask_boot | tojson }}</script>
+<script src="{{ url_for('static', filename='js/ask.js') }}"></script>
+{% endblock %}
