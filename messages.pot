@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 20:05+0800\n"
+"POT-Creation-Date: 2026-06-01 00:18+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,760 +17,837 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#: app.py:842
+#: app.py:301
+msgid "Please enter the paper title"
+msgstr ""
+
+#: app.py:302
+msgid "Please select a subject category"
+msgstr ""
+
+#: app.py:303
+msgid "Please select a language"
+msgstr ""
+
+#: app.py:304
+msgid "Please enter keywords"
+msgstr ""
+
+#: app.py:305
+msgid "Please enter the abstract"
+msgstr ""
+
+#: app.py:306
+msgid "Please enter the author name"
+msgstr ""
+
+#: app.py:307
+msgid "Please enter the contact email"
+msgstr ""
+
+#: app.py:308
+msgid "Please enter the school name"
+msgstr ""
+
+#: app.py:504
+msgid "Reader - View & Download"
+msgstr ""
+
+#: app.py:505
+msgid "Contributor - Upload Enabled"
+msgstr ""
+
+#: app.py:506
+msgid "Curator - Full Access"
+msgstr ""
+
+#: app.py:509 app.py:1591 templates/paper_modify.html:68
+#: templates/search.html:99
+msgid "English"
+msgstr ""
+
+#: app.py:510 app.py:1592 templates/paper_modify.html:66
+#: templates/search.html:98
+msgid "Chinese"
+msgstr ""
+
+#: app.py:828 app.py:4282
+msgid "Please sign in first."
+msgstr ""
+
+#: app.py:900
 msgid "What does the research say about climate adaptation in plants?"
 msgstr ""
 
-#: app.py:843
+#: app.py:901
 msgid "Summarize recent Extended Essays in economics."
 msgstr ""
 
-#: app.py:844
+#: app.py:902
 msgid "Find papers about machine learning in healthcare."
 msgstr ""
 
-#: app.py:851 templates/ask.html:6 templates/base.html:66
-#: templates/landing.html:829 templates/landing.html:980
-msgid "Keydion AI"
-msgstr ""
-
-#: app.py:853
+#: app.py:912
 msgid "Ask a question and I'll answer from the published library, with citations."
 msgstr ""
 
-#: app.py:854 templates/ask.html:66
+#: app.py:913 templates/ask.html:80
 msgid "Message Keydion AI…"
 msgstr ""
 
-#: app.py:855 templates/ask.html:86
+#: app.py:914 templates/ask.html:100
 msgid "Flash"
 msgstr ""
 
-#: app.py:856 templates/ask.html:87
+#: app.py:915 templates/ask.html:101
 msgid "Thinking"
 msgstr ""
 
-#: app.py:857 templates/ask.html:89
+#: app.py:916 templates/ask.html:103
 msgid "Send"
 msgstr ""
 
-#: app.py:858
+#: app.py:917
 msgid "Cited from your library"
 msgstr ""
 
-#: app.py:859
+#: app.py:918
 msgid "Copy"
 msgstr ""
 
-#: app.py:860
+#: app.py:919
 msgid "Regenerate"
 msgstr ""
 
-#: app.py:861 templates/news_manage.html:509 templates/paper_manage.html:117
+#: app.py:920 templates/news_manage.html:509 templates/paper_manage.html:117
 #: templates/paper_manage.html:249
 msgid "Rename"
 msgstr ""
 
-#: app.py:862
+#: app.py:921
+msgid "Today"
+msgstr ""
+
+#: app.py:922
+msgid "Yesterday"
+msgstr ""
+
+#: app.py:923
+msgid "Previous 7 days"
+msgstr ""
+
+#: app.py:924
+msgid "Older"
+msgstr ""
+
+#: app.py:925
+msgid "No conversations match."
+msgstr ""
+
+#: app.py:926
 msgid "Thinking…"
 msgstr ""
 
-#: app.py:863 app.py:2531
+#: app.py:927 app.py:2572 app.py:2710
 msgid "Something went wrong. Please try again."
 msgstr ""
 
-#: app.py:864 app.py:2439 templates/ask.html:28
+#: app.py:928 app.py:2532 app.py:2591 templates/ask.html:42
 msgid "AI assistant is not configured."
 msgstr ""
 
-#: app.py:865
+#: app.py:929
 msgid "No matching papers were found in the library."
 msgstr ""
 
-#: app.py:866
+#: app.py:930
+msgid "Searched the web"
+msgstr ""
+
+#: app.py:931
 msgid "selected"
 msgstr ""
 
-#: app.py:867 templates/ask.html:123
+#: app.py:932 templates/ask.html:172
 msgid "Select papers to attach as citations"
 msgstr ""
 
-#: app.py:911 app.py:925
+#: app.py:933 app.py:1600 templates/delete.html:330
+#: templates/paper_modify.html:79 templates/preview.html:283
+#: templates/review_paper.html:33 templates/submission_detail.html:30
+msgid "Abstract"
+msgstr ""
+
+#: app.py:934 templates/preview.html:288 templates/search.html:232
+msgid "No abstract available."
+msgstr ""
+
+#: app.py:935 templates/ask.html:168
+msgid "Hover a paper to preview its abstract before citing."
+msgstr ""
+
+#: app.py:982 app.py:996
 #, python-format
 msgid "Welcome back, %(username)s!"
 msgstr ""
 
-#: app.py:928
+#: app.py:999
 msgid "Invalid email or password"
 msgstr ""
 
-#: app.py:932 app.py:945 app.py:961
+#: app.py:1003 app.py:1016 app.py:1032
 msgid "Microsoft sign-in is not configured. Please contact the administrator."
 msgstr ""
 
-#: app.py:937
+#: app.py:1008
 msgid "Email-based registration is disabled. Please sign in with Microsoft."
 msgstr ""
 
-#: app.py:964
+#: app.py:1035
 msgid "Login session expired. Please try again."
 msgstr ""
 
-#: app.py:970 app.py:985
+#: app.py:1041 app.py:1056
 #, python-format
 msgid "Microsoft sign-in failed: %(reason)s"
 msgstr ""
 
-#: app.py:975
+#: app.py:1046
 msgid "Microsoft sign-in failed. Please try again."
 msgstr ""
 
-#: app.py:990
+#: app.py:1061
 msgid "Microsoft sign-in did not return a valid profile."
 msgstr ""
 
-#: app.py:1019
+#: app.py:1090
 msgid "Signed out successfully."
 msgstr ""
 
-#: app.py:1030
+#: app.py:1101
 msgid "Unable to load your profile. Please sign in again."
 msgstr ""
 
-#: app.py:1038
+#: app.py:1109
 msgid "Please enter your first and last name."
 msgstr ""
 
-#: app.py:1053
+#: app.py:1124
 msgid "Profile saved successfully."
 msgstr ""
 
-#: app.py:1092
+#: app.py:1163
 msgid "Current password is incorrect."
 msgstr ""
 
-#: app.py:1096
+#: app.py:1167
 msgid "Please enter a new password."
 msgstr ""
 
-#: app.py:1099
+#: app.py:1170
 msgid "Passwords do not match."
 msgstr ""
 
-#: app.py:1102
+#: app.py:1173
 msgid "Password must be at least 6 characters."
 msgstr ""
 
-#: app.py:1108
+#: app.py:1179
 msgid "Password must contain both letters and numbers."
 msgstr ""
 
-#: app.py:1113
+#: app.py:1184
 msgid "New password must be different from your current password."
 msgstr ""
 
-#: app.py:1124
+#: app.py:1195
 msgid "Password updated successfully."
 msgstr ""
 
-#: app.py:1126
+#: app.py:1197
 msgid "Unable to update password."
 msgstr ""
 
-#: app.py:1165
+#: app.py:1236
 msgid "Role updates saved."
 msgstr ""
 
-#: app.py:1177
+#: app.py:1248
 msgid "Username and password are required."
 msgstr ""
 
-#: app.py:1180
+#: app.py:1251
 msgid "That username is already taken."
 msgstr ""
 
-#: app.py:1183
+#: app.py:1254
 msgid "Local user created."
 msgstr ""
 
-#: app.py:1193 app.py:1235
+#: app.py:1264 app.py:1306
 msgid "Role updated."
 msgstr ""
 
-#: app.py:1195 app.py:1237
+#: app.py:1266 app.py:1308
 msgid "Unable to update role."
 msgstr ""
 
-#: app.py:1205 app.py:1258
+#: app.py:1276 app.py:1329
 msgid "Password is required."
 msgstr ""
 
-#: app.py:1208
+#: app.py:1279
 msgid "Password reset successfully."
 msgstr ""
 
-#: app.py:1210
+#: app.py:1281
 msgid "Unable to reset password."
 msgstr ""
 
-#: app.py:1219
+#: app.py:1290
 msgid "Local user deleted."
 msgstr ""
 
-#: app.py:1221
+#: app.py:1292
 msgid "Unable to delete user."
 msgstr ""
 
-#: app.py:1246
+#: app.py:1317
 msgid "Microsoft user deleted."
 msgstr ""
 
-#: app.py:1248
+#: app.py:1319
 msgid "Unable to delete Microsoft user."
 msgstr ""
 
-#: app.py:1261
+#: app.py:1332
 msgid "Password set successfully."
 msgstr ""
 
-#: app.py:1263
+#: app.py:1334
 msgid "Unable to set password."
 msgstr ""
 
-#: app.py:1297
+#: app.py:1368
 #, python-format
 msgid "oldest %(n)d days ago"
 msgstr ""
 
-#: app.py:1313
+#: app.py:1384
 #, python-format
 msgid "+%(n)d this month"
 msgstr ""
 
-#: app.py:1344
+#: app.py:1415
 msgid "Enter a keyword to search."
 msgstr ""
 
-#: app.py:1409
+#: app.py:1480
 msgid "No matching papers found."
 msgstr ""
 
-#: app.py:1483 app.py:1582 templates/advanced_search.html:14
+#: app.py:1554 app.py:1653 templates/advanced_search.html:14
 #: templates/search.html:51
 msgid "Paper Type"
 msgstr ""
 
-#: app.py:1484 app.py:1603
+#: app.py:1555 app.py:1674
 msgid "Metadata"
 msgstr ""
 
-#: app.py:1485 app.py:1614 templates/landing.html:957
+#: app.py:1556 app.py:1685 templates/landing.html:957
 msgid "Authors"
 msgstr ""
 
-#: app.py:1486 app.py:1616
+#: app.py:1557 app.py:1687
 msgid "File"
 msgstr ""
 
-#: app.py:1487 templates/_dashboard_shell.html:80 templates/review_list.html:84
+#: app.py:1558 templates/_dashboard_shell.html:80 templates/review_list.html:84
 msgid "Review"
 msgstr ""
 
-#: app.py:1488
+#: app.py:1559
 #, python-format
 msgid "Step %(n)s"
 msgstr ""
 
-#: app.py:1489
+#: app.py:1560
 msgid "Submit Paper"
 msgstr ""
 
-#: app.py:1490
+#: app.py:1561
 msgid "Continue →"
 msgstr ""
 
-#: app.py:1491
+#: app.py:1562
 msgid "← Back"
 msgstr ""
 
-#: app.py:1492 templates/news_publish.html:974
+#: app.py:1563 templates/news_publish.html:974
 msgid "Save Draft"
 msgstr ""
 
-#: app.py:1493
+#: app.py:1564
 msgid "Choose paper type"
 msgstr ""
 
-#: app.py:1494
+#: app.py:1565
 msgid "What kind of paper are you submitting?"
 msgstr ""
 
-#: app.py:1495
+#: app.py:1566
 msgid ""
 "The fields you'll be asked for next depend on this. You can come back and"
 " change it before submitting."
 msgstr ""
 
-#: app.py:1496 templates/advanced_search.html:20 templates/search.html:57
+#: app.py:1567 templates/advanced_search.html:20 templates/search.html:57
 #: templates/search.html:223
 msgid "Independent Research"
 msgstr ""
 
-#: app.py:1497
+#: app.py:1568
 msgid "Standard Paper"
 msgstr ""
 
-#: app.py:1498
+#: app.py:1569
 msgid ""
 "A self-directed research paper, conference paper, or article that is not "
 "part of the IB Diploma framework."
 msgstr ""
 
-#: app.py:1499
+#: app.py:1570
 msgid "Title · authors · abstract · subject"
 msgstr ""
 
-#: app.py:1500 app.py:1504
+#: app.py:1571 app.py:1575
 msgid "IB Diploma"
 msgstr ""
 
-#: app.py:1501
+#: app.py:1572
 msgid "Extended Essay (EE)"
 msgstr ""
 
-#: app.py:1502
+#: app.py:1573
 msgid ""
 "A 4,000-word IB Diploma research essay with structured criterion scores "
 "(A–E) and an EE subject from the six IB subject groups."
 msgstr ""
 
-#: app.py:1503
+#: app.py:1574
 msgid "Research Question · EE subject · criterion scores A–E"
 msgstr ""
 
-#: app.py:1505
+#: app.py:1576
 msgid "Community Project (CP)"
 msgstr ""
 
-#: app.py:1506
+#: app.py:1577
 msgid ""
 "An IB MYP Community Project graded against Criteria A–D, with a Global "
 "Context and a chosen type of action."
 msgstr ""
 
-#: app.py:1507
+#: app.py:1578
 msgid "Title · Global Context · type of action · criteria A–D"
 msgstr ""
 
-#: app.py:1508
+#: app.py:1579
 msgid "Research Question"
 msgstr ""
 
-#: app.py:1509 templates/my_submissions.html:25 templates/review_list.html:50
+#: app.py:1580 templates/my_submissions.html:25 templates/review_list.html:50
 msgid "Paper Title"
 msgstr ""
 
-#: app.py:1510
+#: app.py:1581
 msgid ""
 "e.g. To what extent did monetary policy contribute to the 2008 financial "
 "crisis?"
 msgstr ""
 
-#: app.py:1511
+#: app.py:1582
 msgid "Enter the complete paper title"
 msgstr ""
 
-#: app.py:1512
+#: app.py:1583
 msgid "Tell us about your essay"
 msgstr ""
 
-#: app.py:1513
+#: app.py:1584
 msgid "Tell us about your community project"
 msgstr ""
 
-#: app.py:1514
+#: app.py:1585
 msgid "Tell us about your paper"
 msgstr ""
 
-#: app.py:1515
+#: app.py:1586
 msgid "IB grading information and bibliographic details for the submission."
 msgstr ""
 
-#: app.py:1516
+#: app.py:1587
 msgid "Bibliographic information that will appear on the public paper page."
 msgstr ""
 
-#: app.py:1517
+#: app.py:1588
 msgid "Paper details"
 msgstr ""
 
-#: app.py:1518
+#: app.py:1589
 msgid "Bibliographic"
 msgstr ""
 
-#: app.py:1519 templates/paper_modify.html:62 templates/search.html:94
+#: app.py:1590 templates/paper_modify.html:62 templates/search.html:94
 msgid "Language"
 msgstr ""
 
-#: app.py:1520 templates/paper_modify.html:68 templates/search.html:99
-msgid "English"
-msgstr ""
-
-#: app.py:1521 templates/paper_modify.html:66 templates/search.html:98
-msgid "Chinese"
-msgstr ""
-
-#: app.py:1522
+#: app.py:1593
 msgid "Subject Category"
 msgstr ""
 
-#: app.py:1523
+#: app.py:1594
 msgid "Choose a subject category…"
 msgstr ""
 
-#: app.py:1524 templates/delete.html:328 templates/paper_modify.html:73
+#: app.py:1595 templates/delete.html:328 templates/paper_modify.html:73
 #: templates/preview.html:310 templates/review_paper.html:30
 #: templates/submission_detail.html:27
 msgid "Keywords"
 msgstr ""
 
-#: app.py:1525
+#: app.py:1596
 msgid "Add another…"
 msgstr ""
 
-#: app.py:1526
+#: app.py:1597
 msgid "Type a keyword and press Enter"
 msgstr ""
 
-#: app.py:1527
+#: app.py:1598
 msgid "Press Enter or comma to add. Aim for 3–6 keywords."
 msgstr ""
 
-#: app.py:1528
+#: app.py:1599
 msgid "added"
 msgstr ""
 
-#: app.py:1529 templates/delete.html:330 templates/paper_modify.html:79
-#: templates/preview.html:283 templates/review_paper.html:33
-#: templates/submission_detail.html:30
-msgid "Abstract"
-msgstr ""
-
-#: app.py:1530
+#: app.py:1601
 msgid "Briefly describe your research background, methods, and conclusions…"
 msgstr ""
 
-#: app.py:1531
+#: app.py:1602
 msgid "A short summary that appears in search results."
 msgstr ""
 
-#: app.py:1532 templates/paper_modify.html:91
+#: app.py:1603 templates/paper_modify.html:91
 msgid "This is an IB Sample Paper"
 msgstr ""
 
-#: app.py:1533
+#: app.py:1604
 msgid ""
 "Sample papers are reference essays without an identified author. Checking"
 " this will skip the Authors step."
 msgstr ""
 
-#: app.py:1534
+#: app.py:1605
 msgid "Framework for the essay"
 msgstr ""
 
-#: app.py:1535
+#: app.py:1606
 msgid "Knowledge and understanding"
 msgstr ""
 
-#: app.py:1536
+#: app.py:1607
 msgid "Analysis and line of argument"
 msgstr ""
 
-#: app.py:1537
+#: app.py:1608
 msgid "Discussion and evaluation"
 msgstr ""
 
-#: app.py:1538
+#: app.py:1609
 msgid "Reflection"
 msgstr ""
 
-#: app.py:1539 templates/advanced_search.html:47 templates/preview.html:118
+#: app.py:1610 templates/advanced_search.html:47 templates/preview.html:118
 #: templates/search.html:65
 msgid "EE Subject"
 msgstr ""
 
-#: app.py:1540 templates/paper_modify.html:140
+#: app.py:1611 templates/paper_modify.html:140
 msgid "Core Subject"
 msgstr ""
 
-#: app.py:1541
+#: app.py:1612
 msgid "Select a core subject…"
 msgstr ""
 
-#: app.py:1542
+#: app.py:1613
 msgid "Interdisciplinary"
 msgstr ""
 
-#: app.py:1543
+#: app.py:1614
 msgid "Optional"
 msgstr ""
 
-#: app.py:1544
+#: app.py:1615
 msgid "Optional — select if applicable…"
 msgstr ""
 
-#: app.py:1545
+#: app.py:1616
 msgid "Criterion Scores"
 msgstr ""
 
-#: app.py:1546 templates/paper_modify.html:180 templates/paper_modify.html:258
+#: app.py:1617 templates/paper_modify.html:180 templates/paper_modify.html:258
 #: templates/preview.html:259
 msgid "Crit."
 msgstr ""
 
-#: app.py:1547
+#: app.py:1618
 msgid "Criterion"
 msgstr ""
 
-#: app.py:1548 templates/paper_modify.html:182 templates/paper_modify.html:260
+#: app.py:1619 templates/paper_modify.html:182 templates/paper_modify.html:260
 msgid "Score"
 msgstr ""
 
-#: app.py:1549
+#: app.py:1620
 msgid "Overall Grade"
 msgstr ""
 
-#: app.py:1550
+#: app.py:1621
 msgid "Calculated server-side from the criteria above"
 msgstr ""
 
-#: app.py:1551
+#: app.py:1622
 msgid "Criterion Commentaries"
 msgstr ""
 
-#: app.py:1552
+#: app.py:1623
 msgid "Include commentaries for all criteria"
 msgstr ""
 
-#: app.py:1553
+#: app.py:1624
 msgid ""
 "Provide short remarks on each criterion plus an optional overall holistic"
 " commentary."
 msgstr ""
 
-#: app.py:1554
+#: app.py:1625
 #, python-format
 msgid "Commentary for Criterion %(k)s…"
 msgstr ""
 
-#: app.py:1555 templates/paper_modify.html:212 templates/preview.html:185
+#: app.py:1626 templates/paper_modify.html:212 templates/preview.html:185
 msgid "Holistic Commentary"
 msgstr ""
 
-#: app.py:1556
+#: app.py:1627
 msgid "An overall holistic commentary for the essay…"
 msgstr ""
 
-#: app.py:1557
+#: app.py:1628
 msgid "Investigating"
 msgstr ""
 
-#: app.py:1558
+#: app.py:1629
 msgid "Planning"
 msgstr ""
 
-#: app.py:1559
+#: app.py:1630
 msgid "Taking Action"
 msgstr ""
 
-#: app.py:1560
+#: app.py:1631
 msgid "Reflecting"
 msgstr ""
 
-#: app.py:1561 templates/advanced_search.html:59
+#: app.py:1632 templates/advanced_search.html:59
 #: templates/paper_modify.html:231 templates/preview.html:232
 #: templates/search.html:80
 msgid "Global Context"
 msgstr ""
 
-#: app.py:1562
+#: app.py:1633
 msgid "Select a Global Context…"
 msgstr ""
 
-#: app.py:1563
+#: app.py:1634
 msgid "Global Contexts"
 msgstr ""
 
-#: app.py:1564 templates/paper_modify.html:242 templates/preview.html:240
+#: app.py:1635 templates/paper_modify.html:242 templates/preview.html:240
 msgid "Type of Action"
 msgstr ""
 
-#: app.py:1565
+#: app.py:1636
 msgid "Mean of the four criterion scores, rounded"
 msgstr ""
 
-#: app.py:1566
+#: app.py:1637
 msgid "Author information"
 msgstr ""
 
-#: app.py:1567
+#: app.py:1638
 msgid "Who wrote this?"
 msgstr ""
 
-#: app.py:1568
+#: app.py:1639
 msgid "The first author's contact details are required. Add co-authors as needed."
 msgstr ""
 
-#: app.py:1569 templates/paper_modify.html:107
+#: app.py:1640 templates/paper_modify.html:107
 msgid "Name"
 msgstr ""
 
-#: app.py:1570 templates/admin_users.html:78 templates/delete.html:334
+#: app.py:1641 templates/admin_users.html:78 templates/delete.html:334
 #: templates/paper_modify.html:111 templates/register.html:14
 #: templates/review_paper.html:40 templates/submission_detail.html:37
 msgid "Email"
 msgstr ""
 
-#: app.py:1571
+#: app.py:1642
 msgid "School / Institution"
 msgstr ""
 
-#: app.py:1572
+#: app.py:1643
 msgid "Remove author"
 msgstr ""
 
-#: app.py:1573
+#: app.py:1644
 msgid "+ Add another author"
 msgstr ""
 
-#: app.py:1574
+#: app.py:1645
 msgid "File upload"
 msgstr ""
 
-#: app.py:1575
+#: app.py:1646
 msgid "Upload your PDF"
 msgstr ""
 
-#: app.py:1576
+#: app.py:1647
 msgid "Submit a single PDF, up to 50 MB. You can change this before publishing."
 msgstr ""
 
-#: app.py:1577
+#: app.py:1648
 msgid "No file chosen"
 msgstr ""
 
-#: app.py:1578
+#: app.py:1649
 msgid "PDF only · single file"
 msgstr ""
 
-#: app.py:1579
+#: app.py:1650
 msgid "Replace"
 msgstr ""
 
-#: app.py:1580
+#: app.py:1651
 msgid "Choose file"
 msgstr ""
 
-#: app.py:1581
+#: app.py:1652
 msgid ""
 "If you'd like to come back to this later, click Save Draft below — your "
 "form will be restored next time you visit."
 msgstr ""
 
-#: app.py:1583
+#: app.py:1654
 msgid "First author (name, email, school)"
 msgstr ""
 
-#: app.py:1584
+#: app.py:1655
 msgid "EE core subject"
 msgstr ""
 
-#: app.py:1585
+#: app.py:1656
 #, python-format
 msgid "EE criterion score %(k)s"
 msgstr ""
 
-#: app.py:1586
+#: app.py:1657
 msgid "Global context"
 msgstr ""
 
-#: app.py:1587
+#: app.py:1658
 msgid "Type of action"
 msgstr ""
 
-#: app.py:1588
+#: app.py:1659
 #, python-format
 msgid "CP criterion score %(k)s"
 msgstr ""
 
-#: app.py:1589
+#: app.py:1660
 msgid "PDF file"
 msgstr ""
 
-#: app.py:1590
+#: app.py:1661
 msgid "Independent Research Paper"
 msgstr ""
 
-#: app.py:1591 templates/preview.html:106
+#: app.py:1662 templates/preview.html:106
 msgid "IB Extended Essay"
 msgstr ""
 
-#: app.py:1592
+#: app.py:1663
 msgid "IB Community Project"
 msgstr ""
 
-#: app.py:1593
+#: app.py:1664
 msgid "Review & submit"
 msgstr ""
 
-#: app.py:1594
+#: app.py:1665
 msgid "Almost there — review your submission"
 msgstr ""
 
-#: app.py:1595
+#: app.py:1666
 msgid ""
 "Make sure everything looks right. You can jump back to any section to "
 "make changes."
 msgstr ""
 
-#: app.py:1596
+#: app.py:1667
 msgid "1 field still needs attention"
 msgstr ""
 
-#: app.py:1597
+#: app.py:1668
 #, python-format
 msgid "%(n)s fields still need attention"
 msgstr ""
 
-#: app.py:1598
+#: app.py:1669
 #, python-format
 msgid "go to %(step)s"
 msgstr ""
 
-#: app.py:1599
+#: app.py:1670
 msgid "Everything required is filled in."
 msgstr ""
 
-#: app.py:1600
+#: app.py:1671
 msgid "Click Submit Paper below to send your submission for review."
 msgstr ""
 
-#: app.py:1601 templates/guide_manage.html:175 templates/guide_manage.html:240
+#: app.py:1672 templates/guide_manage.html:175 templates/guide_manage.html:240
 #: templates/guide_publish.html:20 templates/my_submissions.html:58
 #: templates/news_article.html:735 templates/news_manage.html:202
 #: templates/paper_manage.html:195
 msgid "Edit"
 msgstr ""
 
-#: app.py:1602
+#: app.py:1673
 msgid "Type"
 msgstr ""
 
-#: app.py:1604
+#: app.py:1675
 msgid "Research Q."
 msgstr ""
 
-#: app.py:1605 templates/delete.html:261 templates/delete.html:324
+#: app.py:1676 templates/delete.html:261 templates/delete.html:324
 #: templates/guide_publish.html:84 templates/guide_publish.html:116
 #: templates/news_publish.html:986 templates/paper_modify.html:33
 #: templates/preview.html:306 templates/review_paper.html:24
@@ -778,407 +855,427 @@ msgstr ""
 msgid "Title"
 msgstr ""
 
-#: app.py:1606
+#: app.py:1677
 msgid "Not provided"
 msgstr ""
 
-#: app.py:1607
+#: app.py:1678
 msgid "Not chosen"
 msgstr ""
 
-#: app.py:1608 templates/search.html:30
+#: app.py:1679 templates/search.html:30
 msgid "Subject"
 msgstr ""
 
-#: app.py:1609 templates/paper_modify.html:155
+#: app.py:1680 templates/paper_modify.html:155
 msgid "None"
 msgstr ""
 
-#: app.py:1610
+#: app.py:1681
 msgid "Not written"
 msgstr ""
 
-#: app.py:1611
+#: app.py:1682
 msgid "IB Sample"
 msgstr ""
 
-#: app.py:1612
+#: app.py:1683
 msgid "Yes — author info skipped"
 msgstr ""
 
-#: app.py:1613
+#: app.py:1684
 msgid "No"
 msgstr ""
 
-#: app.py:1615 templates/delete.html:263 templates/delete.html:332
+#: app.py:1686 templates/delete.html:263 templates/delete.html:332
 #: templates/news_manage.html:151 templates/news_publish.html:1001
 #: templates/review_paper.html:36 templates/submission_detail.html:33
 msgid "Author"
 msgstr ""
 
-#: app.py:1617
+#: app.py:1688
 msgid "No file uploaded"
 msgstr ""
 
-#: app.py:1618
+#: app.py:1689
 msgid "EE Details"
 msgstr ""
 
-#: app.py:1619
+#: app.py:1690
 msgid "Total"
 msgstr ""
 
-#: app.py:1620
+#: app.py:1691
 msgid "CP Details"
 msgstr ""
 
-#: app.py:1621
+#: app.py:1692
 msgid "None selected"
 msgstr ""
 
-#: app.py:1622
+#: app.py:1693
 msgid "Avg. Grade"
 msgstr ""
 
-#: app.py:1623
+#: app.py:1694
 msgid "Saving…"
 msgstr ""
 
-#: app.py:1624
+#: app.py:1695
 #, python-format
 msgid "Draft saved · %(time)s"
 msgstr ""
 
-#: app.py:1625
+#: app.py:1696
 msgid "Unsaved changes from earlier"
 msgstr ""
 
-#: app.py:1626
+#: app.py:1697
 msgid ""
 "Your last session in this browser had changes you didn't save. Restore "
 "them?"
 msgstr ""
 
-#: app.py:1627
+#: app.py:1698
 msgid "Discard"
 msgstr ""
 
-#: app.py:1628
+#: app.py:1699
 msgid "Restore"
 msgstr ""
 
-#: app.py:1629
+#: app.py:1700
 msgid "Search…"
 msgstr ""
 
-#: app.py:1630
+#: app.py:1701
 msgid "No matches"
 msgstr ""
 
-#: app.py:1631
+#: app.py:1702
 msgid "Auto-fill from commentary PDF"
 msgstr ""
 
-#: app.py:1632
+#: app.py:1703
 msgid "Extracting…"
 msgstr ""
 
-#: app.py:1633
+#: app.py:1704
 msgid "Extracted all fields."
 msgstr ""
 
-#: app.py:1634
+#: app.py:1705
 #, python-format
 msgid "Extracted %(filled)s of %(total)s fields."
 msgstr ""
 
-#: app.py:1635
+#: app.py:1706
 msgid "Auto-fill failed — try again or fill manually."
 msgstr ""
 
-#: app.py:1636
+#: app.py:1707
 msgid "Replace your existing EE entries with values from the PDF?"
 msgstr ""
 
-#: app.py:1637
+#: app.py:1708
 msgid "Generate abstract & keywords from PDF"
 msgstr ""
 
-#: app.py:1638
+#: app.py:1709
 msgid "Generating…"
 msgstr ""
 
-#: app.py:1639
+#: app.py:1710
 msgid "Generated abstract and keywords."
 msgstr ""
 
-#: app.py:1640
+#: app.py:1711
 msgid "Generation failed — try again or fill manually."
 msgstr ""
 
-#: app.py:1641
+#: app.py:1712
 msgid "Replace your existing abstract and keywords with AI-generated ones?"
 msgstr ""
 
-#: app.py:1746
+#: app.py:1817
 msgid "Please enter at least a paper title to save a draft."
 msgstr ""
 
-#: app.py:1799
+#: app.py:1870
 msgid "Draft saved successfully."
 msgstr ""
 
-#: app.py:1816 app.py:2116
+#: app.py:1887 app.py:2187
 msgid "A paper cannot be both an Extended Essay and a CP Paper."
 msgstr ""
 
-#: app.py:1821 app.py:2119
+#: app.py:1892 app.py:2190
 msgid "Please select an EE core subject."
 msgstr ""
 
-#: app.py:1826 app.py:2122
+#: app.py:1897 app.py:2193
 msgid "Please select a Global Context."
 msgstr ""
 
-#: app.py:1829 app.py:2125
+#: app.py:1900 app.py:2196
 msgid "Please select at least one Type of Action."
 msgstr ""
 
-#: app.py:1840
+#: app.py:1911
 msgid "Please select a file to upload"
 msgstr ""
 
-#: app.py:1846
+#: app.py:1917
 msgid "Only PDF files are supported"
 msgstr ""
 
-#: app.py:1857
+#: app.py:1928
 msgid "A file with this name already exists"
 msgstr ""
 
-#: app.py:1879
+#: app.py:1950
 #, python-format
 msgid "Paper %(filename)s uploaded successfully!"
 msgstr ""
 
-#: app.py:2024 app.py:2175 app.py:2213
+#: app.py:2095 app.py:2246 app.py:2284
 msgid "Paper not found."
 msgstr ""
 
-#: app.py:2134
+#: app.py:2205
 msgid "A file with the new name already exists, unable to rename."
 msgstr ""
 
-#: app.py:2158
+#: app.py:2229
 msgid "Paper information updated."
 msgstr ""
 
-#: app.py:2180
+#: app.py:2251
 #, python-format
 msgid "Deleted %(filename)s."
 msgstr ""
 
-#: app.py:2190
+#: app.py:2261
 msgid "Language not supported."
 msgstr ""
 
-#: app.py:2351 app.py:2539
+#: app.py:2422 app.py:2718
 msgid "Unauthorized"
 msgstr ""
 
-#: app.py:2355 app.py:2543
+#: app.py:2426 app.py:2553 app.py:2722
 msgid "No file provided"
 msgstr ""
 
-#: app.py:2357 app.py:2545
+#: app.py:2428 app.py:2724
 msgid "File must be a PDF"
 msgstr ""
 
-#: app.py:2361 app.py:2549
+#: app.py:2432 app.py:2728
 msgid "File is not a valid PDF"
 msgstr ""
 
-#: app.py:2377 app.py:2382 app.py:2466 templates/ask.html:34
+#: app.py:2454 app.py:2459 app.py:2623 templates/ask.html:48
 msgid "New conversation"
 msgstr ""
 
-#: app.py:2398
+#: app.py:2478
 msgid "Not found"
 msgstr ""
 
-#: app.py:2443
+#: app.py:2541
+msgid "Conversation not found."
+msgstr ""
+
+#: app.py:2556
+msgid "Unsupported file type. Use PDF, DOCX, TXT, or Markdown."
+msgstr ""
+
+#: app.py:2559
+msgid "File is too large (max 5 MB)."
+msgstr ""
+
+#: app.py:2564
+msgid "Could not read the file."
+msgstr ""
+
+#: app.py:2567
+msgid "No readable text found in the file."
+msgstr ""
+
+#: app.py:2595
 msgid "Too many requests — please slow down."
 msgstr ""
 
-#: app.py:2450
+#: app.py:2603
 msgid "Please enter a question."
 msgstr ""
 
-#: app.py:2452
+#: app.py:2605
 msgid "Your question is too long."
 msgstr ""
 
-#: app.py:2583 app.py:2671
+#: app.py:2762 app.py:2850
 msgid "Please enter a title."
 msgstr ""
 
-#: app.py:2585 app.py:2673
+#: app.py:2764 app.py:2852
 msgid "Please select a category."
 msgstr ""
 
-#: app.py:2587 app.py:2675
+#: app.py:2766 app.py:2854
 msgid "Please enter an abstract."
 msgstr ""
 
-#: app.py:2589 app.py:2677
+#: app.py:2768 app.py:2856
 msgid "Please write the article body."
 msgstr ""
 
-#: app.py:2602 app.py:2688
+#: app.py:2781 app.py:2867
 msgid "Cover image must be PNG, JPG, GIF, or WebP."
 msgstr ""
 
-#: app.py:2623 app.py:2701
+#: app.py:2802 app.py:2880
 msgid "Draft saved."
 msgstr ""
 
-#: app.py:2625
+#: app.py:2804
 msgid "Article published successfully."
 msgstr ""
 
-#: app.py:2645 app.py:2722 app.py:3324 app.py:3333
+#: app.py:2824 app.py:2901 app.py:3503 app.py:3512
 msgid "Article not found."
 msgstr ""
 
-#: app.py:2703
+#: app.py:2882
 msgid "Article updated."
 msgstr ""
 
-#: app.py:2720
+#: app.py:2899
 msgid "Article deleted."
 msgstr ""
 
-#: app.py:2741 app.py:2790 app.py:3092 app.py:3135
+#: app.py:2920 app.py:2969 app.py:3271 app.py:3314
 msgid "Category name is required."
 msgstr ""
 
-#: app.py:2744 app.py:3095
+#: app.py:2923 app.py:3274
 msgid "Category already exists."
 msgstr ""
 
-#: app.py:2758 app.py:3109
+#: app.py:2937 app.py:3288
 msgid "Both old and new names are required."
 msgstr ""
 
-#: app.py:2761 app.py:2793 app.py:3112 app.py:3138
+#: app.py:2940 app.py:2972 app.py:3291 app.py:3317
 msgid "Category not found."
 msgstr ""
 
-#: app.py:2763 app.py:3114
+#: app.py:2942 app.py:3293
 msgid "A category with that name already exists."
 msgstr ""
 
-#: app.py:2912 app.py:2980
+#: app.py:3091 app.py:3159
 msgid "Guide not found."
 msgstr ""
 
-#: app.py:2938
+#: app.py:3117
 msgid "Please enter a title in at least one language."
 msgstr ""
 
-#: app.py:2940
+#: app.py:3119
 msgid "Please enter a slug."
 msgstr ""
 
-#: app.py:2942
+#: app.py:3121
 msgid "That slug is already taken. Pick another."
 msgstr ""
 
-#: app.py:2949
+#: app.py:3128
 msgid "Guide updated."
 msgstr ""
 
-#: app.py:2952
+#: app.py:3131
 msgid "Guide published."
 msgstr ""
 
-#: app.py:2978
+#: app.py:3157
 msgid "Guide deleted."
 msgstr ""
 
-#: app.py:3152 app.py:3172
+#: app.py:3331 app.py:3351
 msgid "Group ID and subject name are required."
 msgstr ""
 
-#: app.py:3157
+#: app.py:3336
 msgid "Subject already exists in this group."
 msgstr ""
 
-#: app.py:3161 app.py:3183
+#: app.py:3340 app.py:3362
 msgid "Group not found."
 msgstr ""
 
-#: app.py:3177
+#: app.py:3356
 msgid "Subject not found in this group."
 msgstr ""
 
-#: app.py:3192 app.py:3252
+#: app.py:3371 app.py:3431
 msgid "Journal name is required."
 msgstr ""
 
-#: app.py:3196
+#: app.py:3375
 msgid "Journal already exists."
 msgstr ""
 
-#: app.py:3216
+#: app.py:3395
 msgid "Journal ID is required."
 msgstr ""
 
-#: app.py:3220 app.py:3243 app.py:3309
+#: app.py:3399 app.py:3422 app.py:3488
 msgid "Journal not found."
 msgstr ""
 
-#: app.py:3285
+#: app.py:3464
 msgid "Journal updated."
 msgstr ""
 
-#: app.py:3435 app.py:3457 app.py:3528
+#: app.py:3614 app.py:3636 app.py:3707
 msgid "Submission not found."
 msgstr ""
 
-#: app.py:3447
+#: app.py:3626
 msgid "Submission deleted."
 msgstr ""
 
-#: app.py:3540 app.py:3601
+#: app.py:3719 app.py:3780
 msgid "Submission not found or already reviewed."
 msgstr ""
 
-#: app.py:3586
+#: app.py:3765
 msgid "Paper accepted and published."
 msgstr ""
 
-#: app.py:3618
+#: app.py:3797
 msgid "Paper rejected."
 msgstr ""
 
-#: app.py:4103
-msgid "Please sign in first."
-msgstr ""
-
-#: app.py:4108
+#: app.py:4287
 msgid "Session expired. Please sign in again."
 msgstr ""
 
-#: app.py:4111
+#: app.py:4290
 msgid "Session timed out. Please sign in again."
 msgstr ""
 
-#: app.py:4117
+#: app.py:4296
 msgid "You do not have access to that action."
 msgstr ""
 
-#: app.py:4511
+#: app.py:4677
+msgid "Attached document"
+msgstr ""
+
+#: app.py:4770
 #, python-format
 msgid ""
 "This account is already signed in. Please sign out from the other session"
@@ -1305,7 +1402,7 @@ msgstr ""
 msgid "Manage users"
 msgstr ""
 
-#: templates/_dashboard_shell.html:152 templates/ask.html:22
+#: templates/_dashboard_shell.html:152 templates/ask.html:24
 #: templates/change_password.html:297
 msgid "Account"
 msgstr ""
@@ -1315,8 +1412,8 @@ msgstr ""
 msgid "Change password"
 msgstr ""
 
-#: templates/_dashboard_shell.html:163 templates/base.html:76
-#: templates/landing.html:845 templates/news.html:577
+#: templates/_dashboard_shell.html:163 templates/ask.html:29
+#: templates/base.html:76 templates/landing.html:845 templates/news.html:577
 #: templates/news_article.html:655
 msgid "Sign out"
 msgstr ""
@@ -1342,8 +1439,8 @@ msgid "We will use your Microsoft email as the username."
 msgstr ""
 
 #: templates/account_register.html:16 templates/admin_login.html:19
-#: templates/admin_users.html:138 templates/base.html:140
-#: templates/landing.html:1069 templates/news.html:710
+#: templates/admin_users.html:138 templates/ask.html:138
+#: templates/base.html:140 templates/landing.html:1069 templates/news.html:710
 #: templates/news_article.html:821 templates/register.html:35
 msgid "Password"
 msgstr ""
@@ -1376,8 +1473,9 @@ msgstr ""
 msgid "e.g. admin"
 msgstr ""
 
-#: templates/admin_login.html:22 templates/base.html:80 templates/base.html:126
-#: templates/base.html:143 templates/landing.html:849
+#: templates/admin_login.html:22 templates/ask.html:33 templates/ask.html:122
+#: templates/ask.html:126 templates/ask.html:141 templates/base.html:80
+#: templates/base.html:126 templates/base.html:143 templates/landing.html:849
 #: templates/landing.html:983 templates/landing.html:1056
 #: templates/landing.html:1072 templates/news.html:581 templates/news.html:710
 #: templates/news_article.html:659 templates/news_article.html:821
@@ -1480,7 +1578,7 @@ msgid "No Microsoft users found."
 msgstr ""
 
 #: templates/admin_users.html:129 templates/admin_users.html:151
-#: templates/ask.html:109 templates/news_manage.html:240
+#: templates/ask.html:158 templates/news_manage.html:240
 msgid "Close"
 msgstr ""
 
@@ -1602,90 +1700,86 @@ msgstr ""
 msgid "Search papers"
 msgstr ""
 
-#: templates/ask.html:32
+#: templates/ask.html:28 templates/base.html:75 templates/landing.html:844
+#: templates/news.html:576 templates/news_article.html:654
+#: templates/upload.html:11
+msgid "Dashboard"
+msgstr ""
+
+#: templates/ask.html:46
 msgid "Conversations"
 msgstr ""
 
-#: templates/ask.html:35
+#: templates/ask.html:49
 msgid "Search conversations"
 msgstr ""
 
-#: templates/ask.html:42
+#: templates/ask.html:56
 msgid "Toggle conversations"
 msgstr ""
 
-#: templates/ask.html:47
-msgid "Ask"
-msgstr ""
-
-#: templates/ask.html:48
+#: templates/ask.html:62
 msgid ""
 "Chat or cite papers straight from your library. I'll reason over the "
 "sources and keep the references attached."
 msgstr ""
 
-#: templates/ask.html:52
+#: templates/ask.html:66
 msgid "Suggested"
 msgstr ""
 
-#: templates/ask.html:70
+#: templates/ask.html:84
 msgid "Attach"
 msgstr ""
 
-#: templates/ask.html:74
+#: templates/ask.html:88
 msgid "Upload a file"
 msgstr ""
 
-#: templates/ask.html:74
+#: templates/ask.html:88
 msgid "PDF, DOCX, TXT, Markdown…"
 msgstr ""
 
-#: templates/ask.html:78 templates/ask.html:102
+#: templates/ask.html:92 templates/ask.html:151
 msgid "Cite from library"
 msgstr ""
 
-#: templates/ask.html:78
+#: templates/ask.html:92
 msgid "Reference papers in your collection"
 msgstr ""
 
-#: templates/ask.html:82
+#: templates/ask.html:96
 msgid "Toggle web access"
 msgstr ""
 
-#: templates/ask.html:82
+#: templates/ask.html:96
 msgid "Web access"
 msgstr ""
 
-#: templates/ask.html:85
+#: templates/ask.html:99
 msgid "Agent"
 msgstr ""
 
-#: templates/ask.html:93
+#: templates/ask.html:107
 msgid "AI can be wrong — verify citations against the source."
 msgstr ""
 
-#: templates/ask.html:106
-msgid "Your Library"
+#: templates/ask.html:128 templates/base.html:129 templates/landing.html:1059
+#: templates/news.html:710 templates/news_article.html:821
+msgid "Sign in with Microsoft"
 msgstr ""
 
-#: templates/ask.html:107
-msgid "Cite a paper"
+#: templates/ask.html:129 templates/base.html:131 templates/landing.html:1060
+#: templates/news.html:710 templates/news_article.html:821
+msgid "or sign in with email"
 msgstr ""
 
-#: templates/ask.html:111
-msgid "Search by title, author, or subject…"
+#: templates/ask.html:134 templates/base.html:136 templates/landing.html:1065
+#: templates/news.html:710 templates/news_article.html:821
+msgid "Email / Username"
 msgstr ""
 
-#: templates/ask.html:113 templates/guide_manage.html:85
-#: templates/news_manage.html:98 templates/review_list.html:38
-msgid "All"
-msgstr ""
-
-#: templates/ask.html:119
-msgid "Hover a paper to preview its abstract before citing."
-msgstr ""
-
-#: templates/ask.html:125 templates/base.html:146
+#: templates/ask.html:144 templates/ask.html:174 templates/base.html:146
 #: templates/change_password.html:444 templates/delete.html:357
 #: templates/guide_publish.html:148 templates/landing.html:1075
 #: templates/news.html:710 templates/news_article.html:821
@@ -1695,7 +1789,24 @@ msgstr ""
 msgid "Cancel"
 msgstr ""
 
-#: templates/ask.html:126
+#: templates/ask.html:155
+msgid "Your Library"
+msgstr ""
+
+#: templates/ask.html:156
+msgid "Cite a paper"
+msgstr ""
+
+#: templates/ask.html:160
+msgid "Search by title, author, or subject…"
+msgstr ""
+
+#: templates/ask.html:162 templates/guide_manage.html:85
+#: templates/news_manage.html:98 templates/review_list.html:38
+msgid "All"
+msgstr ""
+
+#: templates/ask.html:175
 msgid "Cite papers"
 msgstr ""
 
@@ -1706,26 +1817,6 @@ msgstr ""
 #: templates/base.html:68 templates/landing.html:835 templates/news.html:569
 #: templates/news_article.html:647
 msgid "Manage"
-msgstr ""
-
-#: templates/base.html:75 templates/landing.html:844 templates/news.html:576
-#: templates/news_article.html:654 templates/upload.html:11
-msgid "Dashboard"
-msgstr ""
-
-#: templates/base.html:129 templates/landing.html:1059 templates/news.html:710
-#: templates/news_article.html:821
-msgid "Sign in with Microsoft"
-msgstr ""
-
-#: templates/base.html:131 templates/landing.html:1060 templates/news.html:710
-#: templates/news_article.html:821
-msgid "or sign in with email"
-msgstr ""
-
-#: templates/base.html:136 templates/landing.html:1065 templates/news.html:710
-#: templates/news_article.html:821
-msgid "Email / Username"
 msgstr ""
 
 #: templates/change_password.html:2
@@ -3123,10 +3214,6 @@ msgstr ""
 msgid "MYP Community Project"
 msgstr ""
 
-#: templates/preview.html:288 templates/search.html:232
-msgid "No abstract available."
-msgstr ""
-
 #: templates/preview.html:300
 msgid "About this issue"
 msgstr ""
@@ -3393,3 +3480,299 @@ msgstr ""
 #: templates/upload_success.html:184
 msgid "View My Submissions"
 msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/_termui_impl.py:556
+#, python-brace-format
+msgid "{editor}: Editing failed"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/_termui_impl.py:560
+#, python-brace-format
+msgid "{editor}: Editing failed: {e}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:1124
+msgid "Aborted!"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:1349
+#: venv_new/lib/python3.9/site-packages/click/core.py:1379
+#, python-brace-format
+msgid "(Deprecated) {text}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:1396
+msgid "Options"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:1422
+#, python-brace-format
+msgid "Got unexpected extra argument ({args})"
+msgid_plural "Got unexpected extra arguments ({args})"
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:1438
+#, python-brace-format
+msgid "DeprecationWarning: The command {name!r} is deprecated."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:1645
+msgid "Commands"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:1677
+msgid "Missing command."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:1755
+#, python-brace-format
+msgid "No such command {name!r}."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:2313
+msgid "Value must be an iterable."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:2334
+#, python-brace-format
+msgid "Takes {nargs} values but 1 was given."
+msgid_plural "Takes {nargs} values but {len} were given."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:2783
+#, python-brace-format
+msgid "env var: {var}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:2813
+msgid "(dynamic)"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:2828
+#, python-brace-format
+msgid "default: {default}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/core.py:2841
+msgid "required"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/decorators.py:457
+#, python-format
+msgid "%(prog)s, version %(version)s"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/decorators.py:520
+msgid "Show the version and exit."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/decorators.py:541
+msgid "Show this message and exit."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:49
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:88
+#, python-brace-format
+msgid "Error: {message}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:80
+#, python-brace-format
+msgid "Try '{command} {option}' for help."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:129
+#, python-brace-format
+msgid "Invalid value: {message}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:131
+#, python-brace-format
+msgid "Invalid value for {param_hint}: {message}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:187
+msgid "Missing argument"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:189
+msgid "Missing option"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:191
+msgid "Missing parameter"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:193
+#, python-brace-format
+msgid "Missing {param_type}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:200
+#, python-brace-format
+msgid "Missing parameter: {param_name}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:220
+#, python-brace-format
+msgid "No such option: {name}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:232
+#, python-brace-format
+msgid "Did you mean {possibility}?"
+msgid_plural "(Possible options: {possibilities})"
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:270
+msgid "unknown error"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/exceptions.py:277
+#, python-brace-format
+msgid "Could not open file {filename!r}: {message}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/parser.py:233
+#, python-brace-format
+msgid "Argument {name!r} takes {nargs} values."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/parser.py:415
+#, python-brace-format
+msgid "Option {name!r} does not take a value."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/parser.py:476
+#, python-brace-format
+msgid "Option {name!r} requires an argument."
+msgid_plural "Option {name!r} requires {nargs} arguments."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv_new/lib/python3.9/site-packages/click/shell_completion.py:326
+msgid "Shell completion is not supported for Bash versions older than 4.4."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/shell_completion.py:333
+msgid "Couldn't detect Bash version, shell completion is not supported."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/termui.py:158
+msgid "Repeat for confirmation"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/termui.py:174
+msgid "Error: The value you entered was invalid."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/termui.py:176
+#, python-brace-format
+msgid "Error: {e.message}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/termui.py:187
+msgid "Error: The two entered values do not match."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/termui.py:243
+msgid "Error: invalid input"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/termui.py:773
+msgid "Press any key to continue..."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:267
+#, python-brace-format
+msgid ""
+"Choose from:\n"
+"\t{choices}"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:299
+#, python-brace-format
+msgid "{value!r} is not {choice}."
+msgid_plural "{value!r} is not one of {choices}."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:393
+#, python-brace-format
+msgid "{value!r} does not match the format {format}."
+msgid_plural "{value!r} does not match the formats {formats}."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:415
+#, python-brace-format
+msgid "{value!r} is not a valid {number_type}."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:471
+#, python-brace-format
+msgid "{value} is not in the range {range}."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:612
+#, python-brace-format
+msgid "{value!r} is not a valid boolean."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:636
+#, python-brace-format
+msgid "{value!r} is not a valid UUID."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:826
+msgid "file"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:828
+msgid "directory"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:830
+msgid "path"
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:881
+#, python-brace-format
+msgid "{name} {filename!r} does not exist."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:890
+#, python-brace-format
+msgid "{name} {filename!r} is a file."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:898
+#, python-brace-format
+msgid "{name} {filename!r} is a directory."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:907
+#, python-brace-format
+msgid "{name} {filename!r} is not readable."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:916
+#, python-brace-format
+msgid "{name} {filename!r} is not writable."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:925
+#, python-brace-format
+msgid "{name} {filename!r} is not executable."
+msgstr ""
+
+#: venv_new/lib/python3.9/site-packages/click/types.py:992
+#, python-brace-format
+msgid "{len_type} values are required, but {len_value} was given."
+msgid_plural "{len_type} values are required, but {len_value} were given."
+msgstr[0] ""
+msgstr[1] ""
+
