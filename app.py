@@ -576,6 +576,7 @@ class PaperChunkModel(BASE):
 class ConversationModel(BASE):
     __tablename__ = "conversations"
     id = Column(Integer, primary_key=True, autoincrement=True)
+    serial = Column(Unicode(6), unique=True, index=True)
     owner_key = Column(Unicode(64), index=True)
     title = Column(Unicode(255))
     created_at = Column(Unicode(40))
@@ -668,6 +669,29 @@ def init_db() -> None:
                 conn.commit()
         except Exception:
             pass  # Column already exists
+        # Migrate: add serial column to conversations if it doesn't exist
+        try:
+            with _ENGINE.connect() as conn:
+                from sqlalchemy import text
+                import secrets
+                try:
+                    conn.execute(text("ALTER TABLE conversations ADD COLUMN serial VARCHAR(6)"))
+                    conn.commit()
+                except Exception:
+                    pass
+                try:
+                    conn.execute(text("CREATE UNIQUE INDEX ix_conversations_serial ON conversations(serial)"))
+                    conn.commit()
+                except Exception:
+                    pass
+                
+                rows = conn.execute(text("SELECT id FROM conversations WHERE serial IS NULL")).fetchall()
+                for row in rows:
+                    serial = secrets.token_urlsafe(5)[:6]
+                    conn.execute(text("UPDATE conversations SET serial = :s WHERE id = :id"), {"s": serial, "id": row[0]})
+                conn.commit()
+        except Exception:
+            pass
         # Migrate: add is_ib_sample column to papers_metadata if it doesn't exist
         try:
             with _ENGINE.connect() as conn:
@@ -739,6 +763,7 @@ def create_app() -> Flask:
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
     app.config.update(
         SECRET_KEY=os.environ.get("PAPERQUERY_SECRET", "dev-secret-key"),
+        PERMANENT_SESSION_LIFETIME=timedelta(days=365),
         UPLOAD_FOLDER=str(PAPERS_DIR),
         BABEL_DEFAULT_LOCALE="en",
         BABEL_DEFAULT_TIMEZONE="UTC",
@@ -842,11 +867,22 @@ def create_app() -> Flask:
         return render_template("landing.html", ms_enabled=is_ms_configured(), latest_news=latest_news)
 
     @app.route("/ask")
-    def ask_library():
+    @app.route("/ask/<serial>")
+    def ask_library(serial=None):
         if not OPEN_ACCESS:
             user = require_login()
             if not user:
                 return redirect(url_for("login"))
+        
+        if serial:
+            owner = _ask_owner_key()
+            with db_session() as db:
+                conv = db.query(ConversationModel).filter(
+                    ConversationModel.serial == serial,
+                    ConversationModel.owner_key == owner).first()
+                if not conv:
+                    return redirect(url_for("ask_library"))
+
         suggestions = [
             _("What does the research say about climate adaptation in plants?"),
             _("Summarize recent Extended Essays in economics."),
@@ -880,6 +916,7 @@ def create_app() -> Flask:
                 "selected": _("selected"),
                 "select_hint": _("Select papers to attach as citations"),
             },
+            "active_serial": serial,
         }
         return render_template(
             "ask.html",
@@ -2389,37 +2426,40 @@ def create_app() -> Flask:
             return blocked
         owner = _ask_owner_key()
         if request.method == "POST":
+            import secrets
             now = datetime.utcnow().isoformat()
             with db_session() as db:
+                serial = secrets.token_urlsafe(5)[:6]
                 conv = ConversationModel(owner_key=owner,
+                                         serial=serial,
                                          title=str(_("New conversation")),
                                          created_at=now, updated_at=now)
                 db.add(conv)
                 db.flush()
-                cid = conv.id
+                cid = conv.serial
             return jsonify({"id": cid, "title": str(_("New conversation"))}), 201
         with db_session() as db:
             rows = (db.query(ConversationModel)
                       .filter(ConversationModel.owner_key == owner)
                       .order_by(ConversationModel.updated_at.desc()).all())
-            items = [{"id": r.id, "title": r.title, "updated_at": r.updated_at} for r in rows]
+            items = [{"id": r.serial, "title": r.title, "updated_at": r.updated_at} for r in rows]
         return jsonify({"conversations": items})
 
-    @app.route("/api/conversations/<int:cid>", methods=["GET", "PATCH", "DELETE"])
-    def api_conversation_item(cid):
+    @app.route("/api/conversations/<string:serial>", methods=["GET", "PATCH", "DELETE"])
+    def api_conversation_item(serial):
         blocked = require_ask_api_access()
         if blocked:
             return blocked
         owner = _ask_owner_key()
         with db_session() as db:
             conv = db.query(ConversationModel).filter(
-                ConversationModel.id == cid,
+                ConversationModel.serial == serial,
                 ConversationModel.owner_key == owner).first()
             if not conv:
                 return jsonify({"error": str(_("Not found"))}), 404
             if request.method == "DELETE":
                 db.query(ChatMessageModel).filter(
-                    ChatMessageModel.conversation_id == cid).delete()
+                    ChatMessageModel.conversation_id == conv.id).delete()
                 db.delete(conv)
                 return jsonify({"ok": True})
             if request.method == "PATCH":
@@ -2430,7 +2470,7 @@ def create_app() -> Flask:
                 return jsonify({"ok": True, "title": conv.title})
             # GET messages
             msgs = (db.query(ChatMessageModel)
-                      .filter(ChatMessageModel.conversation_id == cid)
+                      .filter(ChatMessageModel.conversation_id == conv.id)
                       .order_by(ChatMessageModel.id.asc()).all())
             out = []
             for m in msgs:
@@ -2478,17 +2518,19 @@ def create_app() -> Flask:
         if len(question) > MAX_QUESTION_CHARS:
             return jsonify({"error": str(_("Your question is too long."))}), 400
 
-        conv_id = data.get("conversation_id")
+        conv_serial = data.get("conversation_id")
         owner = _ask_owner_key()
         history_rows = []
-        if conv_id is not None:
+        db_conv_id = None
+        if conv_serial is not None:
             with db_session() as db:
                 conv = db.query(ConversationModel).filter(
-                    ConversationModel.id == conv_id,
+                    ConversationModel.serial == conv_serial,
                     ConversationModel.owner_key == owner).first()
                 if conv:
+                    db_conv_id = conv.id
                     now = datetime.utcnow().isoformat()
-                    db.add(ChatMessageModel(conversation_id=conv_id, role="user",
+                    db.add(ChatMessageModel(conversation_id=db_conv_id, role="user",
                                             content=question, citations="",
                                             created_at=now))
                     # title the conversation from its first question
@@ -2497,11 +2539,11 @@ def create_app() -> Flask:
                     conv.updated_at = now
                     db.flush()
                     history_rows = (db.query(ChatMessageModel)
-                                      .filter(ChatMessageModel.conversation_id == conv_id)
+                                      .filter(ChatMessageModel.conversation_id == db_conv_id)
                                       .order_by(ChatMessageModel.id.asc()).all())
                     history_rows = [{"role": row.role, "content": row.content} for row in history_rows]
                 else:
-                    conv_id = None
+                    conv_serial = None
         llm_messages = _ask_llm_messages(question, history_rows)
 
         locale_code = str(get_locale() or "en")
@@ -2544,15 +2586,15 @@ def create_app() -> Flask:
                         full.append(delta)
                         yield "data: " + _json.dumps({"type": "token", "text": delta}) + "\n\n"
                 yield "data: " + _json.dumps({"type": "citations", "items": citations}) + "\n\n"
-                if conv_id is not None:
+                if db_conv_id is not None:
                     try:
                         with db_session() as db:
                             conv = db.query(ConversationModel).filter(
-                                ConversationModel.id == conv_id,
+                                ConversationModel.id == db_conv_id,
                                 ConversationModel.owner_key == owner).first()
                             if conv:
                                 db.add(ChatMessageModel(
-                                    conversation_id=conv_id, role="assistant",
+                                    conversation_id=db_conv_id, role="assistant",
                                     content="".join(full),
                                     citations=_json.dumps(citations),
                                     created_at=datetime.utcnow().isoformat()))
@@ -4475,6 +4517,7 @@ def _forced_grounding(question, filenames):
 
 def _ask_owner_key() -> str:
     """Stable per-browser key for owning conversations without a login."""
+    session.permanent = True
     key = session.get("ask_owner")
     if not key:
         import uuid

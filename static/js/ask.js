@@ -295,11 +295,17 @@
     if (activeConv != null) return Promise.resolve(activeConv);
     return fetch("/api/conversations", { method: "POST" })
       .then(function (r) { return r.json(); })
-      .then(function (j) { activeConv = j.id; loadConversations(); return activeConv; });
+      .then(function (j) { 
+        activeConv = j.id; 
+        window.history.pushState(null, "", "/ask/" + activeConv);
+        loadConversations(); 
+        return activeConv; 
+      });
   }
 
   function openConversation(id) {
     activeConv = id;
+    window.history.pushState(null, "", "/ask/" + id);
     fetch("/api/conversations/" + id).then(function (r) { return r.json(); }).then(function (j) {
       thread.innerHTML = "";
       if (empty) { thread.appendChild(empty); empty.style.display = "none"; }
@@ -334,11 +340,15 @@
 
   if (newChatBtn) newChatBtn.addEventListener("click", function () {
     activeConv = null; thread.innerHTML = "";
+    window.history.pushState(null, "", "/ask");
     if (empty) { thread.appendChild(empty); empty.style.display = ""; }
     loadConversations();
   });
   if (railSearch) railSearch.addEventListener("input", renderConversationRail);
   loadConversations();
+  if (BOOT.active_serial) {
+    openConversation(BOOT.active_serial);
+  }
 
   // --- attach "+" pop menu (upload item inert) ---
   var attachBtn = document.getElementById("kd-attach-btn");
