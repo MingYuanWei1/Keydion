@@ -711,16 +711,27 @@ button { font-family: inherit; cursor: pointer; }
 }
 
 
-/* ===== standalone-port overrides (added by port) ===== */
+/* ===== standalone-port overrides ===== */
 html, body { margin: 0; padding: 0; }
-body { min-height: 100vh; display: flex; flex-direction: column; background: var(--bg); }
+
+/* The mockup pins .kd-header and .kd-app with position:fixed and has NO footer.
+   For the standalone page (header + app + site footer) we drop that fixed model
+   and lay the page out as a single flex column so the footer sits at the bottom
+   and the app fills the space between header and footer. */
+body { height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--cream); color: var(--ink); }
+
+.kd-header { position: static; flex: 0 0 auto; }
+
+.kd-app { position: static; top: auto; left: auto; right: auto; bottom: auto;
+  flex: 1 1 auto; min-height: 0; }
+
+.kd-disabled { flex: 0 0 auto; padding: 10px 16px; background: #fdf6f6;
+  border-bottom: 1px solid #e8c0c0; color: #8b1a1a; font-size: 13px; text-align: center; }
+
+
+/* overlay + pop menu visibility toggles (vanilla-JS port) */
 .kd-overlay { display: none; }
 .kd-overlay.is-open { display: flex; }
 .kd-pop { display: none; }
 .kd-pop.is-open { display: block; }
-.kd-disabled { padding: 10px 16px; background: #fdf6f6; border-bottom: 1px solid #e8c0c0;
-  color: #8b1a1a; font-size: 13px; text-align: center; }
-.kd-site-footer { background: #141414; color: #999; padding: 20px 0; margin-top: auto; }
-.kd-site-footer .kd-foot-inner { max-width: 1200px; margin: 0 auto; padding: 0 28px;
-  display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
-.kd-site-footer a { color: #666; text-decoration: none; }

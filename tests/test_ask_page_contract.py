@@ -23,10 +23,10 @@ class AskRouteRegistered(unittest.TestCase):
 
 
 class AskTemplateDom(unittest.TestCase):
-    def test_template_is_standalone_with_footer(self):
+    def test_template_is_standalone(self):
         html = _read("templates/ask.html")
         self.assertIn("<!doctype html", html.lower())
-        self.assertIn("kd-site-footer", html)
+        self.assertIn("kd-rail__foot", html)
 
     def test_template_has_js_target_ids(self):
         html = _read("templates/ask.html")

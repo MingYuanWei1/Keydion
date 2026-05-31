@@ -107,7 +107,7 @@
     body.appendChild(bar);
   }
 
-  function scroll() { if (thread) thread.scrollTop = thread.scrollHeight; }
+  function scroll() { var sc = document.querySelector(".kd-thread"); if (sc) sc.scrollTop = sc.scrollHeight; }
 
   function send(forced) {
     if (busy) return;
