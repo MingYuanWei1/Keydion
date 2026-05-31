@@ -582,6 +582,9 @@ button { font-family: inherit; cursor: pointer; }
   max-width: 280px;
 }
 .kd-chip--paper { background: rgba(139, 26, 26, 0.05); border-color: #e3cfcf; }
+.kd-chip--file { background: #eef1fb; border-color: #c9d4f5; }
+.kd-chip--file .kd-chip__name { color: #1f44b8; }
+.kd-source--plain { cursor: default; text-decoration: none; }
 .kd-chip__ico {
   width: 28px; height: 28px; border-radius: 7px; flex: 0 0 auto;
   display: inline-flex; align-items: center; justify-content: center;

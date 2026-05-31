@@ -233,14 +233,14 @@
     box.appendChild(el("div", "kd-sources__label", I18N.sources || "Cited from your library"));
     var grid = el("div", "kd-sources__grid");
     items.forEach(function (it) {
-      var a = el("a", "kd-source");
-      a.href = it.url;
-      a.appendChild(el("span", "kd-source__n", "[" + it.n + "]"));
+      var node = it.url ? el("a", "kd-source") : el("div", "kd-source kd-source--plain");
+      if (it.url) node.href = it.url;
+      node.appendChild(el("span", "kd-source__n", "[" + it.n + "]"));
       var meta = el("span", "kd-source__meta");
       meta.appendChild(el("span", "kd-source__title", it.title));
       if (it.authors) meta.appendChild(el("span", "kd-source__sub", it.authors));
-      a.appendChild(meta);
-      grid.appendChild(a);
+      node.appendChild(meta);
+      grid.appendChild(node);
     });
     box.appendChild(grid);
     body.querySelector(".kd-prose").appendChild(box);
@@ -416,6 +416,9 @@
     activeConv = id;
     window.history.pushState(null, "", "/ask/" + id);
     fetch("/api/conversations/" + id).then(function (r) { return r.json(); }).then(function (j) {
+      window.__attachedDocs = {};
+      (j.attachments || []).forEach(function (fn) { window.__attachedDocs[fn] = true; });
+      renderChips();
       thread.innerHTML = "";
       if (empty) { thread.appendChild(empty); empty.style.display = "none"; }
       (j.messages || []).forEach(function (m) {
@@ -449,6 +452,7 @@
 
   if (newChatBtn) newChatBtn.addEventListener("click", function () {
     activeConv = null; thread.innerHTML = "";
+    window.__attachedDocs = {}; renderChips();
     window.history.pushState(null, "", "/ask");
     if (empty) { thread.appendChild(empty); empty.style.display = ""; }
     loadConversations();
@@ -472,7 +476,31 @@
     });
   }
   var uploadItem = document.getElementById("kd-upload-item");
-  if (uploadItem) uploadItem.addEventListener("click", function () { if (attachPop) attachPop.classList.remove("is-open"); });
+  var fileInput = document.getElementById("kd-file-input");
+  if (uploadItem) uploadItem.addEventListener("click", function () {
+    if (attachPop) attachPop.classList.remove("is-open");
+    if (fileInput) fileInput.click();
+  });
+  if (fileInput) fileInput.addEventListener("change", function () {
+    var files = Array.prototype.slice.call(fileInput.files || []);
+    fileInput.value = "";
+    if (!files.length) return;
+    ensureConversation().then(function (cid) {
+      files.forEach(function (f) {
+        window.__attachedDocs[f.name] = true;
+        renderChips();
+        var fd = new FormData();
+        fd.append("file", f);
+        fd.append("conversation_id", cid);
+        fetch("/api/ask/attach", { method: "POST", body: fd })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            if (j && j.error) { delete window.__attachedDocs[f.name]; renderChips(); alert(j.error); }
+          })
+          .catch(function () { delete window.__attachedDocs[f.name]; renderChips(); });
+      });
+    });
+  });
 
   // --- web access toggle (visual only / inert) ---
   var webToggle = document.getElementById("kd-web-toggle");
@@ -499,6 +527,7 @@
   var allPapers = [];
   var activeFilter = "All";
   window.__selectedPapers = function () { return Object.keys(selected); };
+  window.__attachedDocs = {};
 
   function updateCount() {
     if (!citeCount) return;
@@ -627,6 +656,20 @@
       chip.appendChild(el("span", "kd-chip__name", selected[fn].title));
       var x = el("button", "kd-chip__x", "✕");
       x.addEventListener("click", function () { delete selected[fn]; renderChips(); updateCount(); });
+      chip.appendChild(x);
+      attachRow.appendChild(chip);
+    });
+    Object.keys(window.__attachedDocs).forEach(function (fn) {
+      var chip = el("span", "kd-chip kd-chip--file");
+      chip.appendChild(el("span", "kd-chip__name", fn));
+      var x = el("button", "kd-chip__x", "✕");
+      x.addEventListener("click", function () {
+        delete window.__attachedDocs[fn];
+        renderChips();
+        var cid = window.__activeConv && window.__activeConv();
+        if (cid) fetch("/api/ask/attach?conversation_id=" + encodeURIComponent(cid) +
+                       "&filename=" + encodeURIComponent(fn), { method: "DELETE" });
+      });
       chip.appendChild(x);
       attachRow.appendChild(chip);
     });
