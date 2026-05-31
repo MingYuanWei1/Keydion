@@ -31,6 +31,7 @@ from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, Str
 from sqlalchemy.orm import declarative_base, sessionmaker
 from flask import (
     Flask,
+    Response,
     abort,
     flash,
     jsonify,
@@ -40,6 +41,7 @@ from flask import (
     send_file,
     send_from_directory,
     session,
+    stream_with_context,
     url_for,
 )
 from flask_babel import Babel, gettext as _, get_locale, lazy_gettext as _l
@@ -814,6 +816,42 @@ def create_app() -> Flask:
                 session.clear()
         latest_news = load_news_articles(status="published")[:4]
         return render_template("landing.html", ms_enabled=is_ms_configured(), latest_news=latest_news)
+
+    @app.route("/ask")
+    def ask_library():
+        suggestions = [
+            _("What does the research say about climate adaptation in plants?"),
+            _("Summarize recent Extended Essays in economics."),
+            _("Find papers about machine learning in healthcare."),
+        ]
+        boot = {
+            "ask_url": url_for("ask_library"),
+            "api_url": url_for("api_ask"),
+            "enabled": llm_client.llm_enabled(),
+            "i18n": {
+                "title": _("Ask the Library"),
+                "empty_title": _("Ask Keydion"),
+                "empty_sub": _("Ask a question and I'll answer from the published library, with citations."),
+                "placeholder": _("Message Keydion AI…"),
+                "flash": _("Flash"),
+                "thinking": _("Thinking"),
+                "send": _("Send"),
+                "sources": _("Cited from your library"),
+                "copy": _("Copy"),
+                "regenerate": _("Regenerate"),
+                "thinking_state": _("Thinking…"),
+                "error": _("Something went wrong. Please try again."),
+                "disabled": _("AI assistant is not configured."),
+                "no_sources": _("No matching papers were found in the library."),
+            },
+        }
+        return render_template(
+            "ask.html",
+            partial=is_partial_request(),
+            llm_enabled=llm_client.llm_enabled(),
+            suggestions=suggestions,
+            ask_boot=boot,
+        )
 
     @app.route("/faq")
     def faq():
