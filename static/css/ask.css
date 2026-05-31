@@ -499,15 +499,6 @@ button { font-family: inherit; cursor: pointer; }
   cursor: pointer;
 }
 
-.kd-webnote {
-  display: inline-flex; align-items: center; gap: 7px;
-  font-family: var(--serif-ui); font-size: 12px; color: var(--teal);
-  background: rgba(0, 120, 95, 0.07);
-  border: 1px solid rgba(0, 120, 95, 0.2);
-  border-radius: 999px; padding: 4px 11px;
-  margin-bottom: 12px;
-}
-
 .kd-sources { margin-top: 16px; border-top: 1px solid var(--border-soft); padding-top: 13px; }
 .kd-sources__label {
   font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
