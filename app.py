@@ -863,6 +863,8 @@ def create_app() -> Flask:
                 "error": _("Something went wrong. Please try again."),
                 "disabled": _("AI assistant is not configured."),
                 "no_sources": _("No matching papers were found in the library."),
+                "selected": _("selected"),
+                "select_hint": _("Select papers to attach as citations"),
             },
         }
         return render_template(
