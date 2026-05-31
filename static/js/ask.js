@@ -384,8 +384,11 @@
   var citeListEl = document.getElementById("kd-cite-list");
   var citeSearch = document.getElementById("kd-cite-search");
   var citeCount = document.getElementById("kd-cite-count");
+  var citeFiltersEl = document.getElementById("kd-cite-filters");
   var attachRow = document.getElementById("kd-attachrow");
   var selected = {};
+  var allPapers = [];
+  var activeFilter = "All";
   window.__selectedPapers = function () { return Object.keys(selected); };
 
   function updateCount() {
@@ -394,9 +397,105 @@
     citeCount.textContent = n ? (n + " " + (I18N.selected || "selected")) : (I18N.select_hint || "Select papers to attach as citations");
   }
 
+  function showPreview(paper) {
+    var pane = document.querySelector(".kd-modal__preview");
+    if (!pane) return;
+    pane.innerHTML = "";
+    var kicker = el("div", "kd-preview__kicker");
+    kicker.textContent = paper.category || "";
+    var title = el("h3", "kd-preview__title");
+    title.textContent = paper.title || "";
+    var authors = el("div", "kd-preview__authors");
+    authors.textContent = paper.authors || "";
+    var absLabel = el("div", "kd-preview__abslabel");
+    absLabel.textContent = "Abstract";
+    var absText = el("div", "kd-preview__abstract");
+    absText.textContent = paper.abstract || "No abstract available.";
+    if (paper.category) pane.appendChild(kicker);
+    pane.appendChild(title);
+    if (paper.authors) pane.appendChild(authors);
+    pane.appendChild(absLabel);
+    pane.appendChild(absText);
+  }
+
+  function resetPreview() {
+    var pane = document.querySelector(".kd-modal__preview");
+    if (!pane) return;
+    pane.innerHTML = "";
+    var empty = el("div", "kd-preview__empty");
+    var icon = document.createElement("span");
+    icon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>';
+    var msg = el("p", null, "Hover a paper to preview its abstract before citing.");
+    empty.appendChild(icon);
+    empty.appendChild(msg);
+    pane.appendChild(empty);
+  }
+
+  function renderPapers(papers) {
+    if (!citeListEl) return;
+    citeListEl.innerHTML = "";
+    var visible = activeFilter === "All" ? papers : papers.filter(function (p) { return p.category === activeFilter; });
+    visible.forEach(function (p) {
+      var row = el("div", "kd-paper" + (selected[p.filename] ? " is-selected" : ""));
+      var check = el("button", "kd-check");
+      if (selected[p.filename]) check.textContent = "✓";
+      var meta = el("div", "kd-paper__meta");
+      meta.appendChild(el("div", "kd-paper__title", p.title));
+      if (p.authors) meta.appendChild(el("div", "kd-paper__authors", p.authors));
+      if (p.category) {
+        var tags = el("div", "kd-paper__tags");
+        tags.appendChild(el("span", "kd-tag", p.category));
+        meta.appendChild(tags);
+      }
+      row.appendChild(check); row.appendChild(meta);
+      row.addEventListener("click", function () {
+        if (selected[p.filename]) { delete selected[p.filename]; row.classList.remove("is-selected"); check.textContent = ""; }
+        else { selected[p.filename] = { title: p.title }; row.classList.add("is-selected"); check.textContent = "✓"; }
+        updateCount();
+      });
+      row.addEventListener("mouseenter", function () { showPreview(p); });
+      citeListEl.appendChild(row);
+    });
+  }
+
+  function buildFilters(papers) {
+    if (!citeFiltersEl) return;
+    var categories = [];
+    papers.forEach(function (p) {
+      if (p.category && categories.indexOf(p.category) === -1) categories.push(p.category);
+    });
+    citeFiltersEl.innerHTML = "";
+    var allBtn = el("button", "kd-filter" + (activeFilter === "All" ? " is-active" : ""), "All");
+    allBtn.type = "button";
+    allBtn.addEventListener("click", function () {
+      activeFilter = "All";
+      citeFiltersEl.querySelectorAll(".kd-filter").forEach(function (b) { b.classList.remove("is-active"); });
+      allBtn.classList.add("is-active");
+      renderPapers(allPapers);
+    });
+    citeFiltersEl.appendChild(allBtn);
+    categories.forEach(function (cat) {
+      var btn = el("button", "kd-filter" + (activeFilter === cat ? " is-active" : ""), cat);
+      btn.type = "button";
+      btn.addEventListener("click", function () {
+        activeFilter = cat;
+        citeFiltersEl.querySelectorAll(".kd-filter").forEach(function (b) { b.classList.remove("is-active"); });
+        btn.classList.add("is-active");
+        renderPapers(allPapers);
+      });
+      citeFiltersEl.appendChild(btn);
+    });
+  }
+
   function openCite() {
     if (attachPop) attachPop.classList.remove("is-open");
-    if (citeOverlay) { citeOverlay.classList.add("is-open"); loadPapers(""); updateCount(); }
+    if (citeOverlay) {
+      citeOverlay.classList.add("is-open");
+      activeFilter = "All";
+      resetPreview();
+      loadPapers("");
+      updateCount();
+    }
   }
   function closeCite() { if (citeOverlay) citeOverlay.classList.remove("is-open"); }
 
@@ -404,27 +503,10 @@
     if (!citeListEl) return;
     fetch("/api/ask/papers?q=" + encodeURIComponent(q)).then(function (r) { return r.json(); })
       .then(function (j) {
-        citeListEl.innerHTML = "";
-        (j.papers || []).forEach(function (p) {
-          var row = el("div", "kd-paper" + (selected[p.filename] ? " is-selected" : ""));
-          var check = el("button", "kd-check");
-          if (selected[p.filename]) check.textContent = "✓";
-          var meta = el("div", "kd-paper__meta");
-          meta.appendChild(el("div", "kd-paper__title", p.title));
-          if (p.authors) meta.appendChild(el("div", "kd-paper__authors", p.authors));
-          if (p.category) {
-            var tags = el("div", "kd-paper__tags");
-            tags.appendChild(el("span", "kd-tag", p.category));
-            meta.appendChild(tags);
-          }
-          row.appendChild(check); row.appendChild(meta);
-          row.addEventListener("click", function () {
-            if (selected[p.filename]) { delete selected[p.filename]; row.classList.remove("is-selected"); check.textContent = ""; }
-            else { selected[p.filename] = { title: p.title }; row.classList.add("is-selected"); check.textContent = "✓"; }
-            updateCount();
-          });
-          citeListEl.appendChild(row);
-        });
+        allPapers = j.papers || [];
+        activeFilter = "All";
+        buildFilters(allPapers);
+        renderPapers(allPapers);
       });
   }
 
