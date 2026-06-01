@@ -1012,8 +1012,12 @@ msgid "Generation failed — try again or fill manually."
 msgstr "生成失败——请重试或手动填写。"
 
 #: app.py:1712
-msgid "Replace your existing abstract and keywords with AI-generated ones?"
-msgstr "用 AI 生成的内容替换现有的摘要和关键词吗？"
+msgid "Replace your existing title, authors, abstract and keywords with AI-generated ones?"
+msgstr "用 AI 生成的内容替换现有的标题、作者、摘要和关键词吗？"
+
+#: app.py:1729
+msgid "Upload your PDF in the File step first."
+msgstr "请先在“文件”步骤中上传 PDF。"
 
 #: app.py:1817
 msgid "Please enter at least a paper title to save a draft."
