@@ -2626,6 +2626,10 @@ def create_app() -> Flask:
         mode = data.get("mode") if data.get("mode") in ("flash", "think") else "flash"
         forced = data.get("paper_filenames") or []   # Phase 3 (ignored if empty)
         web_on = bool(data.get("web"))
+        msg_attachments = data.get("message_attachments") or []
+        if not isinstance(msg_attachments, list):
+            msg_attachments = []
+        msg_attachments = [str(x)[:255] for x in msg_attachments][:10]
         if not question:
             return jsonify({"error": str(_("Please enter a question."))}), 400
         if len(question) > MAX_QUESTION_CHARS:
@@ -2645,6 +2649,7 @@ def create_app() -> Flask:
                     now = datetime.utcnow().isoformat()
                     db.add(ChatMessageModel(conversation_id=db_conv_id, role="user",
                                             content=question, citations="",
+                                            attachments=json.dumps(msg_attachments),
                                             created_at=now))
                     # title the conversation from its first question
                     if conv.title == str(_("New conversation")):

@@ -113,6 +113,14 @@ class RagPaperTextOcr(unittest.TestCase):
         self.assertNotIn("pdf_text.", src)  # must not delegate to pdf_text module
 
 
+class AskPersistsMessageAttachments(unittest.TestCase):
+    def test_reads_and_stores_message_attachments(self):
+        import inspect
+        src = inspect.getsource(app_module.create_app)
+        self.assertIn('data.get("message_attachments"', src)
+        self.assertIn("attachments=", src)   # set on the user ChatMessageModel row
+
+
 class MessageAttachmentsColumn(unittest.TestCase):
     def test_column_exists(self):
         cols = set(app_module.ChatMessageModel.__table__.columns.keys())
