@@ -57,6 +57,7 @@ from werkzeug.utils import secure_filename
 from ee_pdf_extractor import extract_ee_metadata, EePdfExtractionError
 from llm_metadata import generate_abstract_keywords, LLMMetadataError
 import llm_client
+import library_tools
 import pdf_text
 import rag_index
 import web_search
@@ -2717,31 +2718,10 @@ def create_app() -> Flask:
         def generate():
             import json as _json
             full = []
-            try:
-                client = llm_client.build_client()
-                # The think model runs a hybrid model; turn its thinking mode on.
-                create_kwargs = {}
-                if mode == "think":
-                    create_kwargs["extra_body"] = {"thinking": {"type": "enabled"}}
-                stream = client.chat.completions.create(
-                    model=model, temperature=0.2, stream=True,
-                    messages=[{"role": "system", "content": system}] + llm_messages,
-                    **create_kwargs,
-                )
-                for chunk in stream:
-                    delta = ""
-                    try:
-                        delta = chunk.choices[0].delta.content or ""
-                    except (AttributeError, IndexError):
-                        delta = ""
-                    if delta:
-                        full.append(delta)
-                        yield "data: " + _json.dumps({"type": "token", "text": delta}) + "\n\n"
-                # Show only the sources the answer actually referenced, so the
-                # panel reflects what was used rather than everything retrieved.
+
+            def _finish(shown_citations, shown_web):
+                # Emit citations / web, persist the assistant message, finish.
                 answer_text = "".join(full)
-                shown_citations = _filter_cited(citations, answer_text)
-                shown_web = _filter_cited(web_items, answer_text)
                 yield "data: " + _json.dumps({"type": "citations", "items": shown_citations}) + "\n\n"
                 if shown_web:
                     yield "data: " + _json.dumps({"type": "web", "items": shown_web}) + "\n\n"
@@ -2760,6 +2740,192 @@ def create_app() -> Flask:
                     except Exception:
                         app.logger.exception("failed to persist assistant message")
                 yield "data: " + _json.dumps({"type": "done"}) + "\n\n"
+
+            try:
+                client = llm_client.build_client()
+                deps = _build_library_deps()
+                registry = library_tools.SourceRegistry()
+
+                # Seed the registry from the retrieved hits (library + attachment
+                # candidates), preserving order so [n] matches what the model sees.
+                candidates = []
+                for h in hits:
+                    n = registry.register(h["filename"], {
+                        "title": h.get("title") or h["filename"],
+                        "authors": h.get("author_name", ""),
+                        "url": (None if h.get("is_attachment")
+                                else url_for("preview_paper", filename=h["filename"])),
+                    })
+                    candidates.append({
+                        "n": n,
+                        "title": h.get("title") or h["filename"],
+                        "authors": h.get("author_name", ""),
+                        "filename": h["filename"],
+                        "snippet": (h.get("content") or "")[:500],
+                        "is_attachment": bool(h.get("is_attachment")),
+                    })
+
+                # Register web results into the SAME registry right after the
+                # library seed, reserving contiguous numbers so papers discovered
+                # during the loop never collide with web numbers.
+                web_keys = set()
+                web_sources = []
+                if web_results:
+                    web_keys = {w["url"] for w in web_results}
+                    for w in web_results:
+                        wn = registry.register(w["url"], {
+                            "title": w["title"], "authors": "", "url": w["url"],
+                        })
+                        web_sources.append({
+                            "n": wn, "title": w["title"], "url": w["url"],
+                            "snippet": (w.get("content") or "")[:500],
+                        })
+
+                agentic_system = _build_agentic_ask_prompt(
+                    question, candidates, web_sources, locale_code)
+                messages = [{"role": "system", "content": agentic_system}] + llm_messages
+
+                # Pre-read forced papers so the model has their full text up front.
+                if forced:
+                    results = []
+                    for fn in forced:
+                        res = library_tools.run_tool(
+                            "read_paper", _json.dumps({"filename": fn}), registry, deps)
+                        if res and not res.startswith("Error:"):
+                            results.append(res)
+                    if results:
+                        intro = ("The following are the full texts of papers the user "
+                                 "explicitly referenced. Use them to answer.")
+                        messages.append({"role": "system",
+                                         "content": intro + "\n\n" + "\n\n".join(results)})
+
+                create_kwargs = {}
+                if mode == "think":
+                    create_kwargs["extra_body"] = {"thinking": {"type": "enabled"}}
+
+                answered = False
+                for round_i in range(MAX_TOOL_ROUNDS):
+                    try:
+                        stream = client.chat.completions.create(
+                            model=model, temperature=0.2, stream=True,
+                            messages=messages, tools=library_tools.TOOL_SCHEMAS,
+                            **create_kwargs,
+                        )
+                    except Exception:
+                        if round_i == 0:
+                            # Provider likely lacks tool support — fall back to the
+                            # legacy single-shot path that reproduces today's behavior.
+                            app.logger.warning(
+                                "tool-calling create failed on first round; "
+                                "falling back to legacy single-shot ask", exc_info=True)
+                            full = []
+                            # `system` was computed pre-generate via _build_ask_prompt;
+                            # the fallback reproduces today's exact single-shot behavior.
+                            legacy_stream = client.chat.completions.create(
+                                model=model, temperature=0.2, stream=True,
+                                messages=[{"role": "system", "content": system}] + llm_messages,
+                                **create_kwargs,
+                            )
+                            for chunk in legacy_stream:
+                                delta = ""
+                                try:
+                                    delta = chunk.choices[0].delta.content or ""
+                                except (AttributeError, IndexError):
+                                    delta = ""
+                                if delta:
+                                    full.append(delta)
+                                    yield "data: " + _json.dumps(
+                                        {"type": "token", "text": delta}) + "\n\n"
+                            answer_text = "".join(full)
+                            shown_citations = _filter_cited(citations, answer_text)
+                            shown_web = _filter_cited(web_items, answer_text)
+                            yield from _finish(shown_citations, shown_web)
+                            return
+                        raise
+
+                    # Accumulate tool calls by index (fragments stream in pieces).
+                    acc = {}
+                    round_content = []
+                    for chunk in stream:
+                        try:
+                            delta = chunk.choices[0].delta
+                        except (AttributeError, IndexError):
+                            continue
+                        content = getattr(delta, "content", None) or ""
+                        if content:
+                            round_content.append(content)
+                            yield "data: " + _json.dumps(
+                                {"type": "token", "text": content}) + "\n\n"
+                        for tc in (getattr(delta, "tool_calls", None) or []):
+                            idx = tc.index
+                            slot = acc.setdefault(idx, {"id": "", "name": "", "arguments": ""})
+                            if getattr(tc, "id", None):
+                                slot["id"] = tc.id
+                            fn = getattr(tc, "function", None)
+                            if fn is not None:
+                                if getattr(fn, "name", None):
+                                    slot["name"] = fn.name
+                                if getattr(fn, "arguments", None):
+                                    slot["arguments"] += fn.arguments
+
+                    if acc:
+                        calls = [acc[i] for i in sorted(acc)]
+                        messages.append({
+                            "role": "assistant",
+                            "content": "".join(round_content) or None,
+                            "tool_calls": [
+                                {"id": c["id"], "type": "function",
+                                 "function": {"name": c["name"], "arguments": c["arguments"]}}
+                                for c in calls
+                            ],
+                        })
+                        for c in calls:
+                            yield "data: " + _json.dumps({
+                                "type": "status",
+                                "text": _tool_status_text(
+                                    c["name"], c["arguments"], registry, deps),
+                            }) + "\n\n"
+                            result = library_tools.run_tool(
+                                c["name"], c["arguments"], registry, deps)
+                            messages.append({"role": "tool", "tool_call_id": c["id"],
+                                             "content": result})
+                        continue
+
+                    # No tool calls — this round was the final answer.
+                    full.extend(round_content)
+                    answered = True
+                    break
+
+                if not answered:
+                    # Round cap hit — force one final answer with no more tools.
+                    final_stream = client.chat.completions.create(
+                        model=model, temperature=0.2, stream=True,
+                        messages=messages, tools=library_tools.TOOL_SCHEMAS,
+                        tool_choice="none", **create_kwargs,
+                    )
+                    for chunk in final_stream:
+                        delta = ""
+                        try:
+                            delta = chunk.choices[0].delta.content or ""
+                        except (AttributeError, IndexError):
+                            delta = ""
+                        if delta:
+                            full.append(delta)
+                            yield "data: " + _json.dumps(
+                                {"type": "token", "text": delta}) + "\n\n"
+
+                # Finish (agentic path): split citations into library vs web, then
+                # keep only the sources the answer actually referenced.
+                answer_text = "".join(full)
+                all_cites = registry.as_citations()
+                lib_citations = [c for c in all_cites if c["filename"] not in web_keys]
+                web_citations = [
+                    {"n": c["n"], "title": c["title"], "url": c["url"]}
+                    for c in all_cites if c["filename"] in web_keys
+                ]
+                shown_citations = _filter_cited(lib_citations, answer_text)
+                shown_web = _filter_cited(web_citations, answer_text)
+                yield from _finish(shown_citations, shown_web)
             except Exception:
                 app.logger.exception("LLM stream failed")
                 yield "data: " + _json.dumps({"type": "error",
@@ -4733,6 +4899,89 @@ def _ask_rate_ok(ip: str) -> bool:
     hits.append(now)
     _ASK_HITS[ip] = hits
     return True
+
+
+MAX_TOOL_ROUNDS = 5
+
+
+def _build_agentic_ask_prompt(question, candidates, web_sources, locale_code):
+    """System prompt for the agentic Ask loop.
+
+    Seeds the model with the candidate papers (and any web sources) already
+    retrieved, and instructs it to use search_library / read_paper to gather
+    more, citing sources with bracketed [n].
+    """
+    lang = "Chinese" if locale_code == "zh" else "English"
+    candidates = candidates or []
+    web_sources = web_sources or []
+    lines = []
+    for c in candidates:
+        head = (f"[{c['n']}] {c.get('title') or c.get('filename')} — "
+                f"{c.get('authors', '')} (filename: {c.get('filename')})")
+        if c.get("is_attachment"):
+            head += " (attached file)"
+        lines.append(head)
+        snippet = (c.get("snippet") or "").strip()
+        if snippet:
+            lines.append(snippet)
+    for w in web_sources:
+        lines.append(f"[{w['n']}] (web) {w.get('title', '')} ({w.get('url', '')})")
+        snippet = (w.get("snippet") or "").strip()
+        if snippet:
+            lines.append(snippet)
+    sources_block = "\n".join(lines)
+
+    system = (
+        "You are Keydion's library assistant. You help users find and understand "
+        "papers in Keydion's published library, attaching citations. "
+        f"Answer in {lang}.\n\n"
+        "You have two tools:\n"
+        "- search_library(query): search the library for more relevant papers. "
+        "Use it to discover papers beyond the candidates already listed below.\n"
+        "- read_paper(filename): fetch a paper's FULL text. Use it when the user "
+        "asks you to explain or summarize a specific paper, or when a candidate "
+        "snippet is insufficient to answer well.\n\n"
+        "Cite the sources you actually use with bracketed numbers like [n]. Each "
+        "candidate and each paper you read carries its own [n]. Cite ONLY sources "
+        "you actually used to answer; you do not need to cite every source, and "
+        "never cite a source that is not relevant to your answer.\n"
+        "If no candidates were retrieved and the user is just greeting you, making "
+        "small talk, or asking who you are or what you can do, reply naturally and "
+        "do not invent sources."
+    )
+    if sources_block:
+        system += "\n\nCANDIDATE SOURCES:\n" + sources_block
+    else:
+        system += "\n\nNo candidate sources were retrieved for this message."
+    return system
+
+
+def _tool_status_text(name, arguments, registry, deps):
+    """Best-effort human-readable status for a tool call. Never raises."""
+    if name == "search_library":
+        return str(_("Searching the library…"))
+    if name == "read_paper":
+        title = None
+        try:
+            args = arguments if isinstance(arguments, dict) else json.loads(arguments)
+            filename = str(args.get("filename") or "").strip()
+            if filename:
+                for c in registry.as_citations():
+                    if c.get("filename") == filename:
+                        title = c.get("title")
+                        break
+                if not title:
+                    try:
+                        title = (deps.paper_meta(filename) or {}).get("title")
+                    except Exception:
+                        title = None
+                title = title or filename
+        except Exception:
+            title = None
+        if title:
+            return str(_("Reading “%(title)s”…")) % {"title": title}
+        return str(_("Reading a paper…"))
+    return str(_("Working…"))
 
 
 def _build_ask_prompt(question, hits, locale_code, web_results=None):
