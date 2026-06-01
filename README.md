@@ -159,6 +159,9 @@ PAPERQUERY_MS_CLIENT_ID=your_client_id
 PAPERQUERY_MS_CLIENT_SECRET=your_client_secret
 PAPERQUERY_MS_REDIRECT_URI=http://localhost:5000/auth/callback
 
+HOST=
+PORT=
+
 # AI assist — abstract & keyword auto-fill (Optional; OpenAI-compatible API)
 LLM_API_KEY=your_api_key
 LLM_BASE_URL=
