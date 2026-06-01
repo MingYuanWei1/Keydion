@@ -200,10 +200,19 @@
   }
   if (sendBtn) sendBtn.addEventListener("click", function () { send(); });
 
-  function addUser(text) {
+  function addUser(text, attachments) {
     if (empty) empty.style.display = "none";
     var msg = el("div", "kd-msg kd-msg--user");
     msg.appendChild(el("div", "kd-bubble", text));
+    if (attachments && attachments.length) {
+      var files = el("div", "kd-bubble__files");
+      attachments.forEach(function (fn) {
+        var chip = el("span", "kd-chip kd-chip--file kd-chip--sent");
+        chip.appendChild(el("span", "kd-chip__name", fn));
+        files.appendChild(chip);
+      });
+      msg.appendChild(files);
+    }
     thread.appendChild(msg);
     scroll();
   }
@@ -280,7 +289,10 @@
     if (!q) return;
     window.__lastQuestion = q;
     busy = true; if (sendBtn) sendBtn.disabled = true;
-    addUser(q);
+    var sentAttachments = Object.keys(window.__attachedDocs || {});
+    addUser(q, sentAttachments);
+    window.__attachedDocs = {};
+    renderChips();
     input.value = ""; input.style.height = "auto";
     var ai = addAi();
 
@@ -290,6 +302,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: q, mode: mode, conversation_id: cid,
                                web: window.__webOn ? window.__webOn() : false,
+                               message_attachments: sentAttachments,
                                paper_filenames: window.__selectedPapers ? window.__selectedPapers() : [] })
       });
     }).then(function (resp) {
