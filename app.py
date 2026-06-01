@@ -4553,11 +4553,32 @@ def _rag_iter_papers():
     return [build_paper_record(p.name, index) for p in PAPERS_DIR.glob("*.pdf")]
 
 
+def _index_ocr_langs(language: str) -> str:
+    """Tesseract lang string for the INDEXING path, biased by the paper's
+    declared language. en -> English-only (skips the Chinese model, ~2x
+    faster); zh -> Chinese+English; unknown/empty -> both (safe default so an
+    untagged scanned Chinese paper isn't garbled). Kept separate from
+    llm_metadata._ocr_langs_for, which intentionally defaults unknown -> eng
+    for its own request path."""
+    lang = (language or "").strip().lower()
+    if lang == "en":
+        return "eng"
+    if lang == "zh":
+        return "chi_sim+eng"
+    return "eng+chi_sim"
+
+
 def _rag_paper_text(filename):
-    # Embedding build gets OCR fallback so scanned published papers are
-    # retrievable by chat grounding. (The live /search full-text fallback keeps
-    # using the pypdf-only extract_pdf_text(pdf_path) to avoid OCR per request.)
-    return pdf_text.extract_pdf_text((PAPERS_DIR / filename).read_bytes())
+    # Indexing path: OCR scanned published papers so they're retrievable by
+    # chat grounding AND readable in full by read_paper. Uses a higher page
+    # cap (50) than request-path callers (10) and biases OCR by the paper's
+    # declared language. (The live /search full-text fallback still uses the
+    # pypdf-only extract_pdf_text(pdf_path) to avoid OCR per request.)
+    record = build_paper_record(filename)
+    ocr_langs = _index_ocr_langs(record.get("language", ""))
+    return pdf_text.extract_pdf_text(
+        (PAPERS_DIR / filename).read_bytes(),
+        ocr_langs=ocr_langs, max_ocr_pages=50)
 
 
 def _rag_paper_meta(filename):
