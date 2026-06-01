@@ -403,7 +403,9 @@ button { font-family: inherit; cursor: pointer; }
 
 /* ── Messages ───────────────────────────────────────────────── */
 .kd-msg { margin-bottom: 30px; }
-.kd-msg--user { display: flex; justify-content: flex-end; }
+.kd-msg--user { display: flex; flex-wrap: wrap; justify-content: flex-end; }
+.kd-bubble__files { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; width: 100%; justify-content: flex-end; }
+.kd-chip--sent { cursor: default; }
 .kd-bubble {
   max-width: 82%;
   padding: 13px 17px;

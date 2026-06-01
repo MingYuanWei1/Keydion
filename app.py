@@ -2634,7 +2634,7 @@ def create_app() -> Flask:
         msg_attachments = data.get("message_attachments") or []
         if not isinstance(msg_attachments, list):
             msg_attachments = []
-        msg_attachments = [str(x)[:255] for x in msg_attachments][:10]
+        msg_attachments = [str(x)[:255] for x in msg_attachments[:10]]
         if not question:
             return jsonify({"error": str(_("Please enter a question."))}), 400
         if len(question) > MAX_QUESTION_CHARS:
