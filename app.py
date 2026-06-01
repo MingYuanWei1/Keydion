@@ -4588,6 +4588,13 @@ def _rag_store_delete(filename):
         db.query(PaperChunkModel).filter(PaperChunkModel.filename == filename).delete()
 
 
+def _rag_indexed_filenames():
+    """Distinct filenames that already have stored chunks (for resume/skip)."""
+    with db_session() as db:
+        rows = db.query(PaperChunkModel.filename).distinct().all()
+        return {r[0] for r in rows}
+
+
 def configure_rag():
     rag_index.configure(
         build_embed_client=llm_client.build_embed_client,
@@ -4598,6 +4605,7 @@ def configure_rag():
         store_replace=_rag_store_replace,
         store_all=_rag_store_all,
         store_delete=_rag_store_delete,
+        indexed_filenames=_rag_indexed_filenames,
     )
 
 

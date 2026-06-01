@@ -20,7 +20,7 @@ from PyPDF2 import PdfReader
 from PyPDF2.errors import PdfReadError
 
 MIN_TEXT_CHARS = 50
-DEFAULT_OCR_LANGS = "eng+chi_sim+chi_tra"
+DEFAULT_OCR_LANGS = "eng+chi_sim"   # chi_tra dropped: fewer langs = faster Tesseract
 DEFAULT_MAX_OCR_PAGES = 10
 OCR_PAGE_TIMEOUT = 30   # seconds per page — bounds a hung/slow Tesseract subprocess
 
@@ -96,6 +96,8 @@ def _ocr_pdf(file_bytes: bytes, langs: str, max_pages: int) -> str:
             doc.close()
         except Exception:
             pass
+    if parts:
+        _log.info("OCR'd %d page(s) of a scanned PDF", len(parts))
     return "\n".join(parts)
 
 

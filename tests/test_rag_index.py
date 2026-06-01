@@ -170,5 +170,52 @@ class RetrieveBehaviour(unittest.TestCase):
         self.assertNotIn("fr.pdf", filenames)
 
 
+class ResumeBehaviour(unittest.TestCase):
+    def setUp(self):
+        self.store = InMemoryStore()
+        self.papers = {
+            "a.pdf": {"filename": "a.pdf", "title": "A", "author_name": "x",
+                      "language": "en", "text": "alpha content here"},
+            "b.pdf": {"filename": "b.pdf", "title": "B", "author_name": "y",
+                      "language": "en", "text": "beta content here"},
+        }
+        # a.pdf is already indexed (has a stored chunk).
+        self.store.rows = [{"filename": "a.pdf", "chunk_index": 0,
+                            "content": "alpha content here", "embedding": [0.5, 0.5],
+                            "lang": "en"}]
+        rag_index.configure(
+            build_embed_client=lambda: FakeClient(),
+            embed_model=lambda: "fake-embed",
+            iter_papers=lambda: list(self.papers.values()),
+            paper_text=lambda fn: self.papers[fn]["text"],
+            store_replace=self.store.replace_chunks,
+            store_all=self.store.all_chunks,
+            store_delete=self.store.delete_chunks,
+            paper_meta=lambda fn: self.papers.get(fn, {}),
+            indexed_filenames=lambda: {r["filename"] for r in self.store.rows},
+        )
+        rag_index.invalidate_cache()
+
+    def test_skip_existing_resumes(self):
+        stats = rag_index.build_index(skip_existing=True)
+        self.assertEqual(stats["skipped"], 1)       # a.pdf skipped
+        self.assertEqual(stats["papers"], 1)        # only b.pdf indexed
+        filenames = {r["filename"] for r in self.store.all_chunks()}
+        self.assertIn("a.pdf", filenames)           # untouched
+        self.assertIn("b.pdf", filenames)           # newly added
+
+    def test_no_skip_reprocesses_all(self):
+        stats = rag_index.build_index(skip_existing=False)
+        self.assertEqual(stats.get("skipped", 0), 0)
+        self.assertEqual(stats["papers"], 2)
+
+    def test_progress_is_logged(self):
+        with self.assertLogs("rag_index", level="INFO") as cm:
+            rag_index.build_index()
+        joined = "\n".join(cm.output)
+        self.assertIn("[1/2]", joined)
+        self.assertIn("[2/2]", joined)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -8,7 +8,10 @@ No numpy / vector DB dependency.
 
 from __future__ import annotations
 
+import logging
 import math
+
+_log = logging.getLogger(__name__)
 
 
 def chunk_text(text: str, size: int = 800, overlap: int = 120) -> list[str]:
@@ -77,19 +80,39 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
     return [d.embedding for d in resp.data]
 
 
-def build_index(filenames: list[str] | None = None) -> dict:
-    """(Re)build chunks+embeddings for the given papers (or all)."""
+def build_index(filenames: list[str] | None = None, skip_existing: bool = False) -> dict:
+    """(Re)build chunks+embeddings for the given papers (or all).
+
+    Logs `[i/n] <filename>` progress per paper so a slow run (e.g. OCR of a
+    scanned PDF) doesn't look hung. With skip_existing=True, papers that already
+    have stored chunks are left untouched, so an interrupted run resumes instead
+    of restarting from zero.
+    """
     papers = _DEPS["iter_papers"]()
     if filenames is not None:
         wanted = set(filenames)
         papers = [p for p in papers if p["filename"] in wanted]
+    already: set = set()
+    if skip_existing:
+        getter = _DEPS.get("indexed_filenames")
+        already = set(getter()) if getter else {
+            r["filename"] for r in _DEPS["store_all"]()
+        }
+    n_total = len(papers)
     n_papers = 0
     n_chunks = 0
-    for p in papers:
+    n_skipped = 0
+    for i, p in enumerate(papers, 1):
         fn = p["filename"]
+        if skip_existing and fn in already:
+            n_skipped += 1
+            _log.info("[%d/%d] %s — already indexed, skipping", i, n_total, fn)
+            continue
+        _log.info("[%d/%d] %s", i, n_total, fn)
         try:
             text = _DEPS["paper_text"](fn)
         except Exception:
+            _log.warning("failed to extract text from %s", fn, exc_info=True)
             text = ""
         chunks = chunk_text(text)
         if not chunks:
@@ -97,15 +120,17 @@ def build_index(filenames: list[str] | None = None) -> dict:
             continue
         vectors = embed_texts(chunks)
         rows = [
-            {"filename": fn, "chunk_index": i, "content": chunks[i],
-             "embedding": vectors[i], "lang": p.get("language", "")}
-            for i in range(len(chunks))
+            {"filename": fn, "chunk_index": j, "content": chunks[j],
+             "embedding": vectors[j], "lang": p.get("language", "")}
+            for j in range(len(chunks))
         ]
         _DEPS["store_replace"](fn, rows)
         n_papers += 1
         n_chunks += len(rows)
     invalidate_cache()
-    return {"papers": n_papers, "chunks": n_chunks}
+    _log.info("Index build complete: %d indexed, %d skipped, %d chunks",
+              n_papers, n_skipped, n_chunks)
+    return {"papers": n_papers, "chunks": n_chunks, "skipped": n_skipped}
 
 
 def purge(filename: str) -> None:

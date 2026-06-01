@@ -173,5 +173,13 @@ class OcrFallbackTest(unittest.TestCase):
         self.assertEqual(out, "")
 
 
+class OcrLangsTest(unittest.TestCase):
+    def test_default_langs_drop_chi_tra(self):
+        # Speed: traditional-Chinese detection is dropped from the default langs.
+        self.assertNotIn("chi_tra", pdf_text.DEFAULT_OCR_LANGS)
+        self.assertIn("chi_sim", pdf_text.DEFAULT_OCR_LANGS)
+        self.assertIn("eng", pdf_text.DEFAULT_OCR_LANGS)
+
+
 if __name__ == "__main__":
     unittest.main()

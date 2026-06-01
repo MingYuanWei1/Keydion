@@ -31,7 +31,7 @@ class LLMMetadataError(Exception):
 
 def _ocr_langs_for(language: str) -> str:
     """Tesseract lang string biased by the paper's declared language."""
-    return "chi_sim+chi_tra+eng" if language == "zh" else "eng"
+    return "chi_sim+eng" if language == "zh" else "eng"   # chi_tra dropped for speed
 
 
 def _pdf_text_from_bytes(file_bytes: bytes, language: str = "en") -> str:

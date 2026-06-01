@@ -229,5 +229,17 @@ class GenerateEndToEndTest(unittest.TestCase):
         self.assertEqual(out["keywords"], ["x"])
 
 
+class OcrLangsForTest(unittest.TestCase):
+    def test_zh_uses_chi_sim_without_chi_tra(self):
+        from llm_metadata import _ocr_langs_for
+        langs = _ocr_langs_for("zh")
+        self.assertIn("chi_sim", langs)
+        self.assertNotIn("chi_tra", langs)   # dropped for speed
+
+    def test_en_uses_eng_only(self):
+        from llm_metadata import _ocr_langs_for
+        self.assertEqual(_ocr_langs_for("en"), "eng")
+
+
 if __name__ == "__main__":
     unittest.main()
