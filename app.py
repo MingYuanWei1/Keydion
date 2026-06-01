@@ -2697,7 +2697,7 @@ def create_app() -> Flask:
             {"n": i + 1, "filename": h["filename"], "title": h["title"],
              "authors": h.get("author_name", ""),
              "url": (None if h.get("is_attachment")
-                     else url_for("paper_info", filename=h["filename"]))}
+                     else url_for("preview_paper", filename=h["filename"]))}
             for i, h in enumerate(hits)
         ]
         web_results = []
