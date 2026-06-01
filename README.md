@@ -14,8 +14,7 @@ Keydion is a robust, scholarly-focused web application for managing, searching, 
 ## Prerequisites
 
 - **Python 3.11+**
-- **Docker & Docker Compose** (recommended)
-- **MySQL 8.0+** (if running locally without Docker)
+- **MySQL 8.0+**
 - **Tesseract OCR** (optional) — enables text extraction from *scanned* PDFs (chat attachments, the abstract/keyword generator, and the papers index). Install the engine plus the Chinese language data:
   - Debian/Ubuntu: `apt-get install -y tesseract-ocr tesseract-ocr-chi-sim`
   - macOS: `brew install tesseract tesseract-lang`
@@ -187,15 +186,7 @@ WEB_SEARCH_API_KEY=
 >
 > `WEB_SEARCH_API_KEY` unset = web access toggle hidden on the Ask page.
 
-### 2. Using Docker
-
-The quickest way to get a running database alongside the app:
-
-```bash
-docker-compose up -d
-```
-
-### 3. Running without Docker
+### 2. Running the dev server
 
 1. **Install dependencies**:
    ```bash
@@ -225,6 +216,22 @@ python tools/manage_passwords.py list
 - `1`: Reader (View & Download)
 - `2`: Moderator (Upload Enabled)
 - `3`: Admin (Full Access)
+
+## Building the Search Index
+
+Papers uploaded before LLM was configured are not automatically embedded. Run this once after setting `LLM_API_KEY` (and optionally `LLM_EMBED_*`) to index any missing papers:
+
+```bash
+python3 tools/build_embeddings.py
+```
+
+The script resumes by default — papers that already have stored chunks are skipped. To force a full re-index:
+
+```bash
+python3 tools/build_embeddings.py --rebuild
+```
+
+New papers uploaded after LLM is configured are indexed automatically on upload.
 
 ## Localization
 
