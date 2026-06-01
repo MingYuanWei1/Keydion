@@ -14,7 +14,9 @@ from __future__ import annotations
 
 import io
 import logging
+import os
 import re
+from concurrent.futures import ThreadPoolExecutor
 
 from PyPDF2 import PdfReader
 from PyPDF2.errors import PdfReadError
@@ -23,6 +25,11 @@ MIN_TEXT_CHARS = 50
 DEFAULT_OCR_LANGS = "eng+chi_sim"   # chi_tra dropped: fewer langs = faster Tesseract
 DEFAULT_MAX_OCR_PAGES = 10
 OCR_PAGE_TIMEOUT = 30   # seconds per page — bounds a hung/slow Tesseract subprocess
+
+# Each tesseract subprocess uses OpenMP internally; without this limit N parallel
+# processes would all grab all cores and contend. setdefault respects any operator
+# override already present in the environment.
+os.environ.setdefault("OMP_THREAD_LIMIT", "1")
 
 _log = logging.getLogger(__name__)
 
@@ -54,12 +61,35 @@ def _pypdf_text(file_bytes: bytes) -> str:
     return "\n".join(parts)
 
 
+def _ocr_pool_size() -> int:
+    """Return number of worker threads for parallel Tesseract OCR.
+
+    Reads OCR_WORKERS from the environment (positive int). Defaults to
+    cpu_count - 1, leaving a core free for the live gunicorn site during reindex.
+    """
+    env_val = os.environ.get("OCR_WORKERS", "").strip()
+    if env_val:
+        try:
+            n = int(env_val)
+            if n > 0:
+                return n
+        except ValueError:
+            pass
+    return max(1, (os.cpu_count() or 1) - 1)
+
+
 def _ocr_pdf(file_bytes: bytes, langs: str, max_pages: int) -> str:
     """Rasterise pages with PyMuPDF and OCR them with Tesseract.
 
     Returns "" on any failure (missing deps / `tesseract` binary / render error /
     per-page OCR timeout), logged server-side. Never raises. Each page is bounded
     by OCR_PAGE_TIMEOUT so a hung/slow Tesseract subprocess can't block forever.
+
+    Two-phase approach for parallelism:
+      Phase 1 (main thread): render each page to PNG bytes sequentially — fitz is
+        not thread-safe for concurrent access on one document.
+      Phase 2 (thread pool): OCR each PNG concurrently — pytesseract shells out to
+        `tesseract` (a subprocess), so threads give real parallelism here.
     """
     try:
         import fitz                       # PyMuPDF
@@ -73,7 +103,10 @@ def _ocr_pdf(file_bytes: bytes, langs: str, max_pages: int) -> str:
     except Exception:
         _log.warning("PyMuPDF could not open PDF for OCR", exc_info=True)
         return ""
-    parts = []
+
+    # --- Phase 1: render pages to PNG bytes (main thread, sequential) ---
+    _SENTINEL = object()  # marks a failed render; OCR will degrade to "" for it
+    pngs = []
     try:
         try:
             for i, page in enumerate(doc):
@@ -81,13 +114,10 @@ def _ocr_pdf(file_bytes: bytes, langs: str, max_pages: int) -> str:
                     _log.info("OCR truncated at %d pages (document has more)", max_pages)
                     break
                 try:
-                    pix = page.get_pixmap(dpi=300)
-                    img = Image.open(io.BytesIO(pix.tobytes("png")))
-                    parts.append(pytesseract.image_to_string(
-                        img, lang=langs, timeout=OCR_PAGE_TIMEOUT))
+                    pngs.append(page.get_pixmap(dpi=300).tobytes("png"))
                 except Exception:
-                    _log.warning("OCR failed on page %d", i, exc_info=True)
-                    parts.append("")
+                    _log.warning("OCR render failed on page %d", i, exc_info=True)
+                    pngs.append(_SENTINEL)
         except Exception:
             _log.warning("OCR failed during page iteration", exc_info=True)
             return ""
@@ -96,6 +126,25 @@ def _ocr_pdf(file_bytes: bytes, langs: str, max_pages: int) -> str:
             doc.close()
         except Exception:
             pass
+
+    if not pngs:
+        return ""
+
+    # --- Phase 2: OCR each PNG in a thread pool (order preserved) ---
+    def _ocr_page(png) -> str:
+        if png is _SENTINEL:
+            return ""
+        try:
+            img = Image.open(io.BytesIO(png))
+            return pytesseract.image_to_string(img, lang=langs, timeout=OCR_PAGE_TIMEOUT)
+        except Exception:
+            _log.warning("OCR failed on a page", exc_info=True)
+            return ""
+
+    workers = min(_ocr_pool_size(), len(pngs))
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        parts = list(pool.map(_ocr_page, pngs))
+
     if parts:
         _log.info("OCR'd %d page(s) of a scanned PDF", len(parts))
     return "\n".join(parts)
