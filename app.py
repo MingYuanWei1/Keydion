@@ -598,6 +598,7 @@ class ChatMessageModel(BASE):
     role = Column(Unicode(16))          # "user" | "assistant"
     content = Column(UnicodeText)
     citations = Column(UnicodeText)     # JSON-encoded list
+    attachments = Column(UnicodeText)   # JSON-encoded list of filenames (display-only)
     created_at = Column(Unicode(40))
 
 
@@ -759,6 +760,14 @@ def init_db() -> None:
                 from sqlalchemy import text
                 conn.execute(text("ALTER TABLE news_articles ADD COLUMN status VARCHAR(20) DEFAULT 'published'"))
                 conn.execute(text("UPDATE news_articles SET status = 'published' WHERE status IS NULL OR status = ''"))
+                conn.commit()
+        except Exception:
+            pass
+        # Migrate: add attachments column to chat_messages if it doesn't exist
+        try:
+            with _ENGINE.connect() as conn:
+                from sqlalchemy import text
+                conn.execute(text("ALTER TABLE chat_messages ADD COLUMN attachments TEXT"))
                 conn.commit()
         except Exception:
             pass

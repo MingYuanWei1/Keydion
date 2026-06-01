@@ -113,5 +113,16 @@ class RagPaperTextOcr(unittest.TestCase):
         self.assertNotIn("pdf_text.", src)  # must not delegate to pdf_text module
 
 
+class MessageAttachmentsColumn(unittest.TestCase):
+    def test_column_exists(self):
+        cols = set(app_module.ChatMessageModel.__table__.columns.keys())
+        self.assertIn("attachments", cols)
+
+    def test_migration_present(self):
+        from pathlib import Path
+        src = (Path(app_module.__file__).resolve().parent / "app.py").read_text(encoding="utf-8")
+        self.assertIn("ALTER TABLE chat_messages ADD COLUMN attachments", src)
+
+
 if __name__ == "__main__":
     unittest.main()
