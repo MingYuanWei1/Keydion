@@ -54,8 +54,39 @@ def _pypdf_text(file_bytes: bytes) -> str:
 
 
 def _ocr_pdf(file_bytes: bytes, langs: str, max_pages: int) -> str:
-    """OCR placeholder — implemented in Task 3."""
-    return ""
+    """Rasterise pages with PyMuPDF and OCR them with Tesseract.
+
+    Returns "" on any failure (missing deps / `tesseract` binary / render error),
+    logged server-side. Never raises.
+    """
+    try:
+        import fitz                       # PyMuPDF
+        import pytesseract
+        from PIL import Image
+    except Exception:
+        _log.warning("OCR dependencies unavailable; skipping OCR fallback", exc_info=True)
+        return ""
+    try:
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+    except Exception:
+        _log.warning("PyMuPDF could not open PDF for OCR", exc_info=True)
+        return ""
+    parts = []
+    try:
+        for i, page in enumerate(doc):
+            if i >= max_pages:
+                _log.info("OCR truncated at %d pages (document has more)", max_pages)
+                break
+            try:
+                pix = page.get_pixmap(dpi=300)
+                img = Image.open(io.BytesIO(pix.tobytes("png")))
+                parts.append(pytesseract.image_to_string(img, lang=langs))
+            except Exception:
+                _log.warning("OCR failed on page %d", i, exc_info=True)
+                parts.append("")
+    finally:
+        doc.close()
+    return "\n".join(parts)
 
 
 def extract_pdf_text(file_bytes: bytes, *, ocr_langs: str = DEFAULT_OCR_LANGS,

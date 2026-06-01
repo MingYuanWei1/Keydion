@@ -43,5 +43,73 @@ class PypdfPassTest(unittest.TestCase):
         self.assertEqual(ctx.exception.reason, "encrypted")
 
 
+import sys
+
+
+def _fake_ocr_modules(call_log, page_count):
+    """Return a dict of fake fitz / pytesseract / PIL modules for sys.modules."""
+    class _Pix:
+        def tobytes(self, fmt):
+            return b"PNGDATA"
+    class _Page:
+        def get_pixmap(self, dpi=300):
+            return _Pix()
+    class _Doc:
+        def __init__(self):
+            self._pages = [_Page() for _ in range(page_count)]
+        def __iter__(self):
+            return iter(self._pages)
+        def close(self):
+            pass
+    fitz = mock.Mock()
+    fitz.open.return_value = _Doc()
+    pyt = mock.Mock()
+    def _img_to_str(img, lang=None):
+        call_log.append(lang)
+        return "ocr-text"
+    pyt.image_to_string.side_effect = _img_to_str
+    pil = mock.Mock()
+    pil.Image.open.return_value = object()
+    return {"fitz": fitz, "pytesseract": pyt, "PIL": pil}
+
+
+class OcrFallbackTest(unittest.TestCase):
+    def test_empty_pypdf_triggers_ocr(self):
+        stub = _StubReader(pages=[_StubPage("")])
+        with mock.patch.object(pdf_text, "PdfReader", return_value=stub), \
+             mock.patch.object(pdf_text, "_ocr_pdf", return_value="recovered") as ocr:
+            out = extract_pdf_text(b"%PDF-fake")
+        self.assertEqual(out, "recovered")
+        ocr.assert_called_once()
+
+    def test_short_pypdf_triggers_ocr(self):
+        stub = _StubReader(pages=[_StubPage("abc")])  # < 50 meaningful chars
+        with mock.patch.object(pdf_text, "PdfReader", return_value=stub), \
+             mock.patch.object(pdf_text, "_ocr_pdf", return_value="recovered"):
+            out = extract_pdf_text(b"%PDF-fake")
+        self.assertEqual(out, "recovered")
+
+    def test_ocr_empty_returns_pypdf_text(self):
+        stub = _StubReader(pages=[_StubPage("")])
+        with mock.patch.object(pdf_text, "PdfReader", return_value=stub), \
+             mock.patch.object(pdf_text, "_ocr_pdf", return_value=""):
+            out = extract_pdf_text(b"%PDF-fake")
+        self.assertEqual(out, "")
+
+    def test_ocr_deps_missing_returns_empty(self):
+        # No fitz/pytesseract/PIL in sys.modules -> lazy import fails -> "".
+        with mock.patch.dict(sys.modules, {"fitz": None, "pytesseract": None, "PIL": None}):
+            out = pdf_text._ocr_pdf(b"%PDF-fake", "eng", 10)
+        self.assertEqual(out, "")
+
+    def test_page_cap_respected_and_lang_passed(self):
+        log = []
+        with mock.patch.dict(sys.modules, _fake_ocr_modules(log, page_count=25)):
+            out = pdf_text._ocr_pdf(b"%PDF-fake", "eng+chi_sim", max_pages=10)
+        self.assertEqual(len(log), 10)            # capped at 10 pages
+        self.assertTrue(all(l == "eng+chi_sim" for l in log))
+        self.assertIn("ocr-text", out)
+
+
 if __name__ == "__main__":
     unittest.main()
