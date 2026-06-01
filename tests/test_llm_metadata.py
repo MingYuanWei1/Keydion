@@ -10,6 +10,7 @@ from llm_metadata import (
     _build_client,
     _pdf_text_from_bytes,
     _normalise_keywords,
+    _normalise_authors,
     _parse_json,
 )
 
@@ -131,6 +132,25 @@ class CompleteTest(unittest.TestCase):
         client = FakeClient("totally not json")
         with self.assertRaises(LLMMetadataError):
             _complete(client, "t", "en")
+
+    def test_returns_certain_title_and_authors(self):
+        client = FakeClient('{"abstract":"a","keywords":["k"],'
+                            '"title":"On Widgets","authors":["Ada Lovelace","Alan Turing"]}')
+        out = _complete(client, "t", "en")
+        self.assertEqual(out["title"], "On Widgets")
+        self.assertEqual(out["authors"], ["Ada Lovelace", "Alan Turing"])
+
+    def test_omits_uncertain_title_and_authors(self):
+        client = FakeClient('{"abstract":"a","keywords":["k"]}')  # no title/authors
+        out = _complete(client, "t", "en")
+        self.assertEqual(out["title"], "")
+        self.assertEqual(out["authors"], [])
+
+    def test_nonstring_title_is_safe(self):
+        client = FakeClient('{"abstract":"a","keywords":["k"],"title":["x"],"authors":"Ada"}')
+        out = _complete(client, "t", "en")
+        self.assertEqual(out["title"], "")           # non-string -> dropped
+        self.assertEqual(out["authors"], ["Ada"])    # string -> single-item list
 
 
 class BuildClientTest(unittest.TestCase):

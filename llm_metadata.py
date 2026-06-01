@@ -91,16 +91,33 @@ def _normalise_keywords(value) -> list:
     return out[:MAX_KEYWORDS]
 
 
+def _normalise_authors(value) -> list:
+    """Coerce the model's author value into a clean list of name strings."""
+    if isinstance(value, str):
+        value = [value]
+    if not isinstance(value, list):
+        return []
+    out = []
+    for item in value:
+        s = str(item).strip()
+        if s and s not in out:
+            out.append(s)
+    return out
+
+
 def _complete(client, text: str, language: str) -> dict:
-    """Call the chat endpoint and return {abstract, keywords, warnings}."""
+    """Call the chat endpoint and return {abstract, keywords, title, authors, warnings}."""
     warnings: list = []
     model = llm_client.flash_model()
     lang_name = "Chinese" if language == "zh" else "English"
     system = (
         "You are an academic editor. Read the paper text and return a JSON object "
-        f'with exactly two keys: "abstract" — a concise summary of at most 250 words '
-        f"written in {lang_name} — and \"keywords\" — an array of 3 to 6 short topical "
-        "keyword strings. Return ONLY the JSON object, no prose."
+        f'with these keys: "abstract" — a concise summary of at most 250 words '
+        f'written in {lang_name}; "keywords" — an array of 3 to 6 short topical '
+        'keyword strings; "title" — the paper title; and "authors" — an array of '
+        "author full names. Include \"title\" and \"authors\" ONLY if you are "
+        "certain they are correct from the text; otherwise set \"title\" to null "
+        "and \"authors\" to []. Return ONLY the JSON object, no prose."
     )
     try:
         resp = client.chat.completions.create(
@@ -133,7 +150,11 @@ def _complete(client, text: str, language: str) -> dict:
         warnings.append("No abstract was generated — please write one manually.")
     if not keywords:
         warnings.append("No keywords were generated — please add them manually.")
-    return {"abstract": abstract, "keywords": keywords, "warnings": warnings}
+    raw_title = data.get("title")
+    title = raw_title.strip() if isinstance(raw_title, str) else ""
+    authors = _normalise_authors(data.get("authors"))
+    return {"abstract": abstract, "keywords": keywords,
+            "title": title, "authors": authors, "warnings": warnings}
 
 
 def generate_abstract_keywords(file_bytes: bytes, language: str = "en") -> dict:
