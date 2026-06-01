@@ -1329,7 +1329,7 @@ msgstr "正在检索文献库…"
 
 #: app.py:4982
 #, python-format
-msgid "Reading "%(title)s"…"
+msgid "Reading “%(title)s”…"
 msgstr "正在阅读《%(title)s》…"
 
 #: app.py:4983
