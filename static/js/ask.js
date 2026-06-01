@@ -450,12 +450,11 @@
     window.history.pushState(null, "", "/ask/" + id);
     fetch("/api/conversations/" + id).then(function (r) { return r.json(); }).then(function (j) {
       window.__attachedDocs = {};
-      (j.attachments || []).forEach(function (fn) { window.__attachedDocs[fn] = true; });
-      renderChips();
+      renderChips();                                  // composer starts empty on reload
       thread.innerHTML = "";
       if (empty) { thread.appendChild(empty); empty.style.display = "none"; }
       (j.messages || []).forEach(function (m) {
-        if (m.role === "user") { addUser(m.content); }
+        if (m.role === "user") { addUser(m.content, m.attachments || []); }
         else {
           var ai = addAi(); if (ai.typing) ai.typing.remove();
           ensureBubble(ai); ai.text = m.content; ai.bubble.innerHTML = renderMarkdown(m.content);
