@@ -36,6 +36,25 @@ class AbstractKeywordsJsContractTest(unittest.TestCase):
         self.assertIn("metaAutofillStatus", self.js)
         self.assertIn("meta_autofill_overwrite", self.js)
 
+    def test_no_standalone_picker_and_uses_step4_file(self):
+        self.assertNotIn("metaAutofillFile", self.js)         # standalone input removed
+        self.assertIn("uploadFormFile", self.js)              # reuses the File-step input
+        self.assertIn("meta_autofill_no_file", self.js)       # prompt key when no file
+
+    def test_applies_title_and_authors(self):
+        self.assertIn("state.title", self.js)
+        self.assertIn("data.title", self.js)
+        self.assertIn("data.authors", self.js)
+
+    def test_dirty_check_includes_title_and_authors(self):
+        # isMetaDirty must consider title and author names, not just abstract/keywords.
+        import re
+        m = re.search(r"function isMetaDirty\(\)\s*\{.*?\n\s*\}", self.js, re.DOTALL)
+        self.assertIsNotNone(m)
+        body = m.group(0)
+        self.assertIn("state.title", body)
+        self.assertIn("authors", body)
+
 
 if __name__ == "__main__":
     unittest.main()

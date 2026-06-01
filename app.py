@@ -1726,6 +1726,7 @@ def create_app() -> Flask:
                 "meta_autofill_extracting": _("Generating…"),
                 "meta_autofill_ok": _("Generated abstract and keywords."),
                 "meta_autofill_error": _("Generation failed — try again or fill manually."),
+                "meta_autofill_no_file": _("Upload your PDF in the File step first."),
                 "meta_autofill_overwrite": _("Replace your existing abstract and keywords with AI-generated ones?"),
             },
         }

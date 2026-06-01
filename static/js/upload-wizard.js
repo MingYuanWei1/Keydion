@@ -308,7 +308,6 @@
             <button type="button" id="metaAutofillBtn" class="btn btn-outline-primary btn-sm" ${state.metaAutofillStatus === 'loading' ? 'disabled' : ''}>
               ${t('meta_autofill_btn', 'Generate abstract & keywords from PDF')}
             </button>
-            <input type="file" id="metaAutofillFile" accept="application/pdf,.pdf" hidden>
             <span id="metaAutofillStatus" class="ee-autofill__status ee-autofill__status--${state.metaAutofillStatus || 'idle'}">
               ${esc(state.metaAutofillMessage || '')}
             </span>
@@ -414,20 +413,18 @@
 
     // ── Abstract/keyword auto-fill (standard papers) ───────────
     const metaBtn = stepsContainer.querySelector('#metaAutofillBtn');
-    const metaFile = stepsContainer.querySelector('#metaAutofillFile');
-    if (metaBtn && metaFile) {
+    if (metaBtn) {
       metaBtn.addEventListener('click', () => {
-        // Reuse the PDF already chosen in the File step if present.
         const existing = document.getElementById('uploadFormFile');
         const chosen = existing && existing.files && existing.files[0];
-        if (chosen) { runMetaAutofill(chosen); }
-        else { metaFile.click(); }
-      });
-      metaFile.addEventListener('change', async (e) => {
-        const file = e.target.files && e.target.files[0];
-        e.target.value = '';   // allow re-selecting the same file
-        if (!file) return;
-        await runMetaAutofill(file);
+        if (chosen) {
+          runMetaAutofill(chosen);
+        } else {
+          state.metaAutofillStatus = 'error';
+          state.metaAutofillMessage = t('meta_autofill_no_file',
+            'Upload your PDF in the File step first.');
+          render();
+        }
       });
     }
 
