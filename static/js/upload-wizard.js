@@ -715,6 +715,17 @@
 
       state.abstract = (data.abstract || '').slice(0, 2000);
       state.keywords = Array.isArray(data.keywords) ? data.keywords.slice() : [];
+      if ((data.title || '').trim()) {
+        state.title = data.title.trim().slice(0, 255);
+      }
+      if (Array.isArray(data.authors) && data.authors.length) {
+        data.authors.forEach((nm, i) => {
+          const name = (nm || '').trim();
+          if (!name) return;
+          if (!state.authors[i]) state.authors[i] = { name: '', email: '', school: '' };
+          state.authors[i].name = name;
+        });
+      }
       const warnings = data.warnings || [];
       if (warnings.length) {
         state.metaAutofillStatus = 'partial';
@@ -734,7 +745,11 @@
   }
 
   function isMetaDirty() {
-    return !!(state.abstract || '').trim() || (state.keywords && state.keywords.length > 0);
+    if ((state.abstract || '').trim()) return true;
+    if (state.keywords && state.keywords.length > 0) return true;
+    if ((state.title || '').trim()) return true;
+    if (state.authors && state.authors.some(a => (a.name || '').trim())) return true;
+    return false;
   }
 
   // ─── CP fieldset ───────────────────────────────────────────
