@@ -233,7 +233,7 @@
     msg.appendChild(body);
     thread.appendChild(msg);
     scroll();
-    return { bubble: bubble, prose: prose, body: body, typing: typing, text: "" };
+    return { bubble: bubble, prose: prose, body: body, typing: typing, text: "", status: null };
   }
 
   function renderSources(body, items) {
@@ -328,7 +328,7 @@
 
   function showStatus(ai, text) {
     if (ai.typing && ai.typing.parentNode) ai.typing.remove();
-    if (!ai.status) { ai.status = el("div", "kd-status"); ai.prose.appendChild(ai.status); }
+    if (!ai.status) { ai.status = el("div", "kd-status"); ai.status.setAttribute("aria-live", "polite"); ai.prose.appendChild(ai.status); }
     ai.status.textContent = text;
     scroll();
   }

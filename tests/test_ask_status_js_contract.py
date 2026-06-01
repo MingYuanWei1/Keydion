@@ -16,6 +16,7 @@ class AskStatusJsContract(unittest.TestCase):
 
     def test_handle_status_calls_showstatus(self):
         self.assertIn("showStatus", self.js)
+        self.assertRegex(self.js, r'"status"[\s\S]{0,40}showStatus')
 
     def test_showstatus_is_defined(self):
         self.assertIn("function showStatus", self.js)
