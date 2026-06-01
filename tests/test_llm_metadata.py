@@ -140,53 +140,44 @@ class BuildClientTest(unittest.TestCase):
                 _build_client()
 
 
-class _StubPage:
-    def __init__(self, text):
-        self._text = text
-
-    def extract_text(self):
-        return self._text
-
-
-class _StubReader:
-    def __init__(self, *args, encrypted=False, pages=None, **kwargs):
-        self.is_encrypted = encrypted
-        self.pages = pages or []
-
-
-class PdfTextTest(unittest.TestCase):
+class PdfTextDelegationTest(unittest.TestCase):
     def test_empty_bytes_raises(self):
         with self.assertRaises(LLMMetadataError):
             _pdf_text_from_bytes(b"")
 
-    def test_encrypted_pdf_raises(self):
-        with mock.patch.object(llm_metadata, "PdfReader",
-                               return_value=_StubReader(encrypted=True)):
+    def test_encrypted_mapped_to_llm_error(self):
+        import pdf_text
+        with mock.patch.object(llm_metadata, "extract_pdf_text",
+                               side_effect=pdf_text.PdfTextError("encrypted")):
             with self.assertRaises(LLMMetadataError):
-                _pdf_text_from_bytes(b"%PDF-1.4 fake")
+                _pdf_text_from_bytes(b"%PDF-fake")
 
-    def test_no_readable_text_raises(self):
-        stub = _StubReader(pages=[_StubPage(""), _StubPage("   ")])
-        with mock.patch.object(llm_metadata, "PdfReader", return_value=stub):
+    def test_corrupt_mapped_to_llm_error(self):
+        import pdf_text
+        with mock.patch.object(llm_metadata, "extract_pdf_text",
+                               side_effect=pdf_text.PdfTextError("corrupt")):
             with self.assertRaises(LLMMetadataError):
-                _pdf_text_from_bytes(b"%PDF-1.4 fake")
+                _pdf_text_from_bytes(b"%PDF-fake")
 
-    def test_early_break_caps_text_and_stops_reading(self):
-        # Two pages alone exceed MAX_PDF_CHARS; a third sentinel page must never
-        # be read. Guards both the early-break and the final [:MAX_PDF_CHARS] cap.
-        read_flags = {"sentinel_read": False}
+    def test_blank_text_raises(self):
+        with mock.patch.object(llm_metadata, "extract_pdf_text", return_value="   "):
+            with self.assertRaises(LLMMetadataError):
+                _pdf_text_from_bytes(b"%PDF-fake")
 
-        class _SentinelPage:
-            def extract_text(self):
-                read_flags["sentinel_read"] = True
-                return "should never be reached"
+    def test_caps_text_to_max(self):
+        big = "x" * (llm_metadata.MAX_PDF_CHARS + 500)
+        with mock.patch.object(llm_metadata, "extract_pdf_text", return_value=big):
+            out = _pdf_text_from_bytes(b"%PDF-fake")
+        self.assertEqual(len(out), llm_metadata.MAX_PDF_CHARS)
 
-        big = "x" * (llm_metadata.MAX_PDF_CHARS // 2 + 10)
-        stub = _StubReader(pages=[_StubPage(big), _StubPage(big), _SentinelPage()])
-        with mock.patch.object(llm_metadata, "PdfReader", return_value=stub):
-            out = _pdf_text_from_bytes(b"%PDF-1.4 fake")
-        self.assertLessEqual(len(out), llm_metadata.MAX_PDF_CHARS)
-        self.assertFalse(read_flags["sentinel_read"])
+    def test_language_zh_passes_chinese_ocr_langs(self):
+        captured = {}
+        def _fake(file_bytes, *, ocr_langs=None, **k):
+            captured["langs"] = ocr_langs
+            return "some readable text"
+        with mock.patch.object(llm_metadata, "extract_pdf_text", side_effect=_fake):
+            _pdf_text_from_bytes(b"%PDF-fake", language="zh")
+        self.assertIn("chi_sim", captured["langs"])
 
 
 class HelpersTest(unittest.TestCase):

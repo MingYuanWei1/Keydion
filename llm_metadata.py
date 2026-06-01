@@ -11,13 +11,11 @@ code works against OpenAI, a local model (Ollama/vLLM), or any OpenAI-style API.
 
 from __future__ import annotations
 
-import io
 import json
 import logging
 import re
 
-from PyPDF2 import PdfReader
-from PyPDF2.errors import PdfReadError
+from pdf_text import extract_pdf_text, PdfTextError
 
 import llm_client
 
@@ -31,29 +29,22 @@ class LLMMetadataError(Exception):
     """Raised when the PDF is unusable or the LLM request/response fails."""
 
 
-def _pdf_text_from_bytes(file_bytes: bytes) -> str:
-    """Extract concatenated text from a PDF given as bytes, capped to MAX_PDF_CHARS."""
+def _ocr_langs_for(language: str) -> str:
+    """Tesseract lang string biased by the paper's declared language."""
+    return "chi_sim+chi_tra+eng" if language == "zh" else "eng"
+
+
+def _pdf_text_from_bytes(file_bytes: bytes, language: str = "en") -> str:
+    """Extract concatenated PDF text (PyPDF2 + OCR fallback), capped to MAX_PDF_CHARS."""
     if not file_bytes:
         raise LLMMetadataError("Empty file")
     try:
-        reader = PdfReader(io.BytesIO(file_bytes))
-    except PdfReadError as exc:
-        # Keep the library-internal detail in the server log chain, not the client message.
+        text = extract_pdf_text(file_bytes, ocr_langs=_ocr_langs_for(language))
+    except PdfTextError as exc:
+        if exc.reason == "encrypted":
+            raise LLMMetadataError("PDF is encrypted") from exc
         raise LLMMetadataError("Could not read PDF — the file may be corrupt.") from exc
-    if reader.is_encrypted:
-        raise LLMMetadataError("PDF is encrypted")
-    parts = []
-    total = 0
-    for page in reader.pages:
-        try:
-            page_text = page.extract_text() or ""
-        except Exception:  # PyPDF2 can throw a variety on odd pages
-            page_text = ""
-        parts.append(page_text)
-        total += len(page_text)
-        if total >= MAX_PDF_CHARS:  # stop early — we only send MAX_PDF_CHARS anyway
-            break
-    text = "\n".join(parts).strip()
+    text = (text or "").strip()
     if not text:
         raise LLMMetadataError("No readable text — is this a scanned image?")
     return text[:MAX_PDF_CHARS]
@@ -147,6 +138,6 @@ def _complete(client, text: str, language: str) -> dict:
 
 def generate_abstract_keywords(file_bytes: bytes, language: str = "en") -> dict:
     """Public entry point: PDF bytes -> {abstract, keywords, warnings}."""
-    text = _pdf_text_from_bytes(file_bytes)
+    text = _pdf_text_from_bytes(file_bytes, language)
     client = _build_client()
     return _complete(client, text, language)
