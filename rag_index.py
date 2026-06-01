@@ -14,7 +14,11 @@ import math
 _log = logging.getLogger(__name__)
 
 
-def chunk_text(text: str, size: int = 800, overlap: int = 120) -> list[str]:
+CHUNK_SIZE = 800
+CHUNK_OVERLAP = 120
+
+
+def chunk_text(text: str, size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP) -> list[str]:
     """Split text into overlapping character chunks. Returns [] for blank text."""
     text = (text or "").strip()
     if not text:
@@ -32,6 +36,18 @@ def chunk_text(text: str, size: int = 800, overlap: int = 120) -> list[str]:
             break
         start += step
     return chunks
+
+
+def reassemble(contents: list[str], overlap: int = CHUNK_OVERLAP) -> str:
+    """Inverse of chunk_text: stitch overlapping chunks back into the original text.
+
+    Strips the leading `overlap` characters from every chunk after the first,
+    which exactly undoes the overlap introduced by chunk_text.
+    Returns "" for an empty list.
+    """
+    if not contents:
+        return ""
+    return contents[0] + "".join(c[overlap:] for c in contents[1:])
 
 
 def cosine(a: list[float], b: list[float]) -> float:

@@ -270,5 +270,34 @@ class EmbedBatchTest(unittest.TestCase):
         self.assertEqual(calls, [])
 
 
+class Reassemble(unittest.TestCase):
+    def test_constants_exist_with_correct_values(self):
+        self.assertEqual(rag_index.CHUNK_SIZE, 800)
+        self.assertEqual(rag_index.CHUNK_OVERLAP, 120)
+
+    def test_empty_list_returns_empty_string(self):
+        self.assertEqual(rag_index.reassemble([]), "")
+
+    def test_single_chunk_round_trips(self):
+        self.assertEqual(rag_index.reassemble(["hello"]), "hello")
+
+    def test_short_text_round_trip(self):
+        # Short text produces a single chunk; reassemble should return it unchanged.
+        t = "This is a short text."
+        self.assertEqual(rag_index.reassemble(rag_index.chunk_text(t)), t)
+
+    def test_long_text_round_trip(self):
+        # Long text produces multiple overlapping chunks; reassemble must recover original.
+        t = "abcdefghij" * 200  # 2000 chars, well above CHUNK_SIZE
+        self.assertEqual(rag_index.reassemble(rag_index.chunk_text(t)), t)
+
+    def test_default_overlap_matches_chunk_overlap_constant(self):
+        # Calling reassemble without an overlap arg must use CHUNK_OVERLAP (120).
+        # If the default were wrong, the long-text round-trip would produce garbage.
+        t = "x" * 2000
+        chunks = rag_index.chunk_text(t)  # uses default CHUNK_SIZE / CHUNK_OVERLAP
+        self.assertEqual(rag_index.reassemble(chunks), t)
+
+
 if __name__ == "__main__":
     unittest.main()
