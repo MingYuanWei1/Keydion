@@ -19,6 +19,7 @@ import math
 import os
 import secrets
 import shutil
+import types
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from html.parser import HTMLParser as _HTMLParser
@@ -4635,6 +4636,79 @@ def configure_rag():
         store_all=_rag_store_all,
         store_delete=_rag_store_delete,
         indexed_filenames=_rag_indexed_filenames,
+    )
+
+
+# ---------------------------------------------------------------------------
+# library_tools deps — DB-backed implementations of the four callables that
+# library_tools.run_tool requires.  The agentic loop (a later task) will call
+# _build_library_deps() and pass the result as `deps`.
+# ---------------------------------------------------------------------------
+
+def _lib_full_text(filename: str) -> str:
+    """Return the full text of a paper by reassembling its stored chunks.
+
+    Prefers stored chunks (reassemble undoes the overlap introduced by
+    chunk_text) so this is fast and doesn't need the PDF on disk.  Falls back
+    to live OCR via _rag_paper_text only when no chunks exist (unindexed
+    paper); that path can be slow and may fail — errors are logged and "" is
+    returned so the caller is never disrupted.
+    """
+    with db_session() as db:
+        rows = (db.query(PaperChunkModel)
+                  .filter(PaperChunkModel.filename == filename)
+                  .order_by(PaperChunkModel.chunk_index)
+                  .all())
+        contents = [r.content or "" for r in rows]
+    if contents:
+        return rag_index.reassemble(contents)
+    # No stored chunks — try live extraction as a last resort.
+    try:
+        return _rag_paper_text(filename)
+    except Exception:
+        app.logger.exception("_lib_full_text fallback failed for %s", filename)
+        return ""
+
+
+def _lib_search(query: str) -> list:
+    """Semantic library search for the search_library tool.
+
+    Returns [] on any retrieval error so tool failures degrade gracefully.
+    """
+    try:
+        hits = rag_index.retrieve(query)
+        hits = _dedupe_hits_by_paper(hits)
+        return [
+            {
+                "filename": h["filename"],
+                "title": h.get("title") or h["filename"],
+                "authors": h.get("author_name", ""),
+                "url": url_for("preview_paper", filename=h["filename"]),
+                "snippet": (h.get("content") or "")[:400],
+            }
+            for h in hits
+        ]
+    except Exception:
+        app.logger.exception("_lib_search failed for query: %s", query)
+        return []
+
+
+def _lib_paper_meta(filename: str) -> dict:
+    rec = build_paper_record(filename)
+    return {"title": rec.get("title") or filename, "authors": rec.get("author_name", "")}
+
+
+def _lib_paper_url(filename: str) -> str:
+    return url_for("preview_paper", filename=filename)
+
+
+def _build_library_deps():
+    """Return a deps object for library_tools.run_tool with all four callables."""
+    return types.SimpleNamespace(
+        search=_lib_search,
+        full_text=_lib_full_text,
+        paper_meta=_lib_paper_meta,
+        paper_url=_lib_paper_url,
     )
 
 
