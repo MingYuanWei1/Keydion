@@ -2685,7 +2685,9 @@ def create_app() -> Flask:
                 lib_hits = _forced_grounding(question, forced)
             else:
                 lib_hits = rag_index.retrieve(question)
-            hits = (attach_hits + lib_hits)[:6]
+            # Dedupe by paper first: retrieval is chunk-level, so one paper can
+            # fill several slots and otherwise be cited as multiple sources.
+            hits = _dedupe_hits_by_paper(attach_hits + lib_hits)[:6]
         except Exception:
             app.logger.exception("retrieval failed")
             hits = []
@@ -2734,9 +2736,14 @@ def create_app() -> Flask:
                     if delta:
                         full.append(delta)
                         yield "data: " + _json.dumps({"type": "token", "text": delta}) + "\n\n"
-                yield "data: " + _json.dumps({"type": "citations", "items": citations}) + "\n\n"
-                if web_items:
-                    yield "data: " + _json.dumps({"type": "web", "items": web_items}) + "\n\n"
+                # Show only the sources the answer actually referenced, so the
+                # panel reflects what was used rather than everything retrieved.
+                answer_text = "".join(full)
+                shown_citations = _filter_cited(citations, answer_text)
+                shown_web = _filter_cited(web_items, answer_text)
+                yield "data: " + _json.dumps({"type": "citations", "items": shown_citations}) + "\n\n"
+                if shown_web:
+                    yield "data: " + _json.dumps({"type": "web", "items": shown_web}) + "\n\n"
                 if db_conv_id is not None:
                     try:
                         with db_session() as db:
@@ -2746,8 +2753,8 @@ def create_app() -> Flask:
                             if conv:
                                 db.add(ChatMessageModel(
                                     conversation_id=db_conv_id, role="assistant",
-                                    content="".join(full),
-                                    citations=_json.dumps(citations),
+                                    content=answer_text,
+                                    citations=_json.dumps(shown_citations),
                                     created_at=datetime.utcnow().isoformat()))
                     except Exception:
                         app.logger.exception("failed to persist assistant message")
@@ -4644,6 +4651,8 @@ def _build_ask_prompt(question, hits, locale_code, web_results=None):
         system = (
             "You are Keydion's library assistant. Answer the question using ONLY the "
             "numbered sources below. Cite claims with bracketed numbers like [1]. "
+            "Cite only the sources you actually use; you do not need to cite every "
+            "source, and never cite a source that is not relevant to your answer. "
             "Sources marked (web) come from a live web search; all others are library "
             f"papers. Answer in {lang}. If the sources do not contain the answer, say "
             "you could not find it.\n\nSOURCES:\n" + sources
@@ -4673,6 +4682,48 @@ def _ask_llm_messages(question, history_rows):
     if not messages or messages[-1] != {"role": "user", "content": question}:
         messages.append({"role": "user", "content": question})
     return messages
+
+
+# Bracketed source refs the assistant may emit: half-width [1] / [1, 2] and the
+# full-width 【1】 used in Chinese answers.
+_CITE_BRACKET_RE = re.compile(r"[\[【]([^\[\]【】]*)[\]】]")
+
+
+def _dedupe_hits_by_paper(hits):
+    """Collapse multiple chunks of the same paper into a single grounding source.
+
+    Retrieval is chunk-level, so one long paper can occupy several of the top
+    hits. Listing each chunk separately makes the assistant cite the same paper
+    repeatedly. Keep the first (best-scoring) occurrence per filename and merge
+    the remaining chunk text into it so the model still sees the full context.
+    """
+    merged = {}
+    order = []
+    for h in hits:
+        fn = h.get("filename")
+        if fn not in merged:
+            merged[fn] = dict(h)
+            order.append(fn)
+        else:
+            merged[fn]["content"] = (
+                (merged[fn].get("content", "") + "\n\n" + h.get("content", "")).strip()
+            )
+    return [merged[fn] for fn in order]
+
+
+def _cited_numbers(answer_text):
+    """Source numbers the assistant actually referenced, e.g. [1], 【2】, [1, 3]."""
+    nums = set()
+    for group in _CITE_BRACKET_RE.findall(answer_text or ""):
+        for token in re.findall(r"\d+", group):
+            nums.add(int(token))
+    return nums
+
+
+def _filter_cited(items, answer_text):
+    """Keep only the numbered sources the assistant referenced in its answer."""
+    cited = _cited_numbers(answer_text)
+    return [it for it in items if it.get("n") in cited]
 
 
 def _forced_grounding(question, filenames):
