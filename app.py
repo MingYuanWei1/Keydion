@@ -4654,19 +4654,23 @@ def _lib_full_text(filename: str) -> str:
     paper); that path can be slow and may fail — errors are logged and "" is
     returned so the caller is never disrupted.
     """
-    with db_session() as db:
-        rows = (db.query(PaperChunkModel)
-                  .filter(PaperChunkModel.filename == filename)
-                  .order_by(PaperChunkModel.chunk_index)
-                  .all())
-        contents = [r.content or "" for r in rows]
-    if contents:
-        return rag_index.reassemble(contents)
-    # No stored chunks — try live extraction as a last resort.
     try:
-        return _rag_paper_text(filename)
+        with db_session() as db:
+            rows = (db.query(PaperChunkModel)
+                      .filter(PaperChunkModel.filename == filename)
+                      .order_by(PaperChunkModel.chunk_index)
+                      .all())
+            contents = [r.content or "" for r in rows]
+        if contents:
+            return rag_index.reassemble(contents)
+        # No stored chunks — try live extraction as a last resort.
+        try:
+            return _rag_paper_text(filename)
+        except Exception:
+            app.logger.exception("_lib_full_text fallback failed for %s", filename)
+            return ""
     except Exception:
-        app.logger.exception("_lib_full_text fallback failed for %s", filename)
+        app.logger.exception("_lib_full_text failed for %s", filename)
         return ""
 
 

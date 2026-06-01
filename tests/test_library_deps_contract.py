@@ -53,6 +53,28 @@ class TestLibFullText(unittest.TestCase):
             result = app_module._lib_full_text("paper.pdf")
         self.assertEqual(result, "")
 
+    def test_chunk_query_orders_by_chunk_index(self):
+        chunk = types.SimpleNamespace(content="only chunk")
+        fake_db = mock.MagicMock()
+        fake_db.query.return_value.filter.return_value.order_by.return_value.all.return_value = [chunk]
+        cm = mock.MagicMock()
+        cm.__enter__.return_value = fake_db
+        cm.__exit__.return_value = False
+        with mock.patch.object(app_module, "db_session", return_value=cm), \
+             mock.patch.object(app_module, "_rag_paper_text"):
+            app_module._lib_full_text("paper.pdf")
+        fake_db.query.return_value.filter.return_value.order_by.assert_called_once_with(
+            app_module.PaperChunkModel.chunk_index
+        )
+
+    def test_db_error_returns_empty_string(self):
+        cm = mock.MagicMock()
+        cm.__enter__.side_effect = RuntimeError("DB connection failed")
+        with mock.patch.object(app_module, "db_session", return_value=cm), \
+             mock.patch.object(app_module.app.logger, "exception"):
+            result = app_module._lib_full_text("paper.pdf")
+        self.assertEqual(result, "")
+
     def test_none_content_treated_as_empty_string(self):
         chunk = types.SimpleNamespace(content=None)
         cm = _make_db_cm([chunk])
