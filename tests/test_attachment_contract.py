@@ -94,5 +94,24 @@ class ConversationDeletePurges(unittest.TestCase):
         self.assertIn("_attachment_grounding(", text)
 
 
+class RagPaperTextOcr(unittest.TestCase):
+    def test_rag_paper_text_uses_pdf_text(self):
+        from unittest import mock
+        from pathlib import Path
+        with mock.patch.object(app_module, "PAPERS_DIR", Path("/tmp")), \
+             mock.patch("pathlib.Path.read_bytes", return_value=b"%PDF-1.4 fake"), \
+             mock.patch("pdf_text.extract_pdf_text", return_value="scanned paper text") as ex:
+            out = app_module._rag_paper_text("paper.pdf")
+        ex.assert_called_once()
+        self.assertEqual(out, "scanned paper text")
+
+    def test_search_papers_stays_pypdf_only(self):
+        # The live /search full-text fallback must NOT gain OCR (timeout risk).
+        import inspect
+        src = inspect.getsource(app_module.extract_pdf_text)  # the Path-based one
+        self.assertIn("PdfReader", src)
+        self.assertNotIn("pdf_text.", src)  # must not delegate to pdf_text module
+
+
 if __name__ == "__main__":
     unittest.main()

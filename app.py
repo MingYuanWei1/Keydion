@@ -4521,7 +4521,10 @@ def _rag_iter_papers():
 
 
 def _rag_paper_text(filename):
-    return extract_pdf_text(PAPERS_DIR / filename)
+    # Embedding build gets OCR fallback so scanned published papers are
+    # retrievable by chat grounding. (The live /search full-text fallback keeps
+    # using the pypdf-only extract_pdf_text(pdf_path) to avoid OCR per request.)
+    return pdf_text.extract_pdf_text((PAPERS_DIR / filename).read_bytes())
 
 
 def _rag_paper_meta(filename):
