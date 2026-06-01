@@ -2526,7 +2526,12 @@ def create_app() -> Flask:
                     cites = json.loads(m.citations) if m.citations else []
                 except (ValueError, TypeError):
                     cites = []
-                out.append({"role": m.role, "content": m.content, "citations": cites})
+                try:
+                    atts = json.loads(m.attachments) if m.attachments else []
+                except (ValueError, TypeError):
+                    atts = []
+                out.append({"role": m.role, "content": m.content,
+                            "citations": cites, "attachments": atts})
             att = (db.query(AttachmentChunkModel.filename)
                      .filter(AttachmentChunkModel.conversation_id == conv.id)
                      .distinct().all())

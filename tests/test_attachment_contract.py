@@ -113,6 +113,15 @@ class RagPaperTextOcr(unittest.TestCase):
         self.assertNotIn("pdf_text.", src)  # must not delegate to pdf_text module
 
 
+class ConversationGetReturnsMessageAttachments(unittest.TestCase):
+    def test_message_dict_includes_attachments(self):
+        import inspect
+        src = inspect.getsource(app_module.create_app)
+        # the per-message dict built in the GET branch must carry attachments
+        self.assertIn('"attachments": ', src)
+        self.assertIn("m.attachments", src)
+
+
 class AskPersistsMessageAttachments(unittest.TestCase):
     def test_reads_and_stores_message_attachments(self):
         import inspect
