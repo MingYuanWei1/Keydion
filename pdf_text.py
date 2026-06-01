@@ -22,6 +22,7 @@ from PyPDF2.errors import PdfReadError
 MIN_TEXT_CHARS = 50
 DEFAULT_OCR_LANGS = "eng+chi_sim+chi_tra"
 DEFAULT_MAX_OCR_PAGES = 10
+OCR_PAGE_TIMEOUT = 30   # seconds per page — bounds a hung/slow Tesseract subprocess
 
 _log = logging.getLogger(__name__)
 
@@ -56,8 +57,9 @@ def _pypdf_text(file_bytes: bytes) -> str:
 def _ocr_pdf(file_bytes: bytes, langs: str, max_pages: int) -> str:
     """Rasterise pages with PyMuPDF and OCR them with Tesseract.
 
-    Returns "" on any failure (missing deps / `tesseract` binary / render error),
-    logged server-side. Never raises.
+    Returns "" on any failure (missing deps / `tesseract` binary / render error /
+    per-page OCR timeout), logged server-side. Never raises. Each page is bounded
+    by OCR_PAGE_TIMEOUT so a hung/slow Tesseract subprocess can't block forever.
     """
     try:
         import fitz                       # PyMuPDF
@@ -81,7 +83,8 @@ def _ocr_pdf(file_bytes: bytes, langs: str, max_pages: int) -> str:
                 try:
                     pix = page.get_pixmap(dpi=300)
                     img = Image.open(io.BytesIO(pix.tobytes("png")))
-                    parts.append(pytesseract.image_to_string(img, lang=langs))
+                    parts.append(pytesseract.image_to_string(
+                        img, lang=langs, timeout=OCR_PAGE_TIMEOUT))
                 except Exception:
                     _log.warning("OCR failed on page %d", i, exc_info=True)
                     parts.append("")

@@ -62,7 +62,7 @@ def _fake_ocr_modules(call_log, page_count):
     fitz = mock.Mock()
     fitz.open.return_value = _Doc()
     pyt = mock.Mock()
-    def _img_to_str(img, lang=None):
+    def _img_to_str(img, lang=None, timeout=None):
         call_log.append(lang)
         return "ocr-text"
     pyt.image_to_string.side_effect = _img_to_str
@@ -118,6 +118,57 @@ class OcrFallbackTest(unittest.TestCase):
         fitz.open.return_value = _BadDoc()
         mods = {"fitz": fitz, "pytesseract": mock.Mock(), "PIL": mock.Mock()}
         with mock.patch.dict(sys.modules, mods):
+            out = pdf_text._ocr_pdf(b"%PDF-fake", "eng", 10)
+        self.assertEqual(out, "")
+
+    def test_ocr_passes_a_positive_timeout(self):
+        # Tesseract must be bounded — a hung page would otherwise block forever.
+        captured = {}
+        class _Pix:
+            def tobytes(self, fmt):
+                return b"PNGDATA"
+        class _Page:
+            def get_pixmap(self, dpi=300):
+                return _Pix()
+        class _Doc:
+            def __iter__(self):
+                return iter([_Page()])
+            def close(self):
+                pass
+        fitz = mock.Mock()
+        fitz.open.return_value = _Doc()
+        pyt = mock.Mock()
+        def _img(img, lang=None, timeout=None):
+            captured["timeout"] = timeout
+            return "text"
+        pyt.image_to_string.side_effect = _img
+        pil = mock.Mock()
+        pil.Image.open.return_value = object()
+        with mock.patch.dict(sys.modules, {"fitz": fitz, "pytesseract": pyt, "PIL": pil}):
+            pdf_text._ocr_pdf(b"%PDF-fake", "eng", 10)
+        self.assertIsNotNone(captured.get("timeout"))
+        self.assertGreater(captured["timeout"], 0)
+
+    def test_ocr_page_timeout_degrades_to_empty(self):
+        # A timed-out page raises RuntimeError -> caught per-page -> that page "".
+        class _Pix:
+            def tobytes(self, fmt):
+                return b"PNGDATA"
+        class _Page:
+            def get_pixmap(self, dpi=300):
+                return _Pix()
+        class _Doc:
+            def __iter__(self):
+                return iter([_Page()])
+            def close(self):
+                pass
+        fitz = mock.Mock()
+        fitz.open.return_value = _Doc()
+        pyt = mock.Mock()
+        pyt.image_to_string.side_effect = RuntimeError("Tesseract process timeout")
+        pil = mock.Mock()
+        pil.Image.open.return_value = object()
+        with mock.patch.dict(sys.modules, {"fitz": fitz, "pytesseract": pyt, "PIL": pil}):
             out = pdf_text._ocr_pdf(b"%PDF-fake", "eng", 10)
         self.assertEqual(out, "")
 
