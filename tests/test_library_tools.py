@@ -402,5 +402,166 @@ class TestRunToolEdgeCases(unittest.TestCase):
         self.assertEqual(PAPER_TEXT_CHAR_CAP, 200_000)
 
 
+# ---------------------------------------------------------------------------
+# run_tool — defensive / error-handling paths (new)
+# ---------------------------------------------------------------------------
+
+class TestRunToolDefensive(unittest.TestCase):
+    """Tests for the 'never raises' guarantee and defensive normalisation."""
+
+    def setUp(self):
+        self.registry = SourceRegistry()
+
+    # --- deps.search raises ---------------------------------------------------
+
+    def test_search_dep_raises_returns_error_string(self):
+        """If deps.search raises, run_tool must return an Error string, not propagate."""
+        def bad_search(query):
+            raise RuntimeError("DB connection pool timeout")
+
+        deps = types.SimpleNamespace(
+            search=bad_search,
+            full_text=lambda fn: "",
+            paper_meta=lambda fn: {},
+            paper_url=lambda fn: None,
+        )
+        result = run_tool("search_library", '{"query": "climate"}', self.registry, deps)
+        self.assertIsInstance(result, str)
+        self.assertTrue(result.startswith("Error"))
+        self.assertNotEqual(result, "")
+
+    # --- deps.full_text raises ------------------------------------------------
+
+    def test_full_text_dep_raises_returns_error_string(self):
+        """If deps.full_text raises, run_tool must return an Error string, not propagate."""
+        def bad_full_text(filename):
+            raise OSError("missing row in DB")
+
+        deps = types.SimpleNamespace(
+            search=lambda q: [{"filename": "x.pdf", "title": "X", "authors": "", "url": "", "snippet": ""}],
+            full_text=bad_full_text,
+            paper_meta=lambda fn: {},
+            paper_url=lambda fn: None,
+        )
+        result = run_tool("read_paper", '{"filename": "x.pdf"}', self.registry, deps)
+        self.assertIsInstance(result, str)
+        self.assertTrue(result.startswith("Error"))
+
+    # --- non-dict JSON payload ------------------------------------------------
+
+    def test_non_dict_json_scalar_returns_error_string(self):
+        """A bare JSON scalar like '42' must yield an error string, not AttributeError."""
+        deps = _make_deps(_SAMPLE_PAPERS)
+        result = run_tool("search_library", "42", self.registry, deps)
+        self.assertIsInstance(result, str)
+        self.assertTrue(result.startswith("Error"))
+
+    def test_non_dict_json_array_returns_error_string(self):
+        """A bare JSON array like '[1,2]' must yield an error string."""
+        deps = _make_deps(_SAMPLE_PAPERS)
+        result = run_tool("search_library", "[1, 2]", self.registry, deps)
+        self.assertIsInstance(result, str)
+        self.assertTrue(result.startswith("Error"))
+
+    def test_non_dict_passed_directly_returns_error_string(self):
+        """A non-dict passed as arguments directly must yield an error string."""
+        deps = _make_deps(_SAMPLE_PAPERS)
+        result = run_tool("search_library", 42, self.registry, deps)
+        self.assertIsInstance(result, str)
+        self.assertTrue(result.startswith("Error"))
+
+    # --- non-string arg values ------------------------------------------------
+
+    def test_numeric_query_value_does_not_crash(self):
+        """args={'query': 5} must not raise AttributeError on .strip()."""
+        deps = _make_deps(_SAMPLE_PAPERS)
+        result = run_tool("search_library", {"query": 5}, self.registry, deps)
+        # Either finds results for "5" or returns a no-match / error string — must not crash.
+        self.assertIsInstance(result, str)
+
+    def test_numeric_filename_value_does_not_crash(self):
+        """args={'filename': 123} must not raise AttributeError on .strip()."""
+        deps = _make_deps(_SAMPLE_PAPERS)
+        result = run_tool("read_paper", {"filename": 123}, self.registry, deps)
+        self.assertIsInstance(result, str)
+
+    # --- candidate missing filename / None fields ----------------------------
+
+    def test_candidate_missing_filename_is_skipped(self):
+        """A search candidate with no filename must not produce a [None] block."""
+        def bad_search(query):
+            return [
+                {"filename": None, "title": "Ghost", "authors": "X", "url": "", "snippet": "s"},
+                {"title": "Also missing", "authors": "Y", "url": "", "snippet": "t"},
+            ]
+
+        deps = types.SimpleNamespace(
+            search=bad_search,
+            full_text=lambda fn: "",
+            paper_meta=lambda fn: {},
+            paper_url=lambda fn: None,
+        )
+        result = run_tool("search_library", '{"query": "anything"}', self.registry, deps)
+        self.assertNotIn("[None]", result)
+        # No citations should be registered for filename-less candidates.
+        self.assertEqual(self.registry.as_citations(), [])
+
+    def test_candidate_with_none_snippet_does_not_render_none_text(self):
+        """A candidate with snippet=None must not render the literal string 'None'."""
+        def search_with_none_snippet(query):
+            return [
+                {"filename": "a.pdf", "title": "Alpha", "authors": "Smith", "url": "", "snippet": None},
+            ]
+
+        deps = types.SimpleNamespace(
+            search=search_with_none_snippet,
+            full_text=lambda fn: "",
+            paper_meta=lambda fn: {},
+            paper_url=lambda fn: None,
+        )
+        result = run_tool("search_library", '{"query": "alpha"}', self.registry, deps)
+        # The block must be present (a.pdf was returned).
+        self.assertIn("a.pdf", result)
+        # The literal word "None" must not appear in the output.
+        self.assertNotIn("None", result)
+
+    def test_candidate_with_none_authors_does_not_render_none_text(self):
+        """A candidate with authors=None must not render the literal string 'None'."""
+        def search_with_none_authors(query):
+            return [
+                {"filename": "b.pdf", "title": "Beta", "authors": None, "url": "", "snippet": "some snippet"},
+            ]
+
+        deps = types.SimpleNamespace(
+            search=search_with_none_authors,
+            full_text=lambda fn: "",
+            paper_meta=lambda fn: {},
+            paper_url=lambda fn: None,
+        )
+        result = run_tool("search_library", '{"query": "beta"}', self.registry, deps)
+        self.assertIn("b.pdf", result)
+        self.assertNotIn("None", result)
+
+    def test_mixed_candidates_valid_and_missing_filename(self):
+        """Only candidates with a valid filename appear in output."""
+        def mixed_search(query):
+            return [
+                {"filename": None, "title": "No name", "authors": "", "url": "", "snippet": "x"},
+                {"filename": "real.pdf", "title": "Real", "authors": "A", "url": "", "snippet": "y"},
+            ]
+
+        deps = types.SimpleNamespace(
+            search=mixed_search,
+            full_text=lambda fn: "",
+            paper_meta=lambda fn: {},
+            paper_url=lambda fn: None,
+        )
+        result = run_tool("search_library", '{"query": "test"}', self.registry, deps)
+        self.assertIn("real.pdf", result)
+        self.assertNotIn("[None]", result)
+        # Only one citation registered.
+        self.assertEqual(len(self.registry.as_citations()), 1)
+
+
 if __name__ == "__main__":
     unittest.main()

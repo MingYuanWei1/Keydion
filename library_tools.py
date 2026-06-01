@@ -223,12 +223,19 @@ def run_tool(name: str, arguments: str | dict, registry: SourceRegistry, deps) -
         except (json.JSONDecodeError, TypeError) as exc:
             return f"Error: could not parse tool arguments as JSON ({exc})."
 
+    if not isinstance(args, dict):
+        return 'Error: tool arguments must be a JSON object, e.g. {"query": "..."}.'
+
     if name == "search_library":
-        query = (args.get("query") or "").strip()
+        query = str(args.get("query") or "").strip()
         if not query:
             return "Error: search_library requires a non-empty 'query' argument."
 
-        candidates = deps.search(query)
+        try:
+            candidates = deps.search(query)
+        except Exception as exc:
+            return f"Error: library search failed ({exc}). Try a different query."
+
         if not candidates:
             return (
                 f"No papers matched the query \"{query}\". "
@@ -237,38 +244,60 @@ def run_tool(name: str, arguments: str | dict, registry: SourceRegistry, deps) -
 
         blocks: list[str] = []
         for c in candidates:
+            filename = c.get("filename") or ""
+            if not filename:
+                continue
+            title = c.get("title") or filename
+            authors = c.get("authors") or ""
+            snippet = c.get("snippet") or ""
             n = registry.register(
-                c.get("filename", ""),
-                {"title": c.get("title", ""), "authors": c.get("authors", ""),
-                 "url": c.get("url", "")},
+                filename,
+                {"title": title, "authors": authors, "url": c.get("url") or ""},
             )
-            title = c.get("title") or c.get("filename", "")
-            authors = c.get("authors", "")
-            filename = c.get("filename", "")
-            snippet = c.get("snippet", "")
             blocks.append(
                 f"[{n}] {title} — {authors} (filename: {filename})\n{snippet}"
+            )
+        if not blocks:
+            return (
+                f"No papers matched the query \"{query}\". "
+                "Try a different search term or a broader query."
             )
         return "\n\n".join(blocks)
 
     if name == "read_paper":
-        filename = (args.get("filename") or "").strip()
+        filename = str(args.get("filename") or "").strip()
         if not filename:
             return (
                 "Error: read_paper requires a non-empty 'filename' argument. "
                 "Use search_library first to find a paper and get its filename."
             )
 
-        text = deps.full_text(filename)
-        if not text or not text.strip():
+        try:
+            text = deps.full_text(filename)
+        except Exception as exc:
+            return (
+                f"Error: could not read '{filename}' ({exc}). "
+                "Try search_library to find a valid filename."
+            )
+
+        if not isinstance(text, str):
+            text = ""
+        if not text.strip():
             return (
                 f"Error: no indexed text found for \"{filename}\". "
                 "The file may not exist or has not been indexed. "
                 "Try search_library to find the correct filename."
             )
 
-        meta = deps.paper_meta(filename) or {}
-        url = deps.paper_url(filename)
+        try:
+            meta = deps.paper_meta(filename) or {}
+            url = deps.paper_url(filename)
+        except Exception as exc:
+            return (
+                f"Error: could not read '{filename}' ({exc}). "
+                "Try search_library to find a valid filename."
+            )
+
         title = meta.get("title") or filename
         n = registry.register(
             filename,
