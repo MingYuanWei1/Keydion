@@ -39,10 +39,15 @@ def chunk_text(text: str, size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP) 
 
 
 def reassemble(contents: list[str], overlap: int = CHUNK_OVERLAP) -> str:
-    """Inverse of chunk_text: stitch overlapping chunks back into the original text.
+    """Stitch overlapping chunks back into the original text.
 
-    Strips the leading `overlap` characters from every chunk after the first,
-    which exactly undoes the overlap introduced by chunk_text.
+    Strips the leading `overlap` characters from every chunk after the first.
+    This exactly undoes chunk_text *only when* the caller passes the overlap
+    value that chunk_text actually used.  Note that chunk_text silently clamps
+    ``overlap`` to ``size // 4`` whenever ``overlap >= size``; in that case
+    the caller must pass the clamped value here, not the original one.
+    If ``overlap`` exceeds a chunk's length, those characters are silently
+    dropped rather than raising an error.
     Returns "" for an empty list.
     """
     if not contents:

@@ -298,6 +298,10 @@ class Reassemble(unittest.TestCase):
         chunks = rag_index.chunk_text(t)  # uses default CHUNK_SIZE / CHUNK_OVERLAP
         self.assertEqual(rag_index.reassemble(chunks), t)
 
+    def test_overlap_larger_than_chunk_truncates(self):
+        # Documents the contract: oversized overlap drops chars, never crashes.
+        self.assertEqual(rag_index.reassemble(["abcd", "ef"], overlap=10), "abcd")
+
 
 if __name__ == "__main__":
     unittest.main()
