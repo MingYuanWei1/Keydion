@@ -551,6 +551,16 @@ button { font-family: inherit; cursor: pointer; }
 .kd-typing span:nth-child(3) { animation-delay: 0.32s; }
 @keyframes kdblink { 0%, 80%, 100% { opacity: 0.25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
 
+/* status line shown during tool-use rounds */
+.kd-status {
+  font-family: var(--serif-ui);
+  font-size: 13px;
+  color: var(--muted);
+  padding: 4px 0;
+  animation: kdstatuspulse 1.8s ease-in-out infinite;
+}
+@keyframes kdstatuspulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+
 /* ── Composer ───────────────────────────────────────────────── */
 .kd-composer-wrap {
   flex: 0 0 auto;

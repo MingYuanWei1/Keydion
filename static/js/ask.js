@@ -326,6 +326,18 @@
     if (!ai.bubble.parentNode) ai.prose.appendChild(ai.bubble);
   }
 
+  function showStatus(ai, text) {
+    if (ai.typing && ai.typing.parentNode) ai.typing.remove();
+    if (!ai.status) { ai.status = el("div", "kd-status"); ai.prose.appendChild(ai.status); }
+    ai.status.textContent = text;
+    scroll();
+  }
+
+  function clearStatus(ai) {
+    if (ai.status && ai.status.parentNode) ai.status.remove();
+    ai.status = null;
+  }
+
   function readStream(resp, ai) {
     var reader = resp.body.getReader();
     var decoder = new TextDecoder();
@@ -351,24 +363,30 @@
 
   function handle(evt, ai) {
     if (evt.type === "token") {
+      clearStatus(ai);
       if (ai.typing && ai.typing.parentNode) ai.typing.remove();
       ensureBubble(ai);
       ai.text += evt.text;
       ai.bubble.innerHTML = renderMarkdown(ai.text);
       scroll();
     } else if (evt.type === "citations") {
+      clearStatus(ai);
       renderSources(ai.body, evt.items);
       scroll();
     } else if (evt.type === "web") {
       renderWebNote(ai.body, evt.items);
       scroll();
     } else if (evt.type === "done") {
+      clearStatus(ai);
       addActions(ai.body, function () { return ai.text; });
       scroll();
     } else if (evt.type === "error") {
+      clearStatus(ai);
       if (ai.typing && ai.typing.parentNode) ai.typing.remove();
       ensureBubble(ai);
       ai.bubble.textContent = evt.message || I18N.error || "Error";
+    } else if (evt.type === "status") {
+      showStatus(ai, evt.text);
     }
   }
 
