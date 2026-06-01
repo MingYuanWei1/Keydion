@@ -17,74 +17,10 @@ Keydion is a robust, scholarly-focused web application for managing, searching, 
 - **Docker & Docker Compose** (recommended)
 - **MySQL 8.0+** (if running locally without Docker)
 - **Tesseract OCR** (optional) — enables text extraction from *scanned* PDFs (chat attachments, the abstract/keyword generator, and the papers index). Install the engine plus the Chinese language data:
-  - Debian/Ubuntu: `apt-get install -y tesseract-ocr tesseract-ocr-chi-sim tesseract-ocr-chi-tra`
+  - Debian/Ubuntu: `apt-get install -y tesseract-ocr tesseract-ocr-chi-sim`
   - macOS: `brew install tesseract tesseract-lang`
 
   Without it, scanned PDFs simply yield no extracted text; text-based PDFs are unaffected.
-
-## Getting Started
-
-### 1. Environment Setup
-
-Clone the repository and create a `.env` file in the root directory:
-
-```bash
-PAPERQUERY_SECRET=your_secret_key_here
-PAPERQUERY_DATABASE_URL="mysql+pymysql://user:password@host:port/dbname"
-
-PAPERQUERY_MS_CLIENT_ID=your_client_id
-PAPERQUERY_MS_CLIENT_SECRET=your_client_secret
-PAPERQUERY_MS_REDIRECT_URI=https://yourdomain.com/auth/callback
-
-LLM_API_KEY=your_api_key
-LLM_BASE_URL=
-LLM_DEFAULT_FLASH=gpt-4o-mini
-LLM_DEFAULT_THINK=gpt-4o-mini
-
-# Optional separate embedding provider for library search/RAG
-LLM_EMBED_API_KEY=
-LLM_EMBED_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
-LLM_EMBED_MODEL=gemini-embedding-001
-```
-
-> The abstract/keyword button only appears for Contributors (role ≥ 2) when
-> `LLM_API_KEY` is set. It drafts the abstract and keywords from the uploaded
-> PDF; the uploader reviews and edits before submitting. The library assistant
-> uses `LLM_EMBED_*` for retrieval embeddings when set, falling back to
-> `LLM_API_KEY` / `LLM_BASE_URL` and `gemini-embedding-001` otherwise. See
-> [`LLM_DEPLOYMENT_IDEAS.md`](LLM_DEPLOYMENT_IDEAS.md) for other planned LLM uses.
-
-| Variable | Purpose | Default |
-|---|---|---|
-| `WEB_SEARCH_PROVIDER` | Web-search backend for the Ask page's "Web access" toggle | `tavily` |
-| `WEB_SEARCH_API_KEY` | API key for the web-search provider. **Unset = web access disabled** (toggle hidden). | unset |
-
-### 2. Using Docker (Recommended)
-
-The easiest way to run the project is using Docker Compose:
-
-```bash
-docker-compose up -d
-```
-
-This will spin up the web application and a pre-configured MySQL database.
-
-### 3. Local Development
-
-If you prefer to run the application locally:
-
-1. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-2. **Initialize Database**:
-   Ensure your MySQL server is running and the database specified in `.env` exists. The application will automatically create the necessary tables on first start.
-
-3. **Start the server**:
-   ```bash
-   ./start_local.sh
-   ```
 
 ## Production Deployment (gunicorn under systemd, host nginx)
 
@@ -96,7 +32,7 @@ must **never** be exposed publicly.
 `gunicorn.conf.py`. nginx serves `/static/*` directly from disk; PDF
 download routes (`/papers/*`) proxy through to Flask so auth checks run.
 
-1. Create a `.env.prod` (gitignored) alongside `.env`:
+1. Create a `.env.prod` (gitignored) in the repo root:
 
    ```bash
    PAPERQUERY_SECRET=<strong random value, NOT dev-secret-key>
@@ -109,7 +45,7 @@ download routes (`/papers/*`) proxy through to Flask so auth checks run.
 
    # AI assist — abstract & keyword auto-fill (Optional; OpenAI-compatible API)
    LLM_API_KEY=
-   LLM_BASE_URL= 
+   LLM_BASE_URL=
    LLM_DEFAULT_FLASH=gpt-4o-mini
    LLM_DEFAULT_THINK=gpt-4o-mini
 
@@ -206,6 +142,69 @@ curl -sI https://www.keydion.com/ | head -5   # 200/302, Server: nginx
 
 If the journal shows a traceback instead of fresh worker boots, the new
 code failed to import — fix on disk and reload again.
+
+## Local Development
+
+> **Warning:** the Flask dev server (Werkzeug) is for local testing only. Never expose it publicly.
+
+### 1. Environment
+
+Clone the repository and create a `.env` file in the root directory:
+
+```bash
+PAPERQUERY_SECRET=dev-secret-key
+PAPERQUERY_DATABASE_URL="mysql+pymysql://user:password@host:port/dbname"
+
+PAPERQUERY_MS_CLIENT_ID=your_client_id
+PAPERQUERY_MS_CLIENT_SECRET=your_client_secret
+PAPERQUERY_MS_REDIRECT_URI=http://localhost:5000/auth/callback
+
+# AI assist — abstract & keyword auto-fill (Optional; OpenAI-compatible API)
+LLM_API_KEY=your_api_key
+LLM_BASE_URL=
+LLM_DEFAULT_FLASH=gpt-4o-mini
+LLM_DEFAULT_THINK=gpt-4o-mini
+
+# Optional separate embedding provider for library search/RAG
+LLM_EMBED_API_KEY=
+LLM_EMBED_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
+LLM_EMBED_MODEL=gemini-embedding-001
+
+# Optional web search for Ask the Library "Web access" toggle (default provider: Tavily)
+WEB_SEARCH_PROVIDER=tavily
+WEB_SEARCH_API_KEY=
+```
+
+> The abstract/keyword button only appears for Contributors (role ≥ 2) when
+> `LLM_API_KEY` is set. It drafts the abstract and keywords from the uploaded
+> PDF; the uploader reviews and edits before submitting. The library assistant
+> uses `LLM_EMBED_*` for retrieval embeddings when set, falling back to
+> `LLM_API_KEY` / `LLM_BASE_URL` and `gemini-embedding-001` otherwise. See
+> [`LLM_DEPLOYMENT_IDEAS.md`](LLM_DEPLOYMENT_IDEAS.md) for other planned LLM uses.
+>
+> `WEB_SEARCH_API_KEY` unset = web access toggle hidden on the Ask page.
+
+### 2. Using Docker
+
+The quickest way to get a running database alongside the app:
+
+```bash
+docker-compose up -d
+```
+
+### 3. Running without Docker
+
+1. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Database**: ensure your MySQL server is running and the database named in `.env` exists. Tables are created automatically on first start.
+
+3. **Start the dev server**:
+   ```bash
+   ./start_local.sh
+   ```
 
 ## User Management
 
