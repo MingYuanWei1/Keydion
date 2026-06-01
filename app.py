@@ -2580,6 +2580,12 @@ def create_app() -> Flask:
                     AttachmentChunkModel.filename == fname).delete()
             return jsonify({"ok": True})
 
+        # Rate-limit uploads: extraction (now including OCR for scanned PDFs) is
+        # CPU-heavy, so cap per-IP to avoid a degradation-of-service via the route.
+        ip = request.headers.get("X-Forwarded-For", request.remote_addr or "?").split(",")[0].strip()
+        if not _ask_rate_ok(ip):
+            return jsonify({"error": str(_("Too many requests — please slow down."))}), 429
+
         upload = request.files.get("file")
         if not upload or not upload.filename:
             return jsonify({"error": str(_("No file provided"))}), 400

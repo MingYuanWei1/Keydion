@@ -16,6 +16,11 @@ Keydion is a robust, scholarly-focused web application for managing, searching, 
 - **Python 3.11+**
 - **Docker & Docker Compose** (recommended)
 - **MySQL 8.0+** (if running locally without Docker)
+- **Tesseract OCR** (optional) — enables text extraction from *scanned* PDFs (chat attachments, the abstract/keyword generator, and the papers index). Install the engine plus the Chinese language data:
+  - Debian/Ubuntu: `apt-get install -y tesseract-ocr tesseract-ocr-chi-sim tesseract-ocr-chi-tra`
+  - macOS: `brew install tesseract tesseract-lang`
+
+  Without it, scanned PDFs simply yield no extracted text; text-based PDFs are unaffected.
 
 ## Getting Started
 
