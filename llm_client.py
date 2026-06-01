@@ -22,6 +22,15 @@ def embed_model() -> str:
     return os.environ.get("LLM_EMBED_MODEL") or "gemini-embedding-001"
 
 
+def embed_batch_size() -> int:
+    """Max inputs per embeddings request. Some providers cap this (DashScope: 10);
+    OpenAI allows far more. Tune via LLM_EMBED_BATCH. Defaults to a safe 10."""
+    try:
+        return max(1, int(os.environ.get("LLM_EMBED_BATCH", "10")))
+    except ValueError:
+        return 10
+
+
 def llm_enabled() -> bool:
     return bool(os.environ.get("LLM_API_KEY"))
 

@@ -217,5 +217,58 @@ class ResumeBehaviour(unittest.TestCase):
         self.assertIn("[2/2]", joined)
 
 
+class EmbedBatchTest(unittest.TestCase):
+    def setUp(self):
+        self._saved = dict(rag_index._DEPS)
+
+    def tearDown(self):
+        rag_index._DEPS.clear()
+        rag_index._DEPS.update(self._saved)
+        rag_index.invalidate_cache()
+
+    def _client(self, calls):
+        class _C:
+            def __init__(self):
+                self.embeddings = self
+            def create(self, model=None, input=None):
+                calls.append(len(input))
+                return type("R", (), {
+                    "data": [type("E", (), {"embedding": [0.1]})() for _ in input]
+                })()
+        return _C()
+
+    def test_splits_into_batches_of_configured_size(self):
+        calls = []
+        rag_index.configure(
+            build_embed_client=lambda: self._client(calls),
+            embed_model=lambda: "m",
+            embed_batch_size=lambda: 10,
+        )
+        out = rag_index.embed_texts(["t"] * 23)
+        self.assertEqual(len(out), 23)            # all embedded, in order
+        self.assertEqual(calls, [10, 10, 3])      # no request exceeds 10
+        self.assertTrue(all(c <= 10 for c in calls))
+
+    def test_defaults_to_10_when_dep_absent(self):
+        calls = []
+        rag_index.configure(
+            build_embed_client=lambda: self._client(calls),
+            embed_model=lambda: "m",
+        )
+        rag_index._DEPS.pop("embed_batch_size", None)   # ensure no dep configured
+        rag_index.embed_texts(["t"] * 12)
+        self.assertEqual(calls, [10, 2])
+
+    def test_empty_input_makes_no_calls(self):
+        calls = []
+        rag_index.configure(
+            build_embed_client=lambda: self._client(calls),
+            embed_model=lambda: "m",
+            embed_batch_size=lambda: 10,
+        )
+        self.assertEqual(rag_index.embed_texts([]), [])
+        self.assertEqual(calls, [])
+
+
 if __name__ == "__main__":
     unittest.main()

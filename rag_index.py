@@ -72,12 +72,24 @@ def invalidate_cache() -> None:
 
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
-    """Batch-embed via the configured embedding client."""
+    """Batch-embed via the configured embedding client.
+
+    Inputs are split into sub-batches of at most embed_batch_size() items,
+    because some providers cap an embeddings request (e.g. DashScope: 10).
+    Results are returned in input order.
+    """
     if not texts:
         return []
     client = _DEPS["build_embed_client"]()
-    resp = client.embeddings.create(model=_DEPS["embed_model"](), input=texts)
-    return [d.embedding for d in resp.data]
+    model = _DEPS["embed_model"]()
+    getter = _DEPS.get("embed_batch_size")
+    size = max(1, int(getter())) if getter else 10
+    out: list[list[float]] = []
+    for start in range(0, len(texts), size):
+        batch = texts[start:start + size]
+        resp = client.embeddings.create(model=model, input=batch)
+        out.extend(d.embedding for d in resp.data)
+    return out
 
 
 def build_index(filenames: list[str] | None = None, skip_existing: bool = False) -> dict:

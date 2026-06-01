@@ -4599,6 +4599,7 @@ def configure_rag():
     rag_index.configure(
         build_embed_client=llm_client.build_embed_client,
         embed_model=llm_client.embed_model,
+        embed_batch_size=llm_client.embed_batch_size,
         iter_papers=_rag_iter_papers,
         paper_text=_rag_paper_text,
         paper_meta=_rag_paper_meta,

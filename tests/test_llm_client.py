@@ -26,6 +26,18 @@ class LlmClientModelResolution(unittest.TestCase):
         with mock.patch.dict(os.environ, {}, clear=True):
             self.assertEqual(llm_client.embed_model(), "gemini-embedding-001")
 
+    def test_embed_batch_size_defaults_to_10(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(llm_client.embed_batch_size(), 10)
+
+    def test_embed_batch_size_uses_env(self):
+        with mock.patch.dict(os.environ, {"LLM_EMBED_BATCH": "64"}, clear=True):
+            self.assertEqual(llm_client.embed_batch_size(), 64)
+
+    def test_embed_batch_size_falls_back_on_garbage(self):
+        with mock.patch.dict(os.environ, {"LLM_EMBED_BATCH": "not-a-number"}, clear=True):
+            self.assertEqual(llm_client.embed_batch_size(), 10)
+
     def test_llm_enabled_reflects_api_key(self):
         with mock.patch.dict(os.environ, {}, clear=True):
             self.assertFalse(llm_client.llm_enabled())
