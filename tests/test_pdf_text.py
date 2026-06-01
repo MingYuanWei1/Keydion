@@ -1,3 +1,4 @@
+import sys
 import unittest
 from unittest import mock
 
@@ -41,9 +42,6 @@ class PypdfPassTest(unittest.TestCase):
             with self.assertRaises(PdfTextError) as ctx:
                 extract_pdf_text(b"%PDF-fake")
         self.assertEqual(ctx.exception.reason, "encrypted")
-
-
-import sys
 
 
 def _fake_ocr_modules(call_log, page_count):
@@ -109,6 +107,19 @@ class OcrFallbackTest(unittest.TestCase):
         self.assertEqual(len(log), 10)            # capped at 10 pages
         self.assertTrue(all(l == "eng+chi_sim" for l in log))
         self.assertIn("ocr-text", out)
+
+    def test_page_iteration_error_returns_empty(self):
+        class _BadDoc:
+            def __iter__(self):
+                raise RuntimeError("corrupt page tree")
+            def close(self):
+                pass
+        fitz = mock.Mock()
+        fitz.open.return_value = _BadDoc()
+        mods = {"fitz": fitz, "pytesseract": mock.Mock(), "PIL": mock.Mock()}
+        with mock.patch.dict(sys.modules, mods):
+            out = pdf_text._ocr_pdf(b"%PDF-fake", "eng", 10)
+        self.assertEqual(out, "")
 
 
 if __name__ == "__main__":

@@ -73,19 +73,26 @@ def _ocr_pdf(file_bytes: bytes, langs: str, max_pages: int) -> str:
         return ""
     parts = []
     try:
-        for i, page in enumerate(doc):
-            if i >= max_pages:
-                _log.info("OCR truncated at %d pages (document has more)", max_pages)
-                break
-            try:
-                pix = page.get_pixmap(dpi=300)
-                img = Image.open(io.BytesIO(pix.tobytes("png")))
-                parts.append(pytesseract.image_to_string(img, lang=langs))
-            except Exception:
-                _log.warning("OCR failed on page %d", i, exc_info=True)
-                parts.append("")
+        try:
+            for i, page in enumerate(doc):
+                if i >= max_pages:
+                    _log.info("OCR truncated at %d pages (document has more)", max_pages)
+                    break
+                try:
+                    pix = page.get_pixmap(dpi=300)
+                    img = Image.open(io.BytesIO(pix.tobytes("png")))
+                    parts.append(pytesseract.image_to_string(img, lang=langs))
+                except Exception:
+                    _log.warning("OCR failed on page %d", i, exc_info=True)
+                    parts.append("")
+        except Exception:
+            _log.warning("OCR failed during page iteration", exc_info=True)
+            return ""
     finally:
-        doc.close()
+        try:
+            doc.close()
+        except Exception:
+            pass
     return "\n".join(parts)
 
 
