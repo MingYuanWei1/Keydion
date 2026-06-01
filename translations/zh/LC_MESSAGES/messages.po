@@ -1323,6 +1323,23 @@ msgid ""
 " or wait %(minutes)d minutes."
 msgstr "此账号已在其他地方登录。请先退出或等待 %(minutes)d 分钟。"
 
+#: app.py:4962
+msgid "Searching the library…"
+msgstr "正在检索文献库…"
+
+#: app.py:4982
+#, python-format
+msgid "Reading "%(title)s"…"
+msgstr "正在阅读《%(title)s》…"
+
+#: app.py:4983
+msgid "Reading a paper…"
+msgstr "正在阅读论文…"
+
+#: app.py:4984
+msgid "Working…"
+msgstr "处理中…"
+
 #: templates/FAQ.html:181
 msgid "faq_q1"
 msgstr "问：我可以直接将 Keydion 上的文章用于商业用途吗？"

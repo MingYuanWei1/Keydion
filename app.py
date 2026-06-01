@@ -2874,12 +2874,14 @@ def create_app() -> Flask:
                             "role": "assistant",
                             "content": "".join(round_content) or None,
                             "tool_calls": [
-                                {"id": c["id"], "type": "function",
+                                # Use synthetic id if provider omitted it; must match tool message below.
+                                {"id": c["id"] or f"call_{idx}", "type": "function",
                                  "function": {"name": c["name"], "arguments": c["arguments"]}}
-                                for c in calls
+                                for idx, c in enumerate(calls)
                             ],
                         })
-                        for c in calls:
+                        for idx, c in enumerate(calls):
+                            cid = c["id"] or f"call_{idx}"
                             yield "data: " + _json.dumps({
                                 "type": "status",
                                 "text": _tool_status_text(
@@ -2887,7 +2889,7 @@ def create_app() -> Flask:
                             }) + "\n\n"
                             result = library_tools.run_tool(
                                 c["name"], c["arguments"], registry, deps)
-                            messages.append({"role": "tool", "tool_call_id": c["id"],
+                            messages.append({"role": "tool", "tool_call_id": cid,
                                              "content": result})
                         continue
 

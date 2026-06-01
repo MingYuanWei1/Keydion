@@ -1366,6 +1366,23 @@ msgstr ""
 "This account is already signed in. Please sign out from the other session"
 " or wait %(minutes)d minutes."
 
+#: app.py:4962
+msgid "Searching the library…"
+msgstr "Searching the library…"
+
+#: app.py:4982
+#, python-format
+msgid "Reading “%(title)s”…"
+msgstr "Reading “%(title)s”…"
+
+#: app.py:4983
+msgid "Reading a paper…"
+msgstr "Reading a paper…"
+
+#: app.py:4984
+msgid "Working…"
+msgstr "Working…"
+
 #: templates/FAQ.html:181
 msgid "faq_q1"
 msgstr "Q. Can I directly use essays from Keydion commercially?"
