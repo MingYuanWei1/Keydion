@@ -56,6 +56,7 @@ from werkzeug.utils import secure_filename
 from ee_pdf_extractor import extract_ee_metadata, EePdfExtractionError
 from llm_metadata import generate_abstract_keywords, LLMMetadataError
 import llm_client
+import pdf_text
 import rag_index
 import web_search
 
@@ -4421,9 +4422,7 @@ def extract_text_from_upload(filename: str, raw: bytes) -> str:
     """
     name = (filename or "").lower()
     if name.endswith(".pdf"):
-        from PyPDF2 import PdfReader
-        reader = PdfReader(BytesIO(raw))
-        return "\n".join((page.extract_text() or "") for page in reader.pages)
+        return pdf_text.extract_pdf_text(raw)
     if name.endswith(".docx"):
         from docx import Document
         doc = Document(BytesIO(raw))

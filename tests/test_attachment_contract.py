@@ -20,6 +20,13 @@ class ExtractTextFromUpload(unittest.TestCase):
         with self.assertRaises(ValueError):
             app_module.extract_text_from_upload("image.png", b"\x89PNG")
 
+    def test_pdf_branch_delegates_to_pdf_text(self):
+        from unittest import mock
+        with mock.patch("pdf_text.extract_pdf_text", return_value="ocr or pypdf text") as ex:
+            out = app_module.extract_text_from_upload("scan.pdf", b"%PDF-1.4 fake")
+        ex.assert_called_once()
+        self.assertEqual(out, "ocr or pypdf text")
+
 
 class AttachmentModelContract(unittest.TestCase):
     def test_model_exists_with_columns(self):
