@@ -1,4 +1,7 @@
+import io
+import os
 import sys
+import time
 import unittest
 from unittest import mock
 
@@ -171,6 +174,148 @@ class OcrFallbackTest(unittest.TestCase):
         with mock.patch.dict(sys.modules, {"fitz": fitz, "pytesseract": pyt, "PIL": pil}):
             out = pdf_text._ocr_pdf(b"%PDF-fake", "eng", 10)
         self.assertEqual(out, "")
+
+
+    def test_parallel_ocr_preserves_page_order(self):
+        """pool.map must return results in input order even if later pages finish first.
+
+        Each page encodes its index in its PNG bytes.  image_to_string sleeps
+        longer for lower-indexed pages so higher-indexed pages finish first —
+        this makes any order bug observable.  The joined output must still be
+        "p0\\np1\\np2\\np3\\np4".
+        """
+        NUM_PAGES = 5
+        SLEEP_SCALE = 0.01  # seconds; tiny but enough to force out-of-order completion
+
+        class _Pix:
+            def __init__(self, idx):
+                self._idx = idx
+            def tobytes(self, fmt):
+                # Encode index so the worker can recover it.
+                return b"PAGE:%d" % self._idx
+
+        class _Page:
+            def __init__(self, idx):
+                self._idx = idx
+            def get_pixmap(self, dpi=300):
+                return _Pix(self._idx)
+
+        class _Doc:
+            def __init__(self):
+                self._pages = [_Page(i) for i in range(NUM_PAGES)]
+            def __iter__(self):
+                return iter(self._pages)
+            def close(self):
+                pass
+
+        fitz = mock.Mock()
+        fitz.open.return_value = _Doc()
+
+        pyt = mock.Mock()
+        def _img_to_str(img, lang=None, timeout=None):
+            # img is the PIL image object returned by Image.open; we stored the
+            # raw bytes on it so we can recover the index.
+            raw = img._raw_bytes
+            idx = int(raw.split(b":")[1])
+            # Earlier pages sleep longer → later pages finish first.
+            time.sleep((NUM_PAGES - idx) * SLEEP_SCALE)
+            return f"p{idx}"
+        pyt.image_to_string.side_effect = _img_to_str
+
+        # PIL.Image.open: instead of the real thing, return a small carrier
+        # object that holds the raw bytes so the worker can decode the index.
+        pil = mock.Mock()
+        def _image_open(buf):
+            carrier = mock.Mock()
+            carrier._raw_bytes = buf.read() if hasattr(buf, "read") else buf
+            return carrier
+        pil.Image.open.side_effect = _image_open
+
+        with mock.patch.dict(sys.modules, {"fitz": fitz, "pytesseract": pyt, "PIL": pil}):
+            out = pdf_text._ocr_pdf(b"%PDF-fake", "eng", NUM_PAGES)
+
+        self.assertEqual(out, "\n".join(f"p{i}" for i in range(NUM_PAGES)))
+
+    def test_single_page_render_failure_sentinel(self):
+        """A failed get_pixmap on the middle page degrades to "" for that slot
+        while the surrounding pages keep their text and positions.
+        """
+        class _GoodPix:
+            def tobytes(self, fmt):
+                return b"PNGDATA"
+
+        class _GoodPage:
+            def get_pixmap(self, dpi=300):
+                return _GoodPix()
+
+        class _BadPage:
+            def get_pixmap(self, dpi=300):
+                raise RuntimeError("render failed")
+
+        class _Doc:
+            def __init__(self):
+                self._pages = [_GoodPage(), _BadPage(), _GoodPage()]
+            def __iter__(self):
+                return iter(self._pages)
+            def close(self):
+                pass
+
+        fitz = mock.Mock()
+        fitz.open.return_value = _Doc()
+        pyt = mock.Mock()
+        pyt.image_to_string.return_value = "ok-text"
+        pil = mock.Mock()
+        pil.Image.open.return_value = object()
+
+        with mock.patch.dict(sys.modules, {"fitz": fitz, "pytesseract": pyt, "PIL": pil}):
+            out = pdf_text._ocr_pdf(b"%PDF-fake", "eng", 10)
+
+        parts = out.split("\n")
+        self.assertEqual(len(parts), 3)
+        self.assertEqual(parts[0], "ok-text")
+        self.assertEqual(parts[1], "")        # middle page degraded to sentinel
+        self.assertEqual(parts[2], "ok-text")
+
+
+class OcrPoolSizeTest(unittest.TestCase):
+    """Unit tests for pdf_text._ocr_pool_size()."""
+
+    def _call(self, env_override):
+        with mock.patch.dict(os.environ, env_override, clear=False):
+            return pdf_text._ocr_pool_size()
+
+    def test_positive_int_env_honored(self):
+        result = self._call({"OCR_WORKERS": "7"})
+        self.assertEqual(result, 7)
+
+    def test_zero_falls_back_to_default(self):
+        result = self._call({"OCR_WORKERS": "0"})
+        expected = max(1, (os.cpu_count() or 1) - 1)
+        self.assertEqual(result, expected)
+
+    def test_negative_falls_back_to_default(self):
+        result = self._call({"OCR_WORKERS": "-3"})
+        expected = max(1, (os.cpu_count() or 1) - 1)
+        self.assertEqual(result, expected)
+
+    def test_garbage_falls_back_to_default(self):
+        result = self._call({"OCR_WORKERS": "auto"})
+        expected = max(1, (os.cpu_count() or 1) - 1)
+        self.assertEqual(result, expected)
+
+    def test_unset_falls_back_to_default(self):
+        # Remove OCR_WORKERS entirely from env for this call.
+        env = {k: v for k, v in os.environ.items() if k != "OCR_WORKERS"}
+        with mock.patch.dict(os.environ, env, clear=True):
+            result = pdf_text._ocr_pool_size()
+        expected = max(1, (os.cpu_count() or 1) - 1)
+        self.assertEqual(result, expected)
+
+    def test_result_is_at_least_one(self):
+        # Even on a single-core machine the pool must have at least 1 worker.
+        with mock.patch("os.cpu_count", return_value=1):
+            result = self._call({"OCR_WORKERS": ""})
+        self.assertGreaterEqual(result, 1)
 
 
 class OcrLangsTest(unittest.TestCase):
