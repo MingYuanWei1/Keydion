@@ -296,7 +296,9 @@
     input.value = ""; input.style.height = "auto";
     var ai = addAi();
 
-    ensureConversation().then(function (cid) {
+    Promise.all((window.__attachUploads || []).slice()).then(function () {
+      return ensureConversation();
+    }).then(function (cid) {
       return fetch(BOOT.api_url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -524,12 +526,16 @@
         var fd = new FormData();
         fd.append("file", f);
         fd.append("conversation_id", cid);
-        fetch("/api/ask/attach", { method: "POST", body: fd })
+        var up = fetch("/api/ask/attach", { method: "POST", body: fd })
           .then(function (r) { return r.json(); })
           .then(function (j) {
             if (j && j.error) { delete window.__attachedDocs[f.name]; renderChips(); alert(j.error); }
           })
-          .catch(function () { delete window.__attachedDocs[f.name]; renderChips(); });
+          .catch(function () { delete window.__attachedDocs[f.name]; renderChips(); })
+          .then(function () {
+            window.__attachUploads = window.__attachUploads.filter(function (p) { return p !== up; });
+          });
+        window.__attachUploads.push(up);
       });
     });
   });
@@ -561,6 +567,7 @@
   var activeFilter = "All";
   window.__selectedPapers = function () { return Object.keys(selected); };
   window.__attachedDocs = {};
+  window.__attachUploads = [];   // in-flight /api/ask/attach promises
 
   function updateCount() {
     if (!citeCount) return;
