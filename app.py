@@ -1467,7 +1467,7 @@ def create_app() -> Flask:
         filtered = bool(query) or bool(category_filter) or bool(language_filter) or bool(date_filter) or bool(author_filter) or bool(title_filter) or bool(start_year) or bool(end_year) or bool(journal_filters) or bool(paper_type_filter) or bool(ee_subject_filter) or bool(cp_context_filter)
         
         # Only run full text search if 'q' is actually present
-        record_pool = search_papers(query) if bool(query) else gather_paper_records()
+        record_pool = _hybrid_search_records(query) if bool(query) else gather_paper_records()
 
         # Apply additional filters
         if category_filter:
