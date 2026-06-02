@@ -3505,6 +3505,9 @@ msgstr "Related text"
 msgid "No related texts found in this category."
 msgstr "No related texts found in this category."
 
+msgid "No related texts found."
+msgstr "No related texts found."
+
 #: templates/preview.html:363
 msgid "PDF Preview"
 msgstr "PDF Preview"

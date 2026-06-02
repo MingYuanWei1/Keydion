@@ -3362,6 +3362,9 @@ msgstr "相关文献"
 msgid "No related texts found in this category."
 msgstr "未找到此分类下的相关文献。"
 
+msgid "No related texts found."
+msgstr "未找到相关文献。"
+
 #: templates/preview.html:363
 msgid "PDF Preview"
 msgstr "文稿预览"
