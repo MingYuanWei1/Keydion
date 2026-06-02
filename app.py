@@ -2680,6 +2680,18 @@ def create_app() -> Flask:
                     "filename": str(it.get("filename"))[:255],
                     "title": str(it.get("title") or it.get("filename"))[:255],
                 })
+        # Backward-compat: older cached frontends post a flat `paper_filenames`
+        # list (no titles) instead of `message_papers`. Honor it so a stale
+        # client never silently loses library-cite grounding (the title falls
+        # back to the filename — display-only and replaced once new JS loads).
+        legacy = data.get("paper_filenames")
+        if isinstance(legacy, list):
+            have = {p["filename"] for p in clean_papers}
+            for fn in legacy[:10]:
+                fn = str(fn)[:255]
+                if fn and fn not in have:
+                    have.add(fn)
+                    clean_papers.append({"filename": fn, "title": fn})
         msg_papers = clean_papers
         forced = [p["filename"] for p in msg_papers]   # union'd across the conversation below
         if not question:

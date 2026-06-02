@@ -75,6 +75,12 @@ class AskPersistsCitedPapers(unittest.TestCase):
         self.assertIn("ChatMessageModel.cited_papers", self.src)
         self.assertIn("_forced_grounding(", self.src)
 
+    def test_honors_legacy_paper_filenames(self):
+        # Backward-compat: a stale/cached frontend still posts the old flat
+        # `paper_filenames` field instead of `message_papers`. The backend must
+        # honor it so version skew never silently drops library-cite grounding.
+        self.assertIn('data.get("paper_filenames"', self.src)
+
 
 class ConversationGetReturnsMessagePapers(unittest.TestCase):
     def test_message_dict_includes_papers(self):
