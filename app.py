@@ -4941,13 +4941,15 @@ def _lib_paper_url(filename: str) -> str:
     return url_for("preview_paper", filename=filename)
 
 
-def _build_library_deps():
-    """Return a deps object for library_tools.run_tool with all four callables."""
+def _build_library_deps(conv_db_id=None):
+    """Return a deps object for library_tools.run_tool. Library callables plus
+    optional web_search (Phase A). fetch_url / read_attachment land in later phases."""
     return types.SimpleNamespace(
         search=_lib_search,
         full_text=_lib_full_text,
         paper_meta=_lib_paper_meta,
         paper_url=_lib_paper_url,
+        web_search=web_search.web_search,
     )
 
 
@@ -4973,7 +4975,8 @@ def _ask_rate_ok(ip: str) -> bool:
 MAX_TOOL_ROUNDS = 5
 
 
-def _build_agentic_ask_prompt(question, candidates, web_sources, locale_code):
+def _build_agentic_ask_prompt(question, candidates, web_sources, locale_code,
+                              include_web=False):
     """System prompt for the agentic Ask loop.
 
     Seeds the model with the candidate papers (and any web sources) already
@@ -5004,12 +5007,16 @@ def _build_agentic_ask_prompt(question, candidates, web_sources, locale_code):
         "You are Keydion's library assistant. You help users find and understand "
         "papers in Keydion's published library, attaching citations. "
         f"Answer in {lang}.\n\n"
-        "You have two tools:\n"
+        "You have these tools:\n"
         "- search_library(query): search the library for more relevant papers. "
         "Use it to discover papers beyond the candidates already listed below.\n"
         "- read_paper(filename): fetch a paper's FULL text. Use it when the user "
         "asks you to explain or summarize a specific paper, or when a candidate "
-        "snippet is insufficient to answer well.\n\n"
+        "snippet is insufficient to answer well.\n"
+        + ("- web_search(query): search the public web. Prefer the library FIRST; "
+           "use web_search only for current events or topics the library does not "
+           "cover.\n" if include_web else "")
+        + "\n"
         "Cite the sources you actually use with bracketed numbers like [n]. Each "
         "candidate and each paper you read carries its own [n]. Cite ONLY sources "
         "you actually used to answer; you do not need to cite every source, and "
@@ -5050,6 +5057,8 @@ def _tool_status_text(name, arguments, registry, deps):
         if title:
             return str(_("Reading “%(title)s”…")) % {"title": title}
         return str(_("Reading a paper…"))
+    if name == "web_search":
+        return str(_("Searching the web…"))
     return str(_("Working…"))
 
 
