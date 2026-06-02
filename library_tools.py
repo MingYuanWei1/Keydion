@@ -153,7 +153,26 @@ FETCH_URL_SCHEMA: dict = {
 }
 
 WEB_TOOL_SCHEMAS: list[dict] = [WEB_SEARCH_SCHEMA, FETCH_URL_SCHEMA]
-ATTACHMENT_TOOL_SCHEMAS: list[dict] = []
+
+READ_ATTACHMENT_SCHEMA: dict = {
+    "type": "function",
+    "function": {
+        "name": "read_attachment",
+        "description": (
+            "Read the FULL text of a document the user attached to THIS "
+            "conversation, by its filename (as listed in the prompt)."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "filename": {"type": "string", "description": "The attachment filename."}
+            },
+            "required": ["filename"],
+        },
+    },
+}
+
+ATTACHMENT_TOOL_SCHEMAS: list[dict] = [READ_ATTACHMENT_SCHEMA]
 
 
 def build_tool_schemas(include_web: bool = False,
@@ -419,5 +438,23 @@ def run_tool(name: str, arguments: str | dict, registry: SourceRegistry, deps) -
                     "Try a different page.")
         n = registry.register(url, {"title": url, "authors": "", "url": url}, is_web=True)
         return f"Source [{n}] (web page): {url}\n\n{text}"
+
+    if name == "read_attachment":
+        filename = str(args.get("filename") or "").strip()
+        if not filename:
+            return "Error: read_attachment requires a non-empty 'filename' argument."
+        reader = getattr(deps, "read_attachment", None)
+        if reader is None:
+            return "Error: attachment reading is not available."
+        try:
+            text = reader(filename)
+        except Exception as exc:
+            return f"Error: could not read attachment '{filename}' ({exc})."
+        if not isinstance(text, str) or not text.strip():
+            return f"Error: no text found for attachment \"{filename}\"."
+        n = registry.register(filename, {"title": filename, "authors": "", "url": ""})
+        if len(text) > PAPER_TEXT_CHAR_CAP:
+            text = text[:PAPER_TEXT_CHAR_CAP] + "[truncated]"
+        return f"Attachment [{n}]: {filename}\n\n{text}"
 
     return f"Error: unknown tool \"{name}\". Available tools: search_library, read_paper."
