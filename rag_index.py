@@ -265,3 +265,35 @@ def paper_vectors() -> dict:
                 pooled[fn] = mp
         _PAPER_VECS = pooled
     return _PAPER_VECS
+
+
+def _embed_query_cached(query: str) -> list[float]:
+    """Embed a search query once, memoized by (embed_model, query) so pagination
+    and repeat queries don't re-embed. Corpus-independent (no invalidation)."""
+    model = _DEPS["embed_model"]()
+    key = (model, query)
+    vec = _QVEC_CACHE.get(key)
+    if vec is None:
+        vec = embed_texts([query])[0]
+        if len(_QVEC_CACHE) >= _QVEC_CACHE_MAX:
+            _QVEC_CACHE.clear()
+        _QVEC_CACHE[key] = vec
+    return vec
+
+
+def search_papers_semantic(query: str, min_sim: float = PAPER_SEARCH_MIN_SIM,
+                           k: int = 100) -> list:
+    """Rank papers by cosine of the query against each pooled paper vector.
+    One embeddings call per distinct query. Returns [(filename, score)] desc,
+    only scores >= min_sim, capped at k. [] for blank query / empty index."""
+    query = (query or "").strip()
+    if not query:
+        return []
+    pv = paper_vectors()
+    if not pv:
+        return []
+    qvec = _embed_query_cached(query)
+    scored = [(fn, cosine(qvec, vec)) for fn, vec in pv.items()]
+    scored = [t for t in scored if t[1] >= min_sim]
+    scored.sort(key=lambda t: t[1], reverse=True)
+    return scored[:k]

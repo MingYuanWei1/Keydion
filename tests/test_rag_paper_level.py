@@ -81,5 +81,52 @@ class PaperVectors(PaperLevelBase):
         self.assertIsNone(rag_index._PAPER_VECS)
 
 
+class SearchPapersSemantic(PaperLevelBase):
+    def setUp(self):
+        super().setUp()
+        self.rows = [
+            {"filename": "cold.pdf", "chunk_index": 0, "content": "a", "embedding": [1.0, 0.0]},
+            {"filename": "fr.pdf",   "chunk_index": 0, "content": "c", "embedding": [0.0, 1.0]},
+            {"filename": "mid.pdf",  "chunk_index": 0, "content": "m", "embedding": [0.5, 0.5]},
+        ]
+        rag_index.invalidate_cache()
+
+    def test_ranks_relevant_paper_first(self):
+        # query "cold arctic" -> [1,0]; cold.pdf cosine 1.0 ranks first
+        hits = rag_index.search_papers_semantic("cold arctic")
+        self.assertEqual(hits[0][0], "cold.pdf")
+        names = [fn for fn, _ in hits]
+        self.assertNotIn("fr.pdf", names)          # cosine 0.0 < default 0.25
+
+    def test_threshold_excludes_low_scores(self):
+        hits = rag_index.search_papers_semantic("cold", min_sim=0.99)
+        self.assertEqual([fn for fn, _ in hits], ["cold.pdf"])
+
+    def test_k_caps_results(self):
+        hits = rag_index.search_papers_semantic("neutral", min_sim=0.0, k=1)
+        self.assertEqual(len(hits), 1)
+
+    def test_blank_query_returns_empty(self):
+        self.assertEqual(rag_index.search_papers_semantic("   "), [])
+
+    def test_empty_index_returns_empty(self):
+        self.rows = []
+        rag_index.invalidate_cache()
+        self.assertEqual(rag_index.search_papers_semantic("cold"), [])
+
+    def test_query_vector_is_memoized(self):
+        calls = []
+        orig = rag_index.embed_texts
+
+        def counting(texts):
+            calls.append(tuple(texts))
+            return orig(texts)
+
+        with mock.patch.object(rag_index, "embed_texts", counting):
+            rag_index.search_papers_semantic("cold arctic")
+            rag_index.search_papers_semantic("cold arctic")   # 2nd call hits memo
+        self.assertEqual(len(calls), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
