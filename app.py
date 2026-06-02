@@ -4959,7 +4959,7 @@ def _lib_paper_url(filename: str) -> str:
 
 def _build_library_deps(conv_db_id=None):
     """Return a deps object for library_tools.run_tool. Library callables plus
-    web_search and fetch_url (Phases A-B). read_attachment lands in Phase C."""
+    optional web_search (Phase A), fetch_url (Phase B), and read_attachment (Phase C)."""
     return types.SimpleNamespace(
         search=_lib_search,
         full_text=_lib_full_text,
@@ -4967,6 +4967,7 @@ def _build_library_deps(conv_db_id=None):
         paper_url=_lib_paper_url,
         web_search=web_search.web_search,
         fetch_url=web_search.fetch_url,
+        read_attachment=lambda fn: _read_attachment_text(conv_db_id, fn),
     )
 
 
@@ -5240,6 +5241,30 @@ def _attachment_grounding(question, conv_db_id):
                      "title": filename, "author_name": str(_("Attached document")),
                      "is_attachment": True})
     return hits
+
+
+def _attachment_filenames(conv_db_id):
+    """Distinct attachment filenames for a conversation (for prompt + tool gating)."""
+    if conv_db_id is None:
+        return []
+    with db_session() as db:
+        rows = (db.query(AttachmentChunkModel.filename)
+                  .filter(AttachmentChunkModel.conversation_id == conv_db_id)
+                  .distinct().all())
+        return [r[0] for r in rows]
+
+
+def _read_attachment_text(conv_db_id, filename):
+    """Reassembled full text of one attachment in this conversation; '' if absent."""
+    if conv_db_id is None or not filename:
+        return ""
+    with db_session() as db:
+        rows = (db.query(AttachmentChunkModel)
+                  .filter(AttachmentChunkModel.conversation_id == conv_db_id,
+                          AttachmentChunkModel.filename == filename)
+                  .order_by(AttachmentChunkModel.chunk_index).all())
+        contents = [r.content for r in rows]
+    return rag_index.reassemble(contents) if contents else ""
 
 
 def _ask_owner_key() -> str:

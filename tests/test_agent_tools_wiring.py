@@ -55,5 +55,19 @@ class LoopWiring(unittest.TestCase):
         self.assertIn("WEB_SEARCH_CALL_CAP", self.src)
 
 
+class AttachmentDeps(unittest.TestCase):
+    def test_deps_has_read_attachment_when_conv_given(self):
+        deps = app_module._build_library_deps(conv_db_id=123)
+        self.assertTrue(hasattr(deps, "read_attachment"))
+
+    def test_read_attachment_returns_string(self):
+        deps = app_module._build_library_deps(conv_db_id=None)
+        # With no conversation, read_attachment must return "" (not raise).
+        self.assertEqual(deps.read_attachment("anything.pdf"), "")
+
+    def test_attachment_filenames_none_conv_is_empty(self):
+        self.assertEqual(app_module._attachment_filenames(None), [])
+
+
 if __name__ == "__main__":
     unittest.main()
