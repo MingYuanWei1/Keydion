@@ -66,5 +66,53 @@ class SearchPapersFallback(unittest.TestCase):
         extract.assert_called_once()
 
 
+class ChunkPathEquivalence(unittest.TestCase):
+    def test_chunk_path_matches_same_term_as_extraction(self):
+        # Body longer than CHUNK_SIZE so chunk_text splits it and overlap matters.
+        body = ("Alpha " * 200) + "mitochondria" + (" omega" * 200)
+        term = "mitochondria"
+
+        # The old extraction path would match this term.
+        self.assertIn(term, body.lower())
+
+        # The new stored-chunk path: chunk then reassemble (what _fulltext_index does).
+        chunks = app_module.rag_index.chunk_text(body)
+        self.assertGreater(len(chunks), 1)                      # overlap is exercised
+        reassembled = app_module.rag_index.reassemble(chunks).lower()
+        self.assertIn(term, reassembled)                        # term survives round-trip
+
+        # search_papers via the chunk path returns the paper for the same term,
+        # and never falls back to extraction.
+        extract = mock.Mock(side_effect=AssertionError("must not extract indexed paper"))
+        with mock.patch.object(app_module, "load_paper_metadata", return_value=[]), \
+             mock.patch.object(app_module, "build_paper_record",
+                               side_effect=lambda fn, idx: _rec(fn)), \
+             mock.patch.object(app_module, "_fulltext_index",
+                               return_value={"a.pdf": reassembled}), \
+             mock.patch.object(app_module, "extract_pdf_text", extract), \
+             mock.patch.object(app_module, "PAPERS_DIR") as papers_dir:
+            papers_dir.glob.return_value = [pathlib.Path("a.pdf")]
+            out = app_module.search_papers(term)
+
+        self.assertEqual([r["filename"] for r in out], ["a.pdf"])
+        extract.assert_not_called()
+
+
+class IndexedEmptyString(unittest.TestCase):
+    def test_indexed_empty_text_does_not_extract(self):
+        # a.pdf is indexed but its stored text is empty ("" — present, not None).
+        extract = mock.Mock(side_effect=AssertionError("must not extract indexed paper"))
+        with mock.patch.object(app_module, "load_paper_metadata", return_value=[]), \
+             mock.patch.object(app_module, "build_paper_record",
+                               side_effect=lambda fn, idx: _rec(fn)), \
+             mock.patch.object(app_module, "_fulltext_index", return_value={"a.pdf": ""}), \
+             mock.patch.object(app_module, "extract_pdf_text", extract), \
+             mock.patch.object(app_module, "PAPERS_DIR") as papers_dir:
+            papers_dir.glob.return_value = [pathlib.Path("a.pdf")]
+            out = app_module.search_papers("mitochondria")
+        self.assertEqual(out, [])              # indexed, empty -> no match
+        extract.assert_not_called()            # and crucially, no OCR fallback
+
+
 if __name__ == "__main__":
     unittest.main()
