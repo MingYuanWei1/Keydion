@@ -13,9 +13,10 @@ class AskAttachmentJsContract(unittest.TestCase):
         self.assertIn("message_attachments", self.js)
 
     def test_send_captures_then_clears(self):
-        # send() captures the pending set into sentAttachments, then clears + re-renders.
+        # send() captures the pending set into sentAttachments, then clears
+        # (uploads AND cited papers) + re-renders the composer.
         self.assertIn("sentAttachments", self.js)
-        self.assertRegex(self.js, r"sentAttachments[\s\S]{0,400}window\.__attachedDocs = \{\}[\s\S]{0,80}renderChips\(\)")
+        self.assertRegex(self.js, r"sentAttachments[\s\S]{0,400}window\.__attachedDocs = \{\}[\s\S]{0,200}renderChips\(\)")
 
     def test_adduser_takes_attachments(self):
         self.assertRegex(self.js, r"function addUser\(\s*text\s*,\s*\w+")

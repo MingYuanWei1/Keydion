@@ -602,6 +602,7 @@ class ChatMessageModel(BASE):
     content = Column(UnicodeText)
     citations = Column(UnicodeText)     # JSON-encoded list
     attachments = Column(UnicodeText)   # JSON-encoded list of filenames (display-only)
+    cited_papers = Column(UnicodeText)  # JSON-encoded list of {filename, title} cited from the library
     created_at = Column(Unicode(40))
 
 
@@ -771,6 +772,14 @@ def init_db() -> None:
             with _ENGINE.connect() as conn:
                 from sqlalchemy import text
                 conn.execute(text("ALTER TABLE chat_messages ADD COLUMN attachments TEXT"))
+                conn.commit()
+        except Exception:
+            pass
+        # Migrate: add cited_papers column to chat_messages if it doesn't exist
+        try:
+            with _ENGINE.connect() as conn:
+                from sqlalchemy import text
+                conn.execute(text("ALTER TABLE chat_messages ADD COLUMN cited_papers TEXT"))
                 conn.commit()
         except Exception:
             pass
@@ -2543,8 +2552,12 @@ def create_app() -> Flask:
                     atts = json.loads(m.attachments) if m.attachments else []
                 except (ValueError, TypeError):
                     atts = []
+                try:
+                    paps = json.loads(m.cited_papers) if m.cited_papers else []
+                except (ValueError, TypeError):
+                    paps = []
                 out.append({"role": m.role, "content": m.content,
-                            "citations": cites, "attachments": atts})
+                            "citations": cites, "attachments": atts, "papers": paps})
             att = (db.query(AttachmentChunkModel.filename)
                      .filter(AttachmentChunkModel.conversation_id == conv.id)
                      .distinct().all())
@@ -2648,12 +2661,27 @@ def create_app() -> Flask:
         data = request.get_json(silent=True) or {}
         question = (data.get("question") or "").strip()
         mode = data.get("mode") if data.get("mode") in ("flash", "think") else "flash"
-        forced = data.get("paper_filenames") or []   # Phase 3 (ignored if empty)
         web_on = bool(data.get("web"))
         msg_attachments = data.get("message_attachments") or []
         if not isinstance(msg_attachments, list):
             msg_attachments = []
         msg_attachments = [str(x)[:255] for x in msg_attachments[:10]]
+        # Library papers cited with *this* message ({filename, title}). Persisted
+        # per-message so the chip follows the message and the forced-grounding set
+        # can be rebuilt as the union across the conversation (cited papers stay
+        # as context for follow-ups).
+        msg_papers = data.get("message_papers") or []
+        if not isinstance(msg_papers, list):
+            msg_papers = []
+        clean_papers = []
+        for it in msg_papers[:10]:
+            if isinstance(it, dict) and it.get("filename"):
+                clean_papers.append({
+                    "filename": str(it.get("filename"))[:255],
+                    "title": str(it.get("title") or it.get("filename"))[:255],
+                })
+        msg_papers = clean_papers
+        forced = [p["filename"] for p in msg_papers]   # union'd across the conversation below
         if not question:
             return jsonify({"error": str(_("Please enter a question."))}), 400
         if len(question) > MAX_QUESTION_CHARS:
@@ -2674,6 +2702,7 @@ def create_app() -> Flask:
                     db.add(ChatMessageModel(conversation_id=db_conv_id, role="user",
                                             content=question, citations="",
                                             attachments=json.dumps(msg_attachments),
+                                            cited_papers=json.dumps(msg_papers),
                                             created_at=now))
                     # title the conversation from its first question
                     if conv.title == str(_("New conversation")):
@@ -2684,6 +2713,24 @@ def create_app() -> Flask:
                                       .filter(ChatMessageModel.conversation_id == db_conv_id)
                                       .order_by(ChatMessageModel.id.asc()).all())
                     history_rows = [{"role": row.role, "content": row.content} for row in history_rows]
+                    # Forced grounding = union of every message's cited papers, so a
+                    # paper cited earlier stays in context even after its composer
+                    # chip moved onto that message.
+                    forced = []
+                    seen_forced = set()
+                    cp_rows = (db.query(ChatMessageModel.cited_papers)
+                                 .filter(ChatMessageModel.conversation_id == db_conv_id,
+                                         ChatMessageModel.role == "user").all())
+                    for (cp,) in cp_rows:
+                        try:
+                            cp_items = json.loads(cp) if cp else []
+                        except (ValueError, TypeError):
+                            cp_items = []
+                        for it in cp_items:
+                            fn = it.get("filename") if isinstance(it, dict) else None
+                            if fn and fn not in seen_forced:
+                                seen_forced.add(fn)
+                                forced.append(fn)
                 else:
                     conv_serial = None
         llm_messages = _ask_llm_messages(question, history_rows)
