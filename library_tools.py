@@ -107,6 +107,48 @@ TOOL_SCHEMAS: list[dict] = [
     },
 ]
 
+WEB_SEARCH_SCHEMA: dict = {
+    "type": "function",
+    "function": {
+        "name": "web_search",
+        "description": (
+            "Search the public web for current events or information not in the "
+            "paper library. Prefer search_library FIRST; use web_search only when "
+            "the library does not cover the question or you need up-to-date facts. "
+            "Returns titles, URLs, and short snippets, each with a citation [n]."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "A natural-language web search query.",
+                }
+            },
+            "required": ["query"],
+        },
+    },
+}
+
+# Tool groups added to the base pair by build_tool_schemas(). Later phases append
+# FETCH_URL_SCHEMA (Phase B) and populate ATTACHMENT_TOOL_SCHEMAS (Phase C).
+WEB_TOOL_SCHEMAS: list[dict] = [WEB_SEARCH_SCHEMA]
+ATTACHMENT_TOOL_SCHEMAS: list[dict] = []
+
+
+def build_tool_schemas(include_web: bool = False,
+                       include_attachment: bool = False) -> list[dict]:
+    """Return the tool schemas to offer the model, gated by capability flags.
+    Base = search_library + read_paper; +web tools when include_web; +attachment
+    tools when include_attachment."""
+    schemas = list(TOOL_SCHEMAS)
+    if include_web:
+        schemas += WEB_TOOL_SCHEMAS
+    if include_attachment:
+        schemas += ATTACHMENT_TOOL_SCHEMAS
+    return schemas
+
+
 # ---------------------------------------------------------------------------
 # SourceRegistry
 # ---------------------------------------------------------------------------

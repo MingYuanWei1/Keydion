@@ -14,6 +14,7 @@ from library_tools import (
     TOOL_SCHEMAS,
     SourceRegistry,
     run_tool,
+    build_tool_schemas,
 )
 
 
@@ -231,6 +232,37 @@ class TestSourceRegistry(unittest.TestCase):
         reg.register("https://x", {"title": "X", "authors": "", "url": "https://x"}, is_web=True)
         reg.register("https://x", {"title": "X", "authors": "", "url": "https://x"})
         self.assertTrue(reg.as_citations()[0]["is_web"])
+
+
+# ---------------------------------------------------------------------------
+# build_tool_schemas
+# ---------------------------------------------------------------------------
+
+class TestBuildToolSchemas(unittest.TestCase):
+    def _names(self, schemas):
+        return [t["function"]["name"] for t in schemas]
+
+    def test_base_is_two_library_tools(self):
+        names = self._names(library_tools.build_tool_schemas())
+        self.assertEqual(names, ["search_library", "read_paper"])
+
+    def test_include_web_adds_web_search(self):
+        names = self._names(library_tools.build_tool_schemas(include_web=True))
+        self.assertIn("web_search", names)
+
+    def test_no_web_omits_web_search(self):
+        names = self._names(library_tools.build_tool_schemas(include_web=False))
+        self.assertNotIn("web_search", names)
+
+    def test_include_attachment_is_accepted_and_noop_for_now(self):
+        # The param exists from the start; read_attachment lands in Phase C.
+        names = self._names(library_tools.build_tool_schemas(include_attachment=True))
+        self.assertEqual(names, ["search_library", "read_paper"])
+
+    def test_returned_schemas_are_well_formed(self):
+        for t in library_tools.build_tool_schemas(include_web=True):
+            self.assertEqual(t["type"], "function")
+            self.assertTrue(t["function"]["description"].strip())
 
 
 # ---------------------------------------------------------------------------
