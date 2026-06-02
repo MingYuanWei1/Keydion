@@ -2755,6 +2755,9 @@ def create_app() -> Flask:
             try:
                 client = llm_client.build_client()
                 deps = _build_library_deps()
+                include_web = web_search.web_search_enabled()
+                tool_schemas = library_tools.build_tool_schemas(include_web=include_web)
+                web_call_count = 0
                 registry = library_tools.SourceRegistry()
 
                 # Seed the registry from the retrieved hits (library + attachment
@@ -2786,14 +2789,14 @@ def create_app() -> Flask:
                     for w in web_results:
                         wn = registry.register(w["url"], {
                             "title": w["title"], "authors": "", "url": w["url"],
-                        })
+                        }, is_web=True)
                         web_sources.append({
                             "n": wn, "title": w["title"], "url": w["url"],
                             "snippet": (w.get("content") or "")[:500],
                         })
 
                 agentic_system = _build_agentic_ask_prompt(
-                    question, candidates, web_sources, locale_code)
+                    question, candidates, web_sources, locale_code, include_web=include_web)
                 messages = [{"role": "system", "content": agentic_system}] + llm_messages
 
                 # Pre-read forced papers so the model has their full text up front.
@@ -2819,7 +2822,7 @@ def create_app() -> Flask:
                     try:
                         stream = client.chat.completions.create(
                             model=model, temperature=0.2, stream=True,
-                            messages=messages, tools=library_tools.TOOL_SCHEMAS,
+                            messages=messages, tools=tool_schemas,
                             **create_kwargs,
                         )
                     except Exception:
@@ -2893,6 +2896,13 @@ def create_app() -> Flask:
                         })
                         for idx, c in enumerate(calls):
                             cid = c["id"] or f"call_{idx}"
+                            if c["name"] == "web_search":
+                                if web_call_count >= WEB_SEARCH_CALL_CAP:
+                                    messages.append({"role": "tool", "tool_call_id": cid,
+                                        "content": "Error: web_search limit reached for "
+                                                   "this turn; answer with what you have."})
+                                    continue
+                                web_call_count += 1
                             yield "data: " + _json.dumps({
                                 "type": "status",
                                 "text": _tool_status_text(
@@ -2913,7 +2923,7 @@ def create_app() -> Flask:
                     # Round cap hit — force one final answer with no more tools.
                     final_stream = client.chat.completions.create(
                         model=model, temperature=0.2, stream=True,
-                        messages=messages, tools=library_tools.TOOL_SCHEMAS,
+                        messages=messages, tools=tool_schemas,
                         tool_choice="none", **create_kwargs,
                     )
                     for chunk in final_stream:
@@ -2931,10 +2941,10 @@ def create_app() -> Flask:
                 # keep only the sources the answer actually referenced.
                 answer_text = "".join(full)
                 all_cites = registry.as_citations()
-                lib_citations = [c for c in all_cites if c["filename"] not in web_keys]
+                lib_citations = [c for c in all_cites if not c["is_web"]]
                 web_citations = [
                     {"n": c["n"], "title": c["title"], "url": c["url"]}
-                    for c in all_cites if c["filename"] in web_keys
+                    for c in all_cites if c["is_web"]
                 ]
                 shown_citations = _filter_cited(lib_citations, answer_text)
                 shown_web = _filter_cited(web_citations, answer_text)
@@ -4973,6 +4983,7 @@ def _ask_rate_ok(ip: str) -> bool:
 
 
 MAX_TOOL_ROUNDS = 5
+WEB_SEARCH_CALL_CAP = 3   # max web_search calls per Ask turn
 
 
 def _build_agentic_ask_prompt(question, candidates, web_sources, locale_code,

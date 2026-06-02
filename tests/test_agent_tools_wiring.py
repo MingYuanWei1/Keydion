@@ -32,5 +32,28 @@ class AgenticPromptMentionsWeb(unittest.TestCase):
         self.assertNotIn("web_search", p)
 
 
+import inspect
+
+
+class LoopWiring(unittest.TestCase):
+    def setUp(self):
+        self.src = inspect.getsource(app_module.create_app)
+
+    def test_loop_uses_build_tool_schemas(self):
+        self.assertIn("build_tool_schemas", self.src)
+
+    def test_loop_gates_web_on_enabled(self):
+        self.assertIn("web_search_enabled()", self.src)
+
+    def test_prefetch_registers_is_web(self):
+        self.assertIn("is_web=True", self.src)
+
+    def test_citation_split_uses_is_web(self):
+        self.assertIn('c["is_web"]', self.src)
+
+    def test_per_turn_web_cap_present(self):
+        self.assertIn("WEB_SEARCH_CALL_CAP", self.src)
+
+
 if __name__ == "__main__":
     unittest.main()

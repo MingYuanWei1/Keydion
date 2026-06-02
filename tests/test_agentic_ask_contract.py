@@ -22,7 +22,7 @@ class SourceContract(unittest.TestCase):
         src = inspect.getsource(app_module.create_app)
         self.assertIn("tools=", src)
         self.assertIn("run_tool", src)
-        self.assertIn("TOOL_SCHEMAS", src)
+        self.assertIn("build_tool_schemas", src)
         self.assertIn("MAX_TOOL_ROUNDS", src)
 
     def test_max_tool_rounds_is_five(self):
