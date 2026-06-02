@@ -111,6 +111,14 @@ class FetchUrlSafety(unittest.TestCase):
                     self.assertEqual(web_search.fetch_url("http://evil.example"), "")
                     g.assert_not_called()
 
+    def test_rejects_cgnat_and_6to4_relay(self):
+        # RFC 6598 CGNAT + 6to4 relay anycast — not flagged private by ipaddress.
+        for ip in ("100.64.0.1", "192.88.99.1"):
+            with mock.patch("web_search.socket.getaddrinfo", return_value=_addrinfo(ip)):
+                with mock.patch("web_search.requests.get") as g:
+                    self.assertEqual(web_search.fetch_url("http://evil.example"), "")
+                    g.assert_not_called()
+
     def test_allows_public_ip_and_extracts_text(self):
         html = b"<html><body><h1>Hi</h1><script>x()</script><p>World</p></body></html>"
         resp = _resp(headers={"Content-Type": "text/html; charset=utf-8"},

@@ -4959,7 +4959,7 @@ def _lib_paper_url(filename: str) -> str:
 
 def _build_library_deps(conv_db_id=None):
     """Return a deps object for library_tools.run_tool. Library callables plus
-    optional web_search (Phase A). fetch_url / read_attachment land in later phases."""
+    web_search and fetch_url (Phases A-B). read_attachment lands in Phase C."""
     return types.SimpleNamespace(
         search=_lib_search,
         full_text=_lib_full_text,

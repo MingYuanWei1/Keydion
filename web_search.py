@@ -57,6 +57,15 @@ _FETCH_SCHEMES = ("http", "https")
 _FETCH_CONTENT_TYPES = ("text/html", "text/plain", "application/xhtml+xml")
 
 
+# RFC 6598 carrier-grade NAT (100.64.0.0/10) and 6to4 relay anycast
+# (192.88.99.0/24): ipaddress does not flag these as private/reserved, but they
+# commonly front internal infrastructure — block them explicitly.
+_EXTRA_BLOCKED_V4 = (
+    ipaddress.ip_network("100.64.0.0/10"),
+    ipaddress.ip_network("192.88.99.0/24"),
+)
+
+
 def _ip_is_blocked(ip) -> bool:
     """True if `ip` is non-public (private/loopback/link-local/reserved/etc.).
 
@@ -76,6 +85,10 @@ def _ip_is_blocked(ip) -> bool:
                 ip = ipaddress.ip_address(int(ip) & 0xFFFFFFFF)
         except ValueError:
             pass
+    if getattr(ip, "version", None) == 4:
+        for _net in _EXTRA_BLOCKED_V4:
+            if ip in _net:
+                return True
     return bool(ip.is_private or ip.is_loopback or ip.is_link_local
                 or ip.is_reserved or ip.is_multicast or ip.is_unspecified)
 
