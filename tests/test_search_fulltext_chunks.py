@@ -42,5 +42,29 @@ class FulltextIndex(unittest.TestCase):
         self.assertEqual(result["b.pdf"], "photosynthesis in plants")
 
 
+class SearchPapersFallback(unittest.TestCase):
+    def _run(self, fulltext, extract_mock, query="mitochondria", filename="a.pdf"):
+        with mock.patch.object(app_module, "load_paper_metadata", return_value=[]), \
+             mock.patch.object(app_module, "build_paper_record",
+                               side_effect=lambda fn, idx: _rec(fn)), \
+             mock.patch.object(app_module, "_fulltext_index", return_value=fulltext), \
+             mock.patch.object(app_module, "extract_pdf_text", extract_mock), \
+             mock.patch.object(app_module, "PAPERS_DIR") as papers_dir:
+            papers_dir.glob.return_value = [pathlib.Path(filename)]
+            return app_module.search_papers(query)
+
+    def test_prefers_indexed_chunks_without_extracting(self):
+        extract = mock.Mock(side_effect=AssertionError("must not extract indexed paper"))
+        out = self._run({"a.pdf": "cells contain mitochondria"}, extract)
+        self.assertEqual([r["filename"] for r in out], ["a.pdf"])
+        extract.assert_not_called()
+
+    def test_ocr_fallback_for_unindexed_paper(self):
+        extract = mock.Mock(return_value="Cells contain MITOCHONDRIA.")
+        out = self._run({}, extract)              # no chunks for a.pdf
+        self.assertEqual([r["filename"] for r in out], ["a.pdf"])
+        extract.assert_called_once()
+
+
 if __name__ == "__main__":
     unittest.main()

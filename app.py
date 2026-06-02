@@ -4642,6 +4642,7 @@ def search_papers(keyword: str) -> List[Dict[str, str]]:
     metadata_index = {row["filename"]: row for row in load_paper_metadata()}
     matches: List[Dict[str, str]] = []
     normalized = keyword.lower()
+    fulltext = _fulltext_index()   # one bulk read of stored chunks
 
     for pdf_path in PAPERS_DIR.glob("*.pdf"):
         record = build_paper_record(pdf_path.name, metadata_index)
@@ -4650,14 +4651,17 @@ def search_papers(keyword: str) -> List[Dict[str, str]]:
             matches.append(record)
             continue
 
-        # Fall back to full-text PDF search
-        try:
-            text = extract_pdf_text(pdf_path)
-            if normalized in text.lower():
-                matches.append(record)
-        except Exception as exc:  # pragma: no cover - logging placeholder
-            print(f"Failed to read {pdf_path.name}: {exc}")
-            continue
+        # Full-text fallback: prefer indexed chunks; OCR-extract only papers
+        # that have no stored chunks yet.
+        text = fulltext.get(pdf_path.name)
+        if text is None:
+            try:
+                text = extract_pdf_text(pdf_path).lower()
+            except Exception as exc:  # pragma: no cover - logging placeholder
+                print(f"Failed to read {pdf_path.name}: {exc}")
+                continue
+        if normalized in text:
+            matches.append(record)
 
     matches.sort(key=lambda row: row.get("published_at") or "", reverse=True)
     return matches[:MAX_SEARCH_RESULTS]
