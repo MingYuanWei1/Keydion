@@ -2317,7 +2317,17 @@ def create_app() -> Flask:
         source_query = request.args.get("q", "").strip()
         source_page = request.args.get("page", "").strip()
         related_papers = []
-        if paper.get("category"):
+        related = []
+        try:
+            if llm_client.llm_enabled():
+                related = rag_index.related_papers(filename, k=5)
+        except Exception as exc:  # never break the page on a ranking failure
+            print(f"related-papers semantic ranking failed: {exc}")
+        if related:
+            index = {row["filename"]: row for row in load_paper_metadata()}
+            related_papers = [build_paper_record(fn, index) for fn, _ in related
+                              if (PAPERS_DIR / fn).exists()]
+        elif paper.get("category"):
             all_papers = gather_paper_records()
             related_papers = [
                 p for p in all_papers
