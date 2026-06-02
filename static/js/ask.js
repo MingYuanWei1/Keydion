@@ -200,17 +200,28 @@
   }
   if (sendBtn) sendBtn.addEventListener("click", function () { send(); });
 
-  function addUser(text, attachments) {
+  function addUser(text, attachments, papers) {
     if (empty) empty.style.display = "none";
     var msg = el("div", "kd-msg kd-msg--user");
     msg.appendChild(el("div", "kd-bubble", text));
-    if (attachments && attachments.length) {
+    var hasFiles = attachments && attachments.length;
+    var hasPapers = papers && papers.length;
+    if (hasFiles || hasPapers) {
       var files = el("div", "kd-bubble__files");
-      attachments.forEach(function (fn) {
-        var chip = el("span", "kd-chip kd-chip--file kd-chip--sent");
-        chip.appendChild(el("span", "kd-chip__name", fn));
-        files.appendChild(chip);
-      });
+      if (hasPapers) {
+        papers.forEach(function (p) {
+          var chip = el("span", "kd-chip kd-chip--paper kd-chip--sent");
+          chip.appendChild(el("span", "kd-chip__name", p.title || p.filename));
+          files.appendChild(chip);
+        });
+      }
+      if (hasFiles) {
+        attachments.forEach(function (fn) {
+          var chip = el("span", "kd-chip kd-chip--file kd-chip--sent");
+          chip.appendChild(el("span", "kd-chip__name", fn));
+          files.appendChild(chip);
+        });
+      }
       msg.appendChild(files);
     }
     thread.appendChild(msg);
@@ -290,8 +301,10 @@
     window.__lastQuestion = q;
     busy = true; if (sendBtn) sendBtn.disabled = true;
     var sentAttachments = Object.keys(window.__attachedDocs || {});
-    addUser(q, sentAttachments);
+    var sentPapers = window.__selectedPaperList ? window.__selectedPaperList() : [];
+    addUser(q, sentAttachments, sentPapers);
     window.__attachedDocs = {};
+    if (window.__clearSelected) window.__clearSelected();   // cited papers follow the message
     renderChips();
     input.value = ""; input.style.height = "auto";
     var ai = addAi();
@@ -305,7 +318,7 @@
         body: JSON.stringify({ question: q, mode: mode, conversation_id: cid,
                                web: window.__webOn ? window.__webOn() : false,
                                message_attachments: sentAttachments,
-                               paper_filenames: window.__selectedPapers ? window.__selectedPapers() : [] })
+                               message_papers: sentPapers })
       });
     }).then(function (resp) {
       if (!resp.ok) {
@@ -470,11 +483,12 @@
     window.history.pushState(null, "", "/ask/" + id);
     fetch("/api/conversations/" + id).then(function (r) { return r.json(); }).then(function (j) {
       window.__attachedDocs = {};
+      if (window.__clearSelected) window.__clearSelected();
       renderChips();                                  // composer starts empty on reload
       thread.innerHTML = "";
       if (empty) { thread.appendChild(empty); empty.style.display = "none"; }
       (j.messages || []).forEach(function (m) {
-        if (m.role === "user") { addUser(m.content, m.attachments || []); }
+        if (m.role === "user") { addUser(m.content, m.attachments || [], m.papers || []); }
         else {
           var ai = addAi(); if (ai.typing) ai.typing.remove();
           ensureBubble(ai); ai.text = m.content; ai.bubble.innerHTML = renderMarkdown(m.content);
@@ -504,7 +518,7 @@
 
   if (newChatBtn) newChatBtn.addEventListener("click", function () {
     activeConv = null; thread.innerHTML = "";
-    window.__attachedDocs = {}; renderChips();
+    window.__attachedDocs = {}; if (window.__clearSelected) window.__clearSelected(); renderChips();
     window.history.pushState(null, "", "/ask");
     if (empty) { thread.appendChild(empty); empty.style.display = ""; }
     loadConversations();
@@ -583,7 +597,15 @@
   var selected = {};
   var allPapers = [];
   var activeFilter = "All";
-  window.__selectedPapers = function () { return Object.keys(selected); };
+  window.__selectedPaperList = function () {
+    return Object.keys(selected).map(function (fn) {
+      return { filename: fn, title: selected[fn].title };
+    });
+  };
+  window.__clearSelected = function () {
+    Object.keys(selected).forEach(function (fn) { delete selected[fn]; });
+    updateCount();
+  };
   window.__attachedDocs = {};
   window.__attachUploads = [];   // in-flight /api/ask/attach promises
 
