@@ -1389,6 +1389,9 @@ msgstr "Searching the web…"
 msgid "Reading a web page…"
 msgstr "Reading a web page…"
 
+msgid "Reading the attachment…"
+msgstr "Reading the attachment…"
+
 #: templates/FAQ.html:181
 msgid "faq_q1"
 msgstr "Q. Can I directly use essays from Keydion commercially?"

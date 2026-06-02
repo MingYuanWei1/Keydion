@@ -2754,9 +2754,12 @@ def create_app() -> Flask:
 
             try:
                 client = llm_client.build_client()
-                deps = _build_library_deps()
+                attachment_names = _attachment_filenames(db_conv_id)
+                include_attachment = bool(attachment_names)
+                deps = _build_library_deps(db_conv_id)
                 include_web = web_search.web_search_enabled()
-                tool_schemas = library_tools.build_tool_schemas(include_web=include_web)
+                tool_schemas = library_tools.build_tool_schemas(
+                    include_web=include_web, include_attachment=include_attachment)
                 web_call_count = 0
                 fetch_call_count = 0
                 registry = library_tools.SourceRegistry()
@@ -2795,7 +2798,9 @@ def create_app() -> Flask:
                         })
 
                 agentic_system = _build_agentic_ask_prompt(
-                    question, candidates, web_sources, locale_code, include_web=include_web)
+                    question, candidates, web_sources, locale_code,
+                    include_web=include_web, include_attachment=include_attachment,
+                    attachment_names=attachment_names)
                 messages = [{"role": "system", "content": agentic_system}] + llm_messages
 
                 # Pre-read forced papers so the model has their full text up front.
@@ -4996,7 +5001,8 @@ FETCH_URL_CALL_CAP = 3   # max fetch_url calls per Ask turn
 
 
 def _build_agentic_ask_prompt(question, candidates, web_sources, locale_code,
-                              include_web=False):
+                              include_web=False, include_attachment=False,
+                              attachment_names=None):
     """System prompt for the agentic Ask loop.
 
     Seeds the model with the candidate papers (and any web sources) already
@@ -5038,6 +5044,8 @@ def _build_agentic_ask_prompt(question, candidates, web_sources, locale_code,
            "cover.\n"
            "- fetch_url(url): read the FULL text of a web page (e.g. a web_search "
            "result whose snippet is insufficient).\n" if include_web else "")
+        + ("- read_attachment(filename): read the FULL text of a document the user "
+           "attached to this conversation.\n" if include_attachment else "")
         + "\n"
         "Cite the sources you actually use with bracketed numbers like [n]. Each "
         "candidate and each paper you read carries its own [n]. Cite ONLY sources "
@@ -5051,6 +5059,9 @@ def _build_agentic_ask_prompt(question, candidates, web_sources, locale_code,
         system += "\n\nCANDIDATE SOURCES:\n" + sources_block
     else:
         system += "\n\nNo candidate sources were retrieved for this message."
+    if include_attachment and attachment_names:
+        system += ("\n\nATTACHED DOCUMENTS (call read_attachment with one of these "
+                   "filenames):\n" + "\n".join(f"- {n}" for n in attachment_names))
     return system
 
 
@@ -5083,6 +5094,8 @@ def _tool_status_text(name, arguments, registry, deps):
         return str(_("Searching the web…"))
     if name == "fetch_url":
         return str(_("Reading a web page…"))
+    if name == "read_attachment":
+        return str(_("Reading the attachment…"))
     return str(_("Working…"))
 
 

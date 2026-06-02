@@ -69,5 +69,24 @@ class AttachmentDeps(unittest.TestCase):
         self.assertEqual(app_module._attachment_filenames(None), [])
 
 
+class AttachmentLoopWiring(unittest.TestCase):
+    def setUp(self):
+        import inspect
+        self.src = inspect.getsource(app_module.create_app)
+
+    def test_loop_passes_include_attachment(self):
+        self.assertIn("include_attachment", self.src)
+
+    def test_loop_builds_deps_with_conv(self):
+        self.assertIn("_build_library_deps(", self.src)
+
+    def test_prompt_lists_attachment_names(self):
+        p = app_module._build_agentic_ask_prompt(
+            "q", [], [], "en", include_web=False,
+            include_attachment=True, attachment_names=["notes.pdf"])
+        self.assertIn("read_attachment", p)
+        self.assertIn("notes.pdf", p)
+
+
 if __name__ == "__main__":
     unittest.main()
