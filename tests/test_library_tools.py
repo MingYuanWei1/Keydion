@@ -214,6 +214,24 @@ class TestSourceRegistry(unittest.TestCase):
         reg = SourceRegistry()
         self.assertEqual(reg.as_citations(), [])
 
+    def test_is_web_defaults_false(self):
+        reg = SourceRegistry()
+        reg.register("a.pdf", {"title": "A", "authors": "", "url": ""})
+        self.assertFalse(reg.as_citations()[0]["is_web"])
+
+    def test_is_web_true_when_registered(self):
+        reg = SourceRegistry()
+        reg.register("https://x", {"title": "X", "authors": "", "url": "https://x"}, is_web=True)
+        c = reg.as_citations()[0]
+        self.assertTrue(c["is_web"])
+
+    def test_is_web_sticky_once_true(self):
+        # Registering the same key again without is_web must not clear a prior True.
+        reg = SourceRegistry()
+        reg.register("https://x", {"title": "X", "authors": "", "url": "https://x"}, is_web=True)
+        reg.register("https://x", {"title": "X", "authors": "", "url": "https://x"})
+        self.assertTrue(reg.as_citations()[0]["is_web"])
+
 
 # ---------------------------------------------------------------------------
 # run_tool — search_library

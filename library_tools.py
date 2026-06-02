@@ -126,7 +126,7 @@ class SourceRegistry:
         self._by_filename: dict[str, dict] = {}  # filename -> {"n", "title", "authors", "url"}
         self._counter: int = 0
 
-    def register(self, filename: str, meta: dict) -> int | None:
+    def register(self, filename: str, meta: dict, is_web: bool = False) -> int | None:
         """Register a paper and return its citation number.
 
         Parameters
@@ -155,6 +155,8 @@ class SourceRegistry:
             for field in ("title", "authors", "url"):
                 if not stored.get(field) and meta.get(field):
                     stored[field] = meta[field]
+            if is_web:
+                stored["is_web"] = True
             return stored["n"]
 
         self._counter += 1
@@ -164,6 +166,7 @@ class SourceRegistry:
             "title": meta.get("title") or "",
             "authors": meta.get("authors") or "",
             "url": meta.get("url") or "",
+            "is_web": bool(is_web),
         }
         return self._counter
 
@@ -182,6 +185,7 @@ class SourceRegistry:
                 "title": r["title"] or r["filename"],
                 "authors": r["authors"],
                 "url": r["url"],
+                "is_web": r.get("is_web", False),
             })
         return result
 
