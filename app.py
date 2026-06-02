@@ -270,6 +270,7 @@ NEWS_IMAGES_DIR = BASE_DIR / "static" / "uploads" / "news"
 GUIDE_IMAGES_DIR = BASE_DIR / "static" / "uploads" / "guides"
 GUIDE_IMAGE_MAX_BYTES = 5 * 1024 * 1024  # 5 MB
 MAX_SEARCH_RESULTS = 20
+MIN_SEMANTIC_QUERY_LEN = 2   # skip embedding for 1-char queries (idea #4)
 PASSWORD_SCHEME = "pbkdf2_sha256"
 SUPPORTED_LOCALES = ("en", "zh")
 SESSION_TIMEOUT_SECONDS = int(os.environ.get("PAPERQUERY_SESSION_TIMEOUT", "3600"))
@@ -4626,6 +4627,37 @@ def _order_hybrid_filenames(lexical_records: List[Dict[str, str]],
     seen = set(tier1) | set(tier2)
     tier3 = [r["filename"] for r in lexical_records if r["filename"] not in seen]
     return tier1 + tier2 + tier3
+
+
+def _hybrid_search_records(query: str) -> List[Dict[str, str]]:
+    """Hybrid search candidate set: semantic ranking unioned with lexical recall.
+    Falls back to pure lexical search whenever embeddings are unavailable, the
+    query is too short, the index is empty, or embedding fails."""
+    lexical = search_papers(query)
+    if not llm_client.llm_enabled() or len(query.strip()) < MIN_SEMANTIC_QUERY_LEN:
+        return lexical
+    try:
+        sem = rag_index.search_papers_semantic(query)
+    except Exception as exc:  # embedding failure must never break search
+        print(f"semantic search failed; falling back to lexical: {exc}")
+        return lexical
+    if not sem:
+        return lexical
+
+    ordered = _order_hybrid_filenames(lexical, sem, query.strip().lower())
+    lexical_by_fn = {r["filename"]: r for r in lexical}
+    index = None
+    out: List[Dict[str, str]] = []
+    for fn in ordered:
+        rec = lexical_by_fn.get(fn)
+        if rec is None:                                  # semantic-only paper
+            if not (PAPERS_DIR / fn).exists():           # skip stale index entries
+                continue
+            if index is None:
+                index = {row["filename"]: row for row in load_paper_metadata()}
+            rec = build_paper_record(fn, index)
+        out.append(rec)
+    return out
 
 
 def extract_pdf_text(pdf_path: Path) -> str:
