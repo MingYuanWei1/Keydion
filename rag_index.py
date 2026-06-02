@@ -17,6 +17,11 @@ _log = logging.getLogger(__name__)
 CHUNK_SIZE = 800
 CHUNK_OVERLAP = 120
 
+# Paper-level similarity thresholds for semantic search / related papers (idea #4).
+# STARTING VALUES — not yet tuned against the real corpus (see the design spec).
+PAPER_SEARCH_MIN_SIM = 0.25     # query -> paper (pooled vector, short query)
+RELATED_MIN_SIM = 0.30          # paper -> paper (same vector space)
+
 
 def chunk_text(text: str, size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP) -> list[str]:
     """Split text into overlapping character chunks. Returns [] for blank text."""
@@ -85,11 +90,13 @@ def configure(**deps) -> None:
 
 
 _CACHE: list | None = None  # list of (filename, chunk_index, content, vector)
+_PAPER_VECS: dict | None = None  # filename -> mean-pooled paper vector (idea #4)
 
 
 def invalidate_cache() -> None:
-    global _CACHE
+    global _CACHE, _PAPER_VECS
     _CACHE = None
+    _PAPER_VECS = None
 
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
@@ -210,3 +217,51 @@ def retrieve(query: str, k: int = 6, min_sim: float = 0.20) -> list[dict]:
         if len(hits) >= k:
             break
     return hits
+
+
+# ---------------------------------------------------------------------------
+# Paper-level semantic search & related papers (idea #4).
+# Reuse the chunk vectors already in _CACHE; no new embeddings at index time.
+# ---------------------------------------------------------------------------
+
+_QVEC_CACHE: dict = {}              # (embed_model, query) -> query vector
+_QVEC_CACHE_MAX = 256
+
+
+def _mean_pool(vectors: list[list[float]]) -> list[float]:
+    """Component-wise mean of equal-length vectors. Skips any vector whose
+    dimensionality differs from the first (only possible if the embed model
+    changed without a reindex). Returns [] if nothing is poolable."""
+    if not vectors:
+        return []
+    dim = len(vectors[0])
+    acc = [0.0] * dim
+    n = 0
+    for v in vectors:
+        if len(v) != dim:
+            _log.warning("skipping chunk vector of dim %d (expected %d)", len(v), dim)
+            continue
+        for i in range(dim):
+            acc[i] += v[i]
+        n += 1
+    if n == 0:
+        return []
+    return [x / n for x in acc]
+
+
+def paper_vectors() -> dict:
+    """{filename: pooled_vector} — group _CACHE chunk vectors by paper and
+    mean-pool. Lazily computed; reset by invalidate_cache()."""
+    global _PAPER_VECS
+    if _PAPER_VECS is None:
+        groups: dict = {}
+        for filename, _idx, _content, vec in _load_cache():
+            if vec:
+                groups.setdefault(filename, []).append(vec)
+        pooled = {}
+        for fn, vecs in groups.items():
+            mp = _mean_pool(vecs)
+            if mp:
+                pooled[fn] = mp
+        _PAPER_VECS = pooled
+    return _PAPER_VECS
