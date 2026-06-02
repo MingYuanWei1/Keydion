@@ -4609,6 +4609,25 @@ def search_papers(keyword: str) -> List[Dict[str, str]]:
     return matches[:MAX_SEARCH_RESULTS]
 
 
+def _order_hybrid_filenames(lexical_records: List[Dict[str, str]],
+                            semantic_pairs: list, normalized_query: str) -> List[str]:
+    """Order filenames for hybrid search (pure; no IO):
+      1. lexical metadata matches (sorted by semantic score, desc)
+      2. semantic-only hits (by score)
+      3. lexical full-text-only matches (original lexical/date order)
+    `semantic_pairs` is [(filename, score)] already sorted desc."""
+    sem_score = dict(semantic_pairs)
+    meta_fns = [r["filename"] for r in lexical_records
+                if _query_in_metadata(r, normalized_query)]
+    meta_set = set(meta_fns)
+
+    tier1 = sorted(meta_fns, key=lambda fn: sem_score.get(fn, -1.0), reverse=True)
+    tier2 = [fn for fn, _ in semantic_pairs if fn not in meta_set]
+    seen = set(tier1) | set(tier2)
+    tier3 = [r["filename"] for r in lexical_records if r["filename"] not in seen]
+    return tier1 + tier2 + tier3
+
+
 def extract_pdf_text(pdf_path: Path) -> str:
     try:
         from PyPDF2 import PdfReader

@@ -36,5 +36,28 @@ class QueryInMetadata(unittest.TestCase):
         self.assertFalse(app_module._query_in_metadata(_rec("a.pdf", title="Biology"), "physics"))
 
 
+class OrderHybridFilenames(unittest.TestCase):
+    def test_three_tier_order(self):
+        lexical = [
+            _rec("m1.pdf", title="climate change"),   # metadata match for "climate"
+            _rec("f1.pdf", title="unrelated"),          # lexical full-text only
+        ]
+        semantic = [("s1.pdf", 0.9), ("m1.pdf", 0.8)]
+        ordered = app_module._order_hybrid_filenames(lexical, semantic, "climate")
+        # tier1 metadata: m1 ; tier2 semantic-only: s1 ; tier3 full-text-only: f1
+        self.assertEqual(ordered, ["m1.pdf", "s1.pdf", "f1.pdf"])
+
+    def test_metadata_tier_sorted_by_semantic_score(self):
+        lexical = [_rec("m_lo.pdf", title="climate a"), _rec("m_hi.pdf", title="climate b")]
+        semantic = [("m_hi.pdf", 0.9), ("m_lo.pdf", 0.2)]
+        ordered = app_module._order_hybrid_filenames(lexical, semantic, "climate")
+        self.assertEqual(ordered, ["m_hi.pdf", "m_lo.pdf"])
+
+    def test_no_semantic_keeps_lexical_order(self):
+        lexical = [_rec("a.pdf", title="x"), _rec("b.pdf", title="y")]
+        ordered = app_module._order_hybrid_filenames(lexical, [], "zzz")
+        self.assertEqual(ordered, ["a.pdf", "b.pdf"])   # all tier3, original order
+
+
 if __name__ == "__main__":
     unittest.main()
