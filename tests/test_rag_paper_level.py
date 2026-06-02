@@ -128,5 +128,30 @@ class SearchPapersSemantic(PaperLevelBase):
         self.assertEqual(len(calls), 1)
 
 
+class RelatedPapers(PaperLevelBase):
+    def setUp(self):
+        super().setUp()
+        self.rows = [
+            {"filename": "a.pdf", "chunk_index": 0, "content": "x", "embedding": [1.0, 0.0]},
+            {"filename": "b.pdf", "chunk_index": 0, "content": "y", "embedding": [0.9, 0.1]},
+            {"filename": "c.pdf", "chunk_index": 0, "content": "z", "embedding": [0.0, 1.0]},
+        ]
+        rag_index.invalidate_cache()
+
+    def test_excludes_self_and_ranks_by_similarity(self):
+        rel = rag_index.related_papers("a.pdf", k=5, min_sim=0.0)
+        names = [fn for fn, _ in rel]
+        self.assertNotIn("a.pdf", names)       # self excluded
+        self.assertEqual(names[0], "b.pdf")     # most similar first
+        self.assertEqual(names[-1], "c.pdf")    # orthogonal last
+
+    def test_threshold_filters(self):
+        rel = rag_index.related_papers("a.pdf", min_sim=0.95)
+        self.assertEqual([fn for fn, _ in rel], ["b.pdf"])   # c.pdf cosine 0.0 excluded
+
+    def test_unembedded_paper_returns_empty(self):
+        self.assertEqual(rag_index.related_papers("missing.pdf"), [])
+
+
 if __name__ == "__main__":
     unittest.main()

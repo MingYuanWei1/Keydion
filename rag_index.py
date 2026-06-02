@@ -297,3 +297,18 @@ def search_papers_semantic(query: str, min_sim: float = PAPER_SEARCH_MIN_SIM,
     scored = [t for t in scored if t[1] >= min_sim]
     scored.sort(key=lambda t: t[1], reverse=True)
     return scored[:k]
+
+
+def related_papers(filename: str, k: int = 5,
+                   min_sim: float = RELATED_MIN_SIM) -> list:
+    """Papers most similar to `filename` by pooled-vector cosine, excluding
+    itself. Zero LLM calls (the paper is already embedded). [] if the paper
+    isn't embedded."""
+    pv = paper_vectors()
+    target = pv.get(filename)
+    if not target:
+        return []
+    scored = [(fn, cosine(target, vec)) for fn, vec in pv.items() if fn != filename]
+    scored = [t for t in scored if t[1] >= min_sim]
+    scored.sort(key=lambda t: t[1], reverse=True)
+    return scored[:k]
