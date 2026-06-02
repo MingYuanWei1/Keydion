@@ -675,5 +675,46 @@ class TestRunToolWebSearch(unittest.TestCase):
         self.assertTrue(out.startswith("Error"))
 
 
+class TestRunToolFetchUrl(unittest.TestCase):
+    def setUp(self):
+        self.registry = SourceRegistry()
+
+    def _deps(self, text):
+        return types.SimpleNamespace(
+            search=lambda q: [], full_text=lambda fn: "",
+            paper_meta=lambda fn: {}, paper_url=lambda fn: None,
+            fetch_url=lambda u: text)
+
+    def test_returns_text_and_registers_web(self):
+        deps = self._deps("Full article text here.")
+        out = run_tool("fetch_url", '{"url": "https://a.example/p"}', self.registry, deps)
+        self.assertIn("Full article text here.", out)
+        cites = self.registry.as_citations()
+        self.assertEqual(len(cites), 1)
+        self.assertTrue(cites[0]["is_web"])
+
+    def test_empty_text_returns_recoverable_error(self):
+        deps = self._deps("")
+        out = run_tool("fetch_url", '{"url": "https://a.example/p"}', self.registry, deps)
+        self.assertTrue(out.startswith("Error"))
+        self.assertEqual(self.registry.as_citations(), [])
+
+    def test_missing_dep_returns_error(self):
+        deps = types.SimpleNamespace(
+            search=lambda q: [], full_text=lambda fn: "",
+            paper_meta=lambda fn: {}, paper_url=lambda fn: None)
+        out = run_tool("fetch_url", '{"url": "https://a.example"}', self.registry, deps)
+        self.assertTrue(out.startswith("Error"))
+
+    def test_empty_url_returns_error(self):
+        deps = self._deps("x")
+        out = run_tool("fetch_url", '{"url": ""}', self.registry, deps)
+        self.assertTrue(out.startswith("Error"))
+
+    def test_fetch_url_in_web_schemas(self):
+        names = [t["function"]["name"] for t in library_tools.build_tool_schemas(include_web=True)]
+        self.assertIn("fetch_url", names)
+
+
 if __name__ == "__main__":
     unittest.main()

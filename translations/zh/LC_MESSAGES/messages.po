@@ -1343,6 +1343,9 @@ msgstr "处理中…"
 msgid "Searching the web…"
 msgstr "正在搜索网络…"
 
+msgid "Reading a web page…"
+msgstr "正在阅读网页…"
+
 #: templates/FAQ.html:181
 msgid "faq_q1"
 msgstr "问：我可以直接将 Keydion 上的文章用于商业用途吗？"

@@ -2758,6 +2758,7 @@ def create_app() -> Flask:
                 include_web = web_search.web_search_enabled()
                 tool_schemas = library_tools.build_tool_schemas(include_web=include_web)
                 web_call_count = 0
+                fetch_call_count = 0
                 registry = library_tools.SourceRegistry()
 
                 # Seed the registry from the retrieved hits (library + attachment
@@ -2901,6 +2902,13 @@ def create_app() -> Flask:
                                                    "this turn; answer with what you have."})
                                     continue
                                 web_call_count += 1
+                            if c["name"] == "fetch_url":
+                                if fetch_call_count >= FETCH_URL_CALL_CAP:
+                                    messages.append({"role": "tool", "tool_call_id": cid,
+                                        "content": "Error: fetch_url limit reached for "
+                                                   "this turn; answer with what you have."})
+                                    continue
+                                fetch_call_count += 1
                             yield "data: " + _json.dumps({
                                 "type": "status",
                                 "text": _tool_status_text(
@@ -4958,6 +4966,7 @@ def _build_library_deps(conv_db_id=None):
         paper_meta=_lib_paper_meta,
         paper_url=_lib_paper_url,
         web_search=web_search.web_search,
+        fetch_url=web_search.fetch_url,
     )
 
 
@@ -4982,6 +4991,7 @@ def _ask_rate_ok(ip: str) -> bool:
 
 MAX_TOOL_ROUNDS = 5
 WEB_SEARCH_CALL_CAP = 3   # max web_search calls per Ask turn
+FETCH_URL_CALL_CAP = 3   # max fetch_url calls per Ask turn
 
 
 def _build_agentic_ask_prompt(question, candidates, web_sources, locale_code,
@@ -5024,7 +5034,9 @@ def _build_agentic_ask_prompt(question, candidates, web_sources, locale_code,
         "snippet is insufficient to answer well.\n"
         + ("- web_search(query): search the public web. Prefer the library FIRST; "
            "use web_search only for current events or topics the library does not "
-           "cover.\n" if include_web else "")
+           "cover.\n"
+           "- fetch_url(url): read the FULL text of a web page (e.g. a web_search "
+           "result whose snippet is insufficient).\n" if include_web else "")
         + "\n"
         "Cite the sources you actually use with bracketed numbers like [n]. Each "
         "candidate and each paper you read carries its own [n]. Cite ONLY sources "
@@ -5068,6 +5080,8 @@ def _tool_status_text(name, arguments, registry, deps):
         return str(_("Reading a paper…"))
     if name == "web_search":
         return str(_("Searching the web…"))
+    if name == "fetch_url":
+        return str(_("Reading a web page…"))
     return str(_("Working…"))
 
 

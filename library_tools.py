@@ -134,7 +134,25 @@ WEB_SEARCH_SCHEMA: dict = {
 
 # Tool groups added to the base pair by build_tool_schemas(). Later phases append
 # FETCH_URL_SCHEMA (Phase B) and populate ATTACHMENT_TOOL_SCHEMAS (Phase C).
-WEB_TOOL_SCHEMAS: list[dict] = [WEB_SEARCH_SCHEMA]
+FETCH_URL_SCHEMA: dict = {
+    "type": "function",
+    "function": {
+        "name": "fetch_url",
+        "description": (
+            "Fetch and read the FULL text of a web page (e.g. a URL returned by "
+            "web_search whose snippet is too short). Returns the page's main text."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "url": {"type": "string", "description": "The http(s) URL to fetch."}
+            },
+            "required": ["url"],
+        },
+    },
+}
+
+WEB_TOOL_SCHEMAS: list[dict] = [WEB_SEARCH_SCHEMA, FETCH_URL_SCHEMA]
 ATTACHMENT_TOOL_SCHEMAS: list[dict] = []
 
 
@@ -384,5 +402,22 @@ def run_tool(name: str, arguments: str | dict, registry: SourceRegistry, deps) -
         if not blocks:
             return f"No usable web results for \"{query}\"."
         return "\n\n".join(blocks)
+
+    if name == "fetch_url":
+        url = str(args.get("url") or "").strip()
+        if not url:
+            return "Error: fetch_url requires a non-empty 'url' argument."
+        fetch = getattr(deps, "fetch_url", None)
+        if fetch is None:
+            return "Error: web page fetching is not available."
+        try:
+            text = fetch(url)
+        except Exception as exc:
+            return f"Error: could not fetch '{url}' ({exc})."
+        if not isinstance(text, str) or not text.strip():
+            return (f"Error: could not read '{url}' (blocked, empty, or non-text). "
+                    "Try a different page.")
+        n = registry.register(url, {"title": url, "authors": "", "url": url}, is_web=True)
+        return f"Source [{n}] (web page): {url}\n\n{text}"
 
     return f"Error: unknown tool \"{name}\". Available tools: search_library, read_paper."
