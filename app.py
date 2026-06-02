@@ -4616,10 +4616,33 @@ def _query_in_metadata(record: Dict[str, str], normalized: str) -> bool:
             or normalized in cp_context_str)
 
 
+def _fulltext_index() -> Dict[str, str]:
+    """{filename: lowercased full text} reassembled from stored chunks in a
+    single DB query (content column only — the embedding column is not read).
+
+    Lets the /search lexical fallback match paper body text without re-reading
+    every PDF from disk on each request. Papers with no stored chunks (not yet
+    indexed) are simply absent from the dict; search_papers OCR-extracts those
+    on demand, preserving the old behaviour for the unindexed case.
+    """
+    groups: Dict[str, List[str]] = {}
+    with db_session() as db:
+        rows = (db.query(PaperChunkModel.filename,
+                         PaperChunkModel.chunk_index,
+                         PaperChunkModel.content)
+                  .order_by(PaperChunkModel.filename,
+                            PaperChunkModel.chunk_index)
+                  .all())
+    for fn, _idx, content in rows:
+        groups.setdefault(fn, []).append(content or "")
+    return {fn: rag_index.reassemble(parts).lower() for fn, parts in groups.items()}
+
+
 def search_papers(keyword: str) -> List[Dict[str, str]]:
     metadata_index = {row["filename"]: row for row in load_paper_metadata()}
     matches: List[Dict[str, str]] = []
     normalized = keyword.lower()
+    fulltext = _fulltext_index()   # one bulk read of stored chunks
 
     for pdf_path in PAPERS_DIR.glob("*.pdf"):
         record = build_paper_record(pdf_path.name, metadata_index)
@@ -4628,14 +4651,17 @@ def search_papers(keyword: str) -> List[Dict[str, str]]:
             matches.append(record)
             continue
 
-        # Fall back to full-text PDF search
-        try:
-            text = extract_pdf_text(pdf_path)
-            if normalized in text.lower():
-                matches.append(record)
-        except Exception as exc:  # pragma: no cover - logging placeholder
-            print(f"Failed to read {pdf_path.name}: {exc}")
-            continue
+        # Full-text fallback: prefer indexed chunks; OCR-extract only papers
+        # that have no stored chunks yet.
+        text = fulltext.get(pdf_path.name)
+        if text is None:
+            try:
+                text = extract_pdf_text(pdf_path).lower()
+            except Exception as exc:  # pragma: no cover - logging placeholder
+                print(f"Failed to read {pdf_path.name}: {exc}")
+                continue
+        if normalized in text:
+            matches.append(record)
 
     matches.sort(key=lambda row: row.get("published_at") or "", reverse=True)
     return matches[:MAX_SEARCH_RESULTS]
