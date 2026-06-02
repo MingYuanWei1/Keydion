@@ -33,6 +33,8 @@ run_tool(name, arguments, registry, deps) -> str
       At least ``title`` and ``authors`` keys.
 * ``deps.paper_url(filename: str) -> str | None``
       Canonical URL for the paper, or ``None``.
+* ``deps.web_search(query: str) -> list[dict]``  (optional)
+      Each dict: ``title``, ``url``, ``content``.  Used by the web_search tool.
 
 No Flask, SQLAlchemy, or app-level imports.  A later task wires concrete
 DB-backed implementations and runs the tool loop inside a Flask route.
@@ -354,5 +356,33 @@ def run_tool(name: str, arguments: str | dict, registry: SourceRegistry, deps) -
             text = text[:PAPER_TEXT_CHAR_CAP] + "[truncated]"
 
         return f"Source [{n}]: {title}\n\n{text}"
+
+    if name == "web_search":
+        query = str(args.get("query") or "").strip()
+        if not query:
+            return "Error: web_search requires a non-empty 'query' argument."
+        web = getattr(deps, "web_search", None)
+        if web is None:
+            return "Error: web search is not available."
+        try:
+            results = web(query)
+        except Exception as exc:
+            return f"Error: web search failed ({exc}). Try a different query."
+        if not results:
+            return (f"No web results for \"{query}\". "
+                    "Try a different query or rely on the library.")
+        blocks = []
+        for r in results:
+            url = r.get("url") or ""
+            if not url:
+                continue
+            title = r.get("title") or url
+            content = r.get("content") or ""
+            n = registry.register(url, {"title": title, "authors": "", "url": url},
+                                  is_web=True)
+            blocks.append(f"[{n}] (web) {title} ({url})\n{content}")
+        if not blocks:
+            return f"No usable web results for \"{query}\"."
+        return "\n\n".join(blocks)
 
     return f"Error: unknown tool \"{name}\". Available tools: search_library, read_paper."

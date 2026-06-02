@@ -613,5 +613,67 @@ class TestRunToolDefensive(unittest.TestCase):
         self.assertEqual(len(self.registry.as_citations()), 1)
 
 
+# ---------------------------------------------------------------------------
+# run_tool — web_search branch
+# ---------------------------------------------------------------------------
+
+class TestRunToolWebSearch(unittest.TestCase):
+    def setUp(self):
+        self.registry = SourceRegistry()
+
+    def _deps(self, results):
+        return types.SimpleNamespace(
+            search=lambda q: [], full_text=lambda fn: "",
+            paper_meta=lambda fn: {}, paper_url=lambda fn: None,
+            web_search=lambda q: results,
+        )
+
+    def test_formats_and_numbers_results(self):
+        deps = self._deps([
+            {"title": "News One", "url": "https://a.example/1", "content": "body one"},
+            {"title": "News Two", "url": "https://b.example/2", "content": "body two"},
+        ])
+        out = run_tool("web_search", '{"query": "election"}', self.registry, deps)
+        self.assertIn("[1]", out)
+        self.assertIn("[2]", out)
+        self.assertIn("News One", out)
+        self.assertIn("https://a.example/1", out)
+
+    def test_registers_results_as_web(self):
+        deps = self._deps([{"title": "T", "url": "https://x.example", "content": "c"}])
+        run_tool("web_search", '{"query": "x"}', self.registry, deps)
+        cites = self.registry.as_citations()
+        self.assertEqual(len(cites), 1)
+        self.assertTrue(cites[0]["is_web"])
+        self.assertEqual(cites[0]["url"], "https://x.example")
+
+    def test_empty_results_returns_recoverable_string(self):
+        deps = self._deps([])
+        out = run_tool("web_search", '{"query": "nothing"}', self.registry, deps)
+        self.assertIsInstance(out, str)
+        self.assertTrue(out.strip())
+        self.assertEqual(self.registry.as_citations(), [])
+
+    def test_missing_dep_returns_error(self):
+        deps = types.SimpleNamespace(
+            search=lambda q: [], full_text=lambda fn: "",
+            paper_meta=lambda fn: {}, paper_url=lambda fn: None)  # no web_search
+        out = run_tool("web_search", '{"query": "x"}', self.registry, deps)
+        self.assertTrue(out.startswith("Error"))
+
+    def test_dep_raises_returns_error(self):
+        def boom(q): raise RuntimeError("provider down")
+        deps = types.SimpleNamespace(
+            search=lambda q: [], full_text=lambda fn: "",
+            paper_meta=lambda fn: {}, paper_url=lambda fn: None, web_search=boom)
+        out = run_tool("web_search", '{"query": "x"}', self.registry, deps)
+        self.assertTrue(out.startswith("Error"))
+
+    def test_empty_query_returns_error(self):
+        deps = self._deps([])
+        out = run_tool("web_search", '{"query": ""}', self.registry, deps)
+        self.assertTrue(out.startswith("Error"))
+
+
 if __name__ == "__main__":
     unittest.main()
