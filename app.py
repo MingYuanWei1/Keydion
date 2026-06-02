@@ -2782,10 +2782,8 @@ def create_app() -> Flask:
                 # Register web results into the SAME registry right after the
                 # library seed, reserving contiguous numbers so papers discovered
                 # during the loop never collide with web numbers.
-                web_keys = set()
                 web_sources = []
                 if web_results:
-                    web_keys = {w["url"] for w in web_results}
                     for w in web_results:
                         wn = registry.register(w["url"], {
                             "title": w["title"], "authors": "", "url": w["url"],
