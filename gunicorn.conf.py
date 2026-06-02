@@ -23,3 +23,8 @@ def post_fork(server, worker):
     engine = getattr(app_module, "_ENGINE", None)
     if engine is not None:
         engine.dispose()
+    try:
+        with app_module.create_app().app_context():
+            app_module.rag_index.paper_vectors()   # pre-warm
+    except Exception:
+        worker.log.exception("vector pre-warm failed")
