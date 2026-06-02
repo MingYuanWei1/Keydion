@@ -4555,6 +4555,35 @@ def verify_password(password: str, encoded: str) -> bool:
     return hmac.compare_digest(dk, stored_hash)
 
 
+def _query_in_metadata(record: Dict[str, str], normalized: str) -> bool:
+    """True if the (already-lowercased) query appears in a paper's metadata:
+    title, author, keywords, EE subjects, or CP global context / action types."""
+    title_str = (record.get("title") or "").lower()
+    author_str = (record.get("author_name") or "").lower()
+    keywords_str = (record.get("keywords") or "").lower()
+
+    ee_subjects_str = ""
+    raw_ib = record.get("ib_ee_data", "")
+    if raw_ib:
+        try:
+            ib = json.loads(raw_ib)
+            ee_subjects_str = (ib.get("core_subject", "") + " " + ib.get("interdisciplinary_subject", "")).lower()
+        except (json.JSONDecodeError, TypeError):
+            pass
+    cp_context_str = ""
+    raw_cp = record.get("cp_data", "")
+    if raw_cp:
+        try:
+            cp = json.loads(raw_cp)
+            cp_context_str = (cp.get("global_context", "") + " " + " ".join(cp.get("action_types", []))).lower()
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    return (normalized in title_str or normalized in author_str
+            or normalized in keywords_str or normalized in ee_subjects_str
+            or normalized in cp_context_str)
+
+
 def search_papers(keyword: str) -> List[Dict[str, str]]:
     metadata_index = {row["filename"]: row for row in load_paper_metadata()}
     matches: List[Dict[str, str]] = []
@@ -4562,31 +4591,8 @@ def search_papers(keyword: str) -> List[Dict[str, str]]:
 
     for pdf_path in PAPERS_DIR.glob("*.pdf"):
         record = build_paper_record(pdf_path.name, metadata_index)
-        
-        # Check metadata first: title, author, keys
-        title_str = (record.get("title") or "").lower()
-        author_str = (record.get("author_name") or "").lower()
-        keywords_str = (record.get("keywords") or "").lower()
 
-        # Also search EE subjects and CP global context
-        ee_subjects_str = ""
-        raw_ib = record.get("ib_ee_data", "")
-        if raw_ib:
-            try:
-                ib = json.loads(raw_ib)
-                ee_subjects_str = (ib.get("core_subject", "") + " " + ib.get("interdisciplinary_subject", "")).lower()
-            except (json.JSONDecodeError, TypeError):
-                pass
-        cp_context_str = ""
-        raw_cp = record.get("cp_data", "")
-        if raw_cp:
-            try:
-                cp = json.loads(raw_cp)
-                cp_context_str = (cp.get("global_context", "") + " " + " ".join(cp.get("action_types", []))).lower()
-            except (json.JSONDecodeError, TypeError):
-                pass
-
-        if normalized in title_str or normalized in author_str or normalized in keywords_str or normalized in ee_subjects_str or normalized in cp_context_str:
+        if _query_in_metadata(record, normalized):
             matches.append(record)
             continue
 
