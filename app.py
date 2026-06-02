@@ -4616,6 +4616,28 @@ def _query_in_metadata(record: Dict[str, str], normalized: str) -> bool:
             or normalized in cp_context_str)
 
 
+def _fulltext_index() -> Dict[str, str]:
+    """{filename: lowercased full text} reassembled from stored chunks in a
+    single DB query (content column only — the embedding column is not read).
+
+    Lets the /search lexical fallback match paper body text without re-reading
+    every PDF from disk on each request. Papers with no stored chunks (not yet
+    indexed) are simply absent from the dict; search_papers OCR-extracts those
+    on demand, preserving the old behaviour for the unindexed case.
+    """
+    groups: Dict[str, List[str]] = {}
+    with db_session() as db:
+        rows = (db.query(PaperChunkModel.filename,
+                         PaperChunkModel.chunk_index,
+                         PaperChunkModel.content)
+                  .order_by(PaperChunkModel.filename,
+                            PaperChunkModel.chunk_index)
+                  .all())
+    for fn, _idx, content in rows:
+        groups.setdefault(fn, []).append(content or "")
+    return {fn: rag_index.reassemble(parts).lower() for fn, parts in groups.items()}
+
+
 def search_papers(keyword: str) -> List[Dict[str, str]]:
     metadata_index = {row["filename"]: row for row in load_paper_metadata()}
     matches: List[Dict[str, str]] = []
