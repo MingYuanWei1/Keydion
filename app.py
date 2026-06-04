@@ -1289,6 +1289,7 @@ def create_app() -> Flask:
             local_users=local_users,
             ms_users=ms_users,
             role_options=ROLE_OPTIONS,
+            user=user,
         )
 
     @app.route("/dashboard/admin/users/roles", methods=["POST"], endpoint="admin_users_roles")
@@ -2144,6 +2145,8 @@ def create_app() -> Flask:
             if r.get("filename") == filename:
                 meta = r
                 break
+        if not meta:
+            return jsonify({"error": "Not found"}), 404
         return jsonify({
             "filename": filename,
             "title": meta.get("title", "") or filename,
@@ -3404,24 +3407,7 @@ def create_app() -> Flask:
     @app.route("/guides")
     def guides():
         all_guides = load_guides(published_only=True)
-        # Group by category, preserving the order from guide_categories.json,
-        # then any unknown categories at the end.
-        categories_in_order = _load_guide_categories()
-        seen = set()
-        grouped = []
-        for cat in categories_in_order:
-            items = [g for g in all_guides if g.get("category") == cat]
-            if items:
-                grouped.append((cat, items))
-                seen.add(cat)
-        # Any leftover categories not in the JSON list
-        extras = {}
-        for g in all_guides:
-            cat = g.get("category") or ""
-            if cat and cat not in seen:
-                extras.setdefault(cat, []).append(g)
-        for cat in sorted(extras):
-            grouped.append((cat, extras[cat]))
+        grouped = _group_guides_for_index(all_guides, _load_guide_categories())
         return render_template("guides.html", grouped=grouped, total=len(all_guides))
 
     @app.route("/guides/<slug>")
@@ -3838,7 +3824,7 @@ def create_app() -> Flask:
             return jsonify(error=str(_("Group ID and subject name are required."))), 400
         subjects_data = load_ee_subjects()
         for group in subjects_data.get("groups", []):
-            if group["id"] == group_id:
+            if str(group["id"]) == str(group_id):
                 if name in group["subjects"]:
                     return jsonify(error=str(_("Subject already exists in this group."))), 409
                 group["subjects"].append(name)
@@ -3858,7 +3844,7 @@ def create_app() -> Flask:
             return jsonify(error=str(_("Group ID and subject name are required."))), 400
         subjects_data = load_ee_subjects()
         for group in subjects_data.get("groups", []):
-            if group["id"] == group_id:
+            if str(group["id"]) == str(group_id):
                 if name not in group["subjects"]:
                     return jsonify(error=str(_("Subject not found in this group."))), 404
                 group["subjects"].remove(name)
@@ -5783,7 +5769,7 @@ def _read_guide_form(form) -> dict:
         "slug": form.get("slug", "").strip(),
         "category": form.get("category", "").strip(),
         "sort_order": form.get("sort_order", "100").strip() or "100",
-        "published": form.get("published") == "1",
+        "published": form.get("published") in ("1", "on", "true", "yes"),
         "title_en": form.get("title_en", "").strip(),
         "title_zh": form.get("title_zh", "").strip(),
         "summary_en": form.get("summary_en", "").strip(),
@@ -5830,6 +5816,37 @@ def _guide_to_dict(g) -> dict:
             val = ""
         out[field] = val
     return out
+
+
+def _group_guides_for_index(all_guides: list, categories_in_order: list) -> list:
+    """Group published guides for the public /guides index.
+
+    Known categories appear first in the order from guide_categories.json,
+    then any other named categories alphabetically, then guides with no
+    category last. Uncategorized guides MUST still appear — they were
+    previously dropped, leaving published-but-uncategorized guides reachable
+    by direct URL yet invisible on the index.
+    """
+    seen = set()
+    grouped = []
+    for cat in categories_in_order:
+        items = [g for g in all_guides if g.get("category") == cat]
+        if items:
+            grouped.append((cat, items))
+            seen.add(cat)
+    extras = {}
+    uncategorized = []
+    for g in all_guides:
+        cat = g.get("category") or ""
+        if not cat:
+            uncategorized.append(g)
+        elif cat not in seen:
+            extras.setdefault(cat, []).append(g)
+    for cat in sorted(extras):
+        grouped.append((cat, extras[cat]))
+    if uncategorized:
+        grouped.append(("", uncategorized))
+    return grouped
 
 
 def load_guides(published_only: bool = True) -> list:
