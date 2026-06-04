@@ -414,9 +414,7 @@ msgid "Standard Paper"
 msgstr "标准论文"
 
 #: app.py:1569
-msgid ""
-"A self-directed research paper, conference paper, or article that is not "
-"part of the IB Diploma framework."
+msgid "A self-directed research paper, conference paper, or article."
 msgstr "自主选题的研究论文、会议论文或文章。"
 
 #: app.py:1570

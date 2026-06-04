@@ -1661,7 +1661,7 @@ def create_app() -> Flask:
                 "what_kind_sub": _("The fields you'll be asked for next depend on this. You can come back and change it before submitting."),
                 "type_tag_standard": _("Independent Research"),
                 "type_title_standard": _("Standard Paper"),
-                "type_body_standard": _("A self-directed research paper, conference paper, or article that is not part of the IB Diploma framework."),
+                "type_body_standard": _("A self-directed research paper, conference paper, or article."),
                 "type_meta_standard": _("Title · authors · abstract · subject"),
                 "type_tag_ee": _("IB Diploma"),
                 "type_title_ee": _("Extended Essay (EE)"),
