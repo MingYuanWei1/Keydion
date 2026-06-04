@@ -5062,3 +5062,92 @@ msgstr[0] ""
 #~ msgid "Ask"
 #~ msgstr "询问"
 
+msgid "Academic Resources"
+msgstr "学术资源"
+
+msgid "Breadcrumb"
+msgstr "导航路径"
+
+msgid "Home"
+msgstr "首页"
+
+msgid "This folder is empty."
+msgstr "此文件夹为空。"
+
+msgid "Description"
+msgstr "简介"
+
+msgid "Visible to"
+msgstr "可见角色"
+
+msgid "Reader"
+msgstr "读者"
+
+msgid "Contributor"
+msgstr "贡献者"
+
+msgid "Curator"
+msgstr "管理员"
+
+msgid "New folder"
+msgstr "新建文件夹"
+
+msgid "Upload file"
+msgstr "上传文件"
+
+msgid "Move"
+msgstr "移动"
+
+msgid "Destination"
+msgstr "目标位置"
+
+msgid "Root"
+msgstr "根目录"
+
+msgid "Create"
+msgstr "创建"
+
+msgid "Delete this item?"
+msgstr "确定删除此项？"
+
+msgid "Folder name is required."
+msgstr "请填写文件夹名称。"
+
+msgid "Folder created."
+msgstr "文件夹已创建。"
+
+msgid "Folder not found."
+msgstr "未找到文件夹。"
+
+msgid "Please choose a file."
+msgstr "请选择文件。"
+
+msgid "File uploaded."
+msgstr "文件已上传。"
+
+msgid "Unsupported file type."
+msgstr "不支持的文件类型。"
+
+msgid "File is too large."
+msgstr "文件过大。"
+
+msgid "Item not found."
+msgstr "未找到项目。"
+
+msgid "Saved."
+msgstr "已保存。"
+
+msgid "Moved."
+msgstr "已移动。"
+
+msgid "Deleted."
+msgstr "已删除。"
+
+msgid "Invalid destination."
+msgstr "目标位置无效。"
+
+msgid "Cannot move a folder into itself."
+msgstr "无法将文件夹移动到其自身。"
+
+msgid "Cannot move a folder into its own subfolder."
+msgstr "无法将文件夹移动到其子文件夹中。"

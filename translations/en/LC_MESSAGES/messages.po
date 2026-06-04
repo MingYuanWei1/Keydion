@@ -5296,3 +5296,92 @@ msgstr[1] ""
 #~ msgid "Ask"
 #~ msgstr ""
 
+msgid "Academic Resources"
+msgstr "Academic Resources"
+
+msgid "Breadcrumb"
+msgstr "Breadcrumb"
+
+msgid "Home"
+msgstr "Home"
+
+msgid "This folder is empty."
+msgstr "This folder is empty."
+
+msgid "Description"
+msgstr "Description"
+
+msgid "Visible to"
+msgstr "Visible to"
+
+msgid "Reader"
+msgstr "Reader"
+
+msgid "Contributor"
+msgstr "Contributor"
+
+msgid "Curator"
+msgstr "Curator"
+
+msgid "New folder"
+msgstr "New folder"
+
+msgid "Upload file"
+msgstr "Upload file"
+
+msgid "Move"
+msgstr "Move"
+
+msgid "Destination"
+msgstr "Destination"
+
+msgid "Root"
+msgstr "Root"
+
+msgid "Create"
+msgstr "Create"
+
+msgid "Delete this item?"
+msgstr "Delete this item?"
+
+msgid "Folder name is required."
+msgstr "Folder name is required."
+
+msgid "Folder created."
+msgstr "Folder created."
+
+msgid "Folder not found."
+msgstr "Folder not found."
+
+msgid "Please choose a file."
+msgstr "Please choose a file."
+
+msgid "File uploaded."
+msgstr "File uploaded."
+
+msgid "Unsupported file type."
+msgstr "Unsupported file type."
+
+msgid "File is too large."
+msgstr "File is too large."
+
+msgid "Item not found."
+msgstr "Item not found."
+
+msgid "Saved."
+msgstr "Saved."
+
+msgid "Moved."
+msgstr "Moved."
+
+msgid "Deleted."
+msgstr "Deleted."
+
+msgid "Invalid destination."
+msgstr "Invalid destination."
+
+msgid "Cannot move a folder into itself."
+msgstr "Cannot move a folder into itself."
+
+msgid "Cannot move a folder into its own subfolder."
+msgstr "Cannot move a folder into its own subfolder."

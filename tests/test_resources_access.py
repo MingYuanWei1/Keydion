@@ -91,3 +91,11 @@ class ResourcesTemplateRenderTest(unittest.TestCase):
         ])
         self.assertEqual(html.count(">Preview<"), 1)   # only the PDF
         self.assertEqual(html.count(">Download<"), 2)  # both files
+
+
+class LandingFooterLinkTest(unittest.TestCase):
+    def test_footer_links_to_resources_not_external(self):
+        text = (ROOT / "templates" / "landing.html").read_text(encoding="utf-8")
+        self.assertIn("_('Academic Resources')", text)
+        self.assertIn("url_for('resources')", text)
+        self.assertNotIn("destiny.huijiaedu.org", text)
