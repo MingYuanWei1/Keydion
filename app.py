@@ -768,6 +768,27 @@ def init_db() -> None:
                     conn.commit()
             except Exception:
                 pass
+        # Migrate: convert chunk tables to utf8mb4 — PDF-extracted text contains
+        # 4-byte chars (e.g. math-italic 𝑅/𝐵 from equations) that 3-byte utf8mb3
+        # columns reject with "Incorrect string value". Guarded on the current
+        # charset so the (table-rebuilding) CONVERT runs only when needed.
+        for _u8_tbl in ("papers_chunks", "attachment_chunks"):
+            try:
+                with _ENGINE.connect() as conn:
+                    from sqlalchemy import text
+                    charset = conn.execute(text(
+                        "SELECT character_set_name FROM information_schema.columns "
+                        "WHERE table_schema = DATABASE() AND table_name = :t "
+                        "AND column_name = 'content'"
+                    ), {"t": _u8_tbl}).scalar()
+                    if charset and charset != "utf8mb4":
+                        conn.execute(text(
+                            f"ALTER TABLE {_u8_tbl} CONVERT TO CHARACTER SET utf8mb4 "
+                            "COLLATE utf8mb4_unicode_ci"
+                        ))
+                        conn.commit()
+            except Exception:
+                pass
         # Migrate: add is_ib_sample column to submissions if it doesn't exist
         try:
             with _ENGINE.connect() as conn:
