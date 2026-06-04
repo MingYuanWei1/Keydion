@@ -1968,7 +1968,7 @@ def create_app() -> Flask:
 
             # Per-type required-field cascade. Keywords/abstract apply to Standard
             # papers only; author fields are skipped for IB Sample submissions.
-            required = ["title", "category", "language"]
+            required = ["title", "language"] if is_cp_paper else ["title", "category", "language"]
             if not (is_ib_ee or is_cp_paper):
                 required += ["keywords", "abstract"]
             if not is_ib_sample:

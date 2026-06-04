@@ -291,7 +291,7 @@
           </div>
 
           <div class="field field--6">
-            <label class="field__label" for="f-category">${t('subject_category', 'Subject Category')} <span class="req">*</span></label>
+            <label class="field__label" for="f-category">${t('subject_category', 'Subject Category')}${isCP ? '' : ' <span class="req">*</span>'}</label>
             <select class="select" id="f-category">
               <option value="">${t('choose_category', 'Choose a subject category…')}</option>
               ${(BOOT.paper_categories || []).map(c => {
@@ -947,7 +947,7 @@
       step: stepIdx('metadata'),
     });
     if (!state.language) missing.push({ label: t('language', 'Language'), step: stepIdx('metadata') });
-    if (!state.category) missing.push({ label: t('subject_category', 'Subject category'), step: stepIdx('metadata') });
+    if (!state.category && state.paperType !== 'cp') missing.push({ label: t('subject_category', 'Subject category'), step: stepIdx('metadata') });
     if (state.paperType === 'standard') {
       if (!state.keywords.length) missing.push({ label: t('keywords', 'Keywords'), step: stepIdx('metadata') });
       if (!state.abstract.trim()) missing.push({ label: t('abstract', 'Abstract'), step: stepIdx('metadata') });

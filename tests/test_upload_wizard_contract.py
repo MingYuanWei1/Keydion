@@ -84,8 +84,12 @@ class UploadValidatorContractTest(unittest.TestCase):
         upload_fn = self._find_function("upload")
         src = ast.get_source_segment(self.app_source, upload_fn)
         # New shape: a single `required` list that conditionally includes
-        # "keywords" / "abstract" only when neither EE nor CP.
-        self.assertIn('required = ["title", "category", "language"]', src)
+        # "keywords" / "abstract" only when neither EE nor CP. Subject category
+        # is required for every type except CP papers.
+        self.assertIn(
+            'required = ["title", "language"] if is_cp_paper else ["title", "category", "language"]',
+            src,
+        )
         self.assertIn('if not (is_ib_ee or is_cp_paper):', src)
         self.assertIn('required += ["keywords", "abstract"]', src)
         self.assertIn('if not is_ib_sample:', src)

@@ -175,7 +175,7 @@
               <path
                 d="M1 5v-.5a.5.5 0 0 1 1 0V5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1zm0 3v-.5a.5.5 0 0 1 1 0V8h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1z" />
             </svg>
-            {{ paper.category or _('Uncategorized') }}
+            {% if paper.get('cp_global_context') %}{{ paper.cp_global_context }}{% else %}{{ paper.category or _('Uncategorized') }}{% endif %}
           </div>
           <h3 class="fs-5 fw-normal mb-2" style="font-family: 'Source Serif 4', Georgia, serif; line-height: 1.4;">
             <a href="{{ url_for('preview_paper', filename=paper.filename, q=query, page=pagination.page) }}"
@@ -212,9 +212,6 @@
           <div class="d-flex flex-wrap gap-1 mb-2">
             <span class="badge rounded-pill" style="font-size: 12px; background: linear-gradient(135deg, #198754 0%, #0a5c3a 100%); border: 1px solid #198754;">
               {{ _('Community Project') }}
-            </span>
-            <span class="badge rounded-pill" style="font-size: 12px; background-color: #fff; color: #212529; border: 1px solid #dee2e6;">
-              {{ paper.cp_global_context }}
             </span>
           </div>
           {% else %}
