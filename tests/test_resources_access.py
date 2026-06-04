@@ -55,16 +55,15 @@ class ResourcesRouteSourceTest(unittest.TestCase):
     def test_browse_route_checks_viewer_and_effective_role(self):
         s = self._func("resources")
         self.assertIn("_resource_viewer_role()", s)
+        self.assertIn("resolve_resource_path", s)
         self.assertIn("effective_min_role", s)
         self.assertIn("_can_view_node", s)
 
-    def test_file_serving_routes_enforce_access(self):
-        for fn in ("resource_file", "resource_download"):
-            s = self._func(fn)
-            self.assertIn("resolve_viewable_file", s, fn)
-        resolver = self._func("resolve_viewable_file")
-        self.assertIn("_resource_viewer_role()", resolver)
-        self.assertIn("_can_view_node", resolver)
+    def test_file_served_inline_via_browse_route(self):
+        s = self._func("resources")
+        self.assertIn('node["node_type"] == "file"', s)
+        self.assertIn("send_from_directory", s)
+        self.assertIn('request.args.get("download")', s)
 
 
 class ResourcesTemplateRenderTest(unittest.TestCase):
@@ -84,10 +83,10 @@ class ResourcesTemplateRenderTest(unittest.TestCase):
 
     def test_preview_only_for_previewable_files(self):
         html = self._render([
-            {"id": 1, "node_type": "file", "name": "a.pdf", "size_bytes": 10,
-             "description": "", "is_previewable": True},
-            {"id": 2, "node_type": "file", "name": "b.docx", "size_bytes": 20,
-             "description": "", "is_previewable": False},
+            {"id": 1, "node_type": "file", "name": "a.pdf", "slug": "a.pdf", "path": "a.pdf",
+             "size_bytes": 10, "description": "", "is_previewable": True},
+            {"id": 2, "node_type": "file", "name": "b.docx", "slug": "b.docx", "path": "b.docx",
+             "size_bytes": 20, "description": "", "is_previewable": False},
         ])
         self.assertEqual(html.count(">Preview<"), 1)   # only the PDF
         self.assertEqual(html.count(">Download<"), 2)  # both files

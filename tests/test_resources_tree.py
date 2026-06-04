@@ -173,3 +173,64 @@ class ResourcesTreeBehaviorTest(unittest.TestCase):
             m.RESOURCE_MAX_BYTES = orig_max
         self.assertIsNone(big_id)
         self.assertTrue(big_err)
+
+
+class ResourcesSlugTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.m, cls.db_path = _reload_app_with_temp_db()
+        cls.app = cls.m.create_app()
+
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            os.unlink(cls.db_path)
+        except OSError:
+            pass
+
+    def setUp(self):
+        with self.m.db_session() as db:
+            db.query(self.m.ResourceNode).delete()
+            db.commit()
+        self.ctx = self.app.test_request_context()
+        self.ctx.push()
+
+    def tearDown(self):
+        self.ctx.pop()
+
+    def test_slugify_rules(self):
+        sl = self.m.slugify_resource_name
+        self.assertEqual(sl("Physics"), "physics")
+        self.assertEqual(sl("Physics Guide"), "physics_guide")
+        self.assertEqual(sl("  Two   Words "), "two_words")
+        self.assertEqual(sl("report.pdf"), "report.pdf")
+
+    def test_name_validation(self):
+        ok = self.m.resource_name_is_valid
+        for good in ("Physics", "Physics Guide", "report.pdf", "a-b_c"):
+            self.assertTrue(ok(good), good)
+        for bad in ("物理", "a/b", "what?", "", "..", "  "):
+            self.assertFalse(ok(bad), bad)
+
+    def test_resolve_path(self):
+        m = self.m
+        sci = m.create_resource_folder(None, "Science", 1, "")
+        phys = m.create_resource_folder(sci, "Physics", 1, "")
+        with m.db_session() as db:
+            db.add(m.ResourceNode(parent_id=phys, node_type="file",
+                name="Mechanics Guide", stored_filename="x.pdf",
+                original_filename="m.pdf", mime_type="application/pdf",
+                size_bytes=1, min_role=1, created_at=""))
+            db.commit()
+        self.assertEqual(m.resolve_resource_path("science/physics")["id"], phys)
+        f = m.resolve_resource_path("science/physics/mechanics_guide")
+        self.assertEqual(f["node_type"], "file")
+        self.assertIsNone(m.resolve_resource_path("science/nope"))
+        self.assertIsNone(m.resolve_resource_path("science/physics/mechanics_guide/extra"))
+
+    def test_slug_conflict(self):
+        m = self.m
+        a = m.create_resource_folder(None, "Physics", 1, "")
+        self.assertTrue(m.resource_slug_conflict(None, "physics"))
+        self.assertFalse(m.resource_slug_conflict(None, "physics", exclude_id=a))
+        self.assertFalse(m.resource_slug_conflict(None, "math"))

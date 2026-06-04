@@ -16,7 +16,7 @@
       {% if loop.last %}
         <span class="current">{{ crumb.name }}</span>
       {% else %}
-        <a href="{{ url_for('resources', folder_id=crumb.id) }}">{{ crumb.name }}</a>
+        <a href="{{ url_for('resources', slug_path=crumb.path) }}">{{ crumb.name }}</a>
       {% endif %}
     {% endfor %}
   </nav>
@@ -32,7 +32,7 @@
     {% for child in children %}
       {% if child.node_type == 'folder' %}
       <li class="res-row res-folder">
-        <a class="res-main" href="{{ url_for('resources', folder_id=child.id) }}">
+        <a class="res-main" href="{{ url_for('resources', slug_path=child.path) }}">
           <span class="res-icon" aria-hidden="true">📁</span>
           <span class="res-name">{{ child.name }}</span>
         </a>
@@ -48,9 +48,9 @@
         {% if child.description %}<span class="res-desc">{{ child.description }}</span>{% endif %}
         <span class="res-actions">
           {% if child.is_previewable %}
-          <a class="btn-res" href="{{ url_for('resource_file', file_id=child.id) }}" target="_blank" rel="noopener">{{ _('Preview') }}</a>
+          <a class="btn-res" href="{{ url_for('resources', slug_path=child.path) }}" target="_blank" rel="noopener">{{ _('Preview') }}</a>
           {% endif %}
-          <a class="btn-res btn-res--primary" href="{{ url_for('resource_download', file_id=child.id) }}">{{ _('Download') }}</a>
+          <a class="btn-res btn-res--primary" href="{{ url_for('resources', slug_path=child.path, download=1) }}">{{ _('Download') }}</a>
         </span>
       </li>
       {% endif %}

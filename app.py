@@ -2465,49 +2465,38 @@ def create_app() -> Flask:
     # ==================== ACADEMIC RESOURCES (public) ====================
 
     @app.route("/resources")
-    @app.route("/resources/<int:folder_id>")
-    def resources(folder_id=None):
+    @app.route("/resources/<path:slug_path>")
+    def resources(slug_path=None):
         viewer_role = _resource_viewer_role()
         if viewer_role is None:
             require_login()
             return redirect(url_for("login"))
-        current = None
-        if folder_id is not None:
-            current = get_resource_node(folder_id)
-            if not current or current["node_type"] != "folder":
+        node = None
+        if slug_path is not None:
+            node = resolve_resource_path(slug_path)
+            if node is None:
                 abort(404)
-            if not _can_view_node(effective_min_role(folder_id), viewer_role):
+            if not _can_view_node(effective_min_role(node["id"]), viewer_role):
                 abort(403)
+            if node["node_type"] == "file":
+                stored = node["stored_filename"]
+                if not stored or not (RESOURCES_DIR / stored).exists():
+                    abort(404)
+                as_attachment = (request.args.get("download") or "").lower() in ("1", "true", "yes")
+                return send_from_directory(
+                    RESOURCES_DIR, stored,
+                    as_attachment=as_attachment,
+                    download_name=node["original_filename"] or stored,
+                    mimetype=node["mime_type"] or None,
+                )
+        folder_id = node["id"] if node else None
+        breadcrumbs = resource_breadcrumb_paths(folder_id) if folder_id else []
+        base_path = breadcrumbs[-1]["path"] if breadcrumbs else ""
         children = load_resource_children(folder_id, viewer_role)
-        breadcrumbs = resource_breadcrumbs(folder_id) if folder_id else []
-        return render_template("resources.html", current=current,
+        for c in children:
+            c["path"] = (base_path + "/" + c["slug"]).strip("/") if base_path else c["slug"]
+        return render_template("resources.html", current=node,
                                children=children, breadcrumbs=breadcrumbs)
-
-    @app.route("/resources/file/<int:file_id>")
-    def resource_file(file_id):
-        node, err = resolve_viewable_file(file_id)
-        if err == 401:
-            require_login()
-            return redirect(url_for("login"))
-        if err:
-            abort(err)
-        return send_from_directory(RESOURCES_DIR, node["stored_filename"],
-                                   as_attachment=False,
-                                   download_name=node["original_filename"] or node["stored_filename"],
-                                   mimetype=node["mime_type"] or None)
-
-    @app.route("/resources/file/<int:file_id>/download")
-    def resource_download(file_id):
-        node, err = resolve_viewable_file(file_id)
-        if err == 401:
-            require_login()
-            return redirect(url_for("login"))
-        if err:
-            abort(err)
-        return send_from_directory(RESOURCES_DIR, node["stored_filename"],
-                                   as_attachment=True,
-                                   download_name=node["original_filename"] or node["stored_filename"],
-                                   mimetype=node["mime_type"] or None)
 
     # ==================== NEWS ROUTES ====================
 
@@ -3674,6 +3663,10 @@ def create_app() -> Flask:
         name = (request.form.get("name") or "").strip()
         if not name:
             flash(_("Folder name is required."), "warning")
+        elif not resource_name_is_valid(name):
+            flash(_("Names may only use English letters, numbers, spaces, and . _ -"), "warning")
+        elif resource_slug_conflict(parent_id, slugify_resource_name(name)):
+            flash(_("An item with that name already exists in this folder."), "warning")
         else:
             create_resource_folder(parent_id, name,
                                    request.form.get("min_role", type=int) or 1,
@@ -3690,9 +3683,15 @@ def create_app() -> Flask:
         f = request.files.get("file")
         if not f or not f.filename:
             flash(_("Please choose a file."), "warning")
+            return _resources_redirect(parent_id)
+        name = request.form.get("name", "")
+        effective = (name or "").strip() or (f.filename or "")
+        if not resource_name_is_valid(effective):
+            flash(_("Names may only use English letters, numbers, spaces, and . _ -"), "warning")
+        elif resource_slug_conflict(parent_id, slugify_resource_name(effective)):
+            flash(_("An item with that name already exists in this folder."), "warning")
         else:
-            _id, err = save_resource_file(parent_id, f,
-                                          request.form.get("name", ""),
+            _id, err = save_resource_file(parent_id, f, name,
                                           request.form.get("description", ""),
                                           request.form.get("min_role", type=int) or 1)
             flash(err or _("File uploaded."), "warning" if err else "success")
@@ -3707,6 +3706,13 @@ def create_app() -> Flask:
         if not node:
             flash(_("Item not found."), "warning")
             return redirect(url_for("admin_resources_manage"))
+        name = (request.form.get("name") or "").strip()
+        if name and not resource_name_is_valid(name):
+            flash(_("Names may only use English letters, numbers, spaces, and . _ -"), "warning")
+            return _resources_redirect(node["parent_id"])
+        if name and resource_slug_conflict(node["parent_id"], slugify_resource_name(name), exclude_id=node_id):
+            flash(_("An item with that name already exists in this folder."), "warning")
+            return _resources_redirect(node["parent_id"])
         update_resource_node(node_id, request.form.get("name", ""),
                              request.form.get("description", ""),
                              request.form.get("min_role", type=int) or node["min_role"])
@@ -3722,9 +3728,11 @@ def create_app() -> Flask:
         if not node:
             flash(_("Item not found."), "warning")
             return redirect(url_for("admin_resources_manage"))
-        # "0"/missing/non-numeric -> root; type=int yields None for non-numeric (no 500).
         dest = request.form.get("new_parent_id", type=int)
         new_parent_id = dest if dest else None
+        if resource_slug_conflict(new_parent_id, node["slug"], exclude_id=node_id):
+            flash(_("An item with that name already exists in the destination."), "warning")
+            return _resources_redirect(node["parent_id"])
         ok, err = move_resource_node(node_id, new_parent_id)
         flash(err or _("Moved."), "warning" if err else "success")
         return _resources_redirect(new_parent_id)
@@ -5929,6 +5937,7 @@ def _resource_node_to_dict(r) -> dict:
         "description": r.description or "",
         "min_role": r.min_role or 1,
         "is_previewable": bool(r.mime_type and r.mime_type in PREVIEWABLE_MIMES),
+        "slug": slugify_resource_name(r.name),
     }
 
 
@@ -6137,20 +6146,63 @@ def delete_resource_node(node_id) -> bool:
         return True
 
 
-def resolve_viewable_file(file_id):
-    """Return (node_dict, None) when the current viewer may access this file,
-    or (None, status_code) to abort/redirect. status_code 401 means 'sign in'."""
-    viewer_role = _resource_viewer_role()
-    if viewer_role is None:
-        return None, 401
-    node = get_resource_node(file_id)
-    if not node or node["node_type"] != "file":
-        return None, 404
-    if not _can_view_node(effective_min_role(file_id), viewer_role):
-        return None, 403
-    if not node["stored_filename"] or not (RESOURCES_DIR / node["stored_filename"]).exists():
-        return None, 404
-    return node, None
+def slugify_resource_name(name: str) -> str:
+    """Display name -> URL slug: lowercase, whitespace runs collapsed to '_'."""
+    return re.sub(r"\s+", "_", (name or "").strip().lower())
+
+
+_RESOURCE_SLUG_RE = re.compile(r"[a-z0-9_.-]+")
+
+
+def resource_name_is_valid(name: str) -> bool:
+    """Acceptable iff the slug is non-empty, only [a-z0-9_.-], and not a path
+    token. Rejects names that can't form a clean URL segment (Chinese, '/', '?'…)."""
+    slug = slugify_resource_name(name)
+    if slug in ("", ".", ".."):
+        return False
+    return bool(_RESOURCE_SLUG_RE.fullmatch(slug))
+
+
+def resource_slug_conflict(parent_id, slug, exclude_id=None) -> bool:
+    """True if a sibling under parent_id already resolves to the same slug."""
+    with db_session() as db:
+        rows = db.query(ResourceNode).filter_by(parent_id=parent_id).all()
+        for r in rows:
+            if exclude_id is not None and r.id == exclude_id:
+                continue
+            if slugify_resource_name(r.name) == slug:
+                return True
+    return False
+
+
+def resolve_resource_path(slug_path):
+    """Resolve a '/'-joined slug path to a node dict, or None. Walks level by
+    level matching each lowercased segment against children's slugified names.
+    A file may only be the final segment."""
+    segments = [s.strip().lower() for s in (slug_path or "").split("/") if s.strip()]
+    if not segments:
+        return None
+    parent_id, node = None, None
+    for i, seg in enumerate(segments):
+        with db_session() as db:
+            rows = db.query(ResourceNode).filter_by(parent_id=parent_id).all()
+            match = next((r for r in rows if slugify_resource_name(r.name) == seg), None)
+            if match is None:
+                return None
+            node = _resource_node_to_dict(match)
+            parent_id = match.id
+        if node["node_type"] == "file" and i != len(segments) - 1:
+            return None  # can't descend through a file
+    return node
+
+
+def resource_breadcrumb_paths(node_id):
+    """[{name, path}] root -> node_id, each with its cumulative slug path."""
+    out, acc = [], []
+    for c in resource_breadcrumbs(node_id):
+        acc.append(slugify_resource_name(c["name"]))
+        out.append({"name": c["name"], "path": "/".join(acc)})
+    return out
 
 
 # ==================== NEWS HELPERS ====================
