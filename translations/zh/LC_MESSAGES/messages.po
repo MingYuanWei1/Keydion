@@ -15,42 +15,34 @@ msgstr ""
 "Generated-By: Babel 2.17.0\n"
 
 #: app.py:301
-#, fuzzy
 msgid "Please enter the paper title"
 msgstr "请输入论文标题"
 
 #: app.py:302
-#, fuzzy
 msgid "Please select a subject category"
 msgstr "请选择类别..."
 
 #: app.py:303
-#, fuzzy
 msgid "Please select a language"
 msgstr "请选择语言"
 
 #: app.py:304
-#, fuzzy
 msgid "Please enter keywords"
 msgstr "请输入新密码。"
 
 #: app.py:305
-#, fuzzy
 msgid "Please enter the abstract"
 msgstr "请输入摘要"
 
 #: app.py:306
-#, fuzzy
 msgid "Please enter the author name"
 msgstr "请输入摘要"
 
 #: app.py:307
-#, fuzzy
 msgid "Please enter the contact email"
 msgstr "请输入论文标题"
 
 #: app.py:308
-#, fuzzy
 msgid "Please enter the school name"
 msgstr "请输入链接标识。"
 
@@ -132,7 +124,6 @@ msgid "Rename"
 msgstr "重命名"
 
 #: app.py:921
-#, fuzzy
 msgid "Today"
 msgstr "正文"
 
@@ -141,17 +132,14 @@ msgid "Yesterday"
 msgstr ""
 
 #: app.py:923
-#, fuzzy
 msgid "Previous 7 days"
 msgstr "上一页"
 
 #: app.py:924
-#, fuzzy
 msgid "Older"
 msgstr "角色"
 
 #: app.py:925
-#, fuzzy
 msgid "No conversations match."
 msgstr "对话"
 
@@ -204,7 +192,6 @@ msgid "Welcome back, %(username)s!"
 msgstr "欢迎回来，%(username)s！"
 
 #: app.py:999
-#, fuzzy
 msgid "Invalid email or password"
 msgstr "用户名或密码错误"
 
@@ -217,7 +204,6 @@ msgid "Email-based registration is disabled. Please sign in with Microsoft."
 msgstr "已禁用基于邮箱的注册。请使用 Microsoft 账户登录。"
 
 #: app.py:1035
-#, fuzzy
 msgid "Login session expired. Please try again."
 msgstr "会话已过期，请重新登录。"
 
@@ -1032,17 +1018,14 @@ msgid "A paper cannot be both an Extended Essay and a CP Paper."
 msgstr "论文不能同时是 Extended Essay 和 CP Paper。"
 
 #: app.py:1892 app.py:2190
-#, fuzzy
 msgid "Please select an EE core subject."
 msgstr "请选择核心学科…"
 
 #: app.py:1897 app.py:2193
-#, fuzzy
 msgid "Please select a Global Context."
 msgstr "请选择全球语境…"
 
 #: app.py:1900 app.py:2196
-#, fuzzy
 msgid "Please select at least one Type of Action."
 msgstr "请选择要上传的文件"
 
@@ -1068,7 +1051,6 @@ msgid "Paper not found."
 msgstr "未找到论文。"
 
 #: app.py:2205
-#, fuzzy
 msgid "A file with the new name already exists, unable to rename."
 msgstr "已存在同名文件"
 
@@ -1086,7 +1068,6 @@ msgid "Language not supported."
 msgstr "不支持此语言。"
 
 #: app.py:2422 app.py:2718
-#, fuzzy
 msgid "Unauthorized"
 msgstr "论文分类"
 
@@ -1143,22 +1124,18 @@ msgid "Your question is too long."
 msgstr "你的问题过长。"
 
 #: app.py:2762 app.py:2850
-#, fuzzy
 msgid "Please enter a title."
 msgstr "请输入论文标题"
 
 #: app.py:2764 app.py:2852
-#, fuzzy
 msgid "Please select a category."
 msgstr "请选择类别..."
 
 #: app.py:2766 app.py:2854
-#, fuzzy
 msgid "Please enter an abstract."
 msgstr "请输入摘要"
 
 #: app.py:2768 app.py:2856
-#, fuzzy
 msgid "Please write the article body."
 msgstr "请输入论文标题"
 
@@ -1171,32 +1148,26 @@ msgid "Draft saved."
 msgstr "草稿已保存。"
 
 #: app.py:2804
-#, fuzzy
 msgid "Article published successfully."
 msgstr "已成功退出登录。"
 
 #: app.py:2824 app.py:2901 app.py:3503 app.py:3512
-#, fuzzy
 msgid "Article not found."
 msgstr "未找到论文。"
 
 #: app.py:2882
-#, fuzzy
 msgid "Article updated."
 msgstr "角色已更新。"
 
 #: app.py:2899
-#, fuzzy
 msgid "Article deleted."
 msgstr "本地用户已删除。"
 
 #: app.py:2920 app.py:2969 app.py:3271 app.py:3314
-#, fuzzy
 msgid "Category name is required."
 msgstr "请输入期刊名称。"
 
 #: app.py:2923 app.py:3274
-#, fuzzy
 msgid "Category already exists."
 msgstr "该期刊已存在。"
 
@@ -1205,12 +1176,10 @@ msgid "Both old and new names are required."
 msgstr "旧名称和新名称都为必填项。"
 
 #: app.py:2940 app.py:2972 app.py:3291 app.py:3317
-#, fuzzy
 msgid "Category not found."
 msgstr "未找到论文。"
 
 #: app.py:2942 app.py:3293
-#, fuzzy
 msgid "A category with that name already exists."
 msgstr "已存在同名期刊。"
 
@@ -1243,7 +1212,6 @@ msgid "Guide deleted."
 msgstr "指南已删除。"
 
 #: app.py:3331 app.py:3351
-#, fuzzy
 msgid "Group ID and subject name are required."
 msgstr "旧名称和新名称都为必填项。"
 
@@ -1252,7 +1220,6 @@ msgid "Subject already exists in this group."
 msgstr "该学科已在此分组中。"
 
 #: app.py:3340 app.py:3362
-#, fuzzy
 msgid "Group not found."
 msgstr "未找到该指南。"
 
@@ -1491,12 +1458,10 @@ msgstr "显示侧边栏"
 
 # ==================== REGISTER PAGE ====================
 #: templates/account_register.html:2
-#, fuzzy
 msgid "Create Local Account - Keydion"
 msgstr "创建账号 · Keydion"
 
 #: templates/account_register.html:8
-#, fuzzy
 msgid "Create a local account"
 msgstr "创建您的账号"
 
@@ -1521,7 +1486,6 @@ msgid "Confirm password"
 msgstr "确认密码"
 
 #: templates/account_register.html:23
-#, fuzzy
 msgid "Create and link account"
 msgstr "创建账号"
 
@@ -1672,19 +1636,16 @@ msgid "Advanced search"
 msgstr "高级搜索"
 
 #: templates/advanced_search.html:17 templates/search.html:54
-#, fuzzy
 msgid "Any Type"
 msgstr "类型"
 
 #: templates/advanced_search.html:18 templates/search.html:55
 #: templates/search.html:200
-#, fuzzy
 msgid "Extended Essay"
 msgstr "IB 拓展论文（EE）"
 
 #: templates/advanced_search.html:19 templates/search.html:56
 #: templates/search.html:214
-#, fuzzy
 msgid "Community Project"
 msgstr "IB 社区项目（CP）"
 
@@ -1743,7 +1704,6 @@ msgid "Any Subject"
 msgstr "所有学科"
 
 #: templates/advanced_search.html:62 templates/search.html:83
-#, fuzzy
 msgid "Any Context"
 msgstr "全球语境"
 
@@ -1776,14 +1736,12 @@ msgid "Keydion"
 msgstr "Keydion"
 
 #: templates/ask.html:20 templates/landing.html:871
-#, fuzzy
 msgid "Search papers"
 msgstr "搜索论文"
 
 #: templates/ask.html:28 templates/base.html:75 templates/landing.html:844
 #: templates/news.html:576 templates/news_article.html:654
 #: templates/upload.html:11
-#, fuzzy
 msgid "Dashboard"
 msgstr "返回控制面板"
 
@@ -2032,7 +1990,6 @@ msgstr "上传您的第一篇论文"
 #: templates/news_publish.html:991 templates/paper_modify.html:51
 #: templates/preview.html:308 templates/review_paper.html:27
 #: templates/submission_detail.html:24
-#, fuzzy
 msgid "Category"
 msgstr "学科类别"
 
@@ -2118,7 +2075,6 @@ msgid "Manage Guides"
 msgstr "管理指南"
 
 #: templates/guide_manage.html:33
-#, fuzzy
 msgid ""
 "Long-form documentation served at /guides. Each guide supports English "
 "and Chinese, and appears in a sidebar grouped by category. Drag entries "
@@ -2134,7 +2090,6 @@ msgid "No guides yet"
 msgstr "还没有指南"
 
 #: templates/guide_manage.html:67
-#, fuzzy
 msgid ""
 "Guides appear in the public help center at /guides, grouped by category "
 "and sorted by the order you set here. Start with a “Getting Started” "
@@ -2455,7 +2410,6 @@ msgstr "查看期刊页面"
 
 # ==================== ADMIN USER MANAGEMENT ====================
 #: templates/journal_list.html:2
-#, fuzzy
 msgid "Journals · Keydion"
 msgstr "用户管理 - Keydion"
 
@@ -2503,7 +2457,6 @@ msgid "About Keydion"
 msgstr "关于 Keydion"
 
 #: templates/landing.html:947
-#, fuzzy
 msgid ""
 "Keydion is an academic asset platform designed for high school research. "
 "We focus on student\n"
@@ -2516,12 +2469,10 @@ msgstr ""
 "数据库中，供师生查阅与参考。同时，教师也可以更全面地了解本校科研项目的内容与整体质量。"
 
 #: templates/landing.html:953
-#, fuzzy
 msgid "Papers"
 msgstr "论文数"
 
 #: templates/landing.html:961
-#, fuzzy
 msgid "Categories"
 msgstr "学科类别"
 
@@ -2530,7 +2481,6 @@ msgid "Our Mission"
 msgstr "学术使命"
 
 #: templates/landing.html:967
-#, fuzzy
 msgid ""
 "By building a living archive of student research, we help schools "
 "maintain academic integrity,\n"
@@ -2553,7 +2503,6 @@ msgid "Search Papers"
 msgstr "搜索论文"
 
 #: templates/landing.html:995
-#, fuzzy
 msgid ""
 "Dedicated to cultivating academic research skills for young scholars — a "
 "platform for writing,\n"
@@ -2585,7 +2534,6 @@ msgid "Writing Resources"
 msgstr "写作资源"
 
 #: templates/landing.html:1018
-#, fuzzy
 msgid "Contact"
 msgstr "联系我们"
 
@@ -2895,17 +2843,14 @@ msgstr "分类已删除"
 
 # ==================== SEARCH PAGE ====================
 #: templates/news_publish.html:2
-#, fuzzy
 msgid "Publish News · Keydion"
 msgstr "检索论文 · Keydion"
 
 #: templates/news_publish.html:958
-#, fuzzy
 msgid "Edit News Article"
 msgstr "撰写文章"
 
 #: templates/news_publish.html:964
-#, fuzzy
 msgid "Publish News Article"
 msgstr "发表时间"
 
@@ -2926,7 +2871,6 @@ msgid "Save as Draft"
 msgstr "保存草稿"
 
 #: templates/news_publish.html:984
-#, fuzzy
 msgid "Article Info"
 msgstr "未找到论文。"
 
@@ -2935,7 +2879,6 @@ msgid "Enter article title"
 msgstr "输入文章标题"
 
 #: templates/news_publish.html:993
-#, fuzzy
 msgid "Select category"
 msgstr "学科类别"
 
@@ -2944,7 +2887,6 @@ msgid "Author name (optional)"
 msgstr "作者姓名（可选）"
 
 #: templates/news_publish.html:1006
-#, fuzzy
 msgid "Abstract / Summary"
 msgstr "摘要"
 
@@ -2957,7 +2899,6 @@ msgid "Remove image"
 msgstr "移除图片"
 
 #: templates/news_publish.html:1023 templates/news_publish.html:1540
-#, fuzzy
 msgid "Click to upload"
 msgstr "文件上传"
 
@@ -3010,17 +2951,14 @@ msgid "Next block"
 msgstr "下一个块"
 
 #: templates/news_publish.html:1067
-#, fuzzy
 msgid "Article Content"
 msgstr "未找到论文。"
 
 #: templates/news_publish.html:1077 templates/news_publish.html:1318
-#, fuzzy
 msgid "Text"
 msgstr "下一页"
 
 #: templates/news_publish.html:1085 templates/news_publish.html:1319
-#, fuzzy
 msgid "Image"
 msgstr "管理"
 
@@ -3065,12 +3003,10 @@ msgid "Justify"
 msgstr "两端对齐"
 
 #: templates/news_publish.html:1219
-#, fuzzy
 msgid "Add Text"
 msgstr "相关文献"
 
 #: templates/news_publish.html:1226
-#, fuzzy
 msgid "Add Image"
 msgstr "封面图片"
 
@@ -3127,7 +3063,6 @@ msgid "Highlight Color"
 msgstr "高亮颜色"
 
 #: templates/paper_manage.html:2
-#, fuzzy
 msgid "Manage Categories & Journals · Keydion"
 msgstr "管理分类与期刊"
 
@@ -3152,7 +3087,6 @@ msgid "New category name..."
 msgstr "新分类名称..."
 
 #: templates/paper_manage.html:153
-#, fuzzy
 msgid "EE Subjects"
 msgstr "EE 学科"
 
@@ -3161,12 +3095,10 @@ msgid "Group"
 msgstr "分组"
 
 #: templates/paper_manage.html:166
-#, fuzzy
 msgid "No subjects in this group. Add one below."
 msgstr "暂无分类，请在下方添加。"
 
 #: templates/paper_manage.html:169
-#, fuzzy
 msgid "New subject name..."
 msgstr "新分类名称..."
 
@@ -3199,7 +3131,6 @@ msgid "Back to Paper Management"
 msgstr "返回论文管理"
 
 #: templates/paper_modify.html:21
-#, fuzzy
 msgid "Paper Details"
 msgstr "论文标题"
 
@@ -3216,7 +3147,6 @@ msgid "Select a category"
 msgstr "选择分类"
 
 #: templates/paper_modify.html:64
-#, fuzzy
 msgid "Select a language"
 msgstr "请选择语言"
 
@@ -3237,52 +3167,42 @@ msgid "Author Information"
 msgstr "作者信息"
 
 #: templates/paper_modify.html:99
-#, fuzzy
 msgid "Add Author"
 msgstr "作者"
 
 #: templates/paper_modify.html:133
-#, fuzzy
 msgid "This is an IB Extended Essay (EE)"
 msgstr "拓展论文（EE）"
 
 #: templates/paper_modify.html:142
-#, fuzzy
 msgid "Select a core subject..."
 msgstr "请选择核心学科…"
 
 #: templates/paper_modify.html:153
-#, fuzzy
 msgid "Interdisciplinary Subject"
 msgstr "跨学科"
 
 #: templates/paper_modify.html:168
-#, fuzzy
 msgid "Numeric Grade"
 msgstr "总评等级"
 
 #: templates/paper_modify.html:181 templates/paper_modify.html:259
-#, fuzzy
 msgid "Criterion Name"
 msgstr "评分标准"
 
 #: templates/paper_modify.html:203
-#, fuzzy
 msgid "Commentary for Criterion"
 msgstr "对评分标准 %(k)s 的评语…"
 
 #: templates/paper_modify.html:225
-#, fuzzy
 msgid "This is an IB Community Project Paper"
 msgstr "这是一篇 IB 范文"
 
 #: templates/paper_modify.html:233
-#, fuzzy
 msgid "Select a Global Context..."
 msgstr "请选择全球语境…"
 
 #: templates/paper_modify.html:281 templates/preview.html:223
-#, fuzzy
 msgid "Total Score"
 msgstr "总分"
 
@@ -3291,13 +3211,11 @@ msgid "Submission date cannot be modified."
 msgstr "投稿日期不可修改。"
 
 #: templates/preview.html:2
-#, fuzzy
 msgid "Preview Paper"
 msgstr "删除论文"
 
 #: templates/preview.html:10 templates/preview.html:13
 #: templates/preview.html:15
-#, fuzzy
 msgid "Back to Search"
 msgstr "前往检索"
 
@@ -3314,7 +3232,6 @@ msgid "Download"
 msgstr "下载"
 
 #: templates/preview.html:60 templates/search.html:178
-#, fuzzy
 msgid "Uncategorized"
 msgstr "论文分类"
 
@@ -3324,7 +3241,6 @@ msgid "Untitled Paper"
 msgstr "无标题论文"
 
 #: templates/preview.html:72
-#, fuzzy
 msgid "Search this author"
 msgstr "在结果中搜索"
 
@@ -3346,12 +3262,10 @@ msgid "Sign in to view full papers"
 msgstr "登录以查看完整论文"
 
 #: templates/preview.html:168
-#, fuzzy
 msgid "No commentary provided."
 msgstr "未填写"
 
 #: templates/preview.html:207
-#, fuzzy
 msgid "MYP Community Project"
 msgstr "IB 社区项目（CP）"
 
@@ -3399,7 +3313,6 @@ msgid "Last name"
 msgstr "姓"
 
 #: templates/profile_setup.html:25
-#, fuzzy
 msgid "Save profile"
 msgstr "保存角色更改"
 
@@ -3531,7 +3444,6 @@ msgid "Any Language"
 msgstr "所有语言"
 
 #: templates/search.html:106
-#, fuzzy
 msgid ""
 "Back to\n"
 "        Dashboard"
@@ -3594,12 +3506,10 @@ msgstr "审核意见"
 
 # ==================== PAPER SUBMISSION ====================
 #: templates/upload.html:2
-#, fuzzy
 msgid "Paper Submission · Keydion"
 msgstr "论文投稿"
 
 #: templates/upload.html:15
-#, fuzzy
 msgid "Paper Submission"
 msgstr "论文投稿系统"
 
@@ -3608,7 +3518,6 @@ msgid "Submit your research for review by the Keydion editorial team."
 msgstr "提交你的研究，由 Keydion 编辑团队审阅。"
 
 #: templates/upload.html:21
-#, fuzzy
 msgid "Draft not yet saved"
 msgstr "草稿已保存。"
 
@@ -3648,12 +3557,11 @@ msgstr ""
 
 #: venv_new/lib/python3.9/site-packages/click/core.py:1349
 #: venv_new/lib/python3.9/site-packages/click/core.py:1379
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "(Deprecated) {text}"
 msgstr "相关文献"
 
 #: venv_new/lib/python3.9/site-packages/click/core.py:1396
-#, fuzzy
 msgid "Options"
 msgstr "可选"
 
@@ -3706,7 +3614,6 @@ msgid "default: {default}"
 msgstr ""
 
 #: venv_new/lib/python3.9/site-packages/click/core.py:2841
-#, fuzzy
 msgid "required"
 msgstr "审核时间"
 
@@ -3745,7 +3652,6 @@ msgid "Invalid value for {param_hint}: {message}"
 msgstr ""
 
 #: venv_new/lib/python3.9/site-packages/click/exceptions.py:187
-#, fuzzy
 msgid "Missing argument"
 msgstr "投递指南"
 
@@ -3779,7 +3685,6 @@ msgid_plural "(Possible options: {possibilities})"
 msgstr[0] ""
 
 #: venv_new/lib/python3.9/site-packages/click/exceptions.py:270
-#, fuzzy
 msgid "unknown error"
 msgstr "未知"
 
@@ -3813,7 +3718,6 @@ msgid "Couldn't detect Bash version, shell completion is not supported."
 msgstr ""
 
 #: venv_new/lib/python3.9/site-packages/click/termui.py:158
-#, fuzzy
 msgid "Repeat for confirmation"
 msgstr "作者信息"
 
@@ -3858,7 +3762,7 @@ msgid_plural "{value!r} does not match the formats {formats}."
 msgstr[0] ""
 
 #: venv_new/lib/python3.9/site-packages/click/types.py:415
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "{value!r} is not a valid {number_type}."
 msgstr "文件不是有效的 PDF"
 
@@ -3868,27 +3772,24 @@ msgid "{value} is not in the range {range}."
 msgstr ""
 
 #: venv_new/lib/python3.9/site-packages/click/types.py:612
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "{value!r} is not a valid boolean."
 msgstr "文件不是有效的 PDF"
 
 #: venv_new/lib/python3.9/site-packages/click/types.py:636
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "{value!r} is not a valid UUID."
 msgstr "文件不是有效的 PDF"
 
 #: venv_new/lib/python3.9/site-packages/click/types.py:826
-#, fuzzy
 msgid "file"
 msgstr "文件"
 
 #: venv_new/lib/python3.9/site-packages/click/types.py:828
-#, fuzzy
 msgid "directory"
 msgstr "恢复"
 
 #: venv_new/lib/python3.9/site-packages/click/types.py:830
-#, fuzzy
 msgid "path"
 msgstr "作者"
 
