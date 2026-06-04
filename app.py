@@ -269,6 +269,25 @@ ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 NEWS_IMAGES_DIR = BASE_DIR / "static" / "uploads" / "news"
 GUIDE_IMAGES_DIR = BASE_DIR / "static" / "uploads" / "guides"
 GUIDE_IMAGE_MAX_BYTES = 5 * 1024 * 1024  # 5 MB
+RESOURCES_DIR = Path(os.environ.get("PAPERQUERY_RESOURCES_DIR", BASE_DIR / "resource_files")).resolve()
+# Resource library upload allowlist: extension -> MIME type.
+RESOURCE_ALLOWED_EXTENSIONS = {
+    "pdf": "application/pdf",
+    "doc": "application/msword",
+    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "ppt": "application/vnd.ms-powerpoint",
+    "pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "xls": "application/vnd.ms-excel",
+    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "png": "image/png",
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "gif": "image/gif",
+    "webp": "image/webp",
+}
+# MIME types the browser can render inline (everything else is download-only).
+PREVIEWABLE_MIMES = {"application/pdf", "image/png", "image/jpeg", "image/gif", "image/webp"}
+RESOURCE_MAX_BYTES = int(os.environ.get("PAPERQUERY_RESOURCE_MAX_MB", "50")) * 1024 * 1024
 MAX_SEARCH_RESULTS = 20
 MIN_SEMANTIC_QUERY_LEN = 2   # skip embedding for 1-char queries (idea #4)
 PASSWORD_SCHEME = "pbkdf2_sha256"
@@ -647,6 +666,21 @@ class GuideModel(BASE):
     updated_at = Column(Unicode(40), default="")
 
 
+class ResourceNode(BASE):
+    __tablename__ = "resource_nodes"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    parent_id = Column(Integer, index=True, nullable=True)   # null = top level; no FK (app-managed)
+    node_type = Column(Unicode(10))                          # "folder" | "file"
+    name = Column(Unicode(255))
+    stored_filename = Column(Unicode(255))                   # uuid name on disk (files only)
+    original_filename = Column(Unicode(255))                 # original upload name -> download name
+    mime_type = Column(Unicode(120))
+    size_bytes = Column(Integer)
+    description = Column(UnicodeText)
+    min_role = Column(Integer, default=1)                    # min role to view THIS node
+    created_at = Column(Unicode(40), default="")
+
+
 class SubmissionModel(BASE):
     __tablename__ = "submissions"
     id = Column(Unicode(255), primary_key=True)
@@ -824,6 +858,7 @@ def create_app() -> Flask:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     PAPERS_DIR.mkdir(parents=True, exist_ok=True)
     PENDING_PAPERS_DIR.mkdir(parents=True, exist_ok=True)
+    RESOURCES_DIR.mkdir(parents=True, exist_ok=True)
     init_db()
     configure_rag()
     babel.init_app(app, locale_selector=select_locale)

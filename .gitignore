@@ -60,3 +60,6 @@ LLM_DEPLOYMENT_IDEAS.md
 test_db.py
 remigrate_unicode.py
 update_db.py
+
+# Academic resources file blobs
+resource_files/
