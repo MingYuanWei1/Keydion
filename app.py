@@ -2462,6 +2462,53 @@ def create_app() -> Flask:
                 return redirect(url_for("login"))
         return send_from_directory(PAPERS_DIR, filename, as_attachment=True)
 
+    # ==================== ACADEMIC RESOURCES (public) ====================
+
+    @app.route("/resources")
+    @app.route("/resources/<int:folder_id>")
+    def resources(folder_id=None):
+        viewer_role = _resource_viewer_role()
+        if viewer_role is None:
+            require_login()
+            return redirect(url_for("login"))
+        current = None
+        if folder_id is not None:
+            current = get_resource_node(folder_id)
+            if not current or current["node_type"] != "folder":
+                abort(404)
+            if not _can_view_node(effective_min_role(folder_id), viewer_role):
+                abort(403)
+        children = load_resource_children(folder_id, viewer_role)
+        breadcrumbs = resource_breadcrumbs(folder_id) if folder_id else []
+        return render_template("resources.html", current=current,
+                               children=children, breadcrumbs=breadcrumbs)
+
+    @app.route("/resources/file/<int:file_id>")
+    def resource_file(file_id):
+        node, err = resolve_viewable_file(file_id)
+        if err == 401:
+            require_login()
+            return redirect(url_for("login"))
+        if err:
+            abort(err)
+        return send_from_directory(RESOURCES_DIR, node["stored_filename"],
+                                   as_attachment=False,
+                                   download_name=node["original_filename"] or node["stored_filename"],
+                                   mimetype=node["mime_type"] or None)
+
+    @app.route("/resources/file/<int:file_id>/download")
+    def resource_download(file_id):
+        node, err = resolve_viewable_file(file_id)
+        if err == 401:
+            require_login()
+            return redirect(url_for("login"))
+        if err:
+            abort(err)
+        return send_from_directory(RESOURCES_DIR, node["stored_filename"],
+                                   as_attachment=True,
+                                   download_name=node["original_filename"] or node["stored_filename"],
+                                   mimetype=node["mime_type"] or None)
+
     # ==================== NEWS ROUTES ====================
 
     @app.route("/news")
@@ -5986,6 +6033,22 @@ def delete_resource_node(node_id) -> bool:
             db.delete(n)
         db.commit()
         return True
+
+
+def resolve_viewable_file(file_id):
+    """Return (node_dict, None) when the current viewer may access this file,
+    or (None, status_code) to abort/redirect. status_code 401 means 'sign in'."""
+    viewer_role = _resource_viewer_role()
+    if viewer_role is None:
+        return None, 401
+    node = get_resource_node(file_id)
+    if not node or node["node_type"] != "file":
+        return None, 404
+    if not _can_view_node(effective_min_role(file_id), viewer_role):
+        return None, 403
+    if not node["stored_filename"] or not (RESOURCES_DIR / node["stored_filename"]).exists():
+        return None, 404
+    return node, None
 
 
 # ==================== NEWS HELPERS ====================

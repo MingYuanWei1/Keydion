@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Academic Resources') }} · Keydion{% endblock %}
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/resources.css') }}">
+{% endblock %}
+{% block content %}
+<div class="resources-page">
+  <header class="resources-head">
+    <h1>{{ _('Academic Resources') }}</h1>
+  </header>
+
+  <nav class="resources-breadcrumb" aria-label="{{ _('Breadcrumb') }}">
+    <a href="{{ url_for('resources') }}">{{ _('Home') }}</a>
+    {% for crumb in breadcrumbs %}
+      <span class="sep">/</span>
+      {% if loop.last %}
+        <span class="current">{{ crumb.name }}</span>
+      {% else %}
+        <a href="{{ url_for('resources', folder_id=crumb.id) }}">{{ crumb.name }}</a>
+      {% endif %}
+    {% endfor %}
+  </nav>
+
+  {% if current and current.description %}
+  <p class="resources-folder-desc">{{ current.description }}</p>
+  {% endif %}
+
+  {% if not children %}
+    <p class="resources-empty">{{ _('This folder is empty.') }}</p>
+  {% else %}
+  <ul class="resources-list">
+    {% for child in children %}
+      {% if child.node_type == 'folder' %}
+      <li class="res-row res-folder">
+        <a class="res-main" href="{{ url_for('resources', folder_id=child.id) }}">
+          <span class="res-icon" aria-hidden="true">📁</span>
+          <span class="res-name">{{ child.name }}</span>
+        </a>
+        {% if child.description %}<span class="res-desc">{{ child.description }}</span>{% endif %}
+      </li>
+      {% else %}
+      <li class="res-row res-file">
+        <span class="res-main">
+          <span class="res-icon" aria-hidden="true">📄</span>
+          <span class="res-name">{{ child.name }}</span>
+          {% if child.size_bytes %}<span class="res-size">{{ child.size_bytes | filesizeformat }}</span>{% endif %}
+        </span>
+        {% if child.description %}<span class="res-desc">{{ child.description }}</span>{% endif %}
+        <span class="res-actions">
+          {% if child.is_previewable %}
+          <a class="btn-res" href="{{ url_for('resource_file', file_id=child.id) }}" target="_blank" rel="noopener">{{ _('Preview') }}</a>
+          {% endif %}
+          <a class="btn-res btn-res--primary" href="{{ url_for('resource_download', file_id=child.id) }}">{{ _('Download') }}</a>
+        </span>
+      </li>
+      {% endif %}
+    {% endfor %}
+  </ul>
+  {% endif %}
+</div>
+{% endblock %}
+{% block footer %}
+<footer class="resources-footer">
+  <div class="container">
+    <span>© {{ current_year }} Keydion</span>
+    <a href="{{ url_for('index') }}">{{ _('Home') }}</a>
+  </div>
+</footer>
+{% endblock %}

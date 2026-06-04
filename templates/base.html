@@ -102,12 +102,14 @@
     </div>
   </main>
 
+  {% block footer %}
   <footer style="background:#141414;color:#999;padding:20px 0;margin-top:auto;">
     <div class="container" style="display:flex;justify-content:space-between;align-items:center;font-size:12px;">
       <span>© 2026 Keydion</span>
       <a href="https://beian.miit.gov.cn" target="_blank" style="color:#666;text-decoration:none;">蜀ICP备16024747号-2</a>
     </div>
   </footer>
+  {% endblock %}
 
   <script src="{{ url_for('static', filename='vendor/bootstrap.bundle.min.js') }}"></script>
 
