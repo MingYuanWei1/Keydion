@@ -453,7 +453,7 @@ msgstr "IB MYP 社区项目，按 A–D 标准评分，并选择全球语境与�
 
 #: app.py:1578
 msgid "Title · Global Context · type of action · criteria A–D"
-msgstr "标题 · 全球语境 · 行动类型 · A–D 项评分"
+msgstr "标题 · 全球背景 · 行动类型 · A–D 项评分"
 
 #: app.py:1579
 msgid "Research Question"
@@ -670,7 +670,7 @@ msgstr "反思"
 #: templates/paper_modify.html:231 templates/preview.html:232
 #: templates/search.html:80
 msgid "Global Context"
-msgstr "全球语境"
+msgstr "全球背景"
 
 #: app.py:1633
 msgid "Select a Global Context…"
@@ -678,7 +678,7 @@ msgstr "请选择全球语境…"
 
 #: app.py:1634
 msgid "Global Contexts"
-msgstr "全球语境"
+msgstr "全球背景"
 
 #: app.py:1635 templates/paper_modify.html:242 templates/preview.html:240
 msgid "Type of Action"
@@ -771,7 +771,7 @@ msgstr "EE 评分标准 %(k)s 得分"
 
 #: app.py:1657
 msgid "Global context"
-msgstr "全球语境"
+msgstr "全球背景"
 
 #: app.py:1658
 msgid "Type of action"
@@ -1023,7 +1023,7 @@ msgstr "请选择核心学科…"
 
 #: app.py:1897 app.py:2193
 msgid "Please select a Global Context."
-msgstr "请选择全球语境…"
+msgstr "请选择全球背景…"
 
 #: app.py:1900 app.py:2196
 msgid "Please select at least one Type of Action."
@@ -3200,7 +3200,7 @@ msgstr "这是一篇 IB 范文"
 
 #: templates/paper_modify.html:233
 msgid "Select a Global Context..."
-msgstr "请选择全球语境…"
+msgstr "请选择全球背景…"
 
 #: templates/paper_modify.html:281 templates/preview.html:223
 msgid "Total Score"
