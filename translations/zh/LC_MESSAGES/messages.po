@@ -3813,6 +3813,93 @@ msgid "{len_type} values are required, but {len_value} was given."
 msgid_plural "{len_type} values are required, but {len_value} were given."
 msgstr[0] ""
 
+#: templates/_dashboard/overview.html:13
+#, python-format
+msgid "Hello, %(name)s."
+msgstr "你好，%(name)s。"
+
+#: templates/_dashboard/overview.html:14
+msgid "Manage your account access, uploads, and the Keydion library."
+msgstr "管理你的账户访问、上传与 Keydion 文库。"
+
+#: templates/_dashboard/overview.html:19
+#, python-format
+msgid "Access valid through %(date)s"
+msgstr "访问有效期至 %(date)s"
+
+#: templates/_dashboard/overview.html:25
+msgid "At a glance"
+msgstr "数据一览"
+
+#: templates/_dashboard/overview.html:29
+msgid "Papers in library"
+msgstr "文库论文数"
+
+#: templates/_dashboard/overview.html:40
+msgid "Pending reviews"
+msgstr "待审核"
+
+#: templates/_dashboard/overview.html:50
+msgid "Published news"
+msgstr "已发布新闻"
+
+#: templates/_dashboard/overview.html:57
+msgid "Pending news"
+msgstr "待发布新闻"
+
+#: templates/_dashboard/overview.html:65 templates/_dashboard/overview.html:67
+msgid "Quick actions"
+msgstr "快捷操作"
+
+#: templates/_dashboard/overview.html:72
+msgid "Share a new paper for peers to explore. Supports PDF with metadata extraction."
+msgstr "分享一篇新论文供同行查阅。支持从 PDF 提取元数据。"
+
+#: templates/_dashboard/overview.html:73
+msgid "Open uploader"
+msgstr "打开上传器"
+
+#: templates/_dashboard/overview.html:78
+msgid "Review the queue"
+msgstr "审核队列"
+
+#: templates/_dashboard/overview.html:81
+#, python-format
+msgid "%(n)d submissions are waiting for editorial decision."
+msgstr "有 %(n)d 篇投稿正在等待编辑决定。"
+
+#: templates/_dashboard/overview.html:83
+msgid "Accept or reject papers submitted by readers."
+msgstr "接受或拒绝读者提交的论文。"
+
+#: templates/_dashboard/overview.html:86
+msgid "Open queue"
+msgstr "打开队列"
+
+#: templates/_dashboard/overview.html:93
+msgid "Publish updates, announcements and stories for the Keydion community."
+msgstr "为 Keydion 社区发布动态、公告与报道。"
+
+#: templates/_dashboard/overview.html:94
+msgid "Open editor"
+msgstr "打开编辑器"
+
+#: templates/_dashboard/overview.html:101
+msgid "Review local and Microsoft-linked accounts, adjust roles, set passwords."
+msgstr "查看本地和 Microsoft 关联账户，调整角色，设置密码。"
+
+#: templates/_dashboard/overview.html:102
+msgid "Open admin"
+msgstr "打开管理后台"
+
+#: templates/_dashboard/overview.html:108
+msgid "Set or change your account password."
+msgstr "设置或修改你的账户密码。"
+
+#: templates/_dashboard/overview.html:109
+msgid "Update security"
+msgstr "更新安全设置"
+
 # ==================== BASE TEMPLATE ====================
 
 # ==================== DASHBOARD ====================
