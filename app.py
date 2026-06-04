@@ -3722,8 +3722,9 @@ def create_app() -> Flask:
         if not node:
             flash(_("Item not found."), "warning")
             return redirect(url_for("admin_resources_manage"))
-        raw = (request.form.get("new_parent_id") or "").strip()
-        new_parent_id = int(raw) if raw and raw != "0" else None
+        # "0"/missing/non-numeric -> root; type=int yields None for non-numeric (no 500).
+        dest = request.form.get("new_parent_id", type=int)
+        new_parent_id = dest if dest else None
         ok, err = move_resource_node(node_id, new_parent_id)
         flash(err or _("Moved."), "warning" if err else "success")
         return _resources_redirect(new_parent_id)
