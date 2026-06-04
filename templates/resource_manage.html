@@ -1,0 +1,170 @@
+{% extends "_bare.html" if partial else "_dashboard_shell.html" %}
+{% block title %}{{ _('Academic Resources') }} · Keydion{% endblock %}
+{% block head_extra %}{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/manage.css') }}">
+{% endblock %}
+{% block panel %}
+<div class="manage-page">
+  <div class="manage-head" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+    <div>
+      <h1 style="margin:0;">{{ _('Academic Resources') }}</h1>
+      <nav class="resources-breadcrumb" aria-label="{{ _('Breadcrumb') }}" style="font-size:13px;margin-top:6px;">
+        <a href="{{ url_for('admin_resources_manage') }}">{{ _('Home') }}</a>
+        {% for crumb in breadcrumbs %}
+          <span> / </span>
+          {% if loop.last %}<span>{{ crumb.name }}</span>
+          {% else %}<a href="{{ url_for('admin_resources_manage', folder_id=crumb.id) }}">{{ crumb.name }}</a>{% endif %}
+        {% endfor %}
+      </nav>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('newFolderModal').classList.add('active')">{{ _('New folder') }}</button>
+      <button type="button" class="btn btn-danger btn-sm" onclick="document.getElementById('uploadModal').classList.add('active')">{{ _('Upload file') }}</button>
+    </div>
+  </div>
+
+  <table class="table" style="margin-top:18px;">
+    <thead>
+      <tr>
+        <th>{{ _('Name') }}</th>
+        <th>{{ _('Visible to') }}</th>
+        <th style="text-align:right;">{{ _('Actions') }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for child in children %}
+      <tr>
+        <td>
+          {% if child.node_type == 'folder' %}
+            📁 <a href="{{ url_for('admin_resources_manage', folder_id=child.id) }}">{{ child.name }}</a>
+          {% else %}
+            📄 {{ child.name }}
+            {% if child.size_bytes %}<span class="text-muted" style="font-size:12px;">({{ child.size_bytes | filesizeformat }})</span>{% endif %}
+          {% endif %}
+        </td>
+        <td>
+          {% if child.min_role >= 3 %}{{ _('Curator') }}
+          {% elif child.min_role == 2 %}{{ _('Contributor') }}
+          {% else %}{{ _('Reader') }}{% endif %}
+        </td>
+        <td style="text-align:right;white-space:nowrap;">
+          <button type="button" class="btn btn-sm btn-link"
+            onclick="openEdit({{ child.id }}, this.dataset.name, this.dataset.desc, {{ child.min_role }})"
+            data-name="{{ child.name }}" data-desc="{{ child.description }}">{{ _('Edit') }}</button>
+          <button type="button" class="btn btn-sm btn-link"
+            onclick="openMove({{ child.id }})">{{ _('Move') }}</button>
+          <form method="post" action="{{ url_for('admin_resources_delete', node_id=child.id) }}"
+            style="display:inline" onsubmit="return confirm('{{ _('Delete this item?') }}')">
+            <button type="submit" class="btn btn-sm btn-link text-danger">{{ _('Delete') }}</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      {% if not children %}
+      <tr><td colspan="3" class="text-muted">{{ _('This folder is empty.') }}</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+{# ---- New folder modal ---- #}
+<div id="newFolderModal" class="modal-overlay">
+  <div class="login-modal">
+    <h3>{{ _('New folder') }}</h3>
+    <form method="post" action="{{ url_for('admin_resources_folder_new') }}">
+      <input type="hidden" name="parent_id" value="{{ parent_id or '' }}">
+      <div class="field-group"><label>{{ _('Name') }}</label><input type="text" name="name" required></div>
+      <div class="field-group"><label>{{ _('Description') }}</label><input type="text" name="description"></div>
+      <div class="field-group">
+        <label>{{ _('Visible to') }}</label>
+        <select name="min_role">
+          <option value="1">{{ _('Reader') }}</option>
+          <option value="2">{{ _('Contributor') }}</option>
+          <option value="3">{{ _('Curator') }}</option>
+        </select>
+      </div>
+      <button type="submit" class="btn-login">{{ _('Create') }}</button>
+      <button type="button" class="btn btn-link" onclick="document.getElementById('newFolderModal').classList.remove('active')">{{ _('Cancel') }}</button>
+    </form>
+  </div>
+</div>
+
+{# ---- Upload modal ---- #}
+<div id="uploadModal" class="modal-overlay">
+  <div class="login-modal">
+    <h3>{{ _('Upload file') }}</h3>
+    <form method="post" action="{{ url_for('admin_resources_upload') }}" enctype="multipart/form-data">
+      <input type="hidden" name="parent_id" value="{{ parent_id or '' }}">
+      <div class="field-group"><label>{{ _('File') }}</label><input type="file" name="file" required></div>
+      <div class="field-group"><label>{{ _('Name') }}</label><input type="text" name="name" placeholder="{{ _('Optional') }}"></div>
+      <div class="field-group"><label>{{ _('Description') }}</label><input type="text" name="description"></div>
+      <div class="field-group">
+        <label>{{ _('Visible to') }}</label>
+        <select name="min_role">
+          <option value="1">{{ _('Reader') }}</option>
+          <option value="2">{{ _('Contributor') }}</option>
+          <option value="3">{{ _('Curator') }}</option>
+        </select>
+      </div>
+      <button type="submit" class="btn-login">{{ _('Upload') }}</button>
+      <button type="button" class="btn btn-link" onclick="document.getElementById('uploadModal').classList.remove('active')">{{ _('Cancel') }}</button>
+    </form>
+  </div>
+</div>
+
+{# ---- Edit modal ---- #}
+<div id="editModal" class="modal-overlay">
+  <div class="login-modal">
+    <h3>{{ _('Edit') }}</h3>
+    <form id="editForm" method="post" action="">
+      <div class="field-group"><label>{{ _('Name') }}</label><input type="text" id="editName" name="name" required></div>
+      <div class="field-group"><label>{{ _('Description') }}</label><input type="text" id="editDescription" name="description"></div>
+      <div class="field-group">
+        <label>{{ _('Visible to') }}</label>
+        <select id="editMinRole" name="min_role">
+          <option value="1">{{ _('Reader') }}</option>
+          <option value="2">{{ _('Contributor') }}</option>
+          <option value="3">{{ _('Curator') }}</option>
+        </select>
+      </div>
+      <button type="submit" class="btn-login">{{ _('Save') }}</button>
+      <button type="button" class="btn btn-link" onclick="document.getElementById('editModal').classList.remove('active')">{{ _('Cancel') }}</button>
+    </form>
+  </div>
+</div>
+
+{# ---- Move modal ---- #}
+<div id="moveModal" class="modal-overlay">
+  <div class="login-modal">
+    <h3>{{ _('Move') }}</h3>
+    <form id="moveForm" method="post" action="">
+      <div class="field-group">
+        <label>{{ _('Destination') }}</label>
+        <select name="new_parent_id">
+          <option value="0">{{ _('Root') }}</option>
+          {% for t in move_targets %}
+          <option value="{{ t.id }}">{{ '— ' * t.depth }}{{ t.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn-login">{{ _('Move') }}</button>
+      <button type="button" class="btn btn-link" onclick="document.getElementById('moveModal').classList.remove('active')">{{ _('Cancel') }}</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openEdit(id, name, desc, minRole) {
+    var form = document.getElementById('editForm');
+    form.action = '/dashboard/admin/resources/' + id + '/edit';
+    document.getElementById('editName').value = name || '';
+    document.getElementById('editDescription').value = desc || '';
+    document.getElementById('editMinRole').value = minRole || 1;
+    document.getElementById('editModal').classList.add('active');
+  }
+  function openMove(id) {
+    document.getElementById('moveForm').action = '/dashboard/admin/resources/' + id + '/move';
+    document.getElementById('moveModal').classList.add('active');
+  }
+</script>
+{% endblock %}

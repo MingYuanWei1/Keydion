@@ -3642,6 +3642,107 @@ def create_app() -> Flask:
     def admin_guide_edit_legacy(guide_id):
         return redirect(url_for("admin_guide_edit", guide_id=guide_id), code=301)
 
+    # ==================== ACADEMIC RESOURCES (admin) ====================
+
+    def _resources_redirect(folder_id):
+        if folder_id:
+            return redirect(url_for("admin_resources_manage", folder_id=folder_id))
+        return redirect(url_for("admin_resources_manage"))
+
+    @app.route("/dashboard/admin/resources")
+    @app.route("/dashboard/admin/resources/<int:folder_id>")
+    def admin_resources_manage(folder_id=None):
+        user = require_login(level=3)
+        if not user:
+            return redirect(url_for("login"))
+        current = get_resource_node(folder_id) if folder_id else None
+        if folder_id and (not current or current["node_type"] != "folder"):
+            flash(_("Folder not found."), "warning")
+            return redirect(url_for("admin_resources_manage"))
+        children = load_resource_children(folder_id, viewer_role=3)
+        breadcrumbs = resource_breadcrumbs(folder_id) if folder_id else []
+        return render_template("resource_manage.html", user=user, current=current,
+                               children=children, breadcrumbs=breadcrumbs,
+                               parent_id=folder_id, move_targets=load_resource_folder_tree())
+
+    @app.route("/dashboard/admin/resources/folder", methods=["POST"], endpoint="admin_resources_folder_new")
+    def admin_resources_folder_new():
+        user = require_login(level=3)
+        if not user:
+            return redirect(url_for("login"))
+        parent_id = request.form.get("parent_id", type=int)
+        name = (request.form.get("name") or "").strip()
+        if not name:
+            flash(_("Folder name is required."), "warning")
+        else:
+            create_resource_folder(parent_id, name,
+                                   request.form.get("min_role", type=int) or 1,
+                                   request.form.get("description", ""))
+            flash(_("Folder created."), "success")
+        return _resources_redirect(parent_id)
+
+    @app.route("/dashboard/admin/resources/upload", methods=["POST"], endpoint="admin_resources_upload")
+    def admin_resources_upload():
+        user = require_login(level=3)
+        if not user:
+            return redirect(url_for("login"))
+        parent_id = request.form.get("parent_id", type=int)
+        f = request.files.get("file")
+        if not f or not f.filename:
+            flash(_("Please choose a file."), "warning")
+        else:
+            _id, err = save_resource_file(parent_id, f,
+                                          request.form.get("name", ""),
+                                          request.form.get("description", ""),
+                                          request.form.get("min_role", type=int) or 1)
+            flash(err or _("File uploaded."), "warning" if err else "success")
+        return _resources_redirect(parent_id)
+
+    @app.route("/dashboard/admin/resources/<int:node_id>/edit", methods=["POST"], endpoint="admin_resources_edit")
+    def admin_resources_edit(node_id):
+        user = require_login(level=3)
+        if not user:
+            return redirect(url_for("login"))
+        node = get_resource_node(node_id)
+        if not node:
+            flash(_("Item not found."), "warning")
+            return redirect(url_for("admin_resources_manage"))
+        update_resource_node(node_id, request.form.get("name", ""),
+                             request.form.get("description", ""),
+                             request.form.get("min_role", type=int) or node["min_role"])
+        flash(_("Saved."), "success")
+        return _resources_redirect(node["parent_id"])
+
+    @app.route("/dashboard/admin/resources/<int:node_id>/move", methods=["POST"], endpoint="admin_resources_move")
+    def admin_resources_move(node_id):
+        user = require_login(level=3)
+        if not user:
+            return redirect(url_for("login"))
+        node = get_resource_node(node_id)
+        if not node:
+            flash(_("Item not found."), "warning")
+            return redirect(url_for("admin_resources_manage"))
+        raw = (request.form.get("new_parent_id") or "").strip()
+        new_parent_id = int(raw) if raw and raw != "0" else None
+        ok, err = move_resource_node(node_id, new_parent_id)
+        flash(err or _("Moved."), "warning" if err else "success")
+        return _resources_redirect(new_parent_id)
+
+    @app.route("/dashboard/admin/resources/<int:node_id>/delete", methods=["POST"], endpoint="admin_resources_delete")
+    def admin_resources_delete(node_id):
+        user = require_login(level=3)
+        if not user:
+            return redirect(url_for("login"))
+        node = get_resource_node(node_id)
+        parent_id = node["parent_id"] if node else None
+        delete_resource_node(node_id)
+        flash(_("Deleted."), "success")
+        return _resources_redirect(parent_id)
+
+    @app.route("/admin/resources", endpoint="admin_resources_manage_legacy")
+    def admin_resources_manage_legacy():
+        return redirect(url_for("admin_resources_manage"), code=301)
+
     # ---------- Paper categories & journals management ----------
     @app.route("/dashboard/admin/paper-manage")
     def paper_manage():

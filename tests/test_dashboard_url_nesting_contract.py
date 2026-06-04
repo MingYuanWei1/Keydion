@@ -66,6 +66,14 @@ MOVED_ROUTES = {
     "admin_guide_delete":              ("/dashboard/admin/guides/<int:guide_id>/delete", None),
     "admin_guides_upload_image":       ("/dashboard/admin/guides/upload-image",       None),
 
+    # Task 10: academic resources
+    "admin_resources_manage":          ("/dashboard/admin/resources",                 "/admin/resources"),
+    "admin_resources_folder_new":      ("/dashboard/admin/resources/folder",          None),
+    "admin_resources_upload":          ("/dashboard/admin/resources/upload",          None),
+    "admin_resources_edit":            ("/dashboard/admin/resources/<int:node_id>/edit",   None),
+    "admin_resources_move":            ("/dashboard/admin/resources/<int:node_id>/move",   None),
+    "admin_resources_delete":          ("/dashboard/admin/resources/<int:node_id>/delete", None),
+
     # Task 9: account
     "change_password":                 ("/dashboard/account/change-password",         "/account/change-password"),
 }
