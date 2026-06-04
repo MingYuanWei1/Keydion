@@ -16,6 +16,7 @@ class ResourceManageDomContractTest(unittest.TestCase):
         template = env.get_template("resource_manage.html")
         cls.html = template.render(
             _=lambda value, **kw: value % kw if kw else value,
+            pgettext=lambda ctx, value, **kw: value % kw if kw else value,
             url_for=lambda endpoint, **kw: "/" + endpoint,
             get_flashed_messages=lambda with_categories=False: [],
             request=SimpleNamespace(full_path="/dashboard/admin/resources", args={}, headers={}),

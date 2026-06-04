@@ -417,7 +417,7 @@ msgstr "标准论文"
 msgid ""
 "A self-directed research paper, conference paper, or article that is not "
 "part of the IB Diploma framework."
-msgstr "自主选题的研究论文、会议论文或文章，不属于 IB 文凭课程框架。"
+msgstr "自主选题的研究论文、会议论文或文章。"
 
 #: app.py:1570
 msgid "Title · authors · abstract · subject"
@@ -449,7 +449,7 @@ msgstr "社区项目（CP）"
 msgid ""
 "An IB MYP Community Project graded against Criteria A–D, with a Global "
 "Context and a chosen type of action."
-msgstr "IB MYP 社区项目，按 A–D 标准评分，并选择全球语境与行动类型。"
+msgstr "IB MYP 社区设计项目，按 A–D 标准评分，并选择全球语境与行动类型。"
 
 #: app.py:1578
 msgid "Title · Global Context · type of action · criteria A–D"
@@ -479,7 +479,7 @@ msgstr "请介绍您的论文"
 
 #: app.py:1584
 msgid "Tell us about your community project"
-msgstr "请介绍您的社区项目"
+msgstr "请介绍您的社区设计项目"
 
 #: app.py:1585
 msgid "Tell us about your paper"
@@ -704,6 +704,12 @@ msgstr "第一作者的联系信息为必填，可根据需要添加合作者。
 msgid "Name"
 msgstr "姓名"
 
+#: templates/resource_manage.html:29 templates/resource_manage.html:76
+#: templates/resource_manage.html:99 templates/resource_manage.html:120
+msgctxt "resource"
+msgid "Name"
+msgstr "名称"
+
 #: app.py:1641 templates/admin_users.html:78 templates/delete.html:334
 #: templates/paper_modify.html:111 templates/register.html:14
 #: templates/review_paper.html:40 templates/submission_detail.html:37
@@ -789,14 +795,6 @@ msgstr "PDF 文件"
 #: app.py:1661
 msgid "Independent Research Paper"
 msgstr "独立研究论文"
-
-#: app.py:1662 templates/preview.html:106
-msgid "IB Extended Essay"
-msgstr "IB 拓展论文（EE）"
-
-#: app.py:1663
-msgid "IB Community Project"
-msgstr "IB 社区项目（CP）"
 
 #: app.py:1664
 msgid "Review & submit"
@@ -1639,16 +1637,6 @@ msgstr "高级搜索"
 msgid "Any Type"
 msgstr "类型"
 
-#: templates/advanced_search.html:18 templates/search.html:55
-#: templates/search.html:200
-msgid "Extended Essay"
-msgstr "IB 拓展论文（EE）"
-
-#: templates/advanced_search.html:19 templates/search.html:56
-#: templates/search.html:214
-msgid "Community Project"
-msgstr "IB 社区项目（CP）"
-
 #: templates/advanced_search.html:24
 msgid "Find articles…"
 msgstr "查找文章..."
@@ -2079,7 +2067,7 @@ msgid ""
 "Long-form documentation served at /guides. Each guide supports English "
 "and Chinese, and appears in a sidebar grouped by category. Drag entries "
 "to reorder or recategorise."
-msgstr "在 /help 提供的长文档。每篇指南支持中英文，并按分类显示在侧边栏中。拖动条目以重新排序或更换分类。"
+msgstr "在 /guides 提供的长文档。每篇指南支持中英文，并按分类显示在侧边栏中。拖动条目以重新排序或更换分类。"
 
 #: templates/guide_manage.html:38
 msgid "New guide"
@@ -3264,10 +3252,6 @@ msgstr "登录以查看完整论文"
 #: templates/preview.html:168
 msgid "No commentary provided."
 msgstr "未填写"
-
-#: templates/preview.html:207
-msgid "MYP Community Project"
-msgstr "IB 社区项目（CP）"
 
 #: templates/preview.html:300
 msgid "About this issue"
