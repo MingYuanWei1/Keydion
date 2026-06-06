@@ -31,37 +31,11 @@ must **never** be exposed publicly.
 `gunicorn.conf.py`. nginx serves `/static/*` directly from disk; PDF
 download routes (`/papers/*`) proxy through to Flask so auth checks run.
 
-1. Create a `.env.prod` (gitignored) in the repo root:
-
-   ```bash
-   PAPERQUERY_SECRET=<strong random value, NOT dev-secret-key>
-   PAPERQUERY_DATABASE_URL="mysql+pymysql://user:password@host:3306/dbname?charset=utf8mb4"
-
-   # Microsoft OAuth — must match the Azure app registration redirect URI
-   PAPERQUERY_MS_CLIENT_ID=...
-   PAPERQUERY_MS_CLIENT_SECRET=...
-   PAPERQUERY_MS_REDIRECT_URI=https://yourdomain.com/auth/callback
-
-   # AI assist — abstract & keyword auto-fill (Optional; OpenAI-compatible API)
-   LLM_API_KEY=
-   LLM_BASE_URL=
-   LLM_DEFAULT_FLASH=gpt-4o-mini
-   LLM_DEFAULT_THINK=gpt-4o-mini
-
-   # Optional separate embedding provider for library search/RAG
-   LLM_EMBED_API_KEY=
-   LLM_EMBED_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
-   LLM_EMBED_MODEL=gemini-embedding-001
-
-   # Optional web search for Ask the Library "Web access" toggle (default provider: Tavily)
-   WEB_SEARCH_PROVIDER=tavily
-   WEB_SEARCH_API_KEY=
-
-   # Optional gunicorn tuning
-   GUNICORN_WORKERS=4
-   GUNICORN_TIMEOUT=60
-   PAPERQUERY_MAX_UPLOAD_MB=50
-   ```
+1. Create a `.env.prod` (gitignored) in the repo root by copying
+   [`.env.example`](.env.example) and filling in the values. Use a strong
+   random `PAPERQUERY_SECRET` (NOT `dev-secret-key`) and set
+   `PAPERQUERY_MS_REDIRECT_URI` to your public callback URL
+   (e.g. `https://yourdomain.com/auth/callback`).
 
 2. Create the virtualenv and install dependencies in the repo root:
 
@@ -148,34 +122,9 @@ code failed to import — fix on disk and reload again.
 
 ### 1. Environment
 
-Clone the repository and create a `.env` file in the root directory:
-
-```bash
-PAPERQUERY_SECRET=dev-secret-key
-PAPERQUERY_DATABASE_URL="mysql+pymysql://user:password@host:port/dbname"
-
-PAPERQUERY_MS_CLIENT_ID=your_client_id
-PAPERQUERY_MS_CLIENT_SECRET=your_client_secret
-PAPERQUERY_MS_REDIRECT_URI=http://localhost:5000/auth/callback
-
-HOST=
-PORT=
-
-# AI assist — abstract & keyword auto-fill (Optional; OpenAI-compatible API)
-LLM_API_KEY=your_api_key
-LLM_BASE_URL=
-LLM_DEFAULT_FLASH=gpt-4o-mini
-LLM_DEFAULT_THINK=gpt-4o-mini
-
-# Optional separate embedding provider for library search/RAG
-LLM_EMBED_API_KEY=
-LLM_EMBED_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
-LLM_EMBED_MODEL=gemini-embedding-001
-
-# Optional web search for Ask the Library "Web access" toggle (default provider: Tavily)
-WEB_SEARCH_PROVIDER=tavily
-WEB_SEARCH_API_KEY=
-```
+Clone the repository and create a `.env` file in the root directory by copying
+[`.env.example`](.env.example) and filling in the values. For local use, set
+`PAPERQUERY_MS_REDIRECT_URI=http://localhost:5000/auth/callback`.
 
 > The abstract/keyword button only appears for Contributors (role ≥ 2) when
 > `LLM_API_KEY` is set. It drafts the abstract and keywords from the uploaded
