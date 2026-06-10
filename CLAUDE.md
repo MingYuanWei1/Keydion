@@ -73,10 +73,10 @@ pip3 install -r requirements.txt
 # Start dev server (macOS/Linux)
 ./start_local.sh
 
-# Start with Docker Compose
+# Start dev container (Flask debug on :4000, MySQL expected on the host at 127.0.0.1:3306)
 docker-compose up -d
 
-# Run all tests (178 contract tests, ~4s)
+# Run all tests (~580 contract tests, ~5s — requires a reachable MySQL, see Testing approach)
 python3 -m unittest discover -s tests -p "test_*.py" -v
 
 # Run a single test file
@@ -85,19 +85,38 @@ python3 -m unittest tests/test_ee_total_grade_contract.py -v
 # Compile translations after editing .po files (restart dev server to pick up new .mo)
 python3 tools/compile_translations.py
 
+# Backfill / rebuild RAG chunk embeddings for published papers
+python3 tools/build_embeddings.py
+
 # Manage users (CLI)
 python3 tools/manage_passwords.py set --username <name> --password <pw> --role 3
 python3 tools/manage_passwords.py list
 ```
 
-Environment variables (set via `.env` or shell):
+**Dev container gotcha**: `docker-compose.yml` bind-mounts only `app.py`, `library_tools.py`, `ee_pdf_extractor.py`, `templates/`, `static/`, `data/`, `translations/`, `papers/`. Changes to the other Python modules (`llm_client.py`, `rag_index.py`, `web_search.py`, `llm_metadata.py`, `pdf_text.py`) and to `tests/` need an image rebuild — don't trust test runs inside the container.
+
+Environment variables: see `.env.example` for the full annotated list. The important ones:
 - `PAPERQUERY_SECRET` — Flask secret key
 - `PAPERQUERY_DATABASE_URL` — SQLAlchemy connection string (MySQL)
-- `PAPERQUERY_DATA_DIR` / `PAPERQUERY_UPLOAD_DIR` — override data/papers paths
+- `PAPERQUERY_MS_CLIENT_ID` / `PAPERQUERY_MS_CLIENT_SECRET` / `PAPERQUERY_MS_REDIRECT_URI` — MS OAuth
+- `LLM_API_KEY` / `LLM_BASE_URL` — OpenAI-compatible chat provider; **empty key disables all AI features**
+- `LLM_DEFAULT_FLASH` / `LLM_DEFAULT_THINK` — model tiers (cheap/fast vs. reasoning)
+- `LLM_EMBED_API_KEY` / `LLM_EMBED_BASE_URL` / `LLM_EMBED_MODEL` — separate embedding provider (defaults to Gemini's OpenAI-compatible endpoint; falls back to chat credentials when unset)
+- `WEB_SEARCH_PROVIDER` / `WEB_SEARCH_API_KEY` — Ask-the-Library web access (Tavily default); empty key hides the web toggle
+- `PAPERQUERY_DATA_DIR` / `PAPERQUERY_UPLOAD_DIR` / `PAPERQUERY_RESOURCES_DIR` — path overrides
 
 ## Architecture
 
-**Single-file Flask app** — all routes, models, and business logic live in `app.py` (~4,400 lines). The app is created via `create_app()` which sets up Flask, Babel (i18n), and SQLAlchemy. EE PDF parsing is the one exception, factored out into `ee_pdf_extractor.py`.
+**Flask monolith with satellite modules** — routes, models, auth, and business logic live in `app.py` (~6,300 lines, ~111 routes). `app = create_app()` runs at module level and calls `init_db()`, so **importing `app` connects to MySQL** — this affects tests and CLI scripts. Self-contained concerns are factored into satellite modules:
+- `ee_pdf_extractor.py` — PDF parser for IB EE metadata auto-fill
+- `pdf_text.py` — shared PDF→text extraction (PyPDF2 first, Tesseract OCR fallback for scanned PDFs)
+- `llm_client.py` — central LLM client + model resolution (flash/think tiers, separate embedding provider)
+- `llm_metadata.py` — abstract + keyword drafting from a paper PDF
+- `rag_index.py` — RAG index: chunking, embeddings stored in MySQL (`papers_chunks`), pure-Python cosine retrieval over a per-process in-memory cache (no numpy / vector DB)
+- `library_tools.py` — tool-calling core for Ask-the-Library agentic mode (tool schemas + dispatch)
+- `web_search.py` — pluggable web search for Ask-the-Library (disabled when unconfigured)
+
+**LLM features** (all degrade gracefully when `LLM_API_KEY` is unset): Ask-the-Library RAG chat at `/ask` + `/api/ask` (conversations, citations, PDF attachments, optional agentic web/document tools), semantic search + semantic "related papers", abstract/keyword auto-fill (`/api/upload/generate-abstract-keywords`), and EE metadata extraction (`/api/upload/extract-ee-metadata`). The idea backlog and implementation status live in `LLM_DEPLOYMENT_IDEAS.md`.
 
 **Dashboard URL nesting** — authenticated admin routes live under `/dashboard/...` (e.g. `/dashboard/admin/users`, `/dashboard/admin/guides`). Bare `/admin/*` paths exist only as 301-redirect legacy endpoints. Enforced by `test_dashboard_url_nesting_contract.py`.
 
@@ -106,16 +125,21 @@ Environment variables (set via `.env` or shell):
 **Data layer** — MySQL via SQLAlchemy ORM with models defined at module level in `app.py`:
 - `LocalUser` / `MsUser` — local password auth and Microsoft Graph OAuth users
 - `PaperMetadataModel` — published papers (JSON fields stored as text: `ib_ee_data`, `cp_data`)
+- `PaperChunkModel` — RAG chunk embeddings per published paper (vectors stored as JSON text)
+- `ConversationModel` / `ChatMessageModel` — Ask-the-Library chat history
+- `AttachmentChunkModel` — embeddings for per-conversation uploaded attachments
 - `SubmissionModel` — user-submitted papers pending review
 - `NewsArticleModel` — news/articles with block-based body (JSON array of text/image blocks)
+- `GuideModel` — published guides
 - `JournalModel` — academic journals
+- `ResourceNode` — Academic Resources folder/file tree (slug-based public URLs)
 - `SessionModel` — server-side session tokens
 
 **Roles** (stored as int in `role` column): 1 = Reader, 2 = Contributor (can upload), 3 = Curator/Admin. Enforced via `require_login(level)`.
 
 **Paper types** — three mutually exclusive categories: independent papers, IB Extended Essay (EE, `is_ib_ee` flag + `ib_ee_data` JSON), and IB Community Project (CP, `is_cp_paper` flag + `cp_data` JSON). Legacy IB sample papers identified by `author_name == "IB SAMPLE"`.
 
-**i18n** — Flask-Babel with `en`/`zh` locales. Translation catalogs in `translations/<locale>/LC_MESSAGES/messages.po`. The `_()` gettext function and `_l()` lazy_gettext are used throughout `app.py`.
+**i18n** — Flask-Babel with `en`/`zh` locales. Translation catalogs in `translations/<locale>/LC_MESSAGES/messages.po`. The `_()` gettext function and `_l()` lazy_gettext are used throughout `app.py`. All user-facing LLM output must be bilingual too.
 
 **Auth** — dual system: local PBKDF2-hashed passwords and MS Graph OAuth via the `msal` library. Session tokens are stored server-side in the `sessions` table with a configurable timeout.
 
@@ -123,16 +147,20 @@ Environment variables (set via `.env` or shell):
 
 | Path | Purpose |
 |------|---------|
-| `app.py` | Entire application: models, routes, auth, helpers |
-| `ee_pdf_extractor.py` | Standalone PDF parser for IB EE auto-fill (imported by `app.py`) |
-| `templates/` | Jinja2 templates (~36 files) |
-| `static/css/` | Per-page stylesheets (`styles.css`, `dashboard.css`, `guides.css`, `manage.css`, `upload.css`) — no build step |
+| `app.py` | Core application: models, routes, auth, helpers |
+| `ee_pdf_extractor.py`, `pdf_text.py` | PDF parsing/extraction modules |
+| `llm_client.py`, `llm_metadata.py`, `rag_index.py`, `library_tools.py`, `web_search.py` | LLM/RAG layer (see Architecture) |
+| `templates/` | Jinja2 templates (~38 files; dashboard panels in `templates/_dashboard/`) |
+| `static/css/` | Per-page stylesheets (`styles.css`, `dashboard.css`, `ask.css`, `guides.css`, `manage.css`, `resources.css`, `upload.css`) — no build step |
+| `static/js/` | Per-page scripts (`ask.js`, `dashboard.js`, `guides-editor.js`, `upload-wizard.js`) |
 | `static/vendor/` | Bootstrap CSS/JS (manually vendored) |
-| `data/` | JSON configs for categories, EE subjects, guide categories; runtime `pending_papers/` |
+| `data/` | JSON configs (paper/news/guide categories, EE subjects); runtime `pending_papers/` |
 | `papers/` | Uploaded PDF storage (gitignored) |
-| `tools/` | CLI scripts: user management, translation compilation |
+| `resource_files/` | Academic Resources file storage |
+| `tools/` | CLI scripts: user management, translation compilation, embedding backfill |
 | `tests/` | Contract tests using `unittest` — parse app.py with AST + render Jinja2 templates |
 | `deploy/keydion.nginx.conf` | Production nginx config (host-managed, not docker) |
+| `docs/superpowers/` | Local spec/plan docs — gitignored on purpose, never commit |
 
 ## Testing approach
 
@@ -141,6 +169,8 @@ Tests are **contract tests**, not integration tests. They parse `app.py` with Py
 - Data round-trip contracts (fields are carried through load/write functions)
 - Server-side logic contracts (EE total grade is calculated server-side, not trusted from the form)
 
+About 20 of the 55 test files `import app` (directly or via `from app import ...`), which connects to MySQL at import time — **the full suite needs a reachable database**; without one those modules fail at import with `OperationalError`. The remaining files are pure AST/template tests and run standalone.
+
 Conventional commits (`feat:`, `fix:`, with optional scope like `fix(i18n):`) are used.
 
 ## Noteworthy patterns
@@ -148,6 +178,7 @@ Conventional commits (`feat:`, `fix:`, with optional scope like `fix(i18n):`) ar
 - **EE total grade** is computed server-side in `build_ib_ee_data_from_form()` — the form field `ibTotalGradeNumber` is `readonly` and its submitted value is ignored
 - **Legacy IB sample papers** (`author_name == "IB SAMPLE"`) hide the school field in search results and maintain backward-compat logic scattered across templates and routes
 - **News body** supports a JSON block format: `[{"type": "text", "content": "..."}, {"type": "image", "url": "...", "caption": "..."}]`, with a `parse_body_blocks` template filter for backward compat with plain-text bodies
+- **RAG lifecycle**: papers are chunked + embedded on publish and purged on delete (`rag_index.py`); chunk vectors are cached in-memory **per process**, so multiple gunicorn workers each hold a copy and a re-embed in one worker is not visible to others until restart
 - DB migrations are ad-hoc in `init_db()` — ALTER TABLE statements wrapped in try/except for idempotency
 - Paper metadata is both in the DB (`papers_metadata` table) and optionally in the filesystem (`data/paper_metadata.json`); routes read from DB via `_load_papers()` which queries `PaperMetadataModel`
 - **Production deploy** uses host-managed nginx + systemd gunicorn (`gunicorn.conf.py` + `run_prod.sh`). The bundled `docker-compose.prod.yml` exists but is **not** what runs in prod — don't propose Docker-based deploy fixes.
