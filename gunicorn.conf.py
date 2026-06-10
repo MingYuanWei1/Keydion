@@ -19,8 +19,9 @@ access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s %(L)s "%(f)s"'
 
 def post_fork(server, worker):
     import app as app_module
+    import db
 
-    engine = getattr(app_module, "_ENGINE", None)
+    engine = db.get_engine()
     if engine is not None:
         engine.dispose()
     try:
