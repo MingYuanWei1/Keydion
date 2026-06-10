@@ -164,13 +164,16 @@ class ResourcesTreeBehaviorTest(unittest.TestCase):
         self.assertTrue(bad_err)
 
         # (c) over the size cap -> rejected.
+        import services.resources as _svc_res
         orig_max = m.RESOURCE_MAX_BYTES
         m.RESOURCE_MAX_BYTES = 4
+        _svc_res.RESOURCE_MAX_BYTES = 4
         try:
             big = FileStorage(stream=BytesIO(b"way too big"), filename="big.pdf")
             big_id, big_err = m.save_resource_file(folder, big, "", "", 1)
         finally:
             m.RESOURCE_MAX_BYTES = orig_max
+            _svc_res.RESOURCE_MAX_BYTES = orig_max
         self.assertIsNone(big_id)
         self.assertTrue(big_err)
 
