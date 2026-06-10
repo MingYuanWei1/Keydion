@@ -1,9 +1,13 @@
 # tests/test_ask_page_contract.py
 import ast
 import os
+import sys
 import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import support
 
 
 def _read(path):
@@ -13,12 +17,12 @@ def _read(path):
 
 class AskRouteRegistered(unittest.TestCase):
     def test_app_defines_ask_route_and_endpoint(self):
-        src = _read("app.py")
+        src = support.all_sources()
         self.assertIn('@app.route("/ask")', src)
         self.assertIn("def ask_library(", src)
 
     def test_app_defines_ask_api_route(self):
-        src = _read("app.py")
+        src = support.all_sources()
         self.assertIn('@app.route("/api/ask"', src)
 
 

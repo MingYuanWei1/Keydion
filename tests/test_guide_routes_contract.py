@@ -1,6 +1,10 @@
 import ast
+import sys
 import unittest
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import support
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -8,30 +12,24 @@ ROOT = Path(__file__).resolve().parents[1]
 class GuideRoutesContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app_source = (ROOT / "app.py").read_text(encoding="utf-8")
-        cls.app_tree = ast.parse(cls.app_source)
         cls.landing = (ROOT / "templates" / "landing.html").read_text(encoding="utf-8")
 
     def _route_decorators(self, func_name):
         """Return list of @app.route decorator argument dicts for a given function."""
         decorators = []
-        for node in ast.walk(self.app_tree):
-            if isinstance(node, ast.FunctionDef) and node.name == func_name:
-                for dec in node.decorator_list:
-                    if isinstance(dec, ast.Call) and getattr(dec.func, "attr", "") == "route":
-                        path = dec.args[0].value if dec.args else None
-                        methods = []
-                        for kw in dec.keywords:
-                            if kw.arg == "methods" and isinstance(kw.value, ast.List):
-                                methods = [e.value for e in kw.value.elts]
-                        decorators.append({"path": path, "methods": methods or ["GET"]})
+        node, _text = support.find_function(func_name)
+        for dec in node.decorator_list:
+            if isinstance(dec, ast.Call) and getattr(dec.func, "attr", "") == "route":
+                path = dec.args[0].value if dec.args else None
+                methods = []
+                for kw in dec.keywords:
+                    if kw.arg == "methods" and isinstance(kw.value, ast.List):
+                        methods = [e.value for e in kw.value.elts]
+                decorators.append({"path": path, "methods": methods or ["GET"]})
         return decorators
 
     def _function_source(self, name):
-        for node in ast.walk(self.app_tree):
-            if isinstance(node, ast.FunctionDef) and node.name == name:
-                return ast.get_source_segment(self.app_source, node)
-        return ""
+        return support.source_of(name)
 
     def test_public_routes_exist(self):
         self.assertEqual(self._route_decorators("guides"), [{"path": "/guides", "methods": ["GET"]}])
@@ -79,7 +77,7 @@ class GuideRoutesContractTest(unittest.TestCase):
 
     def test_read_guide_form_helper_exists(self):
         # A helper that maps request.form -> the canonical guide form dict.
-        self.assertIn("def _read_guide_form(", self.app_source,
+        self.assertIn("def _read_guide_form(", support.all_sources(),
                       "expected module-level helper _read_guide_form(form)")
 
     def test_admin_guide_publish_uses_read_guide_form(self):

@@ -8,13 +8,14 @@ corresponding fix. They guard:
   4. _read_guide_form treats an HTML-default checkbox value ("on") as published
   5. the public /guides index includes published guides that have no category
 """
-import ast
 import importlib
 import os
+import sys
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import support
 
 
 def _load_app():
@@ -26,16 +27,8 @@ def _load_app():
 
 
 class _SourceTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.src = (ROOT / "app.py").read_text(encoding="utf-8")
-        cls.tree = ast.parse(cls.src)
-
     def func_source(self, name):
-        for node in ast.walk(self.tree):
-            if isinstance(node, ast.FunctionDef) and node.name == name:
-                return ast.get_source_segment(self.src, node)
-        return ""
+        return support.source_of(name)
 
 
 class AdminUsersTemplateContextTest(_SourceTest):

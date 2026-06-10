@@ -6,12 +6,16 @@
 # cited paper stays as context for the rest of the conversation (the forced
 # grounding set is the union of every message's cited papers).
 import os
+import sys
 import unittest
 from pathlib import Path
 
 os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
 
 import app as app_module
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import support
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -55,7 +59,7 @@ class CitedPapersColumn(unittest.TestCase):
         self.assertIn("cited_papers", cols)
 
     def test_migration_present(self):
-        src = (Path(app_module.__file__).resolve().parent / "app.py").read_text(encoding="utf-8")
+        src = support.all_sources()
         self.assertIn("ALTER TABLE chat_messages ADD COLUMN cited_papers", src)
 
 

@@ -1,8 +1,12 @@
 import importlib
 import os
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import support
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -35,22 +39,13 @@ class CanViewNodeTest(unittest.TestCase):
         self.assertFalse(self.m._can_view_node(1, None))
 
 
-import ast
 from jinja2 import Environment, FileSystemLoader
 from types import SimpleNamespace
 
 
 class ResourcesRouteSourceTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.src = (ROOT / "app.py").read_text(encoding="utf-8")
-        cls.tree = ast.parse(cls.src)
-
     def _func(self, name):
-        for node in ast.walk(self.tree):
-            if isinstance(node, ast.FunctionDef) and node.name == name:
-                return ast.get_source_segment(self.src, node)
-        return ""
+        return support.source_of(name)
 
     def test_browse_route_checks_viewer_and_effective_role(self):
         s = self._func("resources")

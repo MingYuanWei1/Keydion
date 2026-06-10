@@ -1,7 +1,10 @@
-import ast
 import re
+import sys
 import unittest
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import support
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,13 +19,10 @@ class EeTotalGradeContractTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.app_source = (ROOT / "app.py").read_text(encoding="utf-8")
         cls.wizard_js = (ROOT / "static" / "js" / "upload-wizard.js").read_text(encoding="utf-8")
-        cls.app_tree = ast.parse(cls.app_source)
 
     def test_server_ee_total_recomputed_from_criteria(self):
-        helper = self._find_function("build_ib_ee_data_from_form")
-        src = ast.get_source_segment(self.app_source, helper)
+        src = support.source_of("build_ib_ee_data_from_form")
         self.assertIn('"total_grade_number": str(total_score)', src)
         self.assertNotIn('form.get("ib_total_grade_number"', src)
 
@@ -35,12 +35,6 @@ class EeTotalGradeContractTest(unittest.TestCase):
         # serializeToForm contains the wire-contract field list — verify the
         # untrusted total field never appears.
         self.assertNotIn("ib_total_grade_number", self.wizard_js)
-
-    def _find_function(self, name):
-        for node in ast.walk(self.app_tree):
-            if isinstance(node, ast.FunctionDef) and node.name == name:
-                return node
-        self.fail(f"Could not find function {name}")
 
 
 if __name__ == "__main__":

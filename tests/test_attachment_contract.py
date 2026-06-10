@@ -1,10 +1,14 @@
 # tests/test_attachment_contract.py
 import os
+import sys
 import unittest
 
 os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
 
 import app as app_module
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import support
 
 
 class ExtractTextFromUpload(unittest.TestCase):
@@ -136,8 +140,7 @@ class MessageAttachmentsColumn(unittest.TestCase):
         self.assertIn("attachments", cols)
 
     def test_migration_present(self):
-        from pathlib import Path
-        src = (Path(app_module.__file__).resolve().parent / "app.py").read_text(encoding="utf-8")
+        src = support.all_sources()
         self.assertIn("ALTER TABLE chat_messages ADD COLUMN attachments", src)
 
 

@@ -1,4 +1,3 @@
-import ast
 import json
 import sys
 import unittest
@@ -6,7 +5,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import support  # noqa: E402
 from app import parse_ib_ee_data_for_form, parse_cp_data_for_form  # noqa: E402
 
 
@@ -71,18 +72,10 @@ class UploadValidatorContractTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.app_source = (ROOT / "app.py").read_text(encoding="utf-8")
-        cls.app_tree = ast.parse(cls.app_source)
-
-    def _find_function(self, name):
-        for node in ast.walk(self.app_tree):
-            if isinstance(node, ast.FunctionDef) and node.name == name:
-                return node
-        self.fail(f"Could not find function {name}")
+        cls.app_source = support.all_sources()
 
     def test_upload_uses_per_type_required_cascade(self):
-        upload_fn = self._find_function("upload")
-        src = ast.get_source_segment(self.app_source, upload_fn)
+        src = support.source_of("upload")
         # New shape: a single `required` list that conditionally includes
         # "keywords" / "abstract" only when neither EE nor CP. Subject category
         # is required for every type except CP papers.
@@ -99,13 +92,11 @@ class UploadValidatorContractTest(unittest.TestCase):
 
     def test_upload_uses_render_helper(self):
         """The 8-way repeated render_template(...) is collapsed into one helper."""
-        upload_fn = self._find_function("upload")
-        src = ast.get_source_segment(self.app_source, upload_fn)
+        src = support.source_of("upload")
         # Helper exists and is called from validators.
         self.assertIn("_render_upload(", src)
         # And the helper itself exists.
-        helper = self._find_function("_render_upload")
-        helper_src = ast.get_source_segment(self.app_source, helper)
+        helper_src = support.source_of("_render_upload")
         self.assertIn('render_template("upload.html"', helper_src)
 
     def test_missing_field_messages_table_exists(self):
@@ -121,7 +112,7 @@ class DraftHydrationContractTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.app_source = (ROOT / "app.py").read_text(encoding="utf-8")
+        cls.app_source = support.all_sources()
 
     def test_upload_get_calls_parse_ee_and_parse_cp(self):
         # Locate the draft-load branch inside upload() and confirm both
@@ -144,7 +135,7 @@ class WizardBootContractTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.app_source = (ROOT / "app.py").read_text(encoding="utf-8")
+        cls.app_source = support.all_sources()
 
     def test_render_upload_builds_wizard_boot_with_required_keys(self):
         helper_start = self.app_source.find("def _render_upload(")
@@ -166,7 +157,7 @@ class PaperTypeHydrationContractTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.app_source = (ROOT / "app.py").read_text(encoding="utf-8")
+        cls.app_source = support.all_sources()
 
     def test_parse_ee_sets_is_ib_ee_flag(self):
         out = parse_ib_ee_data_for_form('{"core_subject":"Economics","criteria":{}}')

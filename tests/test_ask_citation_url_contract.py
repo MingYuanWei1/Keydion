@@ -8,28 +8,20 @@ dashboard preview modal; the Ask feature is available to every signed-in user
 (and to guests under OPEN_ACCESS), so a citation pointing there yields a 401 for
 non-admins and a raw JSON dump for admins instead of the paper.
 """
-import ast
 import os
+import sys
 import unittest
+from pathlib import Path
 
 os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
 
-APP_PY = os.path.join(os.path.dirname(__file__), "..", "app.py")
-
-
-def _api_ask_source():
-    with open(APP_PY, "r", encoding="utf-8") as fh:
-        src = fh.read()
-    tree = ast.parse(src)
-    for node in ast.walk(tree):
-        if isinstance(node, ast.FunctionDef) and node.name == "api_ask":
-            return ast.get_source_segment(src, node)
-    raise AssertionError("api_ask view function not found in app.py")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import support
 
 
 class AskCitationUrl(unittest.TestCase):
     def setUp(self):
-        self.src = _api_ask_source()
+        self.src = support.source_of("api_ask")
 
     def test_citations_link_to_preview_page(self):
         self.assertIn(

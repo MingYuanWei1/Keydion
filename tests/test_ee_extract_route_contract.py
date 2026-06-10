@@ -1,9 +1,10 @@
-import ast
 import re
+import sys
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import support
 
 
 class EeExtractRouteContractTest(unittest.TestCase):
@@ -15,8 +16,7 @@ class EeExtractRouteContractTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.source = (ROOT / "app.py").read_text(encoding="utf-8")
-        cls.tree = ast.parse(cls.source)
+        cls.source = support.all_sources()
 
     def test_route_path_present(self):
         self.assertIn(

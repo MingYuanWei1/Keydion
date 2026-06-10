@@ -1,7 +1,11 @@
 import ast
 import re
+import sys
 import unittest
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import support
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -10,9 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class PaperModifyContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app_source = (ROOT / "app.py").read_text(encoding="utf-8")
         cls.template = (ROOT / "templates" / "paper_modify.html").read_text(encoding="utf-8")
-        cls.app_tree = ast.parse(cls.app_source)
 
     def test_modify_template_exposes_editable_ib_ee_and_cp_fields(self):
         required_names = {
@@ -84,7 +86,7 @@ class PaperModifyContractTest(unittest.TestCase):
         self.assertIn("ib_ee_data", modify_keys)
         self.assertIn("cp_data", modify_keys)
 
-        paper_modify_source = ast.get_source_segment(self.app_source, paper_modify)
+        paper_modify_source = support.source_of("paper_modify")
         self.assertIn("if is_ib_sample:", paper_modify_source)
         self.assertNotIn("if is_ib_sample or is_cp_paper:", paper_modify_source)
 
@@ -101,10 +103,8 @@ class PaperModifyContractTest(unittest.TestCase):
         self.assertIn("published_at", modify_keys)
 
     def _find_function(self, name):
-        for node in ast.walk(self.app_tree):
-            if isinstance(node, ast.FunctionDef) and node.name == name:
-                return node
-        self.fail(f"Could not find function {name}")
+        node, _text = support.find_function(name)
+        return node
 
 
 if __name__ == "__main__":

@@ -1,8 +1,11 @@
-import ast
+import sys
 import unittest
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 from types import SimpleNamespace
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import support
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -10,14 +13,10 @@ ROOT = Path(__file__).resolve().parents[1]
 class OpenAccessContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app_source = (ROOT / "app.py").read_text(encoding="utf-8")
-        cls.app_tree = ast.parse(cls.app_source)
+        cls.app_source = support.all_sources()
 
     def _function_source(self, name):
-        for node in ast.walk(self.app_tree):
-            if isinstance(node, ast.FunctionDef) and node.name == name:
-                return ast.get_source_segment(self.app_source, node)
-        return ""
+        return support.source_of(name)
 
     def test_open_access_flag_defined_from_env(self):
         self.assertIn("PAPERQUERY_OPEN_ACCESS", self.app_source)

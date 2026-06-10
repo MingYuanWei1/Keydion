@@ -1,9 +1,11 @@
-import ast
 import re
+import sys
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import support
+
 PATH = "/api/upload/generate-abstract-keywords"
 FUNC = "api_generate_abstract_keywords"
 
@@ -17,13 +19,8 @@ class AbstractKeywordsRouteContractTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.source = (ROOT / "app.py").read_text(encoding="utf-8")
-        tree = ast.parse(cls.source)  # also a sanity check that app.py parses
-        cls.route_src = None
-        for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef) and node.name == FUNC:
-                cls.route_src = ast.get_source_segment(cls.source, node)
-                break
+        cls.source = support.all_sources()
+        cls.route_src = support.source_of(FUNC)
 
     # ── module-level wiring (whole-source) ──────────────────────────────
     def test_route_path_present(self):

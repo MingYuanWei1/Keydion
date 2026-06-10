@@ -1,6 +1,9 @@
-import ast
+import sys
 import unittest
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import support
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -137,16 +140,8 @@ class DashboardShellTemplateContractTest(unittest.TestCase):
 
 
 class DashboardRouteContractTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.app_source = (ROOT / "app.py").read_text(encoding="utf-8")
-        cls.app_tree = ast.parse(cls.app_source)
-
     def _dashboard_source(self):
-        for node in ast.walk(self.app_tree):
-            if isinstance(node, ast.FunctionDef) and node.name == "dashboard":
-                return ast.get_source_segment(self.app_source, node)
-        self.fail("dashboard route not found")
+        return support.source_of("dashboard")
 
     def test_dashboard_branches_on_partial_request(self):
         src = self._dashboard_source()
