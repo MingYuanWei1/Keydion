@@ -1,0 +1,228 @@
+"""Configuration: .env loading + all application constants.
+
+MUST be imported before any module reads os.environ (it loads .env/.env.prod).
+"""
+from __future__ import annotations
+import os
+from datetime import timedelta
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Prefer .env.prod (production) when present; fall back to .env only if it is absent.
+_ENV_DIR = os.path.dirname(os.path.abspath(__file__))
+_ENV_FILE = os.path.join(_ENV_DIR, ".env.prod")
+if not os.path.exists(_ENV_FILE):
+    _ENV_FILE = os.path.join(_ENV_DIR, ".env")
+load_dotenv(_ENV_FILE)
+
+from flask_babel import lazy_gettext as _l  # noqa: E402  (ROLE_OPTIONS etc. use _l)
+
+# --- constants moved verbatim from app.py below this line ---
+
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = Path(os.environ.get("PAPERQUERY_DATA_DIR", BASE_DIR / "data")).resolve()
+PAPERS_DIR = Path(os.environ.get("PAPERQUERY_UPLOAD_DIR", BASE_DIR / "papers")).resolve()
+LOCAL_USER_FIELDS = ["username", "password", "registration_date", "expiry_date", "role", "email", "first_name", "last_name", "school"]
+NEWS_FIELDS = ["id", "title", "category", "abstract", "body", "author", "image_url", "published_at", "status"]
+GUIDE_FIELDS = [
+    "id", "slug", "category", "sort_order", "published",
+    "title_en", "title_zh", "summary_en", "summary_zh",
+    "body_en", "body_zh", "created_at", "updated_at",
+]
+GUIDE_CATEGORIES_JSON = DATA_DIR / "guide_categories.json"
+_DEFAULT_GUIDE_CATEGORIES = [
+    "Getting Started", "Account", "Submissions", "News", "Other",
+]
+_DEFAULT_NEWS_CATEGORIES = [
+    "活动回顾", "期刊发布", "讲座预告", "成果展示",
+    "公告通知", "学术动态", "社团新闻", "其他",
+]
+CATEGORIES_JSON = DATA_DIR / "news_categories.json"
+JOURNALS_JSON = DATA_DIR / "paper_journals.json"
+_DEFAULT_PAPER_CATEGORIES = ["literature", "natural-science", "social-science", "humanities"]
+PENDING_PAPERS_DIR = DATA_DIR / "pending_papers"
+
+
+# ---- IB EE Subject helpers ----
+
+_EE_SUBJECTS_PATH = DATA_DIR / "ee_subjects.json"
+
+_EE_SUBJECTS_DEFAULT = {
+    "groups": [
+        {
+            "id": 1,
+            "name": "Group 1: Studies in Language and Literature",
+            "subjects": [
+                "Language A: Literature",
+                "Language A: Language and Literature",
+                "Literature and Performance"
+            ]
+        },
+        {
+            "id": 2,
+            "name": "Group 2: Language Acquisition",
+            "subjects": [
+                "Language B",
+                "Language ab initio",
+                "Classical Languages"
+            ]
+        },
+        {
+            "id": 3,
+            "name": "Group 3: Individuals and Societies",
+            "subjects": [
+                "Business Management",
+                "Economics",
+                "Geography",
+                "Global Politics",
+                "History",
+                "Information Technology in a Global Society",
+                "Philosophy",
+                "Psychology",
+                "Social and Cultural Anthropology",
+                "World Religions"
+            ]
+        },
+        {
+            "id": 4,
+            "name": "Group 4: Sciences",
+            "subjects": [
+                "Biology",
+                "Chemistry",
+                "Computer Science",
+                "Design Technology",
+                "Environmental Systems and Societies",
+                "Physics",
+                "Sports, Exercise and Health Science"
+            ]
+        },
+        {
+            "id": 5,
+            "name": "Group 5: Mathematics",
+            "subjects": [
+                "Mathematics: Analysis and Approaches",
+                "Mathematics: Applications and Interpretation"
+            ]
+        },
+        {
+            "id": 6,
+            "name": "Group 6: The Arts",
+            "subjects": [
+                "Dance",
+                "Film",
+                "Music",
+                "Theatre",
+                "Visual Arts"
+            ]
+        }
+    ],
+    "interdisciplinary_subjects": [
+        "Environmental Systems and Societies",
+        "Literature and Performance",
+        "World Studies"
+    ]
+}
+
+JOURNAL_COVERS_DIR = BASE_DIR / "static" / "uploads" / "journal_covers"
+ALLOWED_EXTENSIONS = {"pdf"}
+ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+NEWS_IMAGES_DIR = BASE_DIR / "static" / "uploads" / "news"
+GUIDE_IMAGES_DIR = BASE_DIR / "static" / "uploads" / "guides"
+GUIDE_IMAGE_MAX_BYTES = 5 * 1024 * 1024  # 5 MB
+RESOURCES_DIR = Path(os.environ.get("PAPERQUERY_RESOURCES_DIR", BASE_DIR / "resource_files")).resolve()
+# Resource library upload allowlist: extension -> MIME type.
+RESOURCE_ALLOWED_EXTENSIONS = {
+    "pdf": "application/pdf",
+    "doc": "application/msword",
+    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "ppt": "application/vnd.ms-powerpoint",
+    "pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "xls": "application/vnd.ms-excel",
+    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "png": "image/png",
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "gif": "image/gif",
+    "webp": "image/webp",
+}
+# MIME types the browser can render inline (everything else is download-only).
+PREVIEWABLE_MIMES = {"application/pdf", "image/png", "image/jpeg", "image/gif", "image/webp"}
+RESOURCE_MAX_BYTES = int(os.environ.get("PAPERQUERY_RESOURCE_MAX_MB", "50")) * 1024 * 1024
+MAX_SEARCH_RESULTS = 20
+MIN_SEMANTIC_QUERY_LEN = 2   # skip embedding for 1-char queries (idea #4)
+PASSWORD_SCHEME = "pbkdf2_sha256"
+SUPPORTED_LOCALES = ("en", "zh")
+SESSION_TIMEOUT_SECONDS = int(os.environ.get("PAPERQUERY_SESSION_TIMEOUT", "3600"))
+OPEN_ACCESS = os.environ.get("PAPERQUERY_OPEN_ACCESS", "0").strip().lower() in ("1", "true", "yes", "on")
+SESSION_TIMEOUT = timedelta(seconds=SESSION_TIMEOUT_SECONDS)
+METADATA_FIELDS = ["filename", "title", "journal", "category", "language", "keywords", "abstract", "author_name", "author_email", "author_school", "published_at", "ib_ee_data", "is_ib_sample", "cp_data"]
+MS_USER_FIELDS = [
+    "ms_id",
+    "tenant_id",
+    "email",
+    "display_name",
+    "first_name",
+    "last_name",
+    "school",
+    "grade",
+    "role",
+    "password",
+    "created_at",
+    "updated_at",
+]
+MS_CLIENT_ID = os.environ.get("PAPERQUERY_MS_CLIENT_ID")
+MS_CLIENT_SECRET = os.environ.get("PAPERQUERY_MS_CLIENT_SECRET")
+MS_REDIRECT_URI = os.environ.get("PAPERQUERY_MS_REDIRECT_URI", "http://127.0.0.1:5000/auth/callback")
+MS_AUTHORITY = os.environ.get("PAPERQUERY_MS_AUTHORITY", "https://login.microsoftonline.com/common")
+MS_SCOPES = ["User.Read"]
+MS_GRAPH_ME_URL = "https://graph.microsoft.com/v1.0/me"
+ROLE_OPTIONS = [
+    ("1", "Reader"),
+    ("2", "Moderator"),
+    ("3", "Admin"),
+]
+
+_MISSING_FIELD_MESSAGES = {
+    "title": _l("Please enter the paper title"),
+    "category": _l("Please select a subject category"),
+    "language": _l("Please select a language"),
+    "keywords": _l("Please enter keywords"),
+    "abstract": _l("Please enter the abstract"),
+    "author_name": _l("Please enter the author name"),
+    "author_email": _l("Please enter the contact email"),
+    "author_school": _l("Please enter the school name"),
+}
+
+# CP Paper (MYP Community Project) constants
+IB_EE_CRITERIA_DEFS = [
+    ("A", "Framework for the essay", 6),
+    ("B", "Knowledge and understanding", 6),
+    ("C", "Analysis and line of argument", 6),
+    ("D", "Discussion and evaluation", 8),
+    ("E", "Reflection", 4),
+]
+CP_GLOBAL_CONTEXTS = [
+    "Identities and Relationships",
+    "Orientation in Space and Time",
+    "Personal and Cultural Expression",
+    "Scientific and Technical Innovation",
+    "Globalization and Sustainability",
+    "Fairness and Development",
+]
+CP_ACTION_TYPES = ["Direct Service", "Indirect Service", "Research", "Advocacy"]
+CP_CRITERIA_DEFS = [
+    ("A", "Investigating", 8),
+    ("B", "Planning", 8),
+    ("C", "Taking Action", 8),
+    ("D", "Reflecting", 8),
+]
+
+ROLE_LABELS = {
+    1: _l("Reader - View & Download"),
+    2: _l("Contributor - Upload Enabled"),
+    3: _l("Curator - Full Access"),
+}
+LANGUAGE_NAMES = {
+    "en": _l("English"),
+    "zh": _l("Chinese"),
+}
