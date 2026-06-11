@@ -85,9 +85,25 @@ class UploadValidatorContractTest(unittest.TestCase):
         )
         self.assertIn('if not (is_ib_ee or is_cp_paper):', src)
         self.assertIn('required += ["keywords", "abstract"]', src)
-        self.assertIn('if not is_ib_sample:', src)
+        self.assertIn('if not (is_ib_sample or is_anonymous):', src)
         self.assertIn(
             'required += ["author_name", "author_email", "author_school"]', src
+        )
+
+    def test_upload_handles_anonymous_author_bypass(self):
+        src = support.source_of("upload")
+        # IB Sample wins if both flags somehow arrive.
+        self.assertIn(
+            'is_anonymous = not is_ib_sample and request.form.get("is_anonymous") == "1"',
+            src,
+        )
+        self.assertIn("elif is_anonymous:", src)
+        # Carried on form_data for re-renders and the wizard boot.
+        self.assertIn('"is_anonymous": "1" if is_anonymous else ""', src)
+        # Persisted in: draft update, draft create, direct publish upsert,
+        # pending update, pending create.
+        self.assertGreaterEqual(
+            src.count('"is_anonymous": form_data.get("is_anonymous", "")'), 5
         )
 
     def test_upload_uses_render_helper(self):
@@ -113,6 +129,14 @@ class DraftHydrationContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.app_source = support.all_sources()
+
+    def test_draft_get_hydrates_is_anonymous(self):
+        marker = 'if request.method == "GET" and draft_id:'
+        start = self.app_source.find(marker)
+        self.assertNotEqual(start, -1, "draft GET branch not found")
+        end = self.app_source.find("return _render_upload(", start)
+        slice_ = self.app_source[start:end]
+        self.assertIn('"is_anonymous": draft.get("is_anonymous", "")', slice_)
 
     def test_upload_get_calls_parse_ee_and_parse_cp(self):
         # Locate the draft-load branch inside upload() and confirm both

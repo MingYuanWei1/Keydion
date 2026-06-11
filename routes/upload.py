@@ -266,6 +266,7 @@ def register_routes(app):
                     "author_email": draft.get("author_email", ""),
                     "author_school": draft.get("author_school", ""),
                     "is_ib_sample": draft.get("is_ib_sample", ""),
+                    "is_anonymous": draft.get("is_anonymous", ""),
                     "ib_ee_data": draft.get("ib_ee_data", ""),
                     "cp_data": draft.get("cp_data", ""),
                     "published_at": today,
@@ -280,11 +281,17 @@ def register_routes(app):
         raw_schools = request.form.getlist("author_school")
 
         is_ib_sample = request.form.get("is_ib_sample") == "1"
+        is_anonymous = not is_ib_sample and request.form.get("is_anonymous") == "1"
 
         if is_ib_sample:
             author_names = ["IB SAMPLE"]
             author_emails = [""]
             author_schools = [""]
+        elif is_anonymous:
+            # Anonymous upload: no author info is collected or stored.
+            author_names = []
+            author_emails = []
+            author_schools = []
         else:
             author_names = []
             author_emails = []
@@ -308,6 +315,7 @@ def register_routes(app):
             "author_school": ", ".join(author_schools),
             "published_at": today,
             "is_ib_sample": "1" if is_ib_sample else "",
+            "is_anonymous": "1" if is_anonymous else "",
         }
 
         # ---- IB EE data processing ----
@@ -352,6 +360,7 @@ def register_routes(app):
                         "author_email": form_data["author_email"],
                         "author_school": form_data["author_school"],
                         "is_ib_sample": form_data.get("is_ib_sample", ""),
+                        "is_anonymous": form_data.get("is_anonymous", ""),
                         "ib_ee_data": form_data.get("ib_ee_data", ""),
                         "cp_data": form_data.get("cp_data", ""),
                         "submitted_at": now,
@@ -380,6 +389,7 @@ def register_routes(app):
                         "author_email": form_data["author_email"],
                         "author_school": form_data["author_school"],
                         "is_ib_sample": form_data.get("is_ib_sample", ""),
+                        "is_anonymous": form_data.get("is_anonymous", ""),
                         "ib_ee_data": form_data.get("ib_ee_data", ""),
                         "cp_data": form_data.get("cp_data", ""),
                     }
@@ -388,11 +398,11 @@ def register_routes(app):
                 return redirect(url_for("my_submissions"))
 
             # Per-type required-field cascade. Keywords/abstract apply to Standard
-            # papers only; author fields are skipped for IB Sample submissions.
+            # papers only; author fields are skipped for IB Sample and anonymous submissions.
             required = ["title", "language"] if is_cp_paper else ["title", "category", "language"]
             if not (is_ib_ee or is_cp_paper):
                 required += ["keywords", "abstract"]
-            if not is_ib_sample:
+            if not (is_ib_sample or is_anonymous):
                 required += ["author_name", "author_email", "author_school"]
 
             for field in required:
@@ -460,6 +470,7 @@ def register_routes(app):
                                     "author_school": form_data["author_school"],
                                     "published_at": form_data["published_at"],
                                     "is_ib_sample": form_data.get("is_ib_sample", ""),
+                                    "is_anonymous": form_data.get("is_anonymous", ""),
                                     "ib_ee_data": form_data.get("ib_ee_data", ""),
                                     "cp_data": form_data.get("cp_data", ""),
                                 },
@@ -492,6 +503,7 @@ def register_routes(app):
                                 "author_email": form_data["author_email"],
                                 "author_school": form_data["author_school"],
                                 "is_ib_sample": form_data.get("is_ib_sample", ""),
+                                "is_anonymous": form_data.get("is_anonymous", ""),
                                 "ib_ee_data": form_data.get("ib_ee_data", ""),
                                 "cp_data": form_data.get("cp_data", ""),
                             })
@@ -517,6 +529,7 @@ def register_routes(app):
                                 "author_email": form_data["author_email"],
                                 "author_school": form_data["author_school"],
                                 "is_ib_sample": form_data.get("is_ib_sample", ""),
+                                "is_anonymous": form_data.get("is_anonymous", ""),
                                 "ib_ee_data": form_data.get("ib_ee_data", ""),
                                 "cp_data": form_data.get("cp_data", ""),
                             }
