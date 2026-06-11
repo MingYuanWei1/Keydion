@@ -111,7 +111,7 @@ Environment variables: see `.env.example` for the full annotated list. The impor
 - `config.py` — env loading + constants; **must be imported before reading `os.environ`**
 - `db.py` — engine/session setup; `get_engine()` is what gunicorn `post_fork` uses
 - `models.py` — the 13 ORM classes + `init_db()`
-- `routes/<domain>.py` — HTTP routes per domain (shared, resources, guides, news, journals, upload, submissions, ask, papers), each exposing `register_routes(app)`; endpoint names are unchanged from the monolith — these are **not** blueprints
+- `routes/<domain>.py` — HTTP routes per domain (resources, guides, news, journals, upload, submissions, ask, papers), each exposing `register_routes(app)`; `routes/shared.py` holds cross-domain HTTP helpers; endpoint names are unchanged from the monolith — these are **not** blueprints
 - `services/<domain>.py` — domain logic (DB/storage helpers)
 - Hard rule: `routes/` and `services/` modules never import `app` (enforced by `tests/test_split_imports_contract.py`)
 
@@ -179,7 +179,7 @@ Tests are **contract tests**, not integration tests. They locate source via `tes
 - Data round-trip contracts (fields are carried through load/write functions)
 - Server-side logic contracts (EE total grade is calculated server-side, not trusted from the form)
 
-19 of the 55 test files `import app` (directly or via `from app import ...`), which connects to MySQL at import time — **the full suite needs a reachable database**; without one those modules fail at import with `OperationalError`. This caveat applies to `import app` only — the extracted modules (`config`, `db`, `models`, `routes/*`, `services/*`) import without a DB. The remaining files are pure AST/template tests and run standalone.
+20 of the 55 test files `import app` (directly or via `from app import ...`), which connects to MySQL at import time — **the full suite needs a reachable database**; without one those modules fail at import with `OperationalError`. This caveat applies to `import app` only — the extracted modules (`config`, `db`, `models`, `routes/*`, `services/*`) import without a DB. The remaining files are pure AST/template tests and run standalone.
 
 Conventional commits (`feat:`, `fix:`, with optional scope like `fix(i18n):`) are used.
 

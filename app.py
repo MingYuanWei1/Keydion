@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import os
-import shutil
 from datetime import datetime, timedelta
 from typing import Dict
 from uuid import uuid4
@@ -18,7 +17,7 @@ from flask import (
     session,
     url_for,
 )
-from flask_babel import Babel, gettext as _, get_locale, lazy_gettext as _l
+from flask_babel import Babel, gettext as _, get_locale
 from werkzeug.middleware.proxy_fix import ProxyFix
 import llm_client
 import rag_index  # noqa: F401  -- gunicorn post_fork pre-warms app_module.rag_index
