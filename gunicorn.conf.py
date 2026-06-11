@@ -26,6 +26,6 @@ def post_fork(server, worker):
         engine.dispose()
     try:
         with app_module.create_app().app_context():
-            app_module.rag_index.paper_vectors()   # pre-warm
+            app_module.rag_index.warm()   # pre-warm the vector snapshot
     except Exception:
         worker.log.exception("vector pre-warm failed")
