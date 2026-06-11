@@ -1,0 +1,590 @@
+"""Upload wizard + upload-related API routes."""
+import json
+from datetime import datetime
+from uuid import uuid4
+
+from flask import (
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
+from flask_babel import gettext as _
+from werkzeug.utils import secure_filename
+
+import llm_client
+from config import (
+    CP_ACTION_TYPES,
+    CP_GLOBAL_CONTEXTS,
+    PAPERS_DIR,
+    PENDING_PAPERS_DIR,
+    _MISSING_FIELD_MESSAGES,
+)
+from ee_pdf_extractor import EePdfExtractionError, extract_ee_metadata
+from llm_metadata import LLMMetadataError, generate_abstract_keywords
+from services.auth import require_login
+from services.journals import get_journal_names
+from services.papers import (
+    _build_safe_paper_filename,
+    allowed_file,
+    build_cp_data_from_form,
+    build_ib_ee_data_from_form,
+    load_ee_subjects,
+    load_paper_categories,
+    parse_cp_data_for_form,
+    parse_ib_ee_data_for_form,
+    set_pdf_metadata,
+    upsert_paper_metadata,
+)
+from services.submissions import (
+    _get_submission,
+    _save_submission,
+    _update_submission,
+)
+
+
+def register_routes(app):
+
+    # ==================== UPLOAD ROUTES ====================
+
+    def _render_upload(user, form_data, draft_id):
+        """Render upload.html with the wizard_boot context the JS needs."""
+        try:
+            _role = int(user.get("role", "1"))
+        except (TypeError, ValueError):
+            _role = 1
+        wizard_boot = {
+            "submit_url": url_for("upload"),
+            "draft_id": draft_id or "",
+            "form_data": form_data,
+            "paper_categories": load_paper_categories(),
+            "ee_subjects": load_ee_subjects(),
+            "cp_global_contexts": CP_GLOBAL_CONTEXTS,
+            "cp_action_types": CP_ACTION_TYPES,
+            "user_key": user.get("username", ""),
+            "llm_metadata_enabled": llm_client.llm_enabled() and _role >= 2,
+            "i18n": {
+                "step_name_type": _("Paper Type"),
+                "step_name_metadata": _("Metadata"),
+                "step_name_authors": _("Authors"),
+                "step_name_file": _("File"),
+                "step_name_review": _("Review"),
+                "step_label": _("Step %(n)s"),
+                "submit_paper": _("Submit Paper"),
+                "continue": _("Continue →"),
+                "back": _("← Back"),
+                "save_draft": _("Save Draft"),
+                "choose_paper_type": _("Choose paper type"),
+                "what_kind": _("What kind of paper are you submitting?"),
+                "what_kind_sub": _("The fields you'll be asked for next depend on this. You can come back and change it before submitting."),
+                "type_tag_standard": _("Independent Research"),
+                "type_title_standard": _("Standard Paper"),
+                "type_body_standard": _("A self-directed research paper, conference paper, or article."),
+                "type_meta_standard": _("Title · authors · abstract · subject"),
+                "type_tag_ee": _("IB Diploma"),
+                "type_title_ee": _("Extended Essay (EE)"),
+                "type_body_ee": _("A 4,000-word IB Diploma research essay with structured criterion scores (A–E) and an EE subject from the six IB subject groups."),
+                "type_meta_ee": _("Research Question · EE subject · criterion scores A–E"),
+                "type_tag_cp": _("IB Diploma"),
+                "type_title_cp": _("Community Project (CP)"),
+                "type_body_cp": _("An IB MYP Community Project graded against Criteria A–D, with a Global Context and a chosen type of action."),
+                "type_meta_cp": _("Title · Global Context · type of action · criteria A–D"),
+                "research_question": _("Research Question"),
+                "paper_title": _("Paper Title"),
+                "research_question_ph": _("e.g. To what extent did monetary policy contribute to the 2008 financial crisis?"),
+                "paper_title_ph": _("Enter the complete paper title"),
+                "tell_us_ee": _("Tell us about your essay"),
+                "tell_us_cp": _("Tell us about your community project"),
+                "tell_us_std": _("Tell us about your paper"),
+                "metadata_sub_ib": _("IB grading information and bibliographic details for the submission."),
+                "metadata_sub_std": _("Bibliographic information that will appear on the public paper page."),
+                "paper_details": _("Paper details"),
+                "bibliographic": _("Bibliographic"),
+                "language": _("Language"),
+                "english": _("English"),
+                "chinese": _("Chinese"),
+                "subject_category": _("Subject Category"),
+                "choose_category": _("Choose a subject category…"),
+                "keywords": _("Keywords"),
+                "add_another": _("Add another…"),
+                "keyword_ph": _("Type a keyword and press Enter"),
+                "keyword_hint": _("Press Enter or comma to add. Aim for 3–6 keywords."),
+                "added": _("added"),
+                "abstract": _("Abstract"),
+                "abstract_ph": _("Briefly describe your research background, methods, and conclusions…"),
+                "abstract_hint": _("A short summary that appears in search results."),
+                "is_ib_sample": _("This is an IB Sample Paper"),
+                "is_ib_sample_hint": _("Sample papers are reference essays without an identified author. Checking this will skip the Authors step."),
+                "crit_ee_A": _("Framework for the essay"),
+                "crit_ee_B": _("Knowledge and understanding"),
+                "crit_ee_C": _("Analysis and line of argument"),
+                "crit_ee_D": _("Discussion and evaluation"),
+                "crit_ee_E": _("Reflection"),
+                "ee_subject": _("EE Subject"),
+                "core_subject": _("Core Subject"),
+                "select_core": _("Select a core subject…"),
+                "inter_subject": _("Interdisciplinary"),
+                "optional": _("Optional"),
+                "select_inter": _("Optional — select if applicable…"),
+                "crit_scores": _("Criterion Scores"),
+                "crit": _("Crit."),
+                "criterion": _("Criterion"),
+                "score": _("Score"),
+                "overall_grade": _("Overall Grade"),
+                "overall_ee_sub": _("Calculated server-side from the criteria above"),
+                "crit_comments": _("Criterion Commentaries"),
+                "include_comments": _("Include commentaries for all criteria"),
+                "include_comments_hint": _("Provide short remarks on each criterion plus an optional overall holistic commentary."),
+                "crit_comment_ph": _("Commentary for Criterion %(k)s…"),
+                "holistic_comment": _("Holistic Commentary"),
+                "holistic_ph": _("An overall holistic commentary for the essay…"),
+                "crit_cp_A": _("Investigating"),
+                "crit_cp_B": _("Planning"),
+                "crit_cp_C": _("Taking Action"),
+                "crit_cp_D": _("Reflecting"),
+                "global_context": _("Global Context"),
+                "select_global": _("Select a Global Context…"),
+                "global_contexts": _("Global Contexts"),
+                "type_of_action": _("Type of Action"),
+                "overall_cp_sub": _("Mean of the four criterion scores, rounded"),
+                "author_info": _("Author information"),
+                "who_wrote": _("Who wrote this?"),
+                "authors_sub": _("The first author's contact details are required. Add co-authors as needed."),
+                "name": _("Name"),
+                "email": _("Email"),
+                "school": _("School / Institution"),
+                "remove_author": _("Remove author"),
+                "add_author": _("+ Add another author"),
+                "file_upload": _("File upload"),
+                "upload_pdf": _("Upload your PDF"),
+                "upload_pdf_sub": _("Submit a single PDF, up to 50 MB. You can change this before publishing."),
+                "no_file_chosen": _("No file chosen"),
+                "pdf_only_single": _("PDF only · single file"),
+                "replace_file": _("Replace"),
+                "choose_file": _("Choose file"),
+                "file_save_hint": _("If you'd like to come back to this later, click Save Draft below — your form will be restored next time you visit."),
+                "paper_type": _("Paper Type"),
+                "first_author": _("First author (name, email, school)"),
+                "ee_core": _("EE core subject"),
+                "ee_score_x": _("EE criterion score %(k)s"),
+                "cp_global": _("Global context"),
+                "cp_action_label": _("Type of action"),
+                "cp_score_x": _("CP criterion score %(k)s"),
+                "pdf_file": _("PDF file"),
+                "type_standard": _("Independent Research Paper"),
+                "type_ee": _("IB Extended Essay"),
+                "type_cp": _("IB Community Project"),
+                "review_submit": _("Review & submit"),
+                "almost_there": _("Almost there — review your submission"),
+                "review_sub": _("Make sure everything looks right. You can jump back to any section to make changes."),
+                "missing_fields_one": _("1 field still needs attention"),
+                "missing_fields_many": _("%(n)s fields still need attention"),
+                "go_to": _("go to %(step)s"),
+                "everything_filled": _("Everything required is filled in."),
+                "submit_cta": _("Click Submit Paper below to send your submission for review."),
+                "edit": _("Edit"),
+                "type": _("Type"),
+                "metadata_title": _("Metadata"),
+                "research_q_short": _("Research Q."),
+                "title_short": _("Title"),
+                "not_provided": _("Not provided"),
+                "not_chosen": _("Not chosen"),
+                "subject": _("Subject"),
+                "none": _("None"),
+                "not_written": _("Not written"),
+                "ib_sample": _("IB Sample"),
+                "yes_skipped": _("Yes — author info skipped"),
+                "no": _("No"),
+                "authors": _("Authors"),
+                "author": _("Author"),
+                "file": _("File"),
+                "no_file_uploaded": _("No file uploaded"),
+                "ee_details": _("EE Details"),
+                "total": _("Total"),
+                "cp_details": _("CP Details"),
+                "none_selected": _("None selected"),
+                "avg_grade": _("Avg. Grade"),
+                "saving": _("Saving…"),
+                "draft_saved_at": _("Draft saved · %(time)s"),
+                "restore_banner_title": _("Unsaved changes from earlier"),
+                "restore_banner_body": _("Your last session in this browser had changes you didn't save. Restore them?"),
+                "discard_btn": _("Discard"),
+                "restore_btn": _("Restore"),
+                "search": _("Search…"),
+                "no_matches": _("No matches"),
+                "ee_autofill_btn": _("Auto-fill from commentary PDF"),
+                "ee_autofill_extracting": _("Extracting…"),
+                "ee_autofill_ok": _("Extracted all fields."),
+                "ee_autofill_partial": _("Extracted %(filled)s of %(total)s fields."),
+                "ee_autofill_error": _("Auto-fill failed — try again or fill manually."),
+                "ee_autofill_overwrite": _("Replace your existing EE entries with values from the PDF?"),
+                "meta_autofill_btn": _("Generate abstract & keywords from PDF"),
+                "meta_autofill_extracting": _("Generating…"),
+                "meta_autofill_ok": _("Generated abstract and keywords."),
+                "meta_autofill_error": _("Generation failed — try again or fill manually."),
+                "meta_autofill_no_file": _("Upload your PDF in the File step first."),
+                "meta_autofill_overwrite": _("Replace your existing title, authors, abstract and keywords with AI-generated ones?"),
+            },
+        }
+        return render_template("upload.html",
+            user=user,
+            form_data=form_data,
+            journals=get_journal_names(),
+            paper_categories=load_paper_categories(),
+            ee_subjects=load_ee_subjects(),
+            cp_global_contexts=CP_GLOBAL_CONTEXTS,
+            cp_action_types=CP_ACTION_TYPES,
+            draft_id=draft_id,
+            wizard_boot=wizard_boot,
+        )
+
+    @app.route("/dashboard/upload", methods=["GET", "POST"])
+    def upload():
+        user = require_login(level=1)
+        if not user:
+            target = url_for("login") if not session.get("user") else url_for("dashboard")
+            return redirect(target)
+
+        today = datetime.utcnow().date().isoformat()
+        draft_id = request.args.get("draft", "")
+
+        # If editing an existing draft, pre-fill form data
+        if request.method == "GET" and draft_id:
+            draft = _get_submission(draft_id)
+            if draft and draft.get("status") == "draft" and draft.get("submitter") == user.get("username", ""):
+                form_data = {
+                    "title": draft.get("title", ""),
+                    "journal": draft.get("journal", ""),
+                    "category": draft.get("category", ""),
+                    "language": draft.get("language", ""),
+                    "keywords": draft.get("keywords", ""),
+                    "abstract": draft.get("abstract", ""),
+                    "author_name": draft.get("author_name", ""),
+                    "author_email": draft.get("author_email", ""),
+                    "author_school": draft.get("author_school", ""),
+                    "is_ib_sample": draft.get("is_ib_sample", ""),
+                    "ib_ee_data": draft.get("ib_ee_data", ""),
+                    "cp_data": draft.get("cp_data", ""),
+                    "published_at": today,
+                }
+                # Hydrate EE/CP fieldsets so the wizard can repopulate them.
+                form_data.update(parse_ib_ee_data_for_form(draft.get("ib_ee_data", "")))
+                form_data.update(parse_cp_data_for_form(draft.get("cp_data", "")))
+                return _render_upload(user, form_data, draft_id)
+
+        raw_names = request.form.getlist("author_name")
+        raw_emails = request.form.getlist("author_email")
+        raw_schools = request.form.getlist("author_school")
+
+        is_ib_sample = request.form.get("is_ib_sample") == "1"
+
+        if is_ib_sample:
+            author_names = ["IB SAMPLE"]
+            author_emails = [""]
+            author_schools = [""]
+        else:
+            author_names = []
+            author_emails = []
+            author_schools = []
+            for i, name in enumerate(raw_names):
+                if name.strip():
+                    author_names.append(name.strip())
+                    author_emails.append(raw_emails[i].strip() if i < len(raw_emails) else "")
+                    author_schools.append(raw_schools[i].strip() if i < len(raw_schools) else "")
+
+
+        form_data = {
+            "title": request.form.get("title", "").strip(),
+            "journal": request.form.get("journal", "").strip(),
+            "category": request.form.get("category", "").strip(),
+            "language": request.form.get("language", "").strip(),
+            "keywords": request.form.get("keywords", "").strip(),
+            "abstract": request.form.get("abstract", "").strip(),
+            "author_name": ", ".join(author_names),
+            "author_email": ", ".join(author_emails),
+            "author_school": ", ".join(author_schools),
+            "published_at": today,
+            "is_ib_sample": "1" if is_ib_sample else "",
+        }
+
+        # ---- IB EE data processing ----
+        is_ib_ee = request.form.get("is_ib_ee") == "1"
+        if is_ib_ee:
+            form_data["ib_ee_data"] = build_ib_ee_data_from_form(request.form)
+            form_data["is_ib_ee"] = "1"
+        else:
+            form_data["ib_ee_data"] = ""
+
+        # ---- CP Paper data processing ----
+        is_cp_paper = request.form.get("is_cp_paper") == "1"
+        if is_cp_paper:
+            form_data["cp_data"] = build_cp_data_from_form(request.form)
+            form_data["is_cp_paper"] = "1"
+        else:
+            form_data["cp_data"] = ""
+
+        if request.method == "POST":
+            # Handle "Save as Draft"
+            draft_id = request.form.get("draft_id", "").strip()
+            if "save_draft" in request.form:
+                if not form_data["title"]:
+                    flash(_("Please enter at least a paper title to save a draft."), "warning")
+                    return _render_upload(user, form_data, draft_id)
+                # Format keywords
+                if form_data["keywords"]:
+                    form_data["keywords"] = ", ".join(
+                        [kw.strip() for kw in form_data["keywords"].split(",") if kw.strip()]
+                    )
+                now = datetime.utcnow().isoformat()
+                if draft_id:
+                    # Update existing draft
+                    _update_submission(draft_id, {
+                        "title": form_data["title"],
+                        "journal": form_data["journal"],
+                        "category": form_data["category"],
+                        "language": form_data["language"],
+                        "keywords": form_data["keywords"],
+                        "abstract": form_data["abstract"],
+                        "author_name": form_data["author_name"],
+                        "author_email": form_data["author_email"],
+                        "author_school": form_data["author_school"],
+                        "is_ib_sample": form_data.get("is_ib_sample", ""),
+                        "ib_ee_data": form_data.get("ib_ee_data", ""),
+                        "cp_data": form_data.get("cp_data", ""),
+                        "submitted_at": now,
+                    })
+                else:
+                    # Create new draft
+                    sub_id = uuid4().hex[:12]
+                    submission = {
+                        "id": sub_id,
+                        "pdf_filename": "",
+                        "pending_filename": "",
+                        "submitter": user.get("username", ""),
+                        "submitter_name": user.get("display_name", "") or user.get("first_name", "") or user.get("username", ""),
+                        "status": "draft",
+                        "submitted_at": now,
+                        "reviewed_at": "",
+                        "reviewer": "",
+                        "comment": "",
+                        "title": form_data["title"],
+                        "journal": form_data["journal"],
+                        "category": form_data["category"],
+                        "language": form_data["language"],
+                        "keywords": form_data["keywords"],
+                        "abstract": form_data["abstract"],
+                        "author_name": form_data["author_name"],
+                        "author_email": form_data["author_email"],
+                        "author_school": form_data["author_school"],
+                        "is_ib_sample": form_data.get("is_ib_sample", ""),
+                        "ib_ee_data": form_data.get("ib_ee_data", ""),
+                        "cp_data": form_data.get("cp_data", ""),
+                    }
+                    _save_submission(submission)
+                flash(_("Draft saved successfully."), "success")
+                return redirect(url_for("my_submissions"))
+
+            # Per-type required-field cascade. Keywords/abstract apply to Standard
+            # papers only; author fields are skipped for IB Sample submissions.
+            required = ["title", "language"] if is_cp_paper else ["title", "category", "language"]
+            if not (is_ib_ee or is_cp_paper):
+                required += ["keywords", "abstract"]
+            if not is_ib_sample:
+                required += ["author_name", "author_email", "author_school"]
+
+            for field in required:
+                if not form_data.get(field):
+                    flash(_MISSING_FIELD_MESSAGES[field], "danger")
+                    return _render_upload(user, form_data, draft_id)
+
+            if is_ib_ee and is_cp_paper:
+                flash(_("A paper cannot be both an Extended Essay and a CP Paper."), "danger")
+                return _render_upload(user, form_data, draft_id)
+            if is_ib_ee:
+                ib_data = json.loads(form_data["ib_ee_data"])
+                if not ib_data.get("core_subject"):
+                    flash(_("Please select an EE core subject."), "danger")
+                    return _render_upload(user, form_data, draft_id)
+            if is_cp_paper:
+                cp_data = json.loads(form_data["cp_data"])
+                if not cp_data.get("global_context"):
+                    flash(_("Please select a Global Context."), "danger")
+                    return _render_upload(user, form_data, draft_id)
+                if not cp_data.get("action_types"):
+                    flash(_("Please select at least one Type of Action."), "danger")
+                    return _render_upload(user, form_data, draft_id)
+
+            # 格式化关键词
+            if form_data["keywords"]:
+                form_data["keywords"] = ", ".join(
+                    [kw.strip() for kw in form_data["keywords"].split(",") if kw.strip()]
+                )
+
+            file = request.files.get("paper")
+            if not file or file.filename == "":
+                flash(_("Please select a file to upload"), "warning")
+            else:
+                original_filename = secure_filename(file.filename)
+                if not original_filename:
+                    original_filename = f"{uuid4().hex[:8]}.pdf"
+                if not allowed_file(original_filename):
+                    flash(_("Only PDF files are supported"), "danger")
+                else:
+                    # Build a safe filename: try title+author first, fall back to UUID
+                    filename = _build_safe_paper_filename(
+                        form_data["title"], form_data["author_name"]
+                    )
+                    role = int(user.get("role", "1"))
+                    if role >= 2:
+                        # Moderator / Admin: publish directly
+                        save_path = PAPERS_DIR / filename
+                        if save_path.exists():
+                            flash(_("A file with this name already exists"), "warning")
+                        else:
+                            file.save(save_path)
+                            set_pdf_metadata(save_path, form_data["title"], form_data["author_name"])
+                            upsert_paper_metadata(
+                                filename,
+                                {
+                                    "title": form_data["title"],
+                                    "journal": form_data["journal"],
+                                    "category": form_data["category"],
+                                    "language": form_data["language"],
+                                    "keywords": form_data["keywords"],
+                                    "abstract": form_data["abstract"],
+                                    "author_name": form_data["author_name"],
+                                    "author_email": form_data["author_email"],
+                                    "author_school": form_data["author_school"],
+                                    "published_at": form_data["published_at"],
+                                    "is_ib_sample": form_data.get("is_ib_sample", ""),
+                                    "ib_ee_data": form_data.get("ib_ee_data", ""),
+                                    "cp_data": form_data.get("cp_data", ""),
+                                },
+                            )
+                            flash(_("Paper %(filename)s uploaded successfully!", filename=filename), "success")
+                            return redirect(url_for("upload"))
+                    else:
+                        # Reader: save to pending review queue
+                        if draft_id:
+                            sub_id = draft_id
+                        else:
+                            sub_id = uuid4().hex[:12]
+                        pending_filename = f"{sub_id}_{filename}"
+                        pending_path = PENDING_PAPERS_DIR / pending_filename
+                        file.save(pending_path)
+                        set_pdf_metadata(pending_path, form_data["title"], form_data["author_name"])
+                        if draft_id:
+                            _update_submission(draft_id, {
+                                "pdf_filename": filename,
+                                "pending_filename": pending_filename,
+                                "status": "pending",
+                                "submitted_at": datetime.utcnow().isoformat(),
+                                "title": form_data["title"],
+                                "journal": form_data["journal"],
+                                "category": form_data["category"],
+                                "language": form_data["language"],
+                                "keywords": form_data["keywords"],
+                                "abstract": form_data["abstract"],
+                                "author_name": form_data["author_name"],
+                                "author_email": form_data["author_email"],
+                                "author_school": form_data["author_school"],
+                                "is_ib_sample": form_data.get("is_ib_sample", ""),
+                                "ib_ee_data": form_data.get("ib_ee_data", ""),
+                                "cp_data": form_data.get("cp_data", ""),
+                            })
+                        else:
+                            submission = {
+                                "id": sub_id,
+                                "pdf_filename": filename,
+                                "pending_filename": pending_filename,
+                                "submitter": user.get("username", ""),
+                                "submitter_name": user.get("display_name", "") or user.get("first_name", "") or user.get("username", ""),
+                                "status": "pending",
+                                "submitted_at": datetime.utcnow().isoformat(),
+                                "reviewed_at": "",
+                                "reviewer": "",
+                                "comment": "",
+                                "title": form_data["title"],
+                                "journal": form_data["journal"],
+                                "category": form_data["category"],
+                                "language": form_data["language"],
+                                "keywords": form_data["keywords"],
+                                "abstract": form_data["abstract"],
+                                "author_name": form_data["author_name"],
+                                "author_email": form_data["author_email"],
+                                "author_school": form_data["author_school"],
+                                "is_ib_sample": form_data.get("is_ib_sample", ""),
+                                "ib_ee_data": form_data.get("ib_ee_data", ""),
+                                "cp_data": form_data.get("cp_data", ""),
+                            }
+                            _save_submission(submission)
+                        return redirect(url_for("upload_success", title=form_data["title"]))
+
+        return _render_upload(user, form_data, request.args.get("draft", ""))
+
+    @app.route("/dashboard/upload/success")
+    def upload_success():
+        user = require_login()
+        if not user:
+            return redirect(url_for("login"))
+        title = request.args.get("title", "")
+        submitted_at = datetime.utcnow().strftime("%Y.%m.%d %H:%M:%S")
+        return render_template("upload_success.html", user=user, title=title, submitted_at=submitted_at)
+
+    @app.route("/upload", endpoint="upload_legacy")
+    def upload_legacy():
+        return redirect(url_for("upload"), code=301)
+
+    @app.route("/upload/success", endpoint="upload_success_legacy")
+    def upload_success_legacy():
+        return redirect(url_for("upload_success"), code=301)
+
+    @app.route("/api/upload/extract-ee-metadata", methods=["POST"])
+    def api_extract_ee_metadata():
+        user = require_login(level=2)
+        if not user:
+            return jsonify({"error": str(_("Unauthorized"))}), 401
+
+        upload = request.files.get("file")
+        if not upload or not upload.filename:
+            return jsonify({"error": str(_("No file provided"))}), 400
+        if not upload.filename.lower().endswith(".pdf"):
+            return jsonify({"error": str(_("File must be a PDF"))}), 400
+
+        raw = upload.read()
+        if not raw.startswith(b"%PDF-"):
+            return jsonify({"error": str(_("File is not a valid PDF"))}), 400
+
+        try:
+            result = extract_ee_metadata(raw)
+        except EePdfExtractionError as exc:
+            return jsonify({"error": str(exc)}), 400
+
+        return jsonify(result), 200
+
+    @app.route("/api/upload/generate-abstract-keywords", methods=["POST"])
+    def api_generate_abstract_keywords():
+        user = require_login(level=2)
+        if not user:
+            return jsonify({"error": str(_("Unauthorized"))}), 401
+
+        upload = request.files.get("file")
+        if not upload or not upload.filename:
+            return jsonify({"error": str(_("No file provided"))}), 400
+        if not upload.filename.lower().endswith(".pdf"):
+            return jsonify({"error": str(_("File must be a PDF"))}), 400
+
+        raw = upload.read()
+        if not raw.startswith(b"%PDF-"):
+            return jsonify({"error": str(_("File is not a valid PDF"))}), 400
+
+        language = request.form.get("language", "en")
+        try:
+            result = generate_abstract_keywords(raw, language)
+        except LLMMetadataError as exc:
+            return jsonify({"error": str(exc)}), 400
+
+        return jsonify(result), 200
