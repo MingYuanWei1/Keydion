@@ -86,15 +86,12 @@ class AttachEndpoint(unittest.TestCase):
 
 class ConversationDeletePurges(unittest.TestCase):
     def test_delete_branch_purges_attachment_chunks(self):
-        src = app_module
-        import inspect
-        text = inspect.getsource(src.create_app)
+        text = support.source_of("api_conversation_item")
         # the conversation DELETE branch must delete attachment chunks too
         self.assertIn("AttachmentChunkModel.conversation_id == conv.id", text)
 
     def test_api_ask_merges_attachment_grounding(self):
-        import inspect
-        text = inspect.getsource(app_module.create_app)
+        text = support.source_of("api_ask")
         self.assertIn("_attachment_grounding(", text)
 
 
@@ -119,8 +116,7 @@ class RagPaperTextOcr(unittest.TestCase):
 
 class ConversationGetReturnsMessageAttachments(unittest.TestCase):
     def test_message_dict_includes_attachments(self):
-        import inspect
-        src = inspect.getsource(app_module.create_app)
+        src = support.source_of("api_conversation_item")
         # the per-message dict built in the GET branch must carry attachments
         self.assertIn('"attachments": ', src)
         self.assertIn("m.attachments", src)
@@ -128,8 +124,7 @@ class ConversationGetReturnsMessageAttachments(unittest.TestCase):
 
 class AskPersistsMessageAttachments(unittest.TestCase):
     def test_reads_and_stores_message_attachments(self):
-        import inspect
-        src = inspect.getsource(app_module.create_app)
+        src = support.source_of("api_ask")
         self.assertIn('data.get("message_attachments"', src)
         self.assertIn("attachments=", src)   # set on the user ChatMessageModel row
 

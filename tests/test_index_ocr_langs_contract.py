@@ -10,6 +10,7 @@ from unittest import mock
 os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
 
 import app as app_module
+import services.ask as ask_module
 
 
 class IndexOcrLangsHelper(unittest.TestCase):
@@ -39,13 +40,13 @@ class RagPaperTextBehavior(unittest.TestCase):
     def _call_rag_paper_text(self, language):
         fake_bytes = b"%PDF-fake"
         with mock.patch.object(
-            app_module, "build_paper_record",
+            ask_module, "build_paper_record",
             return_value={"language": language, "filename": "test.pdf"},
         ) as mock_build, mock.patch.object(
-            app_module.pdf_text, "extract_pdf_text",
+            ask_module.pdf_text, "extract_pdf_text",
             return_value="extracted text",
         ) as mock_extract, mock.patch.object(
-            app_module, "PAPERS_DIR",
+            ask_module, "PAPERS_DIR",
         ) as mock_dir:
             mock_dir.__truediv__ = mock.Mock(
                 return_value=mock.Mock(read_bytes=mock.Mock(return_value=fake_bytes))

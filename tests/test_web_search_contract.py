@@ -1,10 +1,14 @@
 # tests/test_web_search_contract.py
 import gzip
 import os
+import sys
 import unittest
 from unittest import mock
 
 import web_search
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import support
 
 
 class WebSearchModule(unittest.TestCase):
@@ -45,9 +49,7 @@ class WebSearchModule(unittest.TestCase):
 
 class ApiAskReadsWebFlag(unittest.TestCase):
     def test_api_ask_reads_web_flag(self):
-        import inspect
-        import app as app_module
-        text = inspect.getsource(app_module.create_app)
+        text = support.source_of("api_ask")
         self.assertIn('data.get("web")', text)
         self.assertIn("web_search.web_search(", text)
 

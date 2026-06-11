@@ -5,9 +5,9 @@ tool support. Covers the source-level invariants, the agentic prompt builder,
 and the tool-status text helper. A fake-client streaming test drives the real
 loop through the test client when a database is available.
 """
-import inspect
 import json
 import os
+import sys
 import unittest
 from unittest import mock
 
@@ -16,10 +16,13 @@ os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
 import app as app_module
 import library_tools
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import support
+
 
 class SourceContract(unittest.TestCase):
-    def test_create_app_wires_tool_loop(self):
-        src = inspect.getsource(app_module.create_app)
+    def test_api_ask_wires_tool_loop(self):
+        src = support.source_of("api_ask")
         self.assertIn("tools=", src)
         self.assertIn("run_tool", src)
         self.assertIn("build_tool_schemas", src)
@@ -29,7 +32,7 @@ class SourceContract(unittest.TestCase):
         self.assertEqual(app_module.MAX_TOOL_ROUNDS, 5)
 
     def test_legacy_fallback_and_round_cap_preserved(self):
-        src = inspect.getsource(app_module.create_app)
+        src = support.source_of("api_ask")
         # Fallback path reuses the original single-shot prompt builder.
         self.assertIn("_build_ask_prompt(", src)
         # Round-cap final call forces no further tool use.

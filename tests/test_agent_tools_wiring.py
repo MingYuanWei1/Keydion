@@ -1,10 +1,14 @@
 # tests/test_agent_tools_wiring.py
 import os
+import sys
 import unittest
 from unittest import mock
 
 os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
 import app as app_module
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import support
 
 
 class DepsExposesWebSearch(unittest.TestCase):
@@ -32,12 +36,9 @@ class AgenticPromptMentionsWeb(unittest.TestCase):
         self.assertNotIn("web_search", p)
 
 
-import inspect
-
-
 class LoopWiring(unittest.TestCase):
     def setUp(self):
-        self.src = inspect.getsource(app_module.create_app)
+        self.src = support.source_of("api_ask")
 
     def test_loop_uses_build_tool_schemas(self):
         self.assertIn("build_tool_schemas", self.src)
@@ -71,8 +72,7 @@ class AttachmentDeps(unittest.TestCase):
 
 class AttachmentLoopWiring(unittest.TestCase):
     def setUp(self):
-        import inspect
-        self.src = inspect.getsource(app_module.create_app)
+        self.src = support.source_of("api_ask")
 
     def test_loop_passes_include_attachment(self):
         self.assertIn("include_attachment", self.src)

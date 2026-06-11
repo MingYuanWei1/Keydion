@@ -65,8 +65,7 @@ class CitedPapersColumn(unittest.TestCase):
 
 class AskPersistsCitedPapers(unittest.TestCase):
     def setUp(self):
-        import inspect
-        self.src = inspect.getsource(app_module.create_app)
+        self.src = support.source_of("api_ask")
 
     def test_reads_message_papers(self):
         self.assertIn('data.get("message_papers"', self.src)
@@ -88,8 +87,7 @@ class AskPersistsCitedPapers(unittest.TestCase):
 
 class ConversationGetReturnsMessagePapers(unittest.TestCase):
     def test_message_dict_includes_papers(self):
-        import inspect
-        src = inspect.getsource(app_module.create_app)
+        src = support.source_of("api_conversation_item")
         self.assertIn('"papers": ', src)
         self.assertIn("m.cited_papers", src)
 
