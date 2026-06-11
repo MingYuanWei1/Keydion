@@ -33,6 +33,7 @@
     keywords: parseKeywords(fd.keywords),
     abstract: fd.abstract || '',
     isIbSample: !!fd.is_ib_sample,
+    isAnonymous: !fd.is_ib_sample && !!fd.is_anonymous,
     authors: parseAuthors(fd),
     // EE
     eeCoreSubject: fd.ib_ee_core_subject || '',
@@ -87,9 +88,7 @@
     const steps = [{ id: 'type', name: t('step_name_type', 'Paper Type') }];
     if (!state.paperType) return steps;
     steps.push({ id: 'metadata', name: t('step_name_metadata', 'Metadata') });
-    if (!state.isIbSample) {
-      steps.push({ id: 'authors', name: t('step_name_authors', 'Authors') });
-    }
+    steps.push({ id: 'authors', name: t('step_name_authors', 'Authors') });
     steps.push({ id: 'file', name: t('step_name_file', 'File') });
     steps.push({ id: 'review', name: t('step_name_review', 'Review') });
     return steps;
@@ -335,17 +334,6 @@
           </div>
           ` : ''}
 
-          ${isIbType ? `
-            <div class="field">
-              <label class="checkfield">
-                <input type="checkbox" id="f-ibsample" ${state.isIbSample ? 'checked' : ''}>
-                <span class="checkfield__body">
-                  <span class="checkfield__title">${t('is_ib_sample', 'This is an IB Sample Paper')}</span>
-                  <span class="checkfield__hint">${t('is_ib_sample_hint', 'Sample papers are reference essays without an identified author. Checking this will skip the Authors step.')}</span>
-                </span>
-              </label>
-            </div>
-          ` : ''}
         </div>
 
         ${isEE ? renderEEFieldset() : ''}
@@ -427,13 +415,6 @@
         }
       });
     }
-
-    const ibSampleEl = stepsContainer.querySelector('#f-ibsample');
-    if (ibSampleEl) ibSampleEl.addEventListener('change', e => {
-      state.isIbSample = e.target.checked;
-      render();   // re-render stepper too (Authors step appears/disappears)
-      touch();
-    });
 
     if (state.paperType === 'ee') bindEEFieldset();
     if (state.paperType === 'cp') bindCPFieldset();   // hooked up in Task 11
@@ -835,7 +816,30 @@
   }
 
   // ─── Step 3: Authors ───────────────────────────────────────
+  function authorMode() {
+    return state.isIbSample ? 'ibsample' : (state.isAnonymous ? 'anonymous' : 'named');
+  }
+
+  function setAuthorMode(mode) {
+    state.isIbSample = mode === 'ibsample' && state.paperType !== 'standard';
+    state.isAnonymous = mode === 'anonymous';
+  }
+
+  function renderAuthorModeOption(value, title, hint) {
+    return `
+      <label class="checkfield">
+        <input type="radio" name="f-author-mode" value="${value}" ${authorMode() === value ? 'checked' : ''}>
+        <span class="checkfield__body">
+          <span class="checkfield__title">${esc(title)}</span>
+          <span class="checkfield__hint">${esc(hint)}</span>
+        </span>
+      </label>
+    `;
+  }
+
   function renderAuthors() {
+    const isIbType = state.paperType === 'ee' || state.paperType === 'cp';
+    const mode = authorMode();
     return `
       <div class="wizard-card">
         <div class="wizard-card__head">
@@ -844,6 +848,13 @@
           <p class="wizard-card__sub">${t('authors_sub', "The first author's contact details are required. Add co-authors as needed.")}</p>
         </div>
 
+        <div class="field" id="authorModeChoice" style="display:flex;flex-direction:column;gap:10px;">
+          ${renderAuthorModeOption('named', t('author_mode_named', 'Named authors'), t('author_mode_named_hint', 'List the authors with their contact details.'))}
+          ${renderAuthorModeOption('anonymous', t('upload_anonymous', 'Upload as anonymous'), t('upload_anonymous_hint', 'The paper is published without any author information.'))}
+          ${isIbType ? renderAuthorModeOption('ibsample', t('is_ib_sample', 'This is an IB Sample Paper'), t('is_ib_sample_hint', 'Sample papers are reference essays without an identified author.')) : ''}
+        </div>
+
+        ${mode === 'named' ? `
         <div id="authorsList">
           ${state.authors.map((a, i) => `
             <div class="author-row" data-i="${i}">
@@ -856,11 +867,19 @@
         </div>
 
         <button type="button" class="btn-add-author" id="addAuthorBtn">${t('add_author', '+ Add another author')}</button>
+        ` : ''}
       </div>
     `;
   }
 
   function bindAuthors() {
+    stepsContainer.querySelectorAll('#authorModeChoice input[name="f-author-mode"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        setAuthorMode(radio.value);
+        renderStep();
+        touch();
+      });
+    });
     stepsContainer.querySelectorAll('.author-row').forEach(row => {
       const i = parseInt(row.dataset.i, 10);
       row.querySelectorAll('input').forEach(inp => {
@@ -952,7 +971,7 @@
       if (!state.keywords.length) missing.push({ label: t('keywords', 'Keywords'), step: stepIdx('metadata') });
       if (!state.abstract.trim()) missing.push({ label: t('abstract', 'Abstract'), step: stepIdx('metadata') });
     }
-    if (!state.isIbSample) {
+    if (!state.isIbSample && !state.isAnonymous) {
       const a0 = state.authors[0] || {};
       if (!a0.name || !a0.email || !a0.school) {
         missing.push({ label: t('first_author', 'First author (name, email, school)'), step: stepIdx('authors') });
@@ -1035,26 +1054,27 @@
               <dt>${t('keywords', 'Keywords')}</dt><dd${state.keywords.length ? '' : ' class="is-missing"'}>${state.keywords.length ? state.keywords.map(esc).join(', ') : t('none', 'None')}</dd>
               <dt>${t('abstract', 'Abstract')}</dt><dd${state.abstract ? '' : ' class="is-missing"'}>${state.abstract ? esc(state.abstract.slice(0, 280)) + (state.abstract.length > 280 ? '…' : '') : t('not_written', 'Not written')}</dd>
             ` : ''}
-            ${(state.paperType === 'ee' || state.paperType === 'cp') ? `<dt>${t('ib_sample', 'IB Sample')}</dt><dd>${state.isIbSample ? t('yes_skipped', 'Yes — author info skipped') : t('no', 'No')}</dd>` : ''}
           </dl>
         </div>
 
-        ${!state.isIbSample ? `
-          <div class="review-section">
-            <div class="review-section__head">
-              <div class="review-section__title">${t('authors', 'Authors')}</div>
-              <button type="button" class="review-section__edit" data-jump="${idx('authors')}">${t('edit', 'Edit')}</button>
-            </div>
-            <dl class="review-grid">
-              ${state.authors.map((a, i) => `
-                <dt>${t('author', 'Author')} ${i + 1}</dt>
-                <dd${(i === 0 && (!a.name || !a.email || !a.school)) ? ' class="is-missing"' : ''}>
-                  ${a.name ? esc(a.name) : '<em>name?</em>'}${a.email ? ' · ' + esc(a.email) : ''}${a.school ? ' · ' + esc(a.school) : ''}
-                </dd>
-              `).join('')}
-            </dl>
+        <div class="review-section">
+          <div class="review-section__head">
+            <div class="review-section__title">${t('authors', 'Authors')}</div>
+            <button type="button" class="review-section__edit" data-jump="${idx('authors')}">${t('edit', 'Edit')}</button>
           </div>
-        ` : ''}
+          <dl class="review-grid">
+            ${state.isIbSample ? `
+              <dt>${t('ib_sample', 'IB Sample')}</dt><dd>${t('yes_skipped', 'Yes — author info skipped')}</dd>
+            ` : state.isAnonymous ? `
+              <dt>${t('author', 'Author')}</dt><dd>${t('anonymous_skipped', 'Anonymous — author info skipped')}</dd>
+            ` : state.authors.map((a, i) => `
+              <dt>${t('author', 'Author')} ${i + 1}</dt>
+              <dd${(i === 0 && (!a.name || !a.email || !a.school)) ? ' class="is-missing"' : ''}>
+                ${a.name ? esc(a.name) : '<em>name?</em>'}${a.email ? ' · ' + esc(a.email) : ''}${a.school ? ' · ' + esc(a.school) : ''}
+              </dd>
+            `).join('')}
+          </dl>
+        </div>
 
         ${state.paperType === 'ee' ? renderReviewEE(idx('metadata')) : ''}
         ${state.paperType === 'cp' ? renderReviewCP(idx('metadata')) : ''}
@@ -1141,6 +1161,7 @@
     if (state.paperType === 'ee') add('is_ib_ee', '1');
     if (state.paperType === 'cp') add('is_cp_paper', '1');
     if (state.isIbSample && state.paperType !== 'standard') add('is_ib_sample', '1');
+    if (!state.isIbSample && state.isAnonymous) add('is_anonymous', '1');
 
     add('title', state.title);
     add('language', state.language);
@@ -1151,7 +1172,7 @@
       add('abstract', state.abstract);
     }
 
-    if (!state.isIbSample) {
+    if (!state.isIbSample && !state.isAnonymous) {
       state.authors.forEach(a => {
         add('author_name', a.name);
         add('author_email', a.email);
