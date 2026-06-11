@@ -60,7 +60,11 @@ def _rag_paper_meta(filename):
 
 def bump_chunks_version(db) -> None:
     """Bump the cross-process RAG invalidation stamp. Must run inside the same
-    db_session as the chunk write so data + stamp commit atomically."""
+    db_session as the chunk write so data + stamp commit atomically.
+
+    First-ever bump on a brand-new DB can lose a duplicate-key race (two
+    writers both INSERTing the row); the losing transaction rolls back
+    cleanly (chunks + stamp together) and a retry succeeds."""
     row = (db.query(RagIndexMetaModel)
              .filter(RagIndexMetaModel.name == "chunks_version")
              .with_for_update().first())
