@@ -76,7 +76,7 @@ pip3 install -r requirements.txt
 # Start dev container (Flask debug on :4000, MySQL expected on the host at 127.0.0.1:3306)
 docker-compose up -d
 
-# Run all tests (~594 contract tests, ~5s — requires a reachable MySQL, see Testing approach)
+# Run all tests (~594 contract tests, ~5s — requires a reachable MySQL 9.x, see Testing approach)
 python3 -m unittest discover -s tests -p "test_*.py" -v
 
 # Run a single test file
@@ -87,6 +87,9 @@ python3 tools/compile_translations.py
 
 # Backfill / rebuild RAG chunk embeddings for published papers
 python3 tools/build_embeddings.py
+
+# One-time migration: backfill papers_chunks JSON embeddings into the VECTOR column
+python3 tools/migrate_chunk_vectors.py            # then --drop-json after verifying
 
 # Manage users (CLI)
 python3 tools/manage_passwords.py set --username <name> --password <pw> --role 3
@@ -120,7 +123,7 @@ Self-contained concerns remain factored into satellite modules:
 - `pdf_text.py` — shared PDF→text extraction (PyPDF2 first, Tesseract OCR fallback for scanned PDFs)
 - `llm_client.py` — central LLM client + model resolution (flash/think tiers, separate embedding provider)
 - `llm_metadata.py` — abstract + keyword drafting from a paper PDF
-- `rag_index.py` — RAG index: chunking, embeddings stored in MySQL (`papers_chunks`), pure-Python cosine retrieval over a per-process in-memory cache (no numpy / vector DB)
+- `rag_index.py` — RAG index: chunking, embeddings stored in MySQL 9 binary `VECTOR` columns (`papers_chunks.embedding_vec`), numpy cosine (normalized mat-vec) over a per-process snapshot that auto-refreshes when the `rag_index_meta.chunks_version` stamp moves (any process's write invalidates all gunicorn workers within one request)
 - `library_tools.py` — tool-calling core for Ask-the-Library agentic mode (tool schemas + dispatch)
 - `web_search.py` — pluggable web search for Ask-the-Library (disabled when unconfigured)
 
@@ -188,7 +191,7 @@ Conventional commits (`feat:`, `fix:`, with optional scope like `fix(i18n):`) ar
 - **EE total grade** is computed server-side in `build_ib_ee_data_from_form()` — the form field `ibTotalGradeNumber` is `readonly` and its submitted value is ignored
 - **Legacy IB sample papers** (`author_name == "IB SAMPLE"`) hide the school field in search results and maintain backward-compat logic scattered across templates and routes
 - **News body** supports a JSON block format: `[{"type": "text", "content": "..."}, {"type": "image", "url": "...", "caption": "..."}]`, with a `parse_body_blocks` template filter for backward compat with plain-text bodies
-- **RAG lifecycle**: papers are chunked + embedded on publish and purged on delete (`rag_index.py`); chunk vectors are cached in-memory **per process**, so multiple gunicorn workers each hold a copy and a re-embed in one worker is not visible to others until restart
+- **RAG lifecycle**: papers are chunked + embedded on publish and purged on delete (`rag_index.py`); chunk vectors live in a binary `VECTOR(3072)` column (**requires MySQL 9.x**; dimension from `RAG_EMBED_DIM`). Every store write bumps `rag_index_meta.chunks_version` in the same transaction; each worker's in-memory numpy snapshot is stamp-checked per query, so re-embeds/purges propagate to all workers without restarts. One-time JSON→VECTOR backfill: `tools/migrate_chunk_vectors.py` (then `--drop-json`).
 - DB migrations are ad-hoc in `init_db()` — ALTER TABLE statements wrapped in try/except for idempotency
 - Paper metadata is both in the DB (`papers_metadata` table) and optionally in the filesystem (`data/paper_metadata.json`); routes read from DB via `_load_papers()` which queries `PaperMetadataModel`
 - **Production deploy** uses host-managed nginx + systemd gunicorn (`gunicorn.conf.py` + `run_prod.sh`). The bundled `docker-compose.prod.yml` exists but is **not** what runs in prod — don't propose Docker-based deploy fixes.
