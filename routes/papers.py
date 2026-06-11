@@ -372,7 +372,7 @@ def register_routes(app):
                 return render_modify_form(form_meta)
 
             # We use the raw first author for the filename
-            primary_author = author_names[0] if author_names else "author"
+            primary_author = author_names[0] if author_names else ""
             new_filename = _build_safe_paper_filename(title, primary_author)
             if new_filename != filename:
                 new_paper_path = PAPERS_DIR / new_filename

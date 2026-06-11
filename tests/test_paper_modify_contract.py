@@ -159,6 +159,10 @@ class PaperModifyContractTest(unittest.TestCase):
         paper_modify_source = support.source_of("paper_modify")
         self.assertIn("elif is_anonymous:", paper_modify_source)
 
+        # Anonymous papers must keep the upload route's title-only filename
+        # (empty author), not a literal "author" suffix.
+        self.assertIn('primary_author = author_names[0] if author_names else ""', paper_modify_source)
+
     def _find_function(self, name):
         node, _text = support.find_function(name)
         return node
