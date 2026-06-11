@@ -201,7 +201,7 @@ def _row_vector(raw):
 
 
 def _normalize_rows(matrix):
-    """L2-normalize rows in place-safe form; zero rows stay zero (score 0)."""
+    """Return a row-L2-normalized copy; zero rows stay zero (score 0)."""
     norms = np.linalg.norm(matrix, axis=1, keepdims=True)
     norms[norms == 0.0] = 1.0
     return matrix / norms
@@ -226,7 +226,8 @@ def _build_snapshot(version) -> "_Snapshot":
         chunk_indexes.append(row["chunk_index"])
         vectors.append(vec)
     if skipped:
-        _log.warning("snapshot: skipped %d chunk rows (missing/mismatched vectors)", skipped)
+        _log.warning("snapshot: skipped %d chunk rows (missing or != %s-dim vectors)",
+                     skipped, dim)
     if not vectors:
         return _Snapshot(version, [], [], [], None, [], None)
     raw = np.vstack(vectors).astype(np.float32, copy=False)
