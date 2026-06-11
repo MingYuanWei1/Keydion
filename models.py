@@ -63,6 +63,7 @@ class PaperMetadataModel(BASE):
     published_at = Column(Unicode(255))
     ib_ee_data = Column(UnicodeText)
     is_ib_sample = Column(Unicode(10))
+    is_anonymous = Column(Unicode(10))
     cp_data = Column(UnicodeText)
 
 
@@ -200,6 +201,7 @@ class SubmissionModel(BASE):
     original_filename = Column(Unicode(255))
     ib_ee_data = Column(UnicodeText)
     is_ib_sample = Column(Unicode(10))
+    is_anonymous = Column(Unicode(10))
     cp_data = Column(UnicodeText)
 
 
@@ -305,6 +307,15 @@ def init_db() -> None:
                 conn.commit()
         except Exception:
             pass
+        # Migrate: add is_anonymous column to papers_metadata / submissions
+        for _anon_tbl in ("papers_metadata", "submissions"):
+            try:
+                with db._ENGINE.connect() as conn:
+                    from sqlalchemy import text
+                    conn.execute(text(f"ALTER TABLE {_anon_tbl} ADD COLUMN is_anonymous VARCHAR(10) DEFAULT ''"))
+                    conn.commit()
+            except Exception:
+                pass
         # Migrate: add cp_data column to papers_metadata if it doesn't exist
         try:
             with db._ENGINE.connect() as conn:

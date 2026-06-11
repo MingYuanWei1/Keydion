@@ -26,6 +26,7 @@ def _load_submissions():
             "original_filename": s.original_filename,
             "ib_ee_data": s.ib_ee_data,
             "is_ib_sample": s.is_ib_sample,
+            "is_anonymous": s.is_anonymous,
             "cp_data": s.cp_data,
         } for s in subs]
 
@@ -54,6 +55,7 @@ def _write_submissions(subs):
                 original_filename=s.get("original_filename"),
                 ib_ee_data=s.get("ib_ee_data"),
                 is_ib_sample=s.get("is_ib_sample"),
+                is_anonymous=s.get("is_anonymous"),
                 cp_data=s.get("cp_data"),
             ))
         db.commit()

@@ -102,6 +102,44 @@ class PaperModifyContractTest(unittest.TestCase):
 
         self.assertIn("published_at", modify_keys)
 
+    def test_submission_round_trip_preserves_anonymous_flag(self):
+        load_submissions = self._find_function("_load_submissions")
+        returned_keys = {
+            key.value
+            for node in ast.walk(load_submissions)
+            if isinstance(node, ast.Dict)
+            for key in node.keys
+            if isinstance(key, ast.Constant) and isinstance(key.value, str)
+        }
+        self.assertIn("is_anonymous", returned_keys)
+
+        write_submissions = self._find_function("_write_submissions")
+        submission_model_keywords = {
+            keyword.arg
+            for node in ast.walk(write_submissions)
+            if isinstance(node, ast.Call)
+            and getattr(node.func, "id", "") == "SubmissionModel"
+            for keyword in node.keywords
+        }
+        self.assertIn("is_anonymous", submission_model_keywords)
+
+        review_accept = self._find_function("review_accept")
+        accept_keys = {
+            key.value
+            for node in ast.walk(review_accept)
+            if isinstance(node, ast.Dict)
+            for key in node.keys
+            if isinstance(key, ast.Constant) and isinstance(key.value, str)
+        }
+        self.assertIn("is_anonymous", accept_keys)
+
+    def test_metadata_fields_and_models_carry_anonymous_flag(self):
+        from config import METADATA_FIELDS
+        self.assertIn("is_anonymous", METADATA_FIELDS)
+        from models import PaperMetadataModel, SubmissionModel
+        self.assertTrue(hasattr(PaperMetadataModel, "is_anonymous"))
+        self.assertTrue(hasattr(SubmissionModel, "is_anonymous"))
+
     def _find_function(self, name):
         node, _text = support.find_function(name)
         return node

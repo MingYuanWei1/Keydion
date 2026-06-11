@@ -196,6 +196,7 @@ def register_routes(app):
                 "published_at": today,
                 "ib_ee_data": sub.get("ib_ee_data", ""),
                 "is_ib_sample": sub.get("is_ib_sample", ""),
+                "is_anonymous": sub.get("is_anonymous", ""),
                 "cp_data": sub.get("cp_data", ""),
             },
         )
