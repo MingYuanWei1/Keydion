@@ -76,7 +76,7 @@ pip3 install -r requirements.txt
 # Start dev container (Flask debug on :4000, MySQL expected on the host at 127.0.0.1:3306)
 docker-compose up -d
 
-# Run all tests (~580 contract tests, ~5s — requires a reachable MySQL, see Testing approach)
+# Run all tests (~594 contract tests, ~5s — requires a reachable MySQL, see Testing approach)
 python3 -m unittest discover -s tests -p "test_*.py" -v
 
 # Run a single test file
@@ -93,7 +93,7 @@ python3 tools/manage_passwords.py set --username <name> --password <pw> --role 3
 python3 tools/manage_passwords.py list
 ```
 
-**Dev container gotcha**: `docker-compose.yml` bind-mounts only `app.py`, `library_tools.py`, `ee_pdf_extractor.py`, `templates/`, `static/`, `data/`, `translations/`, `papers/`. Changes to the other Python modules (`llm_client.py`, `rag_index.py`, `web_search.py`, `llm_metadata.py`, `pdf_text.py`) and to `tests/` need an image rebuild — don't trust test runs inside the container.
+**Dev container gotcha**: `docker-compose.yml` bind-mounts only `app.py`, `config.py`, `db.py`, `models.py`, `routes/`, `services/`, `library_tools.py`, `ee_pdf_extractor.py`, `templates/`, `static/`, `data/`, `translations/`, `papers/`. Changes to the other Python modules (`llm_client.py`, `rag_index.py`, `web_search.py`, `llm_metadata.py`, `pdf_text.py`) and to `tests/` need an image rebuild — don't trust test runs inside the container. Single-file bind mounts track the inode, so if a tool rewrites `app.py` the container may serve a stale copy — `docker restart keydion-web` fixes it.
 
 Environment variables: see `.env.example` for the full annotated list. The important ones:
 - `PAPERQUERY_SECRET` — Flask secret key
@@ -107,7 +107,15 @@ Environment variables: see `.env.example` for the full annotated list. The impor
 
 ## Architecture
 
-**Flask monolith with satellite modules** — routes, models, auth, and business logic live in `app.py` (~6,300 lines, ~111 routes). `app = create_app()` runs at module level and calls `init_db()`, so **importing `app` connects to MySQL** — this affects tests and CLI scripts. Self-contained concerns are factored into satellite modules:
+**App factory core + domain packages** — `app.py` (~800 lines) is the factory core: `create_app()`, context processors and template filters, the auth/account/profile/dashboard/admin-users/category/EE-subject routes, legacy redirects, and a back-compat re-export block so `from app import X` still works for moved names. `app = create_app()` runs at module level and calls `init_db()`, so **importing `app` connects to MySQL** — this affects tests and CLI scripts (the extracted modules below all import standalone without a DB). The rest of the application is split into:
+- `config.py` — env loading + constants; **must be imported before reading `os.environ`**
+- `db.py` — engine/session setup; `get_engine()` is what gunicorn `post_fork` uses
+- `models.py` — the 13 ORM classes + `init_db()`
+- `routes/<domain>.py` — HTTP routes per domain (shared, resources, guides, news, journals, upload, submissions, ask, papers), each exposing `register_routes(app)`; endpoint names are unchanged from the monolith — these are **not** blueprints
+- `services/<domain>.py` — domain logic (DB/storage helpers)
+- Hard rule: `routes/` and `services/` modules never import `app` (enforced by `tests/test_split_imports_contract.py`)
+
+Self-contained concerns remain factored into satellite modules:
 - `ee_pdf_extractor.py` — PDF parser for IB EE metadata auto-fill
 - `pdf_text.py` — shared PDF→text extraction (PyPDF2 first, Tesseract OCR fallback for scanned PDFs)
 - `llm_client.py` — central LLM client + model resolution (flash/think tiers, separate embedding provider)
@@ -122,7 +130,7 @@ Environment variables: see `.env.example` for the full annotated list. The impor
 
 **Partial rendering** — most dashboard templates start with `{% extends "_bare.html" if partial else "_dashboard_shell.html" %}`. Sidebar nav links carry `data-partial-href` so client JS fetches `?partial=1` and swaps the panel without a full page reload. Routes pass `partial=request.args.get("partial")` to `render_template`.
 
-**Data layer** — MySQL via SQLAlchemy ORM with models defined at module level in `app.py`:
+**Data layer** — MySQL via SQLAlchemy ORM with models defined at module level in `models.py`:
 - `LocalUser` / `MsUser` — local password auth and Microsoft Graph OAuth users
 - `PaperMetadataModel` — published papers (JSON fields stored as text: `ib_ee_data`, `cp_data`)
 - `PaperChunkModel` — RAG chunk embeddings per published paper (vectors stored as JSON text)
@@ -147,7 +155,9 @@ Environment variables: see `.env.example` for the full annotated list. The impor
 
 | Path | Purpose |
 |------|---------|
-| `app.py` | Core application: models, routes, auth, helpers |
+| `app.py` | App factory core: create_app, auth/admin routes, back-compat re-exports |
+| `routes/` | Domain HTTP routes — `register_routes(app)` per domain, endpoint-preserving |
+| `services/` | Domain logic — DB/storage helpers per domain; never imports `app` |
 | `ee_pdf_extractor.py`, `pdf_text.py` | PDF parsing/extraction modules |
 | `llm_client.py`, `llm_metadata.py`, `rag_index.py`, `library_tools.py`, `web_search.py` | LLM/RAG layer (see Architecture) |
 | `templates/` | Jinja2 templates (~38 files; dashboard panels in `templates/_dashboard/`) |
@@ -164,12 +174,12 @@ Environment variables: see `.env.example` for the full annotated list. The impor
 
 ## Testing approach
 
-Tests are **contract tests**, not integration tests. They parse `app.py` with Python's `ast` module and render Jinja2 templates with mock data to verify structural invariants:
+Tests are **contract tests**, not integration tests. They locate source via `tests/support.py` (`find_function` / `source_of` / `all_sources`, searching `app.py` + `routes/` + `services/`), parse it with Python's `ast` module, and render Jinja2 templates with mock data to verify structural invariants:
 - DOM contracts (element IDs match between HTML and JS `getElementById` calls)
 - Data round-trip contracts (fields are carried through load/write functions)
 - Server-side logic contracts (EE total grade is calculated server-side, not trusted from the form)
 
-About 20 of the 55 test files `import app` (directly or via `from app import ...`), which connects to MySQL at import time — **the full suite needs a reachable database**; without one those modules fail at import with `OperationalError`. The remaining files are pure AST/template tests and run standalone.
+19 of the 55 test files `import app` (directly or via `from app import ...`), which connects to MySQL at import time — **the full suite needs a reachable database**; without one those modules fail at import with `OperationalError`. This caveat applies to `import app` only — the extracted modules (`config`, `db`, `models`, `routes/*`, `services/*`) import without a DB. The remaining files are pure AST/template tests and run standalone.
 
 Conventional commits (`feat:`, `fix:`, with optional scope like `fix(i18n):`) are used.
 
@@ -183,3 +193,4 @@ Conventional commits (`feat:`, `fix:`, with optional scope like `fix(i18n):`) ar
 - Paper metadata is both in the DB (`papers_metadata` table) and optionally in the filesystem (`data/paper_metadata.json`); routes read from DB via `_load_papers()` which queries `PaperMetadataModel`
 - **Production deploy** uses host-managed nginx + systemd gunicorn (`gunicorn.conf.py` + `run_prod.sh`). The bundled `docker-compose.prod.yml` exists but is **not** what runs in prod — don't propose Docker-based deploy fixes.
 - **Translation cache**: Flask-Babel loads `.mo` files at startup. After `tools/compile_translations.py`, the dev server must be restarted for new translations to appear.
+- **Split layout invariants** — endpoint names are a cross-module contract (`url_for("preview_paper")` is called from the ask domain); `routes/` and `services/` modules must not import `app`; new code goes in `services/<domain>` + `routes/<domain>`, not `app.py`.
