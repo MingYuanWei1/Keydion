@@ -4,10 +4,11 @@
 def register_all(app):
     # Domain modules are imported here (not at package import) so importing
     # `routes` stays cheap and side-effect-free.
-    from routes import resources, guides, news, journals, upload
+    from routes import resources, guides, news, journals, upload, submissions
 
     resources.register_routes(app)
     guides.register_routes(app)
     news.register_routes(app)
     journals.register_routes(app)
     upload.register_routes(app)
+    submissions.register_routes(app)
