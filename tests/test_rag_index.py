@@ -1,6 +1,8 @@
 # tests/test_rag_index.py
 import unittest
 
+import numpy as np
+
 import rag_index
 
 
@@ -64,19 +66,52 @@ class FakeClient:
         self.embeddings = FakeEmbeddings()
 
 
+def _f32(vec):
+    """Pack a list of floats the way the real store serves VECTOR bytes."""
+    return np.asarray(vec, dtype="<f4").tobytes()
+
+
 class InMemoryStore:
-    """Stand-in for the DB layer rag_index talks to via configure()."""
+    """Stand-in for the DB layer rag_index talks to via configure().
+    Mimics the real store contract: a version stamp bumped on every write,
+    vectors served as little-endian float32 bytes."""
     def __init__(self):
-        self.rows = []  # dicts: filename, chunk_index, content, embedding(list), lang
+        self.rows = []   # dicts: id, filename, chunk_index, content, embedding(list), lang
+        self.version = 0
+        self._next_id = 1
 
     def replace_chunks(self, filename, rows):
-        self.rows = [r for r in self.rows if r["filename"] != filename] + rows
-
-    def all_chunks(self):
-        return list(self.rows)
+        kept = [r for r in self.rows if r["filename"] != filename]
+        for r in rows:
+            r = dict(r)
+            r["id"] = self._next_id
+            self._next_id += 1
+            kept.append(r)
+        self.rows = kept
+        self.version += 1
 
     def delete_chunks(self, filename):
         self.rows = [r for r in self.rows if r["filename"] != filename]
+        self.version += 1
+
+    def get_version(self):
+        return self.version
+
+    def vectors(self):
+        return [{"id": r["id"], "filename": r["filename"],
+                 "chunk_index": r["chunk_index"],
+                 "embedding": _f32(r["embedding"]) if r["embedding"] else None}
+                for r in self.rows]
+
+    def fetch(self, ids):
+        wanted = set(ids)
+        return [{"id": r["id"], "filename": r["filename"],
+                 "chunk_index": r["chunk_index"], "content": r["content"]}
+                for r in self.rows if r["id"] in wanted]
+
+    def all_chunks(self):
+        """Kept for test assertions only (not wired as a dep)."""
+        return list(self.rows)
 
 
 class RetrieveBehaviour(unittest.TestCase):
@@ -94,8 +129,10 @@ class RetrieveBehaviour(unittest.TestCase):
             iter_papers=lambda: list(self.papers.values()),
             paper_text=lambda fn: self.papers[fn]["text"],
             store_replace=self.store.replace_chunks,
-            store_all=self.store.all_chunks,
             store_delete=self.store.delete_chunks,
+            store_version=self.store.get_version,
+            store_vectors=self.store.vectors,
+            fetch_chunks=self.store.fetch,
             paper_meta=lambda fn: self.papers.get(fn, {}),
         )
         rag_index.invalidate_cache()
@@ -148,13 +185,14 @@ class RetrieveBehaviour(unittest.TestCase):
             "author_name": "Smith", "language": "en", "text": "neutral content",
         }
         self.store.rows = [
-            {"filename": "cold.pdf",    "chunk_index": 0, "content": "chunk A",
+            {"id": 1, "filename": "cold.pdf",    "chunk_index": 0, "content": "chunk A",
              "embedding": [1.0, 0.0], "lang": "en"},
-            {"filename": "fr.pdf",      "chunk_index": 0, "content": "chunk B",
+            {"id": 2, "filename": "fr.pdf",      "chunk_index": 0, "content": "chunk B",
              "embedding": [0.0, 1.0], "lang": "en"},
-            {"filename": "neutral.pdf", "chunk_index": 0, "content": "chunk C",
+            {"id": 3, "filename": "neutral.pdf", "chunk_index": 0, "content": "chunk C",
              "embedding": [0.5, 0.5], "lang": "en"},
         ]
+        self.store.version += 1
         rag_index.invalidate_cache()
 
         hits = rag_index.retrieve("cold arctic", k=2, min_sim=0.5)
@@ -169,6 +207,67 @@ class RetrieveBehaviour(unittest.TestCase):
         self.assertIn("neutral.pdf", filenames)
         self.assertNotIn("fr.pdf", filenames)
 
+    def test_writes_invalidate_other_workers_via_stamp(self):
+        # THE multi-worker staleness regression test. A write through the store
+        # (as another gunicorn worker or the CLI would do it) must be visible to
+        # THIS process on the next retrieve, with no local invalidate_cache().
+        rag_index.build_index()
+        hits = rag_index.retrieve("how do plants handle the cold?", k=1)
+        self.assertEqual(hits[0]["filename"], "cold.pdf")
+
+        # "Another process" deletes cold.pdf: store mutates + stamp bumps,
+        # but this process's invalidate_cache() is never called.
+        self.store.delete_chunks("cold.pdf")
+
+        hits = rag_index.retrieve("how do plants handle the cold?", k=5)
+        self.assertNotIn("cold.pdf", [h["filename"] for h in hits])
+
+    def test_zero_vector_chunk_scores_zero_and_never_crashes(self):
+        self.store.rows = [
+            {"id": 1, "filename": "zero.pdf", "chunk_index": 0, "content": "z",
+             "embedding": [0.0, 0.0], "lang": "en"},
+            {"id": 2, "filename": "cold.pdf", "chunk_index": 0, "content": "c",
+             "embedding": [1.0, 0.0], "lang": "en"},
+        ]
+        self.store.version += 1
+        hits = rag_index.retrieve("cold arctic", k=5, min_sim=0.2)
+        self.assertEqual([h["filename"] for h in hits], ["cold.pdf"])
+
+
+class ScoringEquivalence(unittest.TestCase):
+    """Normalized-dot scoring must match the old pure-Python cosine()."""
+
+    def setUp(self):
+        self.store = InMemoryStore()
+        rag_index.configure(
+            build_embed_client=lambda: FakeClient(),
+            embed_model=lambda: "fake-embed",
+            store_replace=self.store.replace_chunks,
+            store_delete=self.store.delete_chunks,
+            store_version=self.store.get_version,
+            store_vectors=self.store.vectors,
+            fetch_chunks=self.store.fetch,
+            paper_meta=lambda fn: {"title": fn, "author_name": ""},
+        )
+        rag_index.invalidate_cache()
+
+    def test_retrieve_scores_match_cosine(self):
+        vecs = {"a.pdf": [1.0, 0.0], "b.pdf": [0.6, 0.8], "c.pdf": [0.5, 0.5]}
+        self.store.rows = [
+            {"id": i + 1, "filename": fn, "chunk_index": 0, "content": fn,
+             "embedding": v, "lang": "en"}
+            for i, (fn, v) in enumerate(sorted(vecs.items()))
+        ]
+        self.store.version += 1
+        hits = rag_index.retrieve("cold arctic", k=5, min_sim=0.0)  # qvec = [1.0, 0.0]
+        self.assertEqual(len(hits), 3)
+        for h in hits:
+            expected = rag_index.cosine([1.0, 0.0], vecs[h["filename"]])
+            self.assertAlmostEqual(h["score"], expected, places=5)
+        # ranking is descending
+        scores = [h["score"] for h in hits]
+        self.assertEqual(scores, sorted(scores, reverse=True))
+
 
 class ResumeBehaviour(unittest.TestCase):
     def setUp(self):
@@ -180,17 +279,20 @@ class ResumeBehaviour(unittest.TestCase):
                       "language": "en", "text": "beta content here"},
         }
         # a.pdf is already indexed (has a stored chunk).
-        self.store.rows = [{"filename": "a.pdf", "chunk_index": 0,
+        self.store.rows = [{"id": 1, "filename": "a.pdf", "chunk_index": 0,
                             "content": "alpha content here", "embedding": [0.5, 0.5],
                             "lang": "en"}]
+        self.store._next_id = 2
         rag_index.configure(
             build_embed_client=lambda: FakeClient(),
             embed_model=lambda: "fake-embed",
             iter_papers=lambda: list(self.papers.values()),
             paper_text=lambda fn: self.papers[fn]["text"],
             store_replace=self.store.replace_chunks,
-            store_all=self.store.all_chunks,
             store_delete=self.store.delete_chunks,
+            store_version=self.store.get_version,
+            store_vectors=self.store.vectors,
+            fetch_chunks=self.store.fetch,
             paper_meta=lambda fn: self.papers.get(fn, {}),
             indexed_filenames=lambda: {r["filename"] for r in self.store.rows},
         )
