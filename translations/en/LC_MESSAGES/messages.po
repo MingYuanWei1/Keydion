@@ -589,12 +589,8 @@ msgid "This is an IB Sample Paper"
 msgstr "This is an IB Sample Paper"
 
 #: app.py:1604
-msgid ""
-"Sample papers are reference essays without an identified author. Checking"
-" this will skip the Authors step."
-msgstr ""
-"Sample papers are reference essays without an identified author. Checking"
-" this will skip the Authors step."
+msgid "Sample papers are reference essays without an identified author."
+msgstr "Sample papers are reference essays without an identified author."
 
 #: app.py:1605
 msgid "Framework for the essay"
@@ -4190,3 +4186,21 @@ msgstr "Cannot move a folder into itself."
 
 msgid "Cannot move a folder into its own subfolder."
 msgstr "Cannot move a folder into its own subfolder."
+
+msgid "Named authors"
+msgstr "Named authors"
+
+msgid "List the authors with their contact details."
+msgstr "List the authors with their contact details."
+
+msgid "Upload as anonymous"
+msgstr "Upload as anonymous"
+
+msgid "The paper is published without any author information."
+msgstr "The paper is published without any author information."
+
+msgid "Anonymous — author info skipped"
+msgstr "Anonymous — author info skipped"
+
+msgid "Anonymous submission"
+msgstr "Anonymous submission"

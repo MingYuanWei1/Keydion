@@ -546,10 +546,8 @@ msgid "This is an IB Sample Paper"
 msgstr "这是一篇 IB 范文"
 
 #: app.py:1604
-msgid ""
-"Sample papers are reference essays without an identified author. Checking"
-" this will skip the Authors step."
-msgstr "范文是无明确作者的参考论文。勾选此项将跳过作者填写步骤。"
+msgid "Sample papers are reference essays without an identified author."
+msgstr "范文是无明确作者的参考论文。"
 
 #: app.py:1605
 msgid "Framework for the essay"
@@ -4011,3 +4009,21 @@ msgstr "无法将文件夹移动到其自身。"
 
 msgid "Cannot move a folder into its own subfolder."
 msgstr "无法将文件夹移动到其子文件夹中。"
+
+msgid "Named authors"
+msgstr "署名作者"
+
+msgid "List the authors with their contact details."
+msgstr "填写作者姓名及联系方式。"
+
+msgid "Upload as anonymous"
+msgstr "匿名上传"
+
+msgid "The paper is published without any author information."
+msgstr "论文发布时将不显示任何作者信息。"
+
+msgid "Anonymous — author info skipped"
+msgstr "匿名 — 已跳过作者信息"
+
+msgid "Anonymous submission"
+msgstr "匿名投稿"
