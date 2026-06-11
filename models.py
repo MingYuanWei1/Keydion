@@ -1,13 +1,15 @@
 """ORM models + init_db() schema setup/migrations."""
 from sqlalchemy import (
     Boolean, Column, Date, DateTime, Integer, Unicode, UnicodeText,
-    create_engine,
+    create_engine, func,
 )
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.types import UserDefinedType
 
 import db
 from db import BASE
+from config import RAG_EMBED_DIM
 
 
 class LocalUser(BASE):
@@ -64,14 +66,39 @@ class PaperMetadataModel(BASE):
     cp_data = Column(UnicodeText)
 
 
+class VectorType(UserDefinedType):
+    """MySQL 9 VECTOR(n) column. Python-side values are JSON-text vectors
+    ("[0.1, 0.2, ...]") bound through STRING_TO_VECTOR(); reads come back as
+    little-endian IEEE-754 float32 bytes (decode with numpy.frombuffer)."""
+    cache_ok = True
+
+    def __init__(self, dim):
+        self.dim = dim
+
+    def get_col_spec(self, **kw):
+        return f"VECTOR({self.dim})"
+
+    def bind_expression(self, bindvalue):
+        return func.STRING_TO_VECTOR(bindvalue)
+
+
 class PaperChunkModel(BASE):
     __tablename__ = "papers_chunks"
     id = Column(Integer, primary_key=True, autoincrement=True)
     filename = Column(Unicode(255), index=True)
     chunk_index = Column(Integer)
     content = Column(UnicodeText)
-    embedding = Column(UnicodeText().with_variant(MEDIUMTEXT(), "mysql"))   # JSON list[float]; MEDIUMTEXT: Gemini vectors exceed TEXT's 64KB
+    # Binary chunk vector (MySQL 9 VECTOR). The legacy JSON `embedding` column
+    # is intentionally unmapped; tools/migrate_chunk_vectors.py backfills it
+    # into this column and drops it.
+    embedding_vec = Column(VectorType(RAG_EMBED_DIM))
     lang = Column(Unicode(10))
+
+
+class RagIndexMetaModel(BASE):
+    __tablename__ = "rag_index_meta"
+    name = Column(Unicode(32), primary_key=True)
+    value = Column(Integer, nullable=False, default=0)
 
 
 class ConversationModel(BASE):
@@ -258,6 +285,18 @@ def init_db() -> None:
                         conn.commit()
             except Exception:
                 pass
+        # Migrate: add the binary vector column. Requires MySQL 9.x — the
+        # VECTOR type does not exist on 8.x, where this ALTER fails and is
+        # swallowed (the app then needs MySQL 9 before RAG features work).
+        try:
+            with db._ENGINE.connect() as conn:
+                from sqlalchemy import text
+                conn.execute(text(
+                    f"ALTER TABLE papers_chunks ADD COLUMN embedding_vec VECTOR({RAG_EMBED_DIM}) NULL"
+                ))
+                conn.commit()
+        except Exception:
+            pass  # column already exists (or pre-9.x MySQL)
         # Migrate: add is_ib_sample column to submissions if it doesn't exist
         try:
             with db._ENGINE.connect() as conn:
