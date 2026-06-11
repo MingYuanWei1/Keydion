@@ -46,5 +46,29 @@ class RagIndexMetaContract(unittest.TestCase):
         self.assertIn("ADD COLUMN embedding_vec VECTOR(", src)
 
 
+class StoreLayerContract(unittest.TestCase):
+    def test_store_replace_writes_vector_and_bumps_stamp(self):
+        src = support.source_of("_rag_store_replace")
+        self.assertIn("embedding_vec", src)
+        self.assertIn("bump_chunks_version(db)", src)
+        self.assertNotIn("embedding=", src.replace("embedding_vec=", ""))
+
+    def test_store_delete_bumps_stamp(self):
+        src = support.source_of("_rag_store_delete")
+        self.assertIn("bump_chunks_version(db)", src)
+
+    def test_configure_rag_wires_stamp_deps(self):
+        src = support.source_of("configure_rag")
+        for dep in ("store_version=", "store_vectors=", "fetch_chunks=",
+                    "indexed_filenames="):
+            self.assertIn(dep, src)
+        self.assertNotIn("store_all", src)
+
+    def test_forced_grounding_reads_binary_column(self):
+        src = support.source_of("_forced_grounding")
+        self.assertIn("embedding_vec", src)
+        self.assertNotIn("json.loads", src)
+
+
 if __name__ == "__main__":
     unittest.main()

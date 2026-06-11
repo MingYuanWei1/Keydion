@@ -4,6 +4,8 @@ import logging
 import re
 import types
 
+import numpy as np
+
 from flask import session, url_for
 from flask_babel import gettext as _
 
@@ -13,7 +15,7 @@ import rag_index
 import web_search
 from config import PAPERS_DIR
 from db import db_session
-from models import AttachmentChunkModel, PaperChunkModel
+from models import AttachmentChunkModel, PaperChunkModel, RagIndexMetaModel
 from services.papers import build_paper_record, load_paper_metadata
 
 logger = logging.getLogger(__name__)
@@ -56,6 +58,18 @@ def _rag_paper_meta(filename):
     return build_paper_record(filename)
 
 
+def bump_chunks_version(db) -> None:
+    """Bump the cross-process RAG invalidation stamp. Must run inside the same
+    db_session as the chunk write so data + stamp commit atomically."""
+    row = (db.query(RagIndexMetaModel)
+             .filter(RagIndexMetaModel.name == "chunks_version")
+             .with_for_update().first())
+    if row is None:
+        row = RagIndexMetaModel(name="chunks_version", value=0)
+        db.add(row)
+    row.value = (row.value or 0) + 1
+
+
 def _rag_store_replace(filename, rows):
     with db_session() as db:
         db.query(PaperChunkModel).filter(PaperChunkModel.filename == filename).delete()
@@ -64,27 +78,47 @@ def _rag_store_replace(filename, rows):
                 filename=r["filename"],
                 chunk_index=r["chunk_index"],
                 content=r["content"],
-                embedding=json.dumps(r["embedding"]),
+                embedding_vec=json.dumps(r["embedding"]) if r["embedding"] else None,
                 lang=r.get("lang", ""),
             ))
+        bump_chunks_version(db)
 
 
-def _rag_store_all():
+def _rag_store_version():
+    """Current invalidation stamp (0 before any write)."""
     with db_session() as db:
-        out = []
-        for row in db.query(PaperChunkModel).all():
-            try:
-                vec = json.loads(row.embedding) if row.embedding else []
-            except (ValueError, TypeError):
-                vec = []
-            out.append({"filename": row.filename, "chunk_index": row.chunk_index,
-                        "content": row.content, "embedding": vec})
-        return out
+        row = (db.query(RagIndexMetaModel)
+                 .filter(RagIndexMetaModel.name == "chunks_version").first())
+        return row.value if row else 0
+
+
+def _rag_store_vectors():
+    """All chunk vectors as raw VECTOR bytes — content column deliberately
+    NOT selected (it stays out of the per-worker cache)."""
+    with db_session() as db:
+        rows = db.query(PaperChunkModel.id, PaperChunkModel.filename,
+                        PaperChunkModel.chunk_index,
+                        PaperChunkModel.embedding_vec).all()
+        return [{"id": r[0], "filename": r[1], "chunk_index": r[2],
+                 "embedding": r[3]} for r in rows]
+
+
+def _rag_fetch_chunks(ids):
+    """Contents for the top-k scored chunk ids."""
+    if not ids:
+        return []
+    with db_session() as db:
+        rows = (db.query(PaperChunkModel.id, PaperChunkModel.filename,
+                         PaperChunkModel.chunk_index, PaperChunkModel.content)
+                  .filter(PaperChunkModel.id.in_(list(ids))).all())
+        return [{"id": r[0], "filename": r[1], "chunk_index": r[2],
+                 "content": r[3]} for r in rows]
 
 
 def _rag_store_delete(filename):
     with db_session() as db:
         db.query(PaperChunkModel).filter(PaperChunkModel.filename == filename).delete()
+        bump_chunks_version(db)
 
 
 def _rag_indexed_filenames():
@@ -103,8 +137,10 @@ def configure_rag():
         paper_text=_rag_paper_text,
         paper_meta=_rag_paper_meta,
         store_replace=_rag_store_replace,
-        store_all=_rag_store_all,
         store_delete=_rag_store_delete,
+        store_version=_rag_store_version,
+        store_vectors=_rag_store_vectors,
+        fetch_chunks=_rag_fetch_chunks,
         indexed_filenames=_rag_indexed_filenames,
     )
 
@@ -406,6 +442,19 @@ def _filter_cited(items, answer_text):
     return [it for it in items if it.get("n") in cited]
 
 
+def _cosine_f32(qvec, buf):
+    """Cosine between a float32 numpy query vector and stored VECTOR bytes."""
+    if not buf or len(buf) % 4:
+        return 0.0
+    v = np.frombuffer(buf, dtype="<f4")
+    if v.size != qvec.size:
+        return 0.0
+    denom = float(np.linalg.norm(v)) * float(np.linalg.norm(qvec))
+    if denom == 0.0:
+        return 0.0
+    return float(np.dot(v, qvec)) / denom
+
+
 def _forced_grounding(question, filenames):
     """Ground on user-selected papers: score their stored chunks against the question."""
     chunks = []
@@ -413,17 +462,13 @@ def _forced_grounding(question, filenames):
         rows = (db.query(PaperChunkModel)
                   .filter(PaperChunkModel.filename.in_(filenames)).all())
         for r in rows:
-            try:
-                vec = json.loads(r.embedding) if r.embedding else []
-            except (ValueError, TypeError):
-                vec = []
-            chunks.append((r.filename, r.chunk_index, r.content, vec))
+            chunks.append((r.filename, r.chunk_index, r.content, r.embedding_vec))
     if not chunks:
         return []
-    qvec = rag_index.embed_texts([question])[0]
+    qvec = np.asarray(rag_index.embed_texts([question])[0], dtype=np.float32)
     scored = []
-    for filename, idx, content, vec in chunks:
-        scored.append((rag_index.cosine(qvec, vec), filename, content))
+    for filename, idx, content, buf in chunks:
+        scored.append((_cosine_f32(qvec, buf), filename, content))
     scored.sort(key=lambda t: t[0], reverse=True)
     min_sim = 0.20
     qualifying = [t for t in scored if t[0] >= min_sim]
