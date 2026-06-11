@@ -31,9 +31,9 @@
             <dd class="col-sm-8">{{ submission.abstract }}</dd>
 
             <dt class="col-sm-4 border-top pt-2 mt-2">{{ _('Author') }}</dt>
-            <dd class="col-sm-8 border-top pt-2 mt-2">{% if submission.get('is_ib_sample') %}IB SAMPLE{% else %}{{ submission.author_name }}{% endif %}</dd>
+            <dd class="col-sm-8 border-top pt-2 mt-2">{% if submission.get('is_ib_sample') %}IB SAMPLE{% elif submission.get('is_anonymous') %}<span class="text-muted">{{ _('Anonymous submission') }}</span>{% else %}{{ submission.author_name }}{% endif %}</dd>
 
-            {% if not submission.get('is_ib_sample') %}
+            {% if not submission.get('is_ib_sample') and not submission.get('is_anonymous') %}
             <dt class="col-sm-4">{{ _('Email') }}</dt>
             <dd class="col-sm-8">{{ submission.author_email }}</dd>
 

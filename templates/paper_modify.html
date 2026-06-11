@@ -28,6 +28,7 @@
                     {% set cp_data = meta.get('cp_data', '') %}
                     {% set cp_info = (cp_data | from_json) if cp_data else None %}
                     {% set is_ib_sample_checked = meta.get('is_ib_sample') or meta.get('author_name', '') == 'IB SAMPLE' %}
+                    {% set is_anonymous_checked = meta.get('is_anonymous') %}
 
                     <div class="mb-3">
                         <label for="title" class="form-label fw-semibold">{{ _('Title') }} <span
@@ -91,6 +92,17 @@
                                 {{ _('This is an IB Sample Paper') }}
                             </label>
                             <div class="text-muted small mt-1">{{ _('Author information is not required for sample papers') }}</div>
+                        </div>
+                    </div>
+                    <!-- Anonymous paper -->
+                    <div class="mb-3 border rounded p-3 bg-light">
+                        <div class="form-check mb-0">
+                            <input class="form-check-input" type="checkbox" id="anonymousCheckbox" name="is_anonymous" value="1"
+                                {% if is_anonymous_checked %}checked{% endif %}>
+                            <label class="form-check-label fw-semibold" for="anonymousCheckbox">
+                                {{ _('Upload as anonymous') }}
+                            </label>
+                            <div class="text-muted small mt-1">{{ _('The paper is published without any author information.') }}</div>
                         </div>
                     </div>
                     <div class="d-flex justify-content-between align-items-center mb-3" id="authorControls">
@@ -366,14 +378,15 @@
             container.appendChild(newRow);
         });
 
-        // ---- IB Sample Paper toggle ----
+        // ---- IB Sample / Anonymous toggles (mutually exclusive author bypass) ----
         const ibSampleCheckbox = document.getElementById("ibSampleCheckbox");
+        const anonymousCheckbox = document.getElementById("anonymousCheckbox");
         const addAuthorBtn = document.getElementById("addAuthorBtn");
         const authorControls = document.getElementById("authorControls");
         const authorContainer = document.getElementById("authorsContainer");
 
-        function toggleIbSample() {
-            if (ibSampleCheckbox.checked) {
+        function toggleAuthorBypass() {
+            if (ibSampleCheckbox.checked || anonymousCheckbox.checked) {
                 authorControls.style.display = "none";
                 authorContainer.style.display = "none";
                 addAuthorBtn.style.display = "none";
@@ -391,8 +404,15 @@
             }
         }
 
-        ibSampleCheckbox.addEventListener("change", toggleIbSample);
-        toggleIbSample();
+        ibSampleCheckbox.addEventListener("change", function () {
+            if (ibSampleCheckbox.checked) anonymousCheckbox.checked = false;
+            toggleAuthorBypass();
+        });
+        anonymousCheckbox.addEventListener("change", function () {
+            if (anonymousCheckbox.checked) ibSampleCheckbox.checked = false;
+            toggleAuthorBypass();
+        });
+        toggleAuthorBypass();
 
         // ---- IB EE / CP toggles ----
         const ibCheckbox = document.getElementById("ibEeCheckbox");

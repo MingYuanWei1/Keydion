@@ -140,6 +140,25 @@ class PaperModifyContractTest(unittest.TestCase):
         self.assertTrue(hasattr(PaperMetadataModel, "is_anonymous"))
         self.assertTrue(hasattr(SubmissionModel, "is_anonymous"))
 
+    def test_modify_template_supports_anonymous_papers(self):
+        self.assertIn('name="is_anonymous"', self.template)
+        self.assertIn('id="anonymousCheckbox"', self.template)
+        self.assertIn("meta.get('is_anonymous')", self.template)
+
+    def test_modify_route_persists_anonymous_flag(self):
+        paper_modify = self._find_function("paper_modify")
+        modify_keys = {
+            key.value
+            for node in ast.walk(paper_modify)
+            if isinstance(node, ast.Dict)
+            for key in node.keys
+            if isinstance(key, ast.Constant) and isinstance(key.value, str)
+        }
+        self.assertIn("is_anonymous", modify_keys)
+
+        paper_modify_source = support.source_of("paper_modify")
+        self.assertIn("elif is_anonymous:", paper_modify_source)
+
     def _find_function(self, name):
         node, _text = support.find_function(name)
         return node

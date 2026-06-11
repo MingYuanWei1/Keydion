@@ -75,5 +75,20 @@ class PublicTemplateAnonymousContractTest(unittest.TestCase):
         self.assertIn("paper.get('is_anonymous')", src)
 
 
+class CuratorTemplateAnonymousContractTest(unittest.TestCase):
+    def _read(self, name):
+        return (ROOT / "templates" / name).read_text(encoding="utf-8")
+
+    def test_submission_views_show_anonymous_note_and_hide_contact(self):
+        for name in ("submission_detail.html", "review_paper.html"):
+            src = self._read(name)
+            self.assertIn("submission.get('is_anonymous')", src, name)
+            self.assertIn("Anonymous submission", src, name)
+            self.assertIn(
+                "{% if not submission.get('is_ib_sample') and not submission.get('is_anonymous') %}",
+                src, name,
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

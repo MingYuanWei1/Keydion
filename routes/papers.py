@@ -312,6 +312,7 @@ def register_routes(app):
             raw_schools = request.form.getlist("author_school")
 
             is_ib_sample = request.form.get("is_ib_sample") == "1"
+            is_anonymous = not is_ib_sample and request.form.get("is_anonymous") == "1"
             is_ib_ee = request.form.get("is_ib_ee") == "1"
             is_cp_paper = request.form.get("is_cp_paper") == "1"
             ib_ee_data = build_ib_ee_data_from_form(request.form) if is_ib_ee else ""
@@ -321,6 +322,10 @@ def register_routes(app):
                 author_names = ["IB SAMPLE"]
                 author_emails = [""]
                 author_schools = [""]
+            elif is_anonymous:
+                author_names = []
+                author_emails = []
+                author_schools = []
             else:
                 author_names = []
                 author_emails = []
@@ -348,6 +353,7 @@ def register_routes(app):
                 "author_school": final_author_school,
                 "published_at": meta.get("published_at", ""),
                 "is_ib_sample": "1" if is_ib_sample else "",
+                "is_anonymous": "1" if is_anonymous else "",
                 "ib_ee_data": ib_ee_data,
                 "cp_data": cp_data,
             }
@@ -392,6 +398,7 @@ def register_routes(app):
                 "author_school": final_author_school,
                 "published_at": meta.get("published_at", ""),
                 "is_ib_sample": "1" if is_ib_sample else "",
+                "is_anonymous": "1" if is_anonymous else "",
                 "ib_ee_data": ib_ee_data,
                 "cp_data": cp_data,
             })
