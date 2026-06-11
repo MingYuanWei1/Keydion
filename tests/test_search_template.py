@@ -60,6 +60,26 @@ class SearchTemplateTest(unittest.TestCase):
         self.assertNotIn("Hidden School", html)
         self.assertNotIn("Hidden School · 2026-05-21", html)
 
+    def test_anonymous_result_hides_author_and_school_keeps_date(self):
+        html = self.render_search([
+            {
+                "filename": "anon.pdf",
+                "title": "Anonymous Paper",
+                "category": "Physics",
+                "author_name": "",
+                "author_school": "",
+                "published_at": "2026-06-01",
+                "abstract": "",
+                "is_ib_sample": "",
+                "is_anonymous": "1",
+            }
+        ])
+
+        self.assertIn("2026-06-01", html)
+        self.assertNotIn("IB SAMPLE", html)
+        # No author/school fallback text — the author row is gone entirely.
+        self.assertNotIn("Not specified", html)
+
     def test_cp_filter_label_is_community_project(self):
         html = self.render_search([])
 

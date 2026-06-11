@@ -52,5 +52,28 @@ class WizardJsAnonymousContractTest(unittest.TestCase):
         self.assertIn("anonymous_skipped", self._function_body("renderReview"))
 
 
+class PublicTemplateAnonymousContractTest(unittest.TestCase):
+    def _read(self, name):
+        return (ROOT / "templates" / name).read_text(encoding="utf-8")
+
+    def test_preview_hides_author_block_for_anonymous(self):
+        src = self._read("preview.html")
+        self.assertIn("{% if not paper.get('is_anonymous') %}", src)
+
+    def test_preview_hides_related_paper_author_for_anonymous(self):
+        src = self._read("preview.html")
+        self.assertIn("{% if not rp.get('is_anonymous') %}", src)
+
+    def test_search_guards_author_row_with_anonymous_flag(self):
+        src = self._read("search.html")
+        self.assertIn("{% set is_anonymous = paper.get('is_anonymous') %}", src)
+        self.assertIn("{% if not is_anonymous %}", src)
+        self.assertIn("{% if not is_ib_sample and not is_anonymous %}", src)
+
+    def test_journal_detail_hides_author_for_anonymous(self):
+        src = self._read("journal_detail.html")
+        self.assertIn("paper.get('is_anonymous')", src)
+
+
 if __name__ == "__main__":
     unittest.main()

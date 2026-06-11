@@ -161,6 +161,7 @@
     <div class="d-flex flex-column gap-5">
       {% for paper in records %}
       {% set is_ib_sample = paper.get('is_ib_sample') or paper.get('author_name', '') == 'IB SAMPLE' %}
+      {% set is_anonymous = paper.get('is_anonymous') %}
       <div class="row gx-4 result-item">
         <!-- Item left side text -->
         <div class="col-lg-9">
@@ -183,6 +184,7 @@
               {{ paper.title or _('Untitled Paper') }}
             </a>
           </h3>
+          {% if not is_anonymous %}
           <div class="mb-1" style="font-size: 14px;">
             {% if is_ib_sample %}
             <span class="text-uppercase" style="font-size: 13px; letter-spacing: 0.5px; color: #6c757d;">IB SAMPLE</span>
@@ -190,8 +192,9 @@
             <span class="text-decoration-underline text-dark">{{ paper.author_name or _('Not specified') }}</span>
             {% endif %}
           </div>
+          {% endif %}
           <div class="text-muted fst-italic mb-1" style="font-size: 13px;">
-            {% if not is_ib_sample %}{{ paper.get('author_school_deduped') or paper.author_school or _('Not specified') }} · {% endif %}{{
+            {% if not is_ib_sample and not is_anonymous %}{{ paper.get('author_school_deduped') or paper.author_school or _('Not specified') }} · {% endif %}{{
             paper.published_at or _('Not specified') }}
           </div>
           {% if paper.get('ee_core_subject') %}
