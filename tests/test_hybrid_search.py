@@ -5,6 +5,7 @@ from unittest import mock
 
 os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
 import app as app_module
+import services.search as search_module
 
 
 def _rec(filename, **kw):
@@ -62,7 +63,7 @@ class OrderHybridFilenames(unittest.TestCase):
 class HybridSearchRecords(unittest.TestCase):
     def test_falls_back_to_lexical_when_llm_disabled(self):
         lexical = [_rec("a.pdf")]
-        with mock.patch.object(app_module, "search_papers", return_value=lexical), \
+        with mock.patch.object(search_module, "search_papers", return_value=lexical), \
              mock.patch.object(app_module.llm_client, "llm_enabled", return_value=False):
             out = app_module._hybrid_search_records("anything")
         self.assertEqual(out, lexical)
@@ -70,7 +71,7 @@ class HybridSearchRecords(unittest.TestCase):
     def test_short_query_skips_semantic(self):
         lexical = [_rec("a.pdf")]
         sem = mock.Mock()
-        with mock.patch.object(app_module, "search_papers", return_value=lexical), \
+        with mock.patch.object(search_module, "search_papers", return_value=lexical), \
              mock.patch.object(app_module.llm_client, "llm_enabled", return_value=True), \
              mock.patch.object(app_module.rag_index, "search_papers_semantic", sem):
             out = app_module._hybrid_search_records("a")   # len 1 < MIN_SEMANTIC_QUERY_LEN
@@ -79,7 +80,7 @@ class HybridSearchRecords(unittest.TestCase):
 
     def test_falls_back_to_lexical_on_semantic_error(self):
         lexical = [_rec("a.pdf")]
-        with mock.patch.object(app_module, "search_papers", return_value=lexical), \
+        with mock.patch.object(search_module, "search_papers", return_value=lexical), \
              mock.patch.object(app_module.llm_client, "llm_enabled", return_value=True), \
              mock.patch.object(app_module.rag_index, "search_papers_semantic",
                                side_effect=RuntimeError("boom")):
@@ -88,7 +89,7 @@ class HybridSearchRecords(unittest.TestCase):
 
     def test_falls_back_when_no_semantic_hits(self):
         lexical = [_rec("a.pdf", title="x")]
-        with mock.patch.object(app_module, "search_papers", return_value=lexical), \
+        with mock.patch.object(search_module, "search_papers", return_value=lexical), \
              mock.patch.object(app_module.llm_client, "llm_enabled", return_value=True), \
              mock.patch.object(app_module.rag_index, "search_papers_semantic", return_value=[]):
             out = app_module._hybrid_search_records("climate")
@@ -97,14 +98,14 @@ class HybridSearchRecords(unittest.TestCase):
     def test_merges_semantic_only_paper_after_metadata_match(self):
         lexical = [_rec("m1.pdf", title="climate")]            # metadata match
         index_rows = [_rec("m1.pdf", title="climate"), _rec("s1.pdf", title="semantic only")]
-        with mock.patch.object(app_module, "search_papers", return_value=lexical), \
+        with mock.patch.object(search_module, "search_papers", return_value=lexical), \
              mock.patch.object(app_module.llm_client, "llm_enabled", return_value=True), \
              mock.patch.object(app_module.rag_index, "search_papers_semantic",
                                return_value=[("s1.pdf", 0.9), ("m1.pdf", 0.8)]), \
-             mock.patch.object(app_module, "load_paper_metadata", return_value=index_rows), \
-             mock.patch.object(app_module, "build_paper_record",
+             mock.patch.object(search_module, "load_paper_metadata", return_value=index_rows), \
+             mock.patch.object(search_module, "build_paper_record",
                                side_effect=lambda fn, idx=None: _rec(fn, title="semantic only")), \
-             mock.patch.object(app_module, "PAPERS_DIR", mock.MagicMock()):
+             mock.patch.object(search_module, "PAPERS_DIR", mock.MagicMock()):
             out = app_module._hybrid_search_records("climate")
         self.assertEqual([r["filename"] for r in out], ["m1.pdf", "s1.pdf"])
 

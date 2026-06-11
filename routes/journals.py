@@ -23,7 +23,7 @@ from services.journals import (
     load_journals,
     save_journals,
 )
-from services.papers_meta import (
+from services.papers import (
     gather_paper_records,
     load_paper_metadata,
     save_paper_metadata,

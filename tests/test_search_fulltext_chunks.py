@@ -6,6 +6,7 @@ from unittest import mock
 
 os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
 import app as app_module
+import services.search as search_module
 
 
 def _rec(filename, **kw):
@@ -33,7 +34,7 @@ class FulltextIndex(unittest.TestCase):
         rows = [("a.pdf", i, c) for i, c in enumerate(chunks_a)]
         rows.append(("b.pdf", 0, "Photosynthesis IN Plants"))
 
-        with mock.patch.object(app_module, "db_session",
+        with mock.patch.object(search_module, "db_session",
                                return_value=_fake_db_session(rows)):
             result = app_module._fulltext_index()
 
@@ -44,12 +45,12 @@ class FulltextIndex(unittest.TestCase):
 
 class SearchPapersFallback(unittest.TestCase):
     def _run(self, fulltext, extract_mock, query="mitochondria", filename="a.pdf"):
-        with mock.patch.object(app_module, "load_paper_metadata", return_value=[]), \
-             mock.patch.object(app_module, "build_paper_record",
+        with mock.patch.object(search_module, "load_paper_metadata", return_value=[]), \
+             mock.patch.object(search_module, "build_paper_record",
                                side_effect=lambda fn, idx: _rec(fn)), \
-             mock.patch.object(app_module, "_fulltext_index", return_value=fulltext), \
-             mock.patch.object(app_module, "extract_pdf_text", extract_mock), \
-             mock.patch.object(app_module, "PAPERS_DIR") as papers_dir:
+             mock.patch.object(search_module, "_fulltext_index", return_value=fulltext), \
+             mock.patch.object(search_module, "extract_pdf_text", extract_mock), \
+             mock.patch.object(search_module, "PAPERS_DIR") as papers_dir:
             papers_dir.glob.return_value = [pathlib.Path(filename)]
             return app_module.search_papers(query)
 
@@ -84,13 +85,13 @@ class ChunkPathEquivalence(unittest.TestCase):
         # search_papers via the chunk path returns the paper for the same term,
         # and never falls back to extraction.
         extract = mock.Mock(side_effect=AssertionError("must not extract indexed paper"))
-        with mock.patch.object(app_module, "load_paper_metadata", return_value=[]), \
-             mock.patch.object(app_module, "build_paper_record",
+        with mock.patch.object(search_module, "load_paper_metadata", return_value=[]), \
+             mock.patch.object(search_module, "build_paper_record",
                                side_effect=lambda fn, idx: _rec(fn)), \
-             mock.patch.object(app_module, "_fulltext_index",
+             mock.patch.object(search_module, "_fulltext_index",
                                return_value={"a.pdf": reassembled}), \
-             mock.patch.object(app_module, "extract_pdf_text", extract), \
-             mock.patch.object(app_module, "PAPERS_DIR") as papers_dir:
+             mock.patch.object(search_module, "extract_pdf_text", extract), \
+             mock.patch.object(search_module, "PAPERS_DIR") as papers_dir:
             papers_dir.glob.return_value = [pathlib.Path("a.pdf")]
             out = app_module.search_papers(term)
 
@@ -102,12 +103,12 @@ class IndexedEmptyString(unittest.TestCase):
     def test_indexed_empty_text_does_not_extract(self):
         # a.pdf is indexed but its stored text is empty ("" — present, not None).
         extract = mock.Mock(side_effect=AssertionError("must not extract indexed paper"))
-        with mock.patch.object(app_module, "load_paper_metadata", return_value=[]), \
-             mock.patch.object(app_module, "build_paper_record",
+        with mock.patch.object(search_module, "load_paper_metadata", return_value=[]), \
+             mock.patch.object(search_module, "build_paper_record",
                                side_effect=lambda fn, idx: _rec(fn)), \
-             mock.patch.object(app_module, "_fulltext_index", return_value={"a.pdf": ""}), \
-             mock.patch.object(app_module, "extract_pdf_text", extract), \
-             mock.patch.object(app_module, "PAPERS_DIR") as papers_dir:
+             mock.patch.object(search_module, "_fulltext_index", return_value={"a.pdf": ""}), \
+             mock.patch.object(search_module, "extract_pdf_text", extract), \
+             mock.patch.object(search_module, "PAPERS_DIR") as papers_dir:
             papers_dir.glob.return_value = [pathlib.Path("a.pdf")]
             out = app_module.search_papers("mitochondria")
         self.assertEqual(out, [])              # indexed, empty -> no match
