@@ -447,7 +447,7 @@ msgstr "社区项目（CP）"
 msgid ""
 "An IB MYP Community Project graded against Criteria A–D, with a Global "
 "Context and a chosen type of action."
-msgstr "IB MYP 社区设计项目，按 A–D 标准评分，并选择全球语境与行动类型。"
+msgstr "IB MYP 社区设计项目，按 A–D 标准评分，并选择全球背景与行动类型。"
 
 #: app.py:1578
 msgid "Title · Global Context · type of action · criteria A–D"
@@ -672,7 +672,7 @@ msgstr "全球背景"
 
 #: app.py:1633
 msgid "Select a Global Context…"
-msgstr "请选择全球语境…"
+msgstr "请选择全球背景…"
 
 #: app.py:1634
 msgid "Global Contexts"
@@ -1691,7 +1691,7 @@ msgstr "所有学科"
 
 #: templates/advanced_search.html:62 templates/search.html:83
 msgid "Any Context"
-msgstr "全球语境"
+msgstr "全球背景"
 
 #: templates/advanced_search.html:70
 msgid "publication"
