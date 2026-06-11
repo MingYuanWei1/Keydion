@@ -150,6 +150,10 @@ PREVIEWABLE_MIMES = {"application/pdf", "image/png", "image/jpeg", "image/gif", 
 RESOURCE_MAX_BYTES = int(os.environ.get("PAPERQUERY_RESOURCE_MAX_MB", "50")) * 1024 * 1024
 MAX_SEARCH_RESULTS = 20
 MIN_SEMANTIC_QUERY_LEN = 2   # skip embedding for 1-char queries (idea #4)
+# VECTOR(n) column dimension for RAG chunk embeddings. Must match the embedding
+# model's output (gemini-embedding-001: 3072). Changing it requires a column
+# migration + full re-index, not just an env flip.
+RAG_EMBED_DIM = int(os.environ.get("RAG_EMBED_DIM", "3072"))
 PASSWORD_SCHEME = "pbkdf2_sha256"
 SUPPORTED_LOCALES = ("en", "zh")
 SESSION_TIMEOUT_SECONDS = int(os.environ.get("PAPERQUERY_SESSION_TIMEOUT", "3600"))
