@@ -10,7 +10,7 @@ from unittest import mock
 os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
 
 import app as app_module
-import services.ask as ask_module
+import services.ai as ask_module
 
 
 class IndexOcrLangsHelper(unittest.TestCase):

@@ -23,7 +23,7 @@ from sqlalchemy import text  # noqa: E402
 
 import db as db_module       # noqa: E402
 from db import db_session    # noqa: E402
-from services.ask import bump_chunks_version  # noqa: E402
+from services.ai import bump_chunks_version  # noqa: E402
 
 BATCH = 500
 

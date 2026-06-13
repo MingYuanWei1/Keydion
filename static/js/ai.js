@@ -1,4 +1,4 @@
-// static/js/ask.js — Keydion AI chat client (vanilla JS, no build step)
+// static/js/ai.js — Keydion AI chat client (vanilla JS, no build step)
 (function () {
   "use strict";
   var bootEl = document.getElementById("ask-boot");
@@ -472,7 +472,7 @@
       .then(function (r) { return r.json(); })
       .then(function (j) { 
         activeConv = j.id; 
-        window.history.pushState(null, "", "/ask/" + activeConv);
+        window.history.pushState(null, "", "/ai/" + activeConv);
         loadConversations(); 
         return activeConv; 
       });
@@ -480,7 +480,7 @@
 
   function openConversation(id) {
     activeConv = id;
-    window.history.pushState(null, "", "/ask/" + id);
+    window.history.pushState(null, "", "/ai/" + id);
     fetch("/api/conversations/" + id).then(function (r) { return r.json(); }).then(function (j) {
       window.__attachedDocs = {};
       if (window.__clearSelected) window.__clearSelected();
@@ -519,7 +519,7 @@
   if (newChatBtn) newChatBtn.addEventListener("click", function () {
     activeConv = null; thread.innerHTML = "";
     window.__attachedDocs = {}; if (window.__clearSelected) window.__clearSelected(); renderChips();
-    window.history.pushState(null, "", "/ask");
+    window.history.pushState(null, "", "/ai");
     if (empty) { thread.appendChild(empty); empty.style.display = ""; }
     loadConversations();
   });
@@ -558,7 +558,7 @@
         var fd = new FormData();
         fd.append("file", f);
         fd.append("conversation_id", cid);
-        var up = fetch("/api/ask/attach", { method: "POST", body: fd })
+        var up = fetch("/api/ai/attach", { method: "POST", body: fd })
           .then(function (r) { return r.json(); })
           .then(function (j) {
             if (j && j.error) { delete window.__attachedDocs[f.name]; renderChips(); alert(j.error); }
@@ -607,7 +607,7 @@
     updateCount();
   };
   window.__attachedDocs = {};
-  window.__attachUploads = [];   // in-flight /api/ask/attach promises
+  window.__attachUploads = [];   // in-flight /api/ai/attach promises
 
   function updateCount() {
     if (!citeCount) return;
@@ -719,7 +719,7 @@
 
   function loadPapers(q) {
     if (!citeListEl) return;
-    fetch("/api/ask/papers?q=" + encodeURIComponent(q)).then(function (r) { return r.json(); })
+    fetch("/api/ai/papers?q=" + encodeURIComponent(q)).then(function (r) { return r.json(); })
       .then(function (j) {
         allPapers = j.papers || [];
         activeFilter = "All";
@@ -747,7 +747,7 @@
         delete window.__attachedDocs[fn];
         renderChips();
         var cid = window.__activeConv && window.__activeConv();
-        if (cid) fetch("/api/ask/attach?conversation_id=" + encodeURIComponent(cid) +
+        if (cid) fetch("/api/ai/attach?conversation_id=" + encodeURIComponent(cid) +
                        "&filename=" + encodeURIComponent(fn), { method: "DELETE" });
       });
       chip.appendChild(x);

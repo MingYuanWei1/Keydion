@@ -68,7 +68,7 @@ class AttachEndpoint(unittest.TestCase):
         with mock.patch.dict(os.environ, {}, clear=False):
             os.environ.pop("LLM_API_KEY", None)
             resp = self.client.post(
-                "/api/ask/attach",
+                "/api/ai/attach",
                 data={"conversation_id": "zzzzzz",
                       "file": (BytesIO(b"hello"), "a.txt")},
                 content_type="multipart/form-data")
@@ -77,7 +77,7 @@ class AttachEndpoint(unittest.TestCase):
     def test_unknown_conversation_404(self):
         with mock.patch.dict(os.environ, {"LLM_API_KEY": "k"}, clear=False):
             resp = self.client.post(
-                "/api/ask/attach",
+                "/api/ai/attach",
                 data={"conversation_id": "nope00",
                       "file": (BytesIO(b"hello"), "a.txt")},
                 content_type="multipart/form-data")
@@ -91,7 +91,7 @@ class ConversationDeletePurges(unittest.TestCase):
         self.assertIn("AttachmentChunkModel.conversation_id == conv.id", text)
 
     def test_api_ask_merges_attachment_grounding(self):
-        text = support.source_of("api_ask")
+        text = support.source_of("api_ai")
         self.assertIn("_attachment_grounding(", text)
 
 
@@ -124,7 +124,7 @@ class ConversationGetReturnsMessageAttachments(unittest.TestCase):
 
 class AskPersistsMessageAttachments(unittest.TestCase):
     def test_reads_and_stores_message_attachments(self):
-        src = support.source_of("api_ask")
+        src = support.source_of("api_ai")
         self.assertIn('data.get("message_attachments"', src)
         self.assertIn("attachments=", src)   # set on the user ChatMessageModel row
 

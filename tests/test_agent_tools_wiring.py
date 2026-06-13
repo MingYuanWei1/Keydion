@@ -38,7 +38,7 @@ class AgenticPromptMentionsWeb(unittest.TestCase):
 
 class LoopWiring(unittest.TestCase):
     def setUp(self):
-        self.src = support.source_of("api_ask")
+        self.src = support.source_of("api_ai")
 
     def test_loop_uses_build_tool_schemas(self):
         self.assertIn("build_tool_schemas", self.src)
@@ -72,7 +72,7 @@ class AttachmentDeps(unittest.TestCase):
 
 class AttachmentLoopWiring(unittest.TestCase):
     def setUp(self):
-        self.src = support.source_of("api_ask")
+        self.src = support.source_of("api_ai")
 
     def test_loop_passes_include_attachment(self):
         self.assertIn("include_attachment", self.src)

@@ -107,7 +107,7 @@ from services.submissions import (  # noqa: F401
     _load_submissions, _write_submissions, _save_submission,
     _get_submission, _update_submission,
 )
-from services.ask import (  # noqa: F401
+from services.ai import (  # noqa: F401
     configure_rag, _index_ocr_langs, _rag_paper_text,
     _lib_full_text, _lib_search, _lib_paper_meta, _lib_paper_url,
     _build_library_deps, _build_agentic_ask_prompt, _tool_status_text,

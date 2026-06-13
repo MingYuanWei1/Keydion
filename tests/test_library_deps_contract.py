@@ -2,7 +2,7 @@
 _lib_paper_url, and _build_library_deps — the DB-backed deps for library_tools.
 
 No real DB or Flask app context is needed; everything is mocked at the
-module attribute level. The helpers live in services.ask (split refactor), so
+module attribute level. The helpers live in services.ai (split refactor), so
 collaborators are patched there; the public objects stay reachable as
 app_module.<name> via the back-compat re-exports.
 """
@@ -13,7 +13,7 @@ from unittest import mock
 
 os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
 import app as app_module
-import services.ask as ask_module
+import services.ai as ask_module
 
 
 def _make_db_cm(rows):

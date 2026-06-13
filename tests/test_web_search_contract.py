@@ -49,7 +49,7 @@ class WebSearchModule(unittest.TestCase):
 
 class ApiAskReadsWebFlag(unittest.TestCase):
     def test_api_ask_reads_web_flag(self):
-        text = support.source_of("api_ask")
+        text = support.source_of("api_ai")
         self.assertIn('data.get("web")', text)
         self.assertIn("web_search.web_search(", text)
 

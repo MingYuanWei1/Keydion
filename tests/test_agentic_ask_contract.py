@@ -1,5 +1,5 @@
 # tests/test_agentic_ask_contract.py
-"""Contract: /api/ask runs an agentic tool loop (search_library + read_paper)
+"""Contract: /api/ai runs an agentic tool loop (search_library + read_paper)
 over the library, with a legacy single-shot fallback when the provider lacks
 tool support. Covers the source-level invariants, the agentic prompt builder,
 and the tool-status text helper. A fake-client streaming test drives the real
@@ -22,7 +22,7 @@ import support
 
 class SourceContract(unittest.TestCase):
     def test_api_ask_wires_tool_loop(self):
-        src = support.source_of("api_ask")
+        src = support.source_of("api_ai")
         self.assertIn("tools=", src)
         self.assertIn("run_tool", src)
         self.assertIn("build_tool_schemas", src)
@@ -32,7 +32,7 @@ class SourceContract(unittest.TestCase):
         self.assertEqual(app_module.MAX_TOOL_ROUNDS, 5)
 
     def test_legacy_fallback_and_round_cap_preserved(self):
-        src = support.source_of("api_ask")
+        src = support.source_of("api_ai")
         # Fallback path reuses the original single-shot prompt builder.
         self.assertIn("_build_ask_prompt(", src)
         # Round-cap final call forces no further tool use.
@@ -200,7 +200,7 @@ class AgenticLoopStreaming(unittest.TestCase):
              mock.patch.object(app_module.rag_index, "retrieve", return_value=[hit]), \
              mock.patch.object(app_module, "_attachment_grounding", return_value=[]), \
              mock.patch.object(app_module, "_build_library_deps", return_value=deps):
-            resp = self.client.post("/api/ask",
+            resp = self.client.post("/api/ai",
                                     json={"question": "explain algae", "mode": "flash"})
             body = resp.get_data(as_text=True)
 

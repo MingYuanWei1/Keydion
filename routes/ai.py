@@ -21,7 +21,7 @@ from config import OPEN_ACCESS
 from db import db_session
 from models import AttachmentChunkModel, ChatMessageModel, ConversationModel
 from routes.shared import is_partial_request
-from services.ask import (
+from services.ai import (
     FETCH_URL_CALL_CAP,
     MAX_ATTACH_BYTES,
     MAX_QUESTION_CHARS,
@@ -54,9 +54,9 @@ def register_routes(app):
             return None
         return jsonify({"error": str(_("Please sign in first."))}), 401
 
-    @app.route("/ask")
-    @app.route("/ask/<serial>")
-    def ask_library(serial=None):
+    @app.route("/ai")
+    @app.route("/ai/<serial>")
+    def ai(serial=None):
         if not OPEN_ACCESS:
             user = require_login()
             if not user:
@@ -69,7 +69,7 @@ def register_routes(app):
                     ConversationModel.serial == serial,
                     ConversationModel.owner_key == owner).first()
                 if not conv:
-                    return redirect(url_for("ask_library"))
+                    return redirect(url_for("ai"))
 
         suggestions = [
             _("What does the research say about climate adaptation in plants?"),
@@ -77,8 +77,8 @@ def register_routes(app):
             _("Find papers about machine learning in healthcare."),
         ]
         boot = {
-            "ask_url": url_for("ask_library"),
-            "api_url": url_for("api_ask"),
+            "ask_url": url_for("ai"),
+            "api_url": url_for("api_ai"),
             "enabled": llm_client.llm_enabled(),
             "web_enabled": web_search.web_search_enabled(),
             "i18n": {
@@ -112,7 +112,7 @@ def register_routes(app):
             "active_serial": serial,
         }
         return render_template(
-            "ask.html",
+            "ai.html",
             partial=is_partial_request(),
             llm_enabled=llm_client.llm_enabled(),
             web_enabled=web_search.web_search_enabled(),
@@ -199,8 +199,8 @@ def register_routes(app):
             return jsonify({"title": conv.title, "messages": out,
                             "attachments": attachments})
 
-    @app.route("/api/ask/papers")
-    def api_ask_papers():
+    @app.route("/api/ai/papers")
+    def api_ai_papers():
         blocked = require_ask_api_access()
         if blocked:
             return blocked
@@ -215,8 +215,8 @@ def register_routes(app):
         } for r in records[:50]]
         return jsonify({"papers": items})
 
-    @app.route("/api/ask/attach", methods=["POST", "DELETE"])
-    def api_ask_attach():
+    @app.route("/api/ai/attach", methods=["POST", "DELETE"])
+    def api_ai_attach():
         blocked = require_ask_api_access()
         if blocked:
             return blocked
@@ -280,8 +280,8 @@ def register_routes(app):
                     content=ch, embedding=json.dumps(vectors[i]), created_at=now))
         return jsonify({"ok": True, "filename": display, "chunks": len(chunks)})
 
-    @app.route("/api/ask", methods=["POST"])
-    def api_ask():
+    @app.route("/api/ai", methods=["POST"])
+    def api_ai():
         blocked = require_ask_api_access()
         if blocked:
             return blocked

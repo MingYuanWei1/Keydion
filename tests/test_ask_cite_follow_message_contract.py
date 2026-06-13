@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class AskCiteFollowMessageJs(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.js = (ROOT / "static" / "js" / "ask.js").read_text(encoding="utf-8")
+        cls.js = (ROOT / "static" / "js" / "ai.js").read_text(encoding="utf-8")
 
     def test_send_posts_message_papers(self):
         # the per-message cited papers go out under a new field
@@ -65,7 +65,7 @@ class CitedPapersColumn(unittest.TestCase):
 
 class AskPersistsCitedPapers(unittest.TestCase):
     def setUp(self):
-        self.src = support.source_of("api_ask")
+        self.src = support.source_of("api_ai")
 
     def test_reads_message_papers(self):
         self.assertIn('data.get("message_papers"', self.src)

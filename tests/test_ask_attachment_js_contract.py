@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class AskAttachmentJsContract(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.js = (ROOT / "static" / "js" / "ask.js").read_text(encoding="utf-8")
+        cls.js = (ROOT / "static" / "js" / "ai.js").read_text(encoding="utf-8")
 
     def test_send_posts_message_attachments(self):
         self.assertIn("message_attachments", self.js)

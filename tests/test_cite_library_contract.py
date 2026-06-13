@@ -17,14 +17,14 @@ def _read(p):
 class CiteLibrary(unittest.TestCase):
     def test_paper_list_endpoint(self):
         src = support.all_sources()
-        self.assertIn('@app.route("/api/ask/papers")', src)
-        self.assertIn("def api_ask_papers(", src)
+        self.assertIn('@app.route("/api/ai/papers")', src)
+        self.assertIn("def api_ai_papers(", src)
 
     def test_forced_grounding_helper(self):
         self.assertIn("def _forced_grounding(", support.all_sources())
 
     def test_modal_markup_present(self):
-        html = _read("templates/ask.html")
+        html = _read("templates/ai.html")
         self.assertIn("kd-overlay", html)
         self.assertIn("kd-modal", html)
 

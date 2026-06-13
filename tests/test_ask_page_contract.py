@@ -18,30 +18,30 @@ def _read(path):
 class AskRouteRegistered(unittest.TestCase):
     def test_app_defines_ask_route_and_endpoint(self):
         src = support.all_sources()
-        self.assertIn('@app.route("/ask")', src)
-        self.assertIn("def ask_library(", src)
+        self.assertIn('@app.route("/ai")', src)
+        self.assertIn("def ai(", src)
 
     def test_app_defines_ask_api_route(self):
         src = support.all_sources()
-        self.assertIn('@app.route("/api/ask"', src)
+        self.assertIn('@app.route("/api/ai"', src)
 
 
 class AskTemplateDom(unittest.TestCase):
     def test_template_is_standalone(self):
-        html = _read("templates/ask.html")
+        html = _read("templates/ai.html")
         self.assertIn("<!doctype html", html.lower())
         self.assertIn("kd-rail__foot", html)
 
     def test_template_has_js_target_ids(self):
-        html = _read("templates/ask.html")
+        html = _read("templates/ai.html")
         for needed in ["kd-thread", "kd-composer-input", "kd-send",
                        "kd-agent", "ask-boot"]:
             self.assertIn(needed, html)
 
     def test_template_loads_ask_assets(self):
-        html = _read("templates/ask.html")
-        self.assertIn("css/ask.css", html)
-        self.assertIn("js/ask.js", html)
+        html = _read("templates/ai.html")
+        self.assertIn("css/ai.css", html)
+        self.assertIn("js/ai.js", html)
 
 
 if __name__ == "__main__":

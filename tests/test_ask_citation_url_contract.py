@@ -21,7 +21,7 @@ import support
 
 class AskCitationUrl(unittest.TestCase):
     def setUp(self):
-        self.src = support.source_of("api_ask")
+        self.src = support.source_of("api_ai")
 
     def test_citations_link_to_preview_page(self):
         self.assertIn(
