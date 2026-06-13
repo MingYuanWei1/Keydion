@@ -1,0 +1,116 @@
+{% extends "_bare.html" if partial else "_dashboard_shell.html" %}
+{% block title %}{{ _('Manage Journals · Keydion') }}{% endblock %}
+{% block head_extra %}{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/manage.css') }}">
+{% endblock %}
+{% block panel %}
+{% if partial %}<link rel="stylesheet" href="{{ url_for('static', filename='css/manage.css') }}">{% endif %}
+
+<div class="kp-head">
+  <div class="kp-head__left">
+    <div class="kp-crumb">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <span>{{ _('Collection') }} · {{ _('Journals') }}</span>
+    </div>
+    <h1 class="kp-title">{{ _('Manage Journals') }}</h1>
+    <p class="kp-sub">{{ _('Journals group related papers and appear at /journals. Add a journal here, then edit it to set its cover and introduction.') }}</p>
+  </div>
+</div>
+
+{# ─── Add journal ─── #}
+<div class="kp-toolbar">
+  <div class="kp-search" style="flex:1;">
+    <input type="text" id="journalNameInput" placeholder="{{ _('New journal name…') }}" autocomplete="off">
+  </div>
+  <button type="button" class="kp-btn kp-btn--primary" id="journalAddBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+    <span>{{ _('Add journal') }}</span>
+  </button>
+</div>
+
+{% if not journals %}
+  <div class="kp-empty">
+    <h3>{{ _('No journals yet') }}</h3>
+    <p>{{ _('Create your first journal to start grouping papers.') }}</p>
+  </div>
+{% else %}
+<div class="guide-rows" data-rows>
+  {% for j in journals %}
+  <div class="guide-row" data-journal-id="{{ j.id }}">
+    <div class="guide-row__title">
+      <div class="guide-row__en">{{ j.name }}</div>
+      <code class="guide-row__slug">/journals/{{ j.slug }}</code>
+    </div>
+    <div class="guide-row__meta-cell">{{ j.paper_count }} {{ _('papers') }}</div>
+    <div class="guide-row__actions">
+      <a class="kp-row-icon" href="/journals/{{ j.slug }}" target="_blank" rel="noopener" title="{{ _('Preview public') }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+      </a>
+      <a class="kp-row-icon" href="{{ url_for('admin_journal_edit', journal_id=j.id) }}" title="{{ _('Edit') }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+      </a>
+      <button type="button" class="kp-row-icon" data-journal-delete="{{ j.id }}" data-journal-name="{{ j.name }}" title="{{ _('Delete') }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      </button>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="kp-toast" id="journalToast"></div>
+
+<script>
+(function () {
+  var ADD_URL = "{{ url_for('admin_journals_add') }}";
+  var DELETE_URL = "{{ url_for('admin_journals_delete') }}";
+
+  function showToast(msg) {
+    var t = document.getElementById('journalToast');
+    if (!t) return;
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(function () { t.classList.remove('show'); }, 2400);
+  }
+
+  function addJournal() {
+    var input = document.getElementById('journalNameInput');
+    var name = (input.value || '').trim();
+    if (!name) { input.focus(); return; }
+    fetch(ADD_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name })
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .then(function (res) {
+        if (!res.ok) { showToast(res.d.error || "{{ _('Could not add journal.') }}"); return; }
+        window.location.reload();
+      })
+      .catch(function () { showToast("{{ _('Could not add journal.') }}"); });
+  }
+
+  var addBtn = document.getElementById('journalAddBtn');
+  if (addBtn) addBtn.addEventListener('click', addJournal);
+  var nameInput = document.getElementById('journalNameInput');
+  if (nameInput) nameInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); addJournal(); } });
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest && e.target.closest('[data-journal-delete]');
+    if (!btn) return;
+    var id = btn.dataset.journalDelete;
+    var nm = btn.dataset.journalName || '';
+    if (!confirm("{{ _('Delete this journal?') }} " + nm)) return;
+    fetch(DELETE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: id })
+    })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+      .then(function () { window.location.reload(); })
+      .catch(function () { showToast("{{ _('Could not delete journal.') }}"); });
+  });
+})();
+</script>
+
+{% endblock %}

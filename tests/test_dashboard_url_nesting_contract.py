@@ -33,6 +33,7 @@ MOVED_ROUTES = {
     "admin_journals_add":              ("/dashboard/admin/journals/add",              None),
     "admin_journals_delete":           ("/dashboard/admin/journals/delete",           None),
     "admin_journal_edit":              ("/dashboard/admin/journal/<journal_id>/edit", "/admin/journal/<journal_id>/edit"),
+    "admin_journals_manage":           ("/dashboard/admin/journals",                  None),
 
     # Task 6: review
     "review_list":                     ("/dashboard/review",                          "/review"),

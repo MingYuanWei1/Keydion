@@ -88,6 +88,19 @@ def register_routes(app):
         save_journals(journals)
         return jsonify(items=journals)
 
+    @app.route("/dashboard/admin/journals", endpoint="admin_journals_manage")
+    def journals_manage():
+        user = require_login(level=3)
+        if not user:
+            target = url_for("login") if not session.get("user") else url_for("dashboard")
+            return redirect(target)
+        journals = load_journals()
+        counts = get_journal_paper_counts()
+        for j in journals:
+            j["paper_count"] = counts.get(j["name"], 0)
+        return render_template("journal_manage.html", user=user, journals=journals,
+                               partial=request.args.get("partial"))
+
     @app.route("/dashboard/admin/journal/<journal_id>/edit", methods=["GET", "POST"], endpoint="admin_journal_edit")
     def journal_edit(journal_id):
         user = require_login(level=3)
