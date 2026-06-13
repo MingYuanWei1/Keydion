@@ -194,8 +194,8 @@ def register_routes(app):
             journal_filter=journal_filter,
         )
 
-    @app.route("/dashboard/manage")
-    def manage():
+    @app.route("/dashboard/admin/papers")
+    def paper_manage():
         user = require_login(level=3)
         if not user:
             target = url_for("login") if not session.get("user") else url_for("dashboard")
@@ -221,11 +221,11 @@ def register_routes(app):
                 "published_at": m.get("published_at", ""),
             })
 
-        return render_template("delete.html", user=user, papers=papers)
+        return render_template("paper_manage.html", user=user, papers=papers)
 
-    @app.route("/manage", endpoint="manage_legacy")
-    def manage_legacy():
-        return redirect(url_for("manage"), code=301)
+    @app.route("/admin/papers", endpoint="paper_manage_legacy")
+    def paper_manage_legacy():
+        return redirect(url_for("paper_manage"), code=301)
 
     @app.route("/paper/<path:filename>/info")
     def paper_info(filename):
@@ -264,7 +264,7 @@ def register_routes(app):
         paper_path = PAPERS_DIR / filename
         if not paper_path.exists():
             flash(_("Paper not found."), "warning")
-            return redirect(url_for("manage"))
+            return redirect(url_for("paper_manage"))
 
         meta_rows = load_paper_metadata()
         meta = {}
@@ -405,7 +405,7 @@ def register_routes(app):
                 "cp_data": cp_data,
             })
             flash(_("Paper information updated."), "success")
-            return redirect(url_for("manage"))
+            return redirect(url_for("paper_manage"))
 
         return render_modify_form(meta)
 
@@ -422,7 +422,7 @@ def register_routes(app):
         paper_path = PAPERS_DIR / filename
         if not paper_path.exists():
             flash(_("Paper not found."), "warning")
-            return redirect(url_for("manage"))
+            return redirect(url_for("paper_manage"))
 
         remove_paper_metadata(filename)
         paper_path.unlink(missing_ok=True)
@@ -431,7 +431,7 @@ def register_routes(app):
             rag_index.purge(filename)
         except Exception:
             app.logger.exception("Failed to purge chunks for deleted paper")
-        return redirect(url_for("manage"))
+        return redirect(url_for("paper_manage"))
 
     @app.route("/preview/<path:filename>")
     def preview_paper(filename: str):
@@ -548,16 +548,16 @@ def register_routes(app):
         return send_from_directory(PAPERS_DIR, filename, as_attachment=True)
 
     # ---------- Paper categories & journals management ----------
-    @app.route("/dashboard/admin/paper-manage")
-    def paper_manage():
+    @app.route("/dashboard/admin/categories")
+    def category_manage():
         user = require_login(level=3)
         if not user:
             target = url_for("login") if not session.get("user") else url_for("dashboard")
             return redirect(target)
-        return render_template("paper_manage.html", user=user,
+        return render_template("category_manage.html", user=user,
                                paper_categories=load_paper_categories(),
                                ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES)
 
-    @app.route("/admin/paper-manage", endpoint="paper_manage_legacy")
-    def paper_manage_legacy():
-        return redirect(url_for("paper_manage"), code=301)
+    @app.route("/admin/categories", endpoint="category_manage_legacy")
+    def category_manage_legacy():
+        return redirect(url_for("category_manage"), code=301)

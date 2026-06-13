@@ -93,13 +93,13 @@ requestAnimationFrame(function(){requestAnimationFrame(function(){e.removeAttrib
       {% if role >= 3 %}
       <div class="nav-group">
         <div class="nav-group__label">{{ _('Collection') }}</div>
-        <a href="{{ url_for('manage') }}" class="nav-item" data-partial-href="{{ url_for('manage') }}">
+        <a href="{{ url_for('paper_manage') }}" class="nav-item" data-partial-href="{{ url_for('paper_manage') }}">
           <span class="nav-item__icon" aria-hidden="true">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v6H4z"/><path d="M14 4h6v6h-6z"/><path d="M4 14h6v6H4z"/><path d="M14 14h6v6h-6z"/></svg>
           </span>
           <span class="nav-item__label">{{ _('Manage papers') }}</span>
         </a>
-        <a href="{{ url_for('paper_manage') }}" class="nav-item" data-partial-href="{{ url_for('paper_manage') }}">
+        <a href="{{ url_for('category_manage') }}" class="nav-item" data-partial-href="{{ url_for('category_manage') }}">
           <span class="nav-item__icon" aria-hidden="true">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18"/><path d="M3 12h18"/><path d="M3 17h12"/></svg>
           </span>

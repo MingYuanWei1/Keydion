@@ -21,10 +21,10 @@ MOVED_ROUTES = {
     "my_submission_delete":            ("/dashboard/my-submissions/<sub_id>/delete",  None),
 
     # Task 5: collection management
-    "manage":                          ("/dashboard/manage",                          "/manage"),
+    "paper_manage":                    ("/dashboard/admin/papers",                    "/admin/papers"),
     "paper_modify":                    ("/dashboard/paper/<path:filename>/modify",    "/paper/<path:filename>/modify"),
     "paper_delete":                    ("/dashboard/paper/<path:filename>/delete",    None),
-    "paper_manage":                    ("/dashboard/admin/paper-manage",              "/admin/paper-manage"),
+    "category_manage":                 ("/dashboard/admin/categories",                "/admin/categories"),
     "admin_paper_categories_add":      ("/dashboard/admin/paper-categories/add",      None),
     "admin_paper_categories_rename":   ("/dashboard/admin/paper-categories/rename",   None),
     "admin_paper_categories_delete":   ("/dashboard/admin/paper-categories/delete",   None),

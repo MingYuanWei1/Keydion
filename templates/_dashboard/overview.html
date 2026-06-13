@@ -25,7 +25,7 @@
   <section class="stats-row" aria-label="{{ _('At a glance') }}">
     {% if dashboard_stats %}
     {% if role >= 3 and dashboard_stats.papers_in_library is defined %}
-    <a class="stat-tile" href="{{ url_for('manage') }}" data-partial-href="{{ url_for('manage') }}">
+    <a class="stat-tile" href="{{ url_for('paper_manage') }}" data-partial-href="{{ url_for('paper_manage') }}">
       <div class="stat-tile__label">{{ _('Papers in library') }}</div>
       <div class="stat-tile__value">{{ '{:,}'.format(dashboard_stats.papers_in_library) }}</div>
       {% if dashboard_stats.papers_delta_label %}
