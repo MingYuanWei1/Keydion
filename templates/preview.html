@@ -15,6 +15,11 @@
     <a class="text-decoration-none text-muted fw-medium" href="{{ url_for('search') }}">&larr; {{ _('Back to Search')
       }}</a>
     {% endif %}
+    {% set _jslug = (journal_slug_map|default({})).get(paper.journal) if paper.journal else None %}
+    {% if _jslug %}
+    <a class="text-decoration-none text-muted fw-medium ms-3"
+      href="{{ url_for('journal_detail', slug=_jslug) }}">&larr; {{ _('Back to') }} {{ paper.journal }}</a>
+    {% endif %}
   </div>
   <div class="d-flex gap-2">
     {% if is_guest and not open_access %}

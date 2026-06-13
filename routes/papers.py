@@ -27,7 +27,7 @@ from config import (
 )
 from routes.shared import paginate_records
 from services.auth import get_active_user, require_login
-from services.journals import get_journal_id_map, get_journal_names, load_journals
+from services.journals import get_journal_id_map, get_journal_names, get_journal_slug_map, load_journals
 from services.papers import (
     _build_safe_paper_filename,
     _get_ee_subjects_list,
@@ -515,6 +515,7 @@ def register_routes(app):
             is_guest=is_guest,
             pdf_url=pdf_url,
             journal_id_map=get_journal_id_map(),
+            journal_slug_map=get_journal_slug_map(),
             ib_ee_info=ib_ee_info,
             cp_info=cp_info,
         )

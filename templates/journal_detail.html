@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 {% block title %}{{ journal.name }} · Keydion{% endblock %}
 {% block content %}
+<div class="mb-3">
+    <a class="text-decoration-none text-muted fw-medium" href="{{ url_for('journal_list_page') }}">
+        &larr; {{ _('Back to Journals') }}
+    </a>
+</div>
 
 <style>
     .journal-hero {
