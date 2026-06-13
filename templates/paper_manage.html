@@ -5,96 +5,12 @@
 {% endblock %}
 {% block panel %}
 
-{# =============================================================
-   templates/paper_manage.html — Library table (editorial redesign)
-
-   Mirrors the news_manage.html visual language (cream + serif +
-   crimson) and rides on static/css/manage.css. Replaces the old
-   Bootstrap table + PDF preview modal with a filterable / sortable
-   library, status-style "paper type" chips, a search box, and a
-   bulk-delete bar.
-
-   Existing endpoints used (unchanged):
-     upload, paper_modify, paper_delete, paper_file
-
-   ─────────────────────────────────────────────────────────────
-   BACKEND NOTES — two small, OPTIONAL additions make every facet
-   light up. The page renders & degrades gracefully without them.
-
-   (1) In routes/papers.py → paper_manage(), add `journal` and a
-       derived `paper_type` to each paper dict so the Type chips
-       and Journal column populate. `json` is already imported:
-
-         for fname in pdf_files:
-             m = meta_map.get(fname, {})
-             paper_type = "Independent Research"
-             raw_cp = m.get("cp_data", "")
-             if raw_cp:
-                 try:
-                     if json.loads(raw_cp).get("is_cp_paper"):
-                         paper_type = "Community Project"
-                 except (json.JSONDecodeError, TypeError):
-                     pass
-             if paper_type == "Independent Research":
-                 raw_ib = m.get("ib_ee_data", "")
-                 if raw_ib:
-                     try:
-                         if json.loads(raw_ib).get("is_ib_ee"):
-                             paper_type = "Extended Essay"
-                     except (json.JSONDecodeError, TypeError):
-                         pass
-             papers.append({
-                 ...existing keys...,
-                 "journal": m.get("journal", ""),
-                 "paper_type": paper_type,
-             })
-
-   (2) Pass the journal list so the "Add to journal" modal can
-       populate. `get_journal_names` is already imported:
-
-         return render_template("paper_manage.html", user=user,
-                                papers=papers, journals=get_journal_names())
-
-   (3) The bulk bar POSTs JSON to /dashboard/admin/papers/bulk for
-       two operations: {filenames:[...], op:'delete'} and
-       {filenames:[...], op:'set_journal', journal:'<name>'}.
-       Add this route to routes/papers.py (level-3 guard;
-       remove_paper_metadata / upsert_paper_metadata already imported):
-
-         @app.route("/dashboard/admin/papers/bulk", methods=["POST"])
-         def papers_bulk_action():
-             user = require_login(level=3)
-             if not user:
-                 return jsonify({"error": "Unauthorized"}), 401
-             data = request.get_json(silent=True) or {}
-             filenames = data.get("filenames", [])
-             op = data.get("op", "")
-             if op == "delete":
-                 deleted = []
-                 for fname in filenames:
-                     p = PAPERS_DIR / fname
-                     if p.exists():
-                         remove_paper_metadata(fname)
-                         p.unlink(missing_ok=True)
-                         try:
-                             rag_index.purge(fname)
-                         except Exception:
-                             app.logger.exception("purge failed")
-                         deleted.append(fname)
-                 return jsonify({"deleted": deleted, "count": len(deleted)})
-             if op == "set_journal":
-                 journal = (data.get("journal") or "").strip()
-                 updated = []
-                 for fname in filenames:
-                     if (PAPERS_DIR / fname).exists():
-                         upsert_paper_metadata(fname, {"journal": journal})
-                         updated.append(fname)
-                 return jsonify({"updated": updated, "count": len(updated)})
-             return jsonify({"error": "Unsupported operation"}), 400
-
-       Until that route exists, the bulk-delete button falls back to
-       per-row deletes (no 500s); "Add to journal" needs the route.
-   ============================================================= #}
+{# templates/paper_manage.html — Library table (editorial redesign).
+   Filterable / sortable library with paper-type chips, a Journal column,
+   a search box, a bulk-delete bar, and an "Add to journal" modal. Backed by
+   paper_manage() and the papers_bulk_action endpoint in routes/papers.py.
+   Endpoints: upload, paper_modify, paper_delete, paper_file, and
+   POST /dashboard/admin/papers/bulk. #}
 
 {% if partial %}<link rel="stylesheet" href="{{ url_for('static', filename='css/manage.css') }}">{% endif %}
 
@@ -297,10 +213,7 @@
   </div>
 {% else %}
 
-{# Categories derived from the papers themselves — no backend change needed #}
-{% set paper_cats = papers | map(attribute='category') | select | unique | list | sort %}
-
-{# Paper-type counts (populate once the route supplies p.paper_type — see notes above) #}
+{# Paper-type counts for the filter toolbar #}
 {% set ee_count  = papers | selectattr('paper_type', 'equalto', 'Extended Essay')      | list | length %}
 {% set cp_count  = papers | selectattr('paper_type', 'equalto', 'Community Project')    | list | length %}
 {% set ind_count = papers | selectattr('paper_type', 'equalto', 'Independent Research') | list | length %}
@@ -372,7 +285,6 @@
             data-abstract="{{ (p.abstract or '')|lower }}"
             data-author="{{ (p.author_name or '')|lower }}"
             data-keywords="{{ (p.keywords or '')|lower }}"
-            data-category="{{ p.category or '' }}"
             data-type="{{ tkey }}"
             data-date="{{ p.published_at }}">
           <td style="padding-right:0;">
@@ -489,11 +401,11 @@
 
 <script>
 (function () {
-  /* === Bulk endpoint (see BACKEND NOTES at top of file) === */
+  /* === Bulk endpoint === */
   var BULK_URL = "/dashboard/admin/papers/bulk";
 
-  /* Journal list for the "Add to journal" modal — pass
-     journals=get_journal_names() from paper_manage() (see notes).
+  /* Journal list for the "Add to journal" modal — passed as
+     journals=get_journal_names() from paper_manage().
      Empty list ⇒ the modal shows a hint instead of choices. */
   var journals = {{ (journals if journals is defined else []) | tojson }};
   var jmSelectedJournal = null;
@@ -522,7 +434,7 @@
   }
 
   /* ============ Filtering & sorting (client-side) ============ */
-  var state = { type: 'all', category: 'all', search: '', days: 'all', sort: 'date-desc' };
+  var state = { type: 'all', search: '', days: 'all', sort: 'date-desc' };
 
   function applyFilters() {
     var rows = document.querySelectorAll('#paperTbody tr[data-row]');
@@ -531,7 +443,6 @@
     rows.forEach(function (tr) {
       var ok = true;
       if (state.type !== 'all' && tr.dataset.type !== state.type) ok = false;
-      if (ok && state.category !== 'all' && tr.dataset.category !== state.category) ok = false;
       if (ok && state.search) {
         var s = state.search;
         if (tr.dataset.title.indexOf(s) === -1 &&
@@ -716,7 +627,7 @@
       queueToast("{{ _('Added') }} " + n + " " + (n === 1 ? "{{ _('paper') }}" : "{{ _('papers') }}") + " {{ _('to Journal') }} " + jmSelectedJournal + " {{ _('successfully') }}");
       location.reload();
     })
-    .catch(function () { alert("{{ _('Could not add papers to the journal. Add the bulk endpoint — see the notes at the top of paper_manage.html.') }}"); });
+    .catch(function () { alert("{{ _('Could not add papers to the journal. Please try again.') }}"); });
   }
 
   /* ============ Wire-up ============ */
@@ -731,7 +642,6 @@
     // Selects
     var typeF = document.getElementById('paperTypeFilter');
     if (typeF) typeF.addEventListener('change', function () { state.type = typeF.value; applyFilters(); refreshBulkbar(); });
-    var cat = null;
     var dateF = document.getElementById('paperDateFilter');
     if (dateF) dateF.addEventListener('change', function () { state.days = dateF.value; applyFilters(); refreshBulkbar(); });
     var sortS = document.getElementById('paperSort');
@@ -744,9 +654,8 @@
     // Clear filters
     var clr = document.getElementById('paperClearFilters');
     if (clr) clr.addEventListener('click', function () {
-      state = { type: 'all', category: 'all', search: '', days: 'all', sort: state.sort };
+      state = { type: 'all', search: '', days: 'all', sort: state.sort };
       if (srch)  srch.value = '';
-      if (cat)   cat.value = 'all';
       if (dateF) dateF.value = 'all';
       if (typeF) typeF.value = 'all';
       applyFilters();

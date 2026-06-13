@@ -3914,3 +3914,7 @@ msgstr ""
 msgid "to Journal"
 msgstr ""
 
+#: templates/paper_manage.html
+msgid "Could not add papers to the journal. Please try again."
+msgstr ""
+

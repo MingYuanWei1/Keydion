@@ -4259,3 +4259,7 @@ msgstr "成功"
 msgid "to Journal"
 msgstr "至期刊"
 
+#: templates/paper_manage.html
+msgid "Could not add papers to the journal. Please try again."
+msgstr "无法将论文加入期刊，请重试。"
+
