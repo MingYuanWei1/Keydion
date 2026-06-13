@@ -13,10 +13,6 @@ from flask import (
 )
 from flask_babel import gettext as _
 
-from config import (
-    ALLOWED_IMAGE_EXTENSIONS,
-    JOURNAL_COVERS_DIR,
-)
 from services.auth import get_active_user, require_login
 from services.journals import (
     get_journal_by_id,
@@ -54,7 +50,6 @@ def register_routes(app):
             "id": new_id,
             "name": name,
             "slug": set_unique_slug(name, fallback=new_id),
-            "cover_image": "",
             "introduction": "",
             "created_at": datetime.utcnow().date().isoformat(),
         }
@@ -126,16 +121,6 @@ def register_routes(app):
                     j["name"] = new_name
                     j["introduction"] = introduction
                     j["slug"] = set_unique_slug(new_name, exclude_id=journal_id, fallback=journal_id)
-
-                    # Handle cover image upload
-                    cover_file = request.files.get("cover_image")
-                    if cover_file and cover_file.filename:
-                        ext = cover_file.filename.rsplit(".", 1)[-1].lower()
-                        if ext in ALLOWED_IMAGE_EXTENSIONS:
-                            JOURNAL_COVERS_DIR.mkdir(parents=True, exist_ok=True)
-                            cover_filename = f"journal_{journal_id}.{ext}"
-                            cover_file.save(JOURNAL_COVERS_DIR / cover_filename)
-                            j["cover_image"] = cover_filename
                     break
 
             save_journals(journals)

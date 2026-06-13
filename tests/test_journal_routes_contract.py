@@ -27,6 +27,11 @@ class JournalRoutesContractTest(unittest.TestCase):
         self.assertIn("get_journal_paper_counts", src)
         self.assertIn("paper_count", src)
 
+    def test_edit_has_no_cover_upload_handling(self):
+        src = source_of("journal_edit")
+        self.assertNotIn("JOURNAL_COVERS_DIR", src)
+        self.assertNotIn("cover_image", src)
+
 
 if __name__ == "__main__":
     unittest.main()
