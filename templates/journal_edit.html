@@ -123,7 +123,7 @@
                     <dt class="text-muted">{{ _('Created') }}</dt>
                     <dd class="mb-2">{{ journal.created_at or _('Unknown') }}</dd>
                     <dt class="text-muted">{{ _('Public Page') }}</dt>
-                    <dd class="mb-0"><a href="{{ url_for('journal_detail', journal_id=journal.id) }}"
+                    <dd class="mb-0"><a href="{{ url_for('journal_detail', slug=journal.slug) }}"
                             class="text-decoration-none">{{ _('View Journal Page') }} &rarr;</a></dd>
                 </dl>
             </div>

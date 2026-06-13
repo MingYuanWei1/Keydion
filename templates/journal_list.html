@@ -97,7 +97,7 @@
 {% if journals %}
 <div class="journal-grid">
     {% for j in journals %}
-    <a href="{{ url_for('journal_detail', journal_id=j.id) }}" class="journal-card">
+    <a href="{{ url_for('journal_detail', slug=j.slug) }}" class="journal-card">
         <div class="journal-card-cover">
             {% if j.cover_image %}
             <img src="{{ url_for('static', filename='uploads/journal_covers/' ~ j.cover_image) }}" alt="{{ j.name }}">

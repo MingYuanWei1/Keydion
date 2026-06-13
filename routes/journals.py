@@ -20,8 +20,11 @@ from config import (
 from services.auth import get_active_user, require_login
 from services.journals import (
     get_journal_by_id,
+    get_journal_by_slug,
+    get_journal_paper_counts,
     load_journals,
     save_journals,
+    set_unique_slug,
 )
 from services.papers import (
     gather_paper_records,
@@ -46,9 +49,11 @@ def register_routes(app):
         existing_names = [j["name"] for j in journals]
         if name in existing_names:
             return jsonify(error=str(_("Journal already exists."))), 409
+        new_id = uuid4().hex[:12]
         new_journal = {
-            "id": uuid4().hex[:12],
+            "id": new_id,
             "name": name,
+            "slug": set_unique_slug(name, fallback=new_id),
             "cover_image": "",
             "introduction": "",
             "created_at": datetime.utcnow().date().isoformat(),
@@ -108,6 +113,7 @@ def register_routes(app):
                 if j["id"] == journal_id:
                     j["name"] = new_name
                     j["introduction"] = introduction
+                    j["slug"] = set_unique_slug(new_name, exclude_id=journal_id, fallback=journal_id)
 
                     # Handle cover image upload
                     cover_file = request.files.get("cover_image")
@@ -153,9 +159,9 @@ def register_routes(app):
         journals = load_journals()
         return render_template("journal_list.html", journals=journals)
 
-    @app.route("/journal/<journal_id>")
-    def journal_detail(journal_id):
-        journal = get_journal_by_id(journal_id)
+    @app.route("/journals/<slug>")
+    def journal_detail(slug):
+        journal = get_journal_by_slug(slug)
         if not journal:
             flash(_("Journal not found."), "warning")
             return redirect(url_for("journal_list_page"))
@@ -167,3 +173,10 @@ def register_routes(app):
         user = get_active_user()
         is_guest = user is None
         return render_template("journal_detail.html", journal=journal, papers=journal_papers, user=user, is_guest=is_guest)
+
+    @app.route("/journal/<journal_id>", endpoint="journal_detail_legacy")
+    def journal_detail_legacy(journal_id):
+        journal = get_journal_by_id(journal_id)
+        if not journal or not journal.get("slug"):
+            return redirect(url_for("journal_list_page"), code=301)
+        return redirect(url_for("journal_detail", slug=journal["slug"]), code=301)
