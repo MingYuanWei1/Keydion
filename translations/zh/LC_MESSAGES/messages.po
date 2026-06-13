@@ -4093,3 +4093,6 @@ msgstr "属于："
 
 msgid "Could not save paper membership."
 msgstr "无法保存论文归属。"
+
+msgid "Delete this journal?"
+msgstr "确定删除此期刊？"

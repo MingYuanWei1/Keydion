@@ -4270,3 +4270,6 @@ msgstr "In:"
 
 msgid "Could not save paper membership."
 msgstr "Could not save paper membership."
+
+msgid "Delete this journal?"
+msgstr "Delete this journal?"
