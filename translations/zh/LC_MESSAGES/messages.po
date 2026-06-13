@@ -4027,3 +4027,69 @@ msgstr "匿名 — 已跳过作者信息"
 
 msgid "Anonymous submission"
 msgstr "匿名投稿"
+
+msgid "Manage Journals · Keydion"
+msgstr "管理期刊 · Keydion"
+
+msgid "Manage journals"
+msgstr "管理期刊"
+
+msgid "Manage Journals"
+msgstr "管理期刊"
+
+msgid "Journals group related papers and appear at /journals. Add a journal here, then edit it to set its cover and introduction."
+msgstr "期刊用于归类相关论文，并展示在 /journals 页面。在此添加期刊，然后编辑以设置封面与简介。"
+
+msgid "New journal name…"
+msgstr "新期刊名称…"
+
+msgid "Add journal"
+msgstr "添加期刊"
+
+msgid "No journals yet"
+msgstr "暂无期刊"
+
+msgid "Create your first journal to start grouping papers."
+msgstr "创建第一个期刊以开始归类论文。"
+
+msgid "Could not add journal."
+msgstr "无法添加期刊。"
+
+msgid "Could not delete journal."
+msgstr "无法删除期刊。"
+
+msgid "papers"
+msgstr "篇论文"
+
+msgid "Back to journals"
+msgstr "返回期刊列表"
+
+msgid "Back to Journals"
+msgstr "返回期刊列表"
+
+msgid "Back to"
+msgstr "返回"
+
+msgid "— None —"
+msgstr "— 无 —"
+
+msgid "Optional — assign this paper to a journal."
+msgstr "可选 — 将该论文归入某个期刊。"
+
+msgid "Recent Journals"
+msgstr "最新期刊"
+
+msgid "Check papers to include them in this journal; uncheck to remove."
+msgstr "勾选论文以将其纳入本期刊，取消勾选则移除。"
+
+msgid "Save changes"
+msgstr "保存更改"
+
+msgid "Search papers by title or author…"
+msgstr "按标题或作者搜索论文…"
+
+msgid "In:"
+msgstr "属于："
+
+msgid "Could not save paper membership."
+msgstr "无法保存论文归属。"

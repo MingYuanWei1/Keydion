@@ -4204,3 +4204,69 @@ msgstr "Anonymous — author info skipped"
 
 msgid "Anonymous submission"
 msgstr "Anonymous submission"
+
+msgid "Manage Journals · Keydion"
+msgstr "Manage Journals · Keydion"
+
+msgid "Manage journals"
+msgstr "Manage journals"
+
+msgid "Manage Journals"
+msgstr "Manage Journals"
+
+msgid "Journals group related papers and appear at /journals. Add a journal here, then edit it to set its cover and introduction."
+msgstr "Journals group related papers and appear at /journals. Add a journal here, then edit it to set its cover and introduction."
+
+msgid "New journal name…"
+msgstr "New journal name…"
+
+msgid "Add journal"
+msgstr "Add journal"
+
+msgid "No journals yet"
+msgstr "No journals yet"
+
+msgid "Create your first journal to start grouping papers."
+msgstr "Create your first journal to start grouping papers."
+
+msgid "Could not add journal."
+msgstr "Could not add journal."
+
+msgid "Could not delete journal."
+msgstr "Could not delete journal."
+
+msgid "papers"
+msgstr "papers"
+
+msgid "Back to journals"
+msgstr "Back to journals"
+
+msgid "Back to Journals"
+msgstr "Back to Journals"
+
+msgid "Back to"
+msgstr "Back to"
+
+msgid "— None —"
+msgstr "— None —"
+
+msgid "Optional — assign this paper to a journal."
+msgstr "Optional — assign this paper to a journal."
+
+msgid "Recent Journals"
+msgstr "Recent Journals"
+
+msgid "Check papers to include them in this journal; uncheck to remove."
+msgstr "Check papers to include them in this journal; uncheck to remove."
+
+msgid "Save changes"
+msgstr "Save changes"
+
+msgid "Search papers by title or author…"
+msgstr "Search papers by title or author…"
+
+msgid "In:"
+msgstr "In:"
+
+msgid "Could not save paper membership."
+msgstr "Could not save paper membership."
