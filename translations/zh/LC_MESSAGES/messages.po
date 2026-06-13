@@ -4037,8 +4037,8 @@ msgstr "管理期刊"
 msgid "Manage Journals"
 msgstr "管理期刊"
 
-msgid "Journals group related papers and appear at /journals. Add a journal here, then edit it to set its cover and introduction."
-msgstr "期刊用于归类相关论文，并展示在 /journals 页面。在此添加期刊，然后编辑以设置封面与简介。"
+msgid "Journals group related papers and appear at /journals. Add a journal here, then edit it to set its introduction."
+msgstr "期刊用于归类相关论文，并展示在 /journals 页面。在此添加期刊，然后编辑以设置简介。"
 
 msgid "New journal name…"
 msgstr "新期刊名称…"

@@ -4214,8 +4214,8 @@ msgstr "Manage journals"
 msgid "Manage Journals"
 msgstr "Manage Journals"
 
-msgid "Journals group related papers and appear at /journals. Add a journal here, then edit it to set its cover and introduction."
-msgstr "Journals group related papers and appear at /journals. Add a journal here, then edit it to set its cover and introduction."
+msgid "Journals group related papers and appear at /journals. Add a journal here, then edit it to set its introduction."
+msgstr "Journals group related papers and appear at /journals. Add a journal here, then edit it to set its introduction."
 
 msgid "New journal name…"
 msgstr "New journal name…"
