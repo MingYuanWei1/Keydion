@@ -2274,7 +2274,7 @@ msgstr "保存"
 # ==================== GUIDES ====================
 #: templates/guides.html:2 templates/guides.html:8
 msgid "Guides"
-msgstr "使用指南"
+msgstr "指南"
 
 #: templates/guides.html:10
 msgid "ARTICLES"
