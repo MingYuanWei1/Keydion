@@ -8,6 +8,10 @@
        {% extends "_bare.html" if partial else "_dashboard_shell.html" %}
    See INTEGRATION.md for the full pattern.
    ============================================================= #}
+{# Carry the page title for dashboard.js: a partial swap never re-renders the
+   head's <title>, so this lets the browser tab follow partial navigation.
+   Read and removed immediately after the swap. #}
+<span id="kdPageTitle" hidden>{% block title %}{% endblock %}</span>
 {# Render alert/flash messages inline so the user sees them in-panel. #}
 {% with messages = get_flashed_messages(with_categories=True) %}
 {% if messages %}

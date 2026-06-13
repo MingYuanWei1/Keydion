@@ -100,6 +100,18 @@
 
         var resolvedUrl = opts.resolvedUrl || url;
         activateNavForPath(pathOf(resolvedUrl));
+
+        // The head's <title> isn't re-rendered on a partial swap, so the
+        // browser tab would keep the title of the page first loaded. Partial
+        // responses carry the page title in #kdPageTitle; sync it into
+        // document.title and drop the carrier (synchronous, before paint).
+        var titleEl = main.querySelector('#kdPageTitle');
+        if (titleEl) {
+          var pageTitle = titleEl.textContent.trim();
+          if (pageTitle) document.title = pageTitle;
+          titleEl.remove();
+        }
+
         if (opts.push !== false) {
           history.pushState({ partial: resolvedUrl }, '', resolvedUrl);
         }

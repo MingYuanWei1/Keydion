@@ -7,6 +7,10 @@
 {% set display_name = user.display_name or (user.first_name ~ ' ' ~ user.last_name)|trim or user.email or user.username %}
 {% set first_name = display_name.split(' ')[0] %}
 
+{# When loaded as a partial (not the full-shell include), carry the page title
+   for dashboard.js so the browser tab updates — mirrors _dashboard_shell.html. #}
+{% if partial %}<span id="kdPageTitle" hidden>{{ _('User Hub · Keydion') }}</span>{% endif %}
+
 <article class="panel panel--overview" data-screen-label="Overview">
   <header class="panel-hero">
     <div class="panel-hero__text">
