@@ -22,6 +22,11 @@ class JournalRoutesContractTest(unittest.TestCase):
     def test_edit_regenerates_slug(self):
         self.assertIn("set_unique_slug", source_of("journal_edit"))
 
+    def test_list_page_annotates_paper_count(self):
+        src = source_of("journal_list_page")
+        self.assertIn("get_journal_paper_counts", src)
+        self.assertIn("paper_count", src)
+
 
 if __name__ == "__main__":
     unittest.main()

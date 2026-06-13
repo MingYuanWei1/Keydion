@@ -196,6 +196,9 @@ def register_routes(app):
     @app.route("/journals")
     def journal_list_page():
         journals = load_journals()
+        counts = get_journal_paper_counts()
+        for j in journals:
+            j["paper_count"] = counts.get(j["name"], 0)
         return render_template("journal_list.html", journals=journals)
 
     @app.route("/journals/<slug>")
