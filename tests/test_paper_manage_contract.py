@@ -68,5 +68,15 @@ class PaperManageTemplateContract(unittest.TestCase):
         self.assertIn("/dashboard/admin/papers/bulk", html)
 
 
+class PaperManageRouteContract(unittest.TestCase):
+    def test_route_derives_paper_type_and_passes_journals(self):
+        src = source_of("paper_manage")
+        self.assertIn('"paper_type"', src)
+        self.assertIn("Community Project", src)
+        self.assertIn("Extended Essay", src)
+        self.assertIn('"journal"', src)
+        self.assertIn("journals=get_journal_names()", src)
+
+
 if __name__ == "__main__":
     unittest.main()

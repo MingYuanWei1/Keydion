@@ -209,6 +209,12 @@ def register_routes(app):
         papers = []
         for fname in pdf_files:
             m = meta_map.get(fname, {})
+            if _is_cp_paper(m):
+                paper_type = "Community Project"
+            elif _is_ee_paper(m):
+                paper_type = "Extended Essay"
+            else:
+                paper_type = "Independent Research"
             papers.append({
                 "filename": fname,
                 "title": m.get("title", "") or fname,
@@ -219,9 +225,12 @@ def register_routes(app):
                 "author_email": m.get("author_email", ""),
                 "author_school": m.get("author_school", ""),
                 "published_at": m.get("published_at", ""),
+                "journal": m.get("journal", ""),
+                "paper_type": paper_type,
             })
 
-        return render_template("paper_manage.html", user=user, papers=papers)
+        return render_template("paper_manage.html", user=user,
+                               papers=papers, journals=get_journal_names())
 
     @app.route("/admin/papers", endpoint="paper_manage_legacy")
     def paper_manage_legacy():
