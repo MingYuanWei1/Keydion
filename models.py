@@ -44,6 +44,7 @@ class JournalModel(BASE):
     __tablename__ = "journals"
     id = Column(Unicode(255), primary_key=True)
     name = Column(Unicode(255))
+    slug = Column(Unicode(255))
     cover_image = Column(Unicode(255))
     introduction = Column(UnicodeText)
     created_at = Column(Unicode(255))
@@ -355,5 +356,18 @@ def init_db() -> None:
                 from sqlalchemy import text
                 conn.execute(text("ALTER TABLE chat_messages ADD COLUMN cited_papers TEXT"))
                 conn.commit()
+        except Exception:
+            pass
+        # Migrate: add slug column to journals + backfill name-based slugs
+        try:
+            with db._ENGINE.connect() as conn:
+                from sqlalchemy import text
+                conn.execute(text("ALTER TABLE journals ADD COLUMN slug VARCHAR(255)"))
+                conn.commit()
+        except Exception:
+            pass
+        try:
+            from services.journals import ensure_journal_slugs
+            ensure_journal_slugs()
         except Exception:
             pass
