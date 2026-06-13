@@ -11,8 +11,6 @@
   .jrow { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid var(--border-soft, #efe9dd); }
   .jrow:last-child { border-bottom: none; }
   .jrow:hover { background: #fcf8ef; }
-  .jrow__cover { flex: 0 0 auto; width: 40px; height: 52px; border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; font-family: Georgia, serif; font-weight: 700; font-size: 13px; }
-  .jrow__cover img { width: 100%; height: 100%; object-fit: cover; }
   .jrow__main { flex: 1 1 auto; min-width: 0; }
   .jrow__name { font-family: Georgia, serif; font-weight: 700; font-size: 15px; color: var(--ink, #1a1a1a); line-height: 1.3; }
   .jrow__slug { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--muted, #8a8175); }
@@ -51,11 +49,6 @@
 <div class="jrows">
   {% for j in journals %}
   <div class="jrow" data-journal-id="{{ j.id }}">
-    <div class="jrow__cover">
-      {% if j.cover_image %}
-      <img src="{{ url_for('static', filename='uploads/journal_covers/' ~ j.cover_image) }}" alt="">
-      {% else %}{{ j.name[:2] }}{% endif %}
-    </div>
     <div class="jrow__main">
       <div class="jrow__name">{{ j.name }}</div>
       <code class="jrow__slug">/journals/{{ j.slug }}</code>
