@@ -3,76 +3,50 @@
 {% block content %}
 
 <style>
-    .journal-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-        gap: 1.5rem;
+    .journal-list {
+        border-top: 1px solid #e5e5e5;
     }
 
-    .journal-card {
-        border: 1px solid #e5e5e5;
-        border-radius: 12px;
-        overflow: hidden;
-        transition: box-shadow 0.2s, transform 0.15s;
-        background: #fff;
+    .journal-list-item {
+        display: block;
+        padding: 1.25rem 0;
+        border-bottom: 1px solid #e5e5e5;
         text-decoration: none;
         color: inherit;
-        display: flex;
-        flex-direction: column;
+        transition: background 0.15s;
     }
 
-    .journal-card:hover {
-        box-shadow: 0 6px 24px rgba(0, 0, 0, .1);
-        transform: translateY(-2px);
+    .journal-list-item:hover {
+        background: #fafafa;
     }
 
-    .journal-card-cover {
-        width: 100%;
-        height: 180px;
-        object-fit: cover;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    .journal-list-item:hover .journal-list-name {
+        color: #2b457a;
     }
 
-    .journal-card-cover img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .journal-card-cover .placeholder-text {
-        color: #fff;
+    .journal-list-name {
         font-family: 'Source Serif 4', Georgia, serif;
-        font-size: 20px;
+        font-size: 19px;
         font-weight: 600;
-        padding: 1rem;
-        text-align: center;
-    }
-
-    .journal-card-body {
-        padding: 1rem 1.25rem;
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .journal-card-name {
-        font-family: 'Source Serif 4', Georgia, serif;
-        font-size: 17px;
-        font-weight: 600;
-        margin-bottom: 6px;
         color: #1a1a1a;
+        margin-bottom: 4px;
     }
 
-    .journal-card-intro {
-        font-size: 13px;
-        color: #666;
-        line-height: 1.5;
-        flex: 1;
+    .journal-list-meta {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 700;
+        color: #999;
+        margin-bottom: 6px;
+    }
+
+    .journal-list-intro {
+        font-size: 14px;
+        color: #555;
+        line-height: 1.6;
         display: -webkit-box;
-        -webkit-line-clamp: 3;
+        -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
     }
@@ -95,22 +69,14 @@
 </div>
 
 {% if journals %}
-<div class="journal-grid">
+<div class="journal-list">
     {% for j in journals %}
-    <a href="{{ url_for('journal_detail', slug=j.slug) }}" class="journal-card">
-        <div class="journal-card-cover">
-            {% if j.cover_image %}
-            <img src="{{ url_for('static', filename='uploads/journal_covers/' ~ j.cover_image) }}" alt="{{ j.name }}">
-            {% else %}
-            <div class="placeholder-text">{{ j.name }}</div>
-            {% endif %}
-        </div>
-        <div class="journal-card-body">
-            <div class="journal-card-name">{{ j.name }}</div>
-            {% if j.introduction %}
-            <div class="journal-card-intro">{{ j.introduction }}</div>
-            {% endif %}
-        </div>
+    <a href="{{ url_for('journal_detail', slug=j.slug) }}" class="journal-list-item">
+        <div class="journal-list-name">{{ j.name }}</div>
+        <div class="journal-list-meta">{{ j.paper_count }} {{ _('papers') }}</div>
+        {% if j.introduction %}
+        <div class="journal-list-intro">{{ j.introduction }}</div>
+        {% endif %}
     </a>
     {% endfor %}
 </div>
