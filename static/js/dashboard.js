@@ -123,6 +123,23 @@
     loadPartial(href);
   });
 
+  /* ── Language switch: keep `next` pointed at the live URL ─────────────
+     The header (and its .lang-switch) is rendered once on full page load
+     with next=request.full_path. Partial navigation only swaps
+     #dashboardMain and pushState's the new URL, so that `next` goes stale
+     and a language swap would bounce the user back to the page they first
+     loaded. Rewrite `next` to the current location at click time, then let
+     native navigation proceed with the fresh href. */
+  document.body.addEventListener('click', function (e) {
+    var a = e.target.closest('a.lang-switch');
+    if (!a) return;
+    try {
+      var u = new URL(a.getAttribute('href'), location.origin);
+      u.searchParams.set('next', location.pathname + location.search);
+      a.setAttribute('href', u.pathname + u.search);
+    } catch (_) {}
+  });
+
   /* ── Form submission inside the panel ──────────────────────────────── */
   document.body.addEventListener('submit', function (e) {
     var form = e.target;
