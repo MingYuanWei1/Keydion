@@ -4102,3 +4102,6 @@ msgstr "管理分类 · Keydion"
 
 msgid "Add, rename, or remove paper subject categories."
 msgstr "添加、重命名或删除论文学科分类。"
+
+msgid "Any Journal"
+msgstr "所有期刊"

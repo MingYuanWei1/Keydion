@@ -4279,3 +4279,6 @@ msgstr "Manage Categories · Keydion"
 
 msgid "Add, rename, or remove paper subject categories."
 msgstr "Add, rename, or remove paper subject categories."
+
+msgid "Any Journal"
+msgstr "Any Journal"

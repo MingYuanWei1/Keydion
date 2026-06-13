@@ -1,4 +1,5 @@
-"""Contract: the search refine panel renders a journal[] filter reflecting selections."""
+"""Contract: the search refine panel renders a single-select journal dropdown
+(name="journal", like Paper Type) reflecting the current selection — not checkboxes."""
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -26,13 +27,20 @@ class JournalSearchFilterTest(unittest.TestCase):
             journals=journals, journal_filter=journal_filter,
         )
 
-    def test_journal_checkboxes_render_with_selection(self):
-        html = self.render_search(["IB EE", "Youth Research"], ["IB EE"])
-        self.assertIn('name="journal[]"', html)
+    def test_journal_select_renders_with_selection(self):
+        html = self.render_search(["IB EE", "Youth Research"], "IB EE")
+        # Single-select dropdown like Paper Type, not checkboxes
+        self.assertIn('name="journal"', html)
+        self.assertNotIn('name="journal[]"', html)
         self.assertIn("IB EE", html)
         self.assertIn("Youth Research", html)
-        # The selected journal is pre-checked (other attributes sit between value and checked)
-        self.assertRegex(html, r'value="IB EE"[^>]*checked')
+        # The current filter is the selected <option>
+        self.assertRegex(html, r'<option value="IB EE"[^>]*selected')
+
+    def test_no_selection_has_no_selected_option(self):
+        html = self.render_search(["IB EE"], "")
+        self.assertIn('name="journal"', html)
+        self.assertNotRegex(html, r'<option value="IB EE"[^>]*selected')
 
 
 if __name__ == "__main__":

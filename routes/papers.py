@@ -82,7 +82,7 @@ def register_routes(app):
         title_filter = request.args.get("title", "").strip().lower()
         start_year = request.args.get("start_year", "").strip()
         end_year = request.args.get("end_year", "").strip()
-        journal_filters = request.args.getlist("journal[]")
+        journal_filter = request.args.get("journal", "").strip()
         paper_type_filter = request.args.get("paper_type", "").strip()
         ee_subject_filter = request.args.get("ee_subject", "").strip()
         cp_context_filter = request.args.get("cp_context", "").strip()
@@ -93,7 +93,7 @@ def register_routes(app):
             page = 1
 
         per_page = 20
-        filtered = bool(query) or bool(category_filter) or bool(language_filter) or bool(date_filter) or bool(author_filter) or bool(title_filter) or bool(start_year) or bool(end_year) or bool(journal_filters) or bool(paper_type_filter) or bool(ee_subject_filter) or bool(cp_context_filter)
+        filtered = bool(query) or bool(category_filter) or bool(language_filter) or bool(date_filter) or bool(author_filter) or bool(title_filter) or bool(start_year) or bool(end_year) or bool(journal_filter) or bool(paper_type_filter) or bool(ee_subject_filter) or bool(cp_context_filter)
 
         # Only run full text search if 'q' is actually present
         record_pool = _hybrid_search_records(query) if bool(query) else gather_paper_records()
@@ -117,8 +117,8 @@ def register_routes(app):
         if end_year:
             record_pool = [r for r in record_pool if str(r.get("published_at") or "")[:4] <= end_year]
 
-        if journal_filters:
-            record_pool = [r for r in record_pool if r.get("journal") in journal_filters]
+        if journal_filter:
+            record_pool = [r for r in record_pool if r.get("journal") == journal_filter]
 
         if paper_type_filter:
             if paper_type_filter == "ee":
@@ -191,7 +191,7 @@ def register_routes(app):
             paper_categories=load_paper_categories(),
             journal_id_map=get_journal_id_map(),
             journals=get_journal_names(),
-            journal_filter=journal_filters,
+            journal_filter=journal_filter,
         )
 
     @app.route("/dashboard/manage")
