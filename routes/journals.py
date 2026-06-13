@@ -110,7 +110,7 @@ def register_routes(app):
         journal = get_journal_by_id(journal_id)
         if not journal:
             flash(_("Journal not found."), "warning")
-            return redirect(url_for("paper_manage"))
+            return redirect(url_for("admin_journals_manage"))
 
         if request.method == "POST":
             old_name = journal["name"]
@@ -160,7 +160,8 @@ def register_routes(app):
         journal_papers = [p for p in all_papers if p.get("journal") == journal["name"]]
         journal_papers.sort(key=lambda r: r.get("published_at") or "", reverse=True)
 
-        return render_template("journal_edit.html", user=user, journal=journal, papers=journal_papers)
+        return render_template("journal_edit.html", user=user, journal=journal,
+                               papers=journal_papers, partial=request.args.get("partial"))
 
     @app.route("/admin/journal/<journal_id>/edit", endpoint="admin_journal_edit_legacy")
     def admin_journal_edit_legacy(journal_id):
