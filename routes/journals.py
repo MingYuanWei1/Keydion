@@ -98,8 +98,7 @@ def register_routes(app):
         counts = get_journal_paper_counts()
         for j in journals:
             j["paper_count"] = counts.get(j["name"], 0)
-        return render_template("journal_manage.html", user=user, journals=journals,
-                               partial=request.args.get("partial"))
+        return render_template("journal_manage.html", user=user, journals=journals)
 
     @app.route("/dashboard/admin/journal/<journal_id>/edit", methods=["GET", "POST"], endpoint="admin_journal_edit")
     def journal_edit(journal_id):
@@ -163,8 +162,7 @@ def register_routes(app):
 
         return render_template("journal_edit.html", user=user, journal=journal,
                                all_papers=all_papers,
-                               journal_paper_filenames=journal_paper_filenames,
-                               partial=request.args.get("partial"))
+                               journal_paper_filenames=journal_paper_filenames)
 
     @app.route("/dashboard/admin/journal/<journal_id>/papers", methods=["POST"], endpoint="admin_journal_papers")
     def journal_papers(journal_id):

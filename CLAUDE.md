@@ -131,7 +131,7 @@ Self-contained concerns remain factored into satellite modules:
 
 **Dashboard URL nesting** — authenticated admin routes live under `/dashboard/...` (e.g. `/dashboard/admin/users`, `/dashboard/admin/guides`). Bare `/admin/*` paths exist only as 301-redirect legacy endpoints. Enforced by `test_dashboard_url_nesting_contract.py`.
 
-**Partial rendering** — most dashboard templates start with `{% extends "_bare.html" if partial else "_dashboard_shell.html" %}`. Sidebar nav links carry `data-partial-href` so client JS fetches `?partial=1` and swaps the panel without a full page reload. Routes pass `partial=request.args.get("partial")` to `render_template`.
+**Partial rendering** — most dashboard templates start with `{% extends "_bare.html" if partial else "_dashboard_shell.html" %}`. Sidebar nav links carry `data-partial-href`; `static/js/dashboard.js` fetches the URL with an **`X-Partial-Content: 1` header** (not a `?partial=1` query param) and swaps only `#dashboardMain`. The `partial` flag is injected **globally** by the `inject_partial_flag` context processor (`app.py`) via `is_partial_request()` (which reads that header) — so routes must **NOT** pass an explicit `partial=` to `render_template`. Doing so overrides the context processor (Flask re-applies the passed context over processor values); if it reads `request.args.get("partial")` it is always `None` on a partial fetch, so the route returns the full `_dashboard_shell.html`, which the loader nests inside the panel (a second `position:fixed` shell + sidebar). Enforced by `test_partial_flag_contract.py`.
 
 **Data layer** — MySQL via SQLAlchemy ORM with models defined at module level in `models.py`:
 - `LocalUser` / `MsUser` — local password auth and Microsoft Graph OAuth users
