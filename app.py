@@ -87,6 +87,7 @@ from services.news import (  # noqa: F401
 from services.journals import (  # noqa: F401
     load_journals,
     get_journal_names, get_journal_id_map,
+    get_recent_journals,
 )
 from services.papers import (  # noqa: F401
     load_paper_metadata, save_paper_metadata,
@@ -220,7 +221,8 @@ def create_app() -> Flask:
             if not refresh_session(user.get("username", ""), token):
                 session.clear()
         latest_news = load_news_articles(status="published")[:4]
-        return render_template("landing.html", ms_enabled=is_ms_configured(), latest_news=latest_news)
+        return render_template("landing.html", ms_enabled=is_ms_configured(),
+                               latest_news=latest_news, recent_journals=get_recent_journals(4))
 
     @app.route("/faq")
     def faq():

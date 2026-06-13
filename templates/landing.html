@@ -937,6 +937,38 @@
     </div>
   </section>
 
+  {% if recent_journals %}
+  <hr class="section-divider">
+
+  <!-- ── JOURNALS ── -->
+  <section class="section" id="journals">
+    <div class="container">
+      <div class="section-header">
+        <h2>{{ _('Recent Journals') }}</h2>
+        <a href="{{ url_for('journal_list_page') }}" class="view-all">{{ _('View All') }} →</a>
+      </div>
+      <div class="articles-grid">
+        {% for j in recent_journals %}
+        <a class="article-card" href="{{ url_for('journal_detail', slug=j.slug) }}" style="text-decoration:none; color:inherit;">
+          <div class="thumb">
+            {% if j.cover_image %}
+            <img src="{{ url_for('static', filename='uploads/journal_covers/' ~ j.cover_image) }}" alt="{{ j.name }}" loading="lazy">
+            {% else %}
+            <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:#fff; font-family:'Source Serif 4',Georgia,serif; font-weight:600; padding:1rem; text-align:center;">{{ j.name }}</div>
+            {% endif %}
+          </div>
+          <div class="article-card-body">
+            <p class="card-cat">{{ j.paper_count }} {{ _('papers') }}</p>
+            <h3>{{ j.name }}</h3>
+            {% if j.introduction %}<span class="card-date">{{ j.introduction[:80] }}{% if j.introduction|length > 80 %}…{% endif %}</span>{% endif %}
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
   <hr class="section-divider">
 
   <!-- ── ABOUT ── -->
