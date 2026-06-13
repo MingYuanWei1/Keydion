@@ -66,6 +66,20 @@
                 </select>
             </fieldset>
 
+            <!-- Journal -->
+            {% if journals %}
+            <fieldset style="border: none; padding: 0; margin-bottom: 24px;">
+                <legend style="display: block; margin-bottom: 8px;"><b>{{ _('Journal') }}</b></legend>
+                <div style="max-height: 180px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 10px;">
+                    {% for j in journals %}
+                    <label style="display: block; margin-bottom: 6px; font-weight: normal;">
+                        <input type="checkbox" name="journal[]" value="{{ j.name }}"> {{ j.name }}
+                    </label>
+                    {% endfor %}
+                </div>
+            </fieldset>
+            {% endif %}
+
             <fieldset style="border: none; padding: 0; margin-bottom: 24px;">
                 <legend style="display: block; margin-bottom: 8px;">{{ _('publication') }} <b>{{ _('date') }}</b>
                 </legend>

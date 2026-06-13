@@ -99,6 +99,24 @@
           <option value="en" {% if language_filter=='en' %}selected{% endif %}>{{ _('English') }}</option>
         </select>
       </div>
+
+      <!-- Journal -->
+      {% if journals %}
+      <div class="mb-4">
+        <label class="form-label text-uppercase text-muted fw-bold"
+          style="font-size: 11px; letter-spacing: 0.5px;">{{ _('Journal') }}</label>
+        <div style="max-height: 180px; overflow-y: auto;">
+          {% for j in journals %}
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="journal[]" value="{{ j }}"
+              id="journal-{{ loop.index }}" onchange="this.form.submit()"
+              {% if j in journal_filter|default([]) %}checked{% endif %}>
+            <label class="form-check-label" for="journal-{{ loop.index }}" style="font-size: 13px;">{{ j }}</label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
     </form>
 
     <div class="mt-5">
@@ -125,6 +143,7 @@
         <input type="hidden" name="paper_type" value="{{ paper_type_filter }}">
         <input type="hidden" name="ee_subject" value="{{ ee_subject_filter }}">
         <input type="hidden" name="cp_context" value="{{ cp_context_filter }}">
+        {% for j in journal_filter|default([]) %}<input type="hidden" name="journal[]" value="{{ j }}">{% endfor %}
 
         <div class="search-query-banner__icon">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
@@ -279,6 +298,7 @@
         <input type="hidden" name="paper_type" value="{{ paper_type_filter }}">
         <input type="hidden" name="ee_subject" value="{{ ee_subject_filter }}">
         <input type="hidden" name="cp_context" value="{{ cp_context_filter }}">
+        {% for j in journal_filter|default([]) %}<input type="hidden" name="journal[]" value="{{ j }}">{% endfor %}
           <input type="hidden" name="page" value="{{ pagination.prev_page }}">
           <button type="submit" class="btn btn-outline-secondary btn-sm shadow-none rounded-0">&larr; {{ _('Previous')
             }}</button>
@@ -293,6 +313,7 @@
         <input type="hidden" name="paper_type" value="{{ paper_type_filter }}">
         <input type="hidden" name="ee_subject" value="{{ ee_subject_filter }}">
         <input type="hidden" name="cp_context" value="{{ cp_context_filter }}">
+        {% for j in journal_filter|default([]) %}<input type="hidden" name="journal[]" value="{{ j }}">{% endfor %}
           <input type="hidden" name="page" value="{{ pagination.next_page }}">
           <button type="submit" class="btn btn-outline-secondary btn-sm shadow-none rounded-0">{{ _('Next') }}
             &rarr;</button>

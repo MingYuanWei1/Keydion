@@ -190,6 +190,8 @@ def register_routes(app):
             total_matches=len(record_pool),
             paper_categories=load_paper_categories(),
             journal_id_map=get_journal_id_map(),
+            journals=get_journal_names(),
+            journal_filter=journal_filters,
         )
 
     @app.route("/dashboard/manage")
