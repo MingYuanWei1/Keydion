@@ -621,26 +621,28 @@
 
   <!-- ── JOURNALS ── -->
   <section class="section" id="journals">
+    <style>
+      #journals .journal-list { display: flex; flex-direction: column; }
+      #journals .journal-list-item { padding: 16px 0; border-bottom: 1px solid var(--border, #e7e1d5); text-decoration: none; color: inherit; }
+      #journals .journal-list-item:last-child { border-bottom: none; }
+      #journals .journal-list-item:hover .journal-list-name { color: #2b457a; }
+      #journals .journal-list-name { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+      #journals .journal-list-meta { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; font-weight: 700; color: #999; margin-bottom: 4px; }
+      #journals .journal-list-intro { font-size: 14px; color: #666; line-height: 1.5; }
+    </style>
     <div class="container">
       <div class="section-header">
         <h2>{{ _('Recent Journals') }}</h2>
         <a href="{{ url_for('journal_list_page') }}" class="view-all">{{ _('View All') }} →</a>
       </div>
-      <div class="articles-grid">
+      <div class="journal-list">
         {% for j in recent_journals %}
-        <a class="article-card" href="{{ url_for('journal_detail', slug=j.slug) }}" style="text-decoration:none; color:inherit;">
-          <div class="thumb">
-            {% if j.cover_image %}
-            <img src="{{ url_for('static', filename='uploads/journal_covers/' ~ j.cover_image) }}" alt="{{ j.name }}" loading="lazy">
-            {% else %}
-            <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:#fff; font-family:'Source Serif 4',Georgia,serif; font-weight:600; padding:1rem; text-align:center;">{{ j.name }}</div>
-            {% endif %}
-          </div>
-          <div class="article-card-body">
-            <p class="card-cat">{{ j.paper_count }} {{ _('papers') }}</p>
-            <h3>{{ j.name }}</h3>
-            {% if j.introduction %}<span class="card-date">{{ j.introduction[:80] }}{% if j.introduction|length > 80 %}…{% endif %}</span>{% endif %}
-          </div>
+        <a class="journal-list-item" href="{{ url_for('journal_detail', slug=j.slug) }}">
+          <div class="journal-list-name">{{ j.name }}</div>
+          <div class="journal-list-meta">{{ j.paper_count }} {{ _('papers') }}</div>
+          {% if j.introduction %}
+          <div class="journal-list-intro">{{ j.introduction[:80] }}{% if j.introduction|length > 80 %}…{% endif %}</div>
+          {% endif %}
         </a>
         {% endfor %}
       </div>

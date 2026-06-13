@@ -18,6 +18,13 @@ class LandingRecentJournalsTest(unittest.TestCase):
         self.assertIn("recent_journals", html)
         self.assertIn("url_for('journal_list_page')", html)
 
+    def test_landing_journals_section_is_a_list_without_covers(self):
+        html = (ROOT / "templates" / "landing.html").read_text(encoding="utf-8")
+        self.assertIn("journal-list-item", html)
+        self.assertIn("journal-list-name", html)
+        self.assertIn("paper_count", html)
+        self.assertNotIn("journal_covers", html)
+
 
 if __name__ == "__main__":
     unittest.main()
