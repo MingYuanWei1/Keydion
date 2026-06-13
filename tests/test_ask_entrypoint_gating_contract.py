@@ -13,15 +13,14 @@ def _read(path):
 
 class EntryPointGating(unittest.TestCase):
     def test_base_nav_link_gated_on_llm_enabled(self):
-        html = _read("templates/base.html")
-        # the ask_library nav link must sit inside an {% if llm_enabled %} block
+        html = _read("templates/_header.html")
         self.assertRegex(
             html,
             r"\{%\s*if\s+llm_enabled\s*%\}[^\n]*url_for\('ask_library'\)",
         )
 
     def test_landing_nav_link_gated_on_llm_enabled(self):
-        html = _read("templates/landing.html")
+        html = _read("templates/_header.html")
         self.assertRegex(
             html,
             r"\{%\s*if\s+llm_enabled\s*%\}[^\n]*url_for\('ask_library'\)",
@@ -29,9 +28,9 @@ class EntryPointGating(unittest.TestCase):
 
     def test_landing_cta_button_gated_on_llm_enabled(self):
         html = _read("templates/landing.html")
-        # there are two gated occurrences (nav link + CTA button); require >= 2
+        # The nav link now lives in _header.html; only the CTA remains gated in landing.
         gated = re.findall(r"\{%\s*if\s+llm_enabled\s*%\}[^\n]*ask_library", html)
-        self.assertGreaterEqual(len(gated), 2)
+        self.assertGreaterEqual(len(gated), 1)
 
 
 if __name__ == "__main__":

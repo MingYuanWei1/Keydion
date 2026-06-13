@@ -12,10 +12,10 @@ def _read(path):
 
 class NavLinks(unittest.TestCase):
     def test_base_header_links_to_ask(self):
-        self.assertIn("url_for('ask_library')", _read("templates/base.html"))
+        self.assertIn("url_for('ask_library')", _read("templates/_header.html"))
 
     def test_landing_header_links_to_ask(self):
-        self.assertIn("url_for('ask_library')", _read("templates/landing.html"))
+        self.assertIn("url_for('ask_library')", _read("templates/_header.html"))
 
     def test_landing_has_ask_cta_button(self):
         html = _read("templates/landing.html")
