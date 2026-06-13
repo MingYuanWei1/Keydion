@@ -28,6 +28,12 @@ class NavLinks(unittest.TestCase):
     def test_landing_includes_header_partial(self):
         self.assertIn('include "_header.html"', _read("templates/landing.html"))
 
+    def test_news_includes_header_partial(self):
+        self.assertIn('include "_header.html"', _read("templates/news.html"))
+
+    def test_news_article_includes_header_partial(self):
+        self.assertIn('include "_header.html"', _read("templates/news_article.html"))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -66,119 +66,6 @@
             padding: 0 24px;
         }
 
-        /* ==================== HEADER ==================== */
-        header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 100;
-            background: var(--bg);
-            border-bottom: 1px solid var(--border);
-            height: 64px;
-        }
-
-        .header-inner {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            height: 64px;
-        }
-
-        .logo-area {
-            display: flex;
-            align-items: center;
-            gap: 11px;
-            font-family: Georgia, "Times New Roman", "Noto Serif SC", serif;
-            font-weight: 700;
-            color: var(--ink);
-            letter-spacing: 0;
-        }
-
-        .logo-area img {
-            width: 38px;
-            height: 38px;
-            border-radius: 8px;
-            box-shadow: 0 8px 22px rgba(20, 33, 61, 0.18);
-        }
-
-        .logo-area span {
-            font-size: 20px;
-            line-height: 1;
-        }
-
-        nav {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .nav-link {
-            padding: 7px 14px;
-            font-size: 13.5px;
-            font-weight: 500;
-            color: var(--ink-light);
-            transition: color 0.15s;
-        }
-
-        .nav-link:hover {
-            color: var(--accent);
-        }
-
-        .btn-signin {
-            margin-left: 12px;
-            padding: 8px 20px;
-            background: linear-gradient(135deg, #0055a5, #003b7b);
-            color: #fff;
-            font-size: 13px;
-            font-weight: 500;
-            border: none;
-            cursor: pointer;
-            transition: background 0.15s;
-        }
-
-        .btn-signin:hover {
-            background: linear-gradient(135deg, #ff6f91, #ffd166);
-        }
-
-        .btn-user-circle {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 36px;
-            height: 36px;
-            margin-left: 12px;
-            padding: 0;
-            border-radius: 50%;
-            background: transparent;
-            color: #fff;
-            font-weight: 600;
-            font-size: 14px;
-            border: none;
-            cursor: pointer;
-        }
-    .btn-user-circle:hover, .btn-user-circle:focus, .btn-user-circle:active { background: transparent; outline: none; }
-
-        .lang-switch {
-            margin-left: 14px;
-            color: var(--muted);
-            font-size: 12.5px;
-        }
-
-        .lang-select {
-            border: 1px solid rgba(255, 255, 255, 0.35);
-            background: transparent;
-            color: #fff;
-            border-radius: 999px;
-            padding: 6px 12px;
-            font-size: 13px;
-            appearance: none;
-        }
-
-        .lang-select option {
-            color: #111;
-        }
-
         /* ==================== PAGE ==================== */
         .page-body {
             margin-top: 64px;
@@ -528,64 +415,12 @@
                 padding: 24px;
             }
         }
-    .user-menu { position: relative; display: inline-flex; }
-    .user-dropdown { display: none; position: absolute; top: 44px; right: 0; background: #fff; border: 1px solid #e0dbd0; box-shadow: 0 4px 16px rgba(0,0,0,0.08); z-index: 50; min-width: 140px; }
-    .user-dropdown.open { display: block; }
-    .user-dropdown a { display: block; padding: 10px 16px; font-size: 13.5px; color: #1a1a1a; text-decoration: none; }
-    .user-dropdown a:hover { background: #f5f0e8; }
-    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; padding: 24px; }
-    .modal-overlay.active { display: flex; }
-    .login-modal { width: 100%; max-width: 380px; background: #fff; border: 1px solid #e0dbd0; padding: 32px; box-shadow: 0 16px 48px rgba(0,0,0,0.12); }
-    .login-modal h3 { font-family: Georgia, serif; font-size: 22px; font-weight: 600; margin-bottom: 24px; text-align: center; }
-    .btn-login { width: 100%; padding: 13px; background: #8b1a1a; color: #fff; font-size: 14px; font-weight: 500; border: none; cursor: pointer; }
-    .btn-login:hover { background: #6b1212; }
-    .login-modal-divider { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; color: #6b6b6b; font-size: 11px; font-weight: 600; margin-bottom: 14px; }
-    .login-modal-divider::before, .login-modal-divider::after { content: ""; height: 1px; background: #e0dbd0; }
-    .field-group { margin-bottom: 14px; }
-    .field-group label { display: block; font-size: 12.5px; font-weight: 600; color: #3d3d3d; margin-bottom: 5px; }
-    .field-group input { width: 100%; padding: 11px 13px; font-size: 14px; border: 1px solid #e0dbd0; background: #fff; color: #1a1a1a; outline: none; }
-    .field-group input:focus { border-color: #8b1a1a; box-shadow: 0 0 0 2px rgba(139,26,26,0.08); }
-    .login-links { display: flex; justify-content: center; margin-top: 18px; padding-top: 16px; border-top: 1px solid #e0dbd0; }
-    .login-links a { font-size: 13px; color: #8b1a1a; cursor: pointer; }
-    .login-links a:hover { text-decoration: underline; }
     </style>
 </head>
 
 <body>
 
-    <!-- ==================== HEADER ==================== -->
-    <header>
-        <div class="container header-inner">
-            <a class="logo-area" href="{{ url_for('index') }}" aria-label="{{ _('Keydion') }}">
-                <img src="{{ url_for('static', filename='K.png') }}" alt="">
-                <span>Keydion</span>
-            </a>
-            <nav>
-                {% if session.get('user') %}
-                <a class="nav-link" href="{{ url_for('upload') }}">{{ _('Upload') }}</a>
-                {% endif %}
-                <a class="nav-link" href="{{ url_for('news_list') }}">{{ _('News') }}</a>
-                {% if session.get('user', {}).get('role', '1')|int >= 3 %}
-                <a class="nav-link" href="{{ url_for('paper_manage') }}">{{ _('Manage') }}</a>
-                {% endif %}
-                {% if session.get('user') %}
-                {% set nav_name = session.get('user', {}).get('display_name') or session.get('user', {}).get('username', '') %}
-                <div class="user-menu">
-                  <button class="btn-user-circle" onclick="toggleUserMenu()" title="{{ nav_name }}" aria-expanded="false"><img src="{{ url_for('static', filename='usricon.png') }}" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover;"></button>
-                  <div class="user-dropdown" id="userDropdown">
-                    <a href="{{ url_for('dashboard') }}">{{ _('Dashboard') }}</a>
-                    <a href="{{ url_for('logout') }}">{{ _('Sign out') }}</a>
-                  </div>
-                </div>
-                {% else %}
-                <button class="btn-signin" onclick="openLoginModal()">{{ _('Sign in') }}</button>
-                {% endif %}
-                <a class="lang-switch" href="{{ url_for('set_language', locale_code='en' if current_locale == 'zh' else 'zh', next=request.full_path) }}">
-                    {{ 'EN' if current_locale == 'zh' else '中文' }}
-                </a>
-            </nav>
-        </div>
-    </header>
+    {% include "_header.html" %}
 
     <!-- ==================== MAIN PAGE ==================== -->
     <div class="page-body">
@@ -703,12 +538,6 @@
             </div>
         </div>
     </footer>
-<script>
-    function toggleUserMenu() { document.getElementById('userDropdown').classList.toggle('open'); }
-    document.addEventListener('click', function(e) { var m=document.getElementById('userDropdown'); var b=document.querySelector('.btn-user-circle'); if(m&&b&&!b.contains(e.target)&&!m.contains(e.target))m.classList.remove('open'); });
-    </script>
-<div id="loginModal" class="modal-overlay"><div class="login-modal"><h3>{{ _('Sign in') }}</h3>{% if ms_enabled %}<button class="btn-login" onclick="location.href='{{ url_for('ms_login') }}'" style="background:#1a1a1a;margin-bottom:14px;">{{ _('Sign in with Microsoft') }}</button><div class="login-modal-divider"><span>{{ _('or sign in with email') }}</span></div>{% endif %}<form method="post" action="{{ url_for('login') }}" id="loginForm"><input type="hidden" name="next" value="" id="loginNext"><div class="field-group"><label>{{ _('Email / Username') }}</label><input type="text" name="email" required autofocus></div><div class="field-group"><label>{{ _('Password') }}</label><input type="password" name="password" required></div><button type="submit" class="btn-login">{{ _('Sign in') }}</button></form><div class="login-links"><a onclick="closeLoginModal()">{{ _('Cancel') }}</a></div></div></div>
-<script>var lm=document.getElementById('loginModal');function openLoginModal(){if(lm){var n=document.getElementById('loginNext');if(n)n.value=window.location.pathname+window.location.search;lm.classList.add('active');document.body.style.overflow='hidden';}}function closeLoginModal(){if(lm){lm.classList.remove('active');document.body.style.overflow='';}}if(lm){lm.addEventListener('click',function(e){if(e.target===lm)closeLoginModal();});}document.addEventListener('keydown',function(e){if(e.key==='Escape'&&lm&&lm.classList.contains('active'))closeLoginModal();});{% if request.args.get('login') %}openLoginModal();{% endif %}</script>
 </body>
 
 </html>
