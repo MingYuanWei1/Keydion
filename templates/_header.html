@@ -109,8 +109,11 @@
     display: flex; justify-content: center; align-items: center;
     margin-top: 18px; padding-top: 16px; border-top: 1px solid #e0dbd0;
   }
-  .login-links a { font-size: 13px; color: #8b1a1a; cursor: pointer; }
-  .login-links a:hover { text-decoration: underline; }
+  .login-links a, .login-links button {
+    font-size: 13px; color: #8b1a1a; cursor: pointer;
+    background: none; border: none; padding: 0; font-family: inherit;
+  }
+  .login-links a:hover, .login-links button:hover { text-decoration: underline; }
 
   @media (max-width: 768px) {
     .site-header .nav-link { display: none; }
@@ -154,13 +157,13 @@
 </header>
 
 <div id="loginModal" class="modal-overlay">
-  <div class="login-modal">
+  <div class="login-modal" role="dialog" aria-modal="true" aria-labelledby="loginModalTitle">
     {% with messages = get_flashed_messages(with_categories=True) %}
       {% for category, message in messages %}
         {% if category != 'info' %}<div class="flash">{{ message }}</div>{% endif %}
       {% endfor %}
     {% endwith %}
-    <h3>{{ _('Sign in') }}</h3>
+    <h3 id="loginModalTitle">{{ _('Sign in') }}</h3>
     {% if ms_enabled %}
     <button type="button" class="btn-login" onclick="location.href='{{ url_for('ms_login') }}'" style="background:#1a1a1a;margin-bottom:14px;">{{ _('Sign in with Microsoft') }}</button>
     <div class="login-modal-divider"><span>{{ _('or sign in with email') }}</span></div>
@@ -168,45 +171,73 @@
     <form method="post" action="{{ url_for('login') }}" id="loginForm">
       <input type="hidden" name="next" value="" id="loginNext">
       <div class="field-group">
-        <label>{{ _('Email / Username') }}</label>
-        <input type="text" name="email" required autofocus>
+        <label for="loginEmail">{{ _('Email / Username') }}</label>
+        <input type="text" name="email" id="loginEmail" required autofocus>
       </div>
       <div class="field-group">
-        <label>{{ _('Password') }}</label>
-        <input type="password" name="password" required>
+        <label for="loginPassword">{{ _('Password') }}</label>
+        <input type="password" name="password" id="loginPassword" required>
       </div>
       <button type="submit" class="btn-login">{{ _('Sign in') }}</button>
     </form>
-    <div class="login-links"><a onclick="closeLoginModal()">{{ _('Cancel') }}</a></div>
+    <div class="login-links"><button type="button" onclick="closeLoginModal()">{{ _('Cancel') }}</button></div>
   </div>
 </div>
 
 <script>
   function toggleUserMenu() {
     var d = document.getElementById('userDropdown');
-    if (d) d.classList.toggle('open');
+    var btn = document.querySelector('.site-header .btn-user-circle');
+    if (d) {
+      var open = d.classList.toggle('open');
+      if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
   }
   document.addEventListener('click', function (e) {
     var menu = document.getElementById('userDropdown');
     var btn = document.querySelector('.site-header .btn-user-circle');
-    if (menu && btn && !btn.contains(e.target) && !menu.contains(e.target)) menu.classList.remove('open');
+    if (menu && btn && !btn.contains(e.target) && !menu.contains(e.target)) {
+      menu.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+    }
   });
   var loginModal = document.getElementById('loginModal');
+  var loginTrigger = null;
+  function loginFocusable() {
+    return loginModal
+      ? loginModal.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), [tabindex]:not([tabindex="-1"])')
+      : [];
+  }
   function openLoginModal() {
     if (loginModal) {
+      loginTrigger = document.activeElement;
       var n = document.getElementById('loginNext');
       if (n) n.value = window.location.pathname + window.location.search;
       loginModal.classList.add('active'); document.body.style.overflow = 'hidden';
+      var first = document.getElementById('loginEmail') || loginFocusable()[0];
+      if (first) first.focus();
     }
   }
   function closeLoginModal() {
-    if (loginModal) { loginModal.classList.remove('active'); document.body.style.overflow = ''; }
+    if (loginModal) {
+      loginModal.classList.remove('active'); document.body.style.overflow = '';
+      if (loginTrigger && typeof loginTrigger.focus === 'function') loginTrigger.focus();
+      loginTrigger = null;
+    }
   }
   if (loginModal) {
     loginModal.addEventListener('click', function (e) { if (e.target === loginModal) closeLoginModal(); });
   }
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && loginModal && loginModal.classList.contains('active')) closeLoginModal();
+    if (!loginModal || !loginModal.classList.contains('active')) return;
+    if (e.key === 'Escape') { closeLoginModal(); return; }
+    if (e.key === 'Tab') {
+      var f = loginFocusable();
+      if (!f.length) return;
+      var firstEl = f[0], lastEl = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === firstEl) { e.preventDefault(); lastEl.focus(); }
+      else if (!e.shiftKey && document.activeElement === lastEl) { e.preventDefault(); firstEl.focus(); }
+    }
   });
   {% with messages = get_flashed_messages(with_categories=True) %}
     {% set ns = namespace(has_login_error=false) %}
