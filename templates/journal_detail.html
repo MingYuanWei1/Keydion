@@ -37,14 +37,6 @@
         margin-top: 1.25rem;
     }
 
-    .journal-cover {
-        width: 120px;
-        height: 160px;
-        object-fit: cover;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-    }
-
     .journal-meta-label {
         text-transform: uppercase;
         letter-spacing: 0.5px;
@@ -241,16 +233,9 @@
         </div>
     </div>
 
-    <!-- Right Column: Cover + Metadata -->
+    <!-- Right Column: Metadata -->
     <div class="col-lg-4">
         <div class="journal-sidebar">
-            {% if journal.cover_image %}
-            <div class="mb-3">
-                <img src="{{ url_for('static', filename='uploads/journal_covers/' ~ journal.cover_image) }}"
-                    class="journal-cover" alt="{{ journal.name }}">
-            </div>
-            {% endif %}
-
             <div class="journal-meta-label">{{ _('PAPERS') }}</div>
             <div class="journal-meta-value">{{ papers|length }}</div>
 

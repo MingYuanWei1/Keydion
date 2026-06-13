@@ -18,6 +18,9 @@ class JournalListFormatTest(unittest.TestCase):
         self.assertNotIn("journal-grid", html)
         self.assertNotIn("journal_covers", html)
 
+    def test_detail_page_has_no_cover(self):
+        self.assertNotIn("journal_covers", _read("journal_detail.html"))
+
 
 if __name__ == "__main__":
     unittest.main()
