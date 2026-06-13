@@ -2395,7 +2395,7 @@ msgstr "查看期刊页面"
 # ==================== ADMIN USER MANAGEMENT ====================
 #: templates/journal_list.html:2
 msgid "Journals · Keydion"
-msgstr "用户管理 - Keydion"
+msgstr "期刊 · Keydion"
 
 #: templates/journal_list.html:93 templates/paper_manage.html:180
 msgid "Journals"
@@ -2828,7 +2828,7 @@ msgstr "分类已删除"
 # ==================== SEARCH PAGE ====================
 #: templates/news_publish.html:2
 msgid "Publish News · Keydion"
-msgstr "检索论文 · Keydion"
+msgstr "发布新闻 · Keydion"
 
 #: templates/news_publish.html:958
 msgid "Edit News Article"
@@ -3048,7 +3048,7 @@ msgstr "高亮颜色"
 
 #: templates/paper_manage.html:2
 msgid "Manage Categories & Journals · Keydion"
-msgstr "管理分类与期刊"
+msgstr "管理分类与期刊 · Keydion"
 
 #: templates/paper_manage.html:94
 msgid "Manage Categories & Journals"
@@ -3405,7 +3405,7 @@ msgstr "拒绝"
 # ==================== SEARCH PAGE ====================
 #: templates/search.html:2
 msgid "Search Papers · Keydion"
-msgstr "检索论文"
+msgstr "检索论文 · Keydion"
 
 #: templates/search.html:7
 msgid "Refine Results"
@@ -3487,7 +3487,7 @@ msgstr "审核意见"
 # ==================== PAPER SUBMISSION ====================
 #: templates/upload.html:2
 msgid "Paper Submission · Keydion"
-msgstr "论文投稿"
+msgstr "论文投稿 · Keydion"
 
 #: templates/upload.html:15
 msgid "Paper Submission"
