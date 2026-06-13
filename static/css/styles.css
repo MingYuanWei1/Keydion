@@ -43,7 +43,6 @@ body::before {
   z-index: -1;
 }
 
-
 .nav-signout {
   border-width: 2px;
   font-weight: 600;
@@ -102,7 +101,6 @@ body::before {
     width: auto !important;
   }
 }
-
 
 .btn-primary,
 .btn-outline-primary {
