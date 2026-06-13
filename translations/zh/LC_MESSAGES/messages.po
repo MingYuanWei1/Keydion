@@ -1452,7 +1452,7 @@ msgstr "显示侧边栏"
 
 # ==================== REGISTER PAGE ====================
 #: templates/account_register.html:2
-msgid "Create Local Account - Keydion"
+msgid "Create Local Account · Keydion"
 msgstr "创建账号 · Keydion"
 
 #: templates/account_register.html:8
@@ -1520,8 +1520,8 @@ msgstr "← 返回普通登录"
 
 # ==================== ADMIN USER MANAGEMENT ====================
 #: templates/admin_users.html:2
-msgid "User Management - Keydion"
-msgstr "用户管理 - Keydion"
+msgid "User Management · Keydion"
+msgstr "用户管理 · Keydion"
 
 #: templates/admin_users.html:6
 msgid "User Management"
@@ -3273,8 +3273,8 @@ msgid "PDF Preview"
 msgstr "文稿预览"
 
 #: templates/profile_setup.html:2
-msgid "Complete your profile - Keydion"
-msgstr "完善您的个人资料 - Keydion"
+msgid "Complete your profile · Keydion"
+msgstr "完善您的个人资料 · Keydion"
 
 #: templates/profile_setup.html:8
 msgid "Complete your profile"
@@ -4105,3 +4105,12 @@ msgstr "添加、重命名或删除论文学科分类。"
 
 msgid "Any Journal"
 msgstr "所有期刊"
+
+msgid "Advanced Search · Keydion"
+msgstr "高级搜索 · Keydion"
+
+msgid "Preview Paper · Keydion"
+msgstr "预览论文 · Keydion"
+
+msgid "Edit Journal · Keydion"
+msgstr "编辑期刊 · Keydion"

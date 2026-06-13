@@ -1545,7 +1545,7 @@ msgstr "Show sidebar"
 # ==================== REGISTER PAGE ====================
 #: templates/account_register.html:2
 #, fuzzy
-msgid "Create Local Account - Keydion"
+msgid "Create Local Account · Keydion"
 msgstr "Create Account · Keydion"
 
 #: templates/account_register.html:8
@@ -1615,8 +1615,8 @@ msgstr "← Back to regular login"
 
 # ==================== ADMIN USER MANAGEMENT ====================
 #: templates/admin_users.html:2
-msgid "User Management - Keydion"
-msgstr "User Management - Keydion"
+msgid "User Management · Keydion"
+msgstr "User Management · Keydion"
 
 #: templates/admin_users.html:6
 msgid "User Management"
@@ -3518,7 +3518,7 @@ msgid "PDF Preview"
 msgstr "PDF Preview"
 
 #: templates/profile_setup.html:2
-msgid "Complete your profile - Keydion"
+msgid "Complete your profile · Keydion"
 msgstr ""
 
 #: templates/profile_setup.html:8
@@ -4282,3 +4282,12 @@ msgstr "Add, rename, or remove paper subject categories."
 
 msgid "Any Journal"
 msgstr "Any Journal"
+
+msgid "Advanced Search · Keydion"
+msgstr "Advanced Search · Keydion"
+
+msgid "Preview Paper · Keydion"
+msgstr "Preview Paper · Keydion"
+
+msgid "Edit Journal · Keydion"
+msgstr "Edit Journal · Keydion"
