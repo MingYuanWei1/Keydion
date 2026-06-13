@@ -186,8 +186,22 @@ New papers uploaded after LLM is configured are indexed automatically on upload.
 
 The project uses Flask-Babel for translations. To update translations:
 
-1. Edit the translation strings in `translations/*/LC_MESSAGES/messages.po`.
-2. Compile the translations:
+1. Re-extract translatable strings into `messages.pot`:
+   ```bash
+   python tools/extract_translations.py
+   ```
+   Use this script rather than a bare `pybabel extract`. Babel's default
+   directory filter skips any directory whose name starts with `.` or `_`,
+   which silently drops nested template packages such as
+   `templates/_dashboard/`; the script passes the `--ignore-dirs` set that
+   keeps them (and excludes the virtualenvs). See `babel.cfg`.
+2. Merge new strings into each catalog (keeps existing translations):
+   ```bash
+   pybabel update -i messages.pot -d translations -l zh --no-fuzzy-matching
+   pybabel update -i messages.pot -d translations -l en --no-fuzzy-matching
+   ```
+3. Fill in the new `msgstr` values in `translations/*/LC_MESSAGES/messages.po`.
+4. Compile the translations:
    ```bash
    python tools/compile_translations.py
    ```
