@@ -1,425 +1,830 @@
 {% extends "_bare.html" if partial else "_dashboard_shell.html" %}
 {% block title %}{{ _('Manage Papers · Keydion') }}{% endblock %}
+{% block head_extra %}{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/manage.css') }}">
+{% endblock %}
 {% block panel %}
 
+{# =============================================================
+   templates/paper_manage.html — Library table (editorial redesign)
+
+   Mirrors the news_manage.html visual language (cream + serif +
+   crimson) and rides on static/css/manage.css. Replaces the old
+   Bootstrap table + PDF preview modal with a filterable / sortable
+   library, status-style "paper type" chips, a search box, and a
+   bulk-delete bar.
+
+   Existing endpoints used (unchanged):
+     upload, paper_modify, paper_delete, paper_file
+
+   ─────────────────────────────────────────────────────────────
+   BACKEND NOTES — two small, OPTIONAL additions make every facet
+   light up. The page renders & degrades gracefully without them.
+
+   (1) In routes/papers.py → paper_manage(), add `journal` and a
+       derived `paper_type` to each paper dict so the Type chips
+       and Journal column populate. `json` is already imported:
+
+         for fname in pdf_files:
+             m = meta_map.get(fname, {})
+             paper_type = "Independent Research"
+             raw_cp = m.get("cp_data", "")
+             if raw_cp:
+                 try:
+                     if json.loads(raw_cp).get("is_cp_paper"):
+                         paper_type = "Community Project"
+                 except (json.JSONDecodeError, TypeError):
+                     pass
+             if paper_type == "Independent Research":
+                 raw_ib = m.get("ib_ee_data", "")
+                 if raw_ib:
+                     try:
+                         if json.loads(raw_ib).get("is_ib_ee"):
+                             paper_type = "Extended Essay"
+                     except (json.JSONDecodeError, TypeError):
+                         pass
+             papers.append({
+                 ...existing keys...,
+                 "journal": m.get("journal", ""),
+                 "paper_type": paper_type,
+             })
+
+   (2) Pass the journal list so the "Add to journal" modal can
+       populate. `get_journal_names` is already imported:
+
+         return render_template("paper_manage.html", user=user,
+                                papers=papers, journals=get_journal_names())
+
+   (3) The bulk bar POSTs JSON to /dashboard/admin/papers/bulk for
+       two operations: {filenames:[...], op:'delete'} and
+       {filenames:[...], op:'set_journal', journal:'<name>'}.
+       Add this route to routes/papers.py (level-3 guard;
+       remove_paper_metadata / upsert_paper_metadata already imported):
+
+         @app.route("/dashboard/admin/papers/bulk", methods=["POST"])
+         def papers_bulk_action():
+             user = require_login(level=3)
+             if not user:
+                 return jsonify({"error": "Unauthorized"}), 401
+             data = request.get_json(silent=True) or {}
+             filenames = data.get("filenames", [])
+             op = data.get("op", "")
+             if op == "delete":
+                 deleted = []
+                 for fname in filenames:
+                     p = PAPERS_DIR / fname
+                     if p.exists():
+                         remove_paper_metadata(fname)
+                         p.unlink(missing_ok=True)
+                         try:
+                             rag_index.purge(fname)
+                         except Exception:
+                             app.logger.exception("purge failed")
+                         deleted.append(fname)
+                 return jsonify({"deleted": deleted, "count": len(deleted)})
+             if op == "set_journal":
+                 journal = (data.get("journal") or "").strip()
+                 updated = []
+                 for fname in filenames:
+                     if (PAPERS_DIR / fname).exists():
+                         upsert_paper_metadata(fname, {"journal": journal})
+                         updated.append(fname)
+                 return jsonify({"updated": updated, "count": len(updated)})
+             return jsonify({"error": "Unsupported operation"}), 400
+
+       Until that route exists, the bulk-delete button falls back to
+       per-row deletes (no 500s); "Add to journal" needs the route.
+   ============================================================= #}
+
+{% if partial %}<link rel="stylesheet" href="{{ url_for('static', filename='css/manage.css') }}">{% endif %}
+
 <style>
-  /* Preview overlay */
-  .preview-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, .5);
-    backdrop-filter: blur(4px);
+  /* Paper-type pills — extends the .kp-pill scale in manage.css */
+  .kp-pill--ee          { background: #f4ecd5; color: #7a5a14; }
+  .kp-pill--cp          { background: #dfead2; color: #3d5723; }
+  .kp-pill--independent { background: #e3e7ee; color: #34465f; }
+  .kp-pill--untyped     { background: #ece4d3; color: var(--muted); }
+
+  .kp-journal {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 13px;
+    font-style: italic;
+    color: var(--ink-soft);
+  }
+  .kp-keywords {
+    margin-top: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .kp-kw {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: -0.01em;
+    color: var(--muted);
+    background: var(--paper-sand-soft);
+    border: 1px solid var(--border-soft);
+    padding: 1px 7px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  /* hidden bulk-fallback forms live here, never displayed */
+  #paperBulkForms { display: none; }
+  /* keep the Actions column reachable when the panel is narrow */
+  .kp-tablewrap { overflow-x: auto; }
+
+  /* ── "Add to journal" modal ─────────────────────────────── */
+  .jm-overlay {
+    position: fixed; inset: 0;
+    background: rgba(26, 22, 14, 0.55);
+    backdrop-filter: blur(3px);
     z-index: 9000;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    animation: pvFadeIn .2s ease;
+    display: none; align-items: center; justify-content: center;
+    animation: jmFade .18s ease;
   }
-
-  .preview-overlay.show {
-    display: flex;
+  .jm-overlay.show { display: flex; }
+  @keyframes jmFade { from { opacity: 0 } to { opacity: 1 } }
+  @keyframes jmUp { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: translateY(0) } }
+  .jm-modal {
+    background: var(--paper-warm);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    width: 540px; max-width: 95vw; max-height: 86vh;
+    box-shadow: 0 25px 60px rgba(40, 30, 14, 0.35);
+    display: flex; flex-direction: column;
+    animation: jmUp .22s ease; overflow: hidden;
   }
-
-  @keyframes pvFadeIn {
-    from {
-      opacity: 0
-    }
-
-    to {
-      opacity: 1
-    }
+  .jm-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--paper-sand-soft);
   }
-
-  @keyframes pvSlideUp {
-    from {
-      opacity: 0;
-      transform: translateY(24px)
-    }
-
-    to {
-      opacity: 1;
-      transform: translateY(0)
-    }
-  }
-
-  .preview-modal {
-    background: #fff;
-    border-radius: 16px;
-    width: 90vw;
-    max-width: 1100px;
-    max-height: 90vh;
-    box-shadow: 0 25px 60px rgba(0, 0, 0, .25);
-    display: flex;
-    flex-direction: column;
-    animation: pvSlideUp .3s ease;
-    overflow: hidden;
-  }
-
-  .preview-modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 20px 24px 16px;
-    border-bottom: 1px solid #f0f0f0;
-  }
-
-  .preview-modal-header h3 {
+  .jm-header h3 {
     margin: 0;
-    font-size: 18px;
-    font-weight: 700;
-    color: #111827;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 22px; font-weight: 600; color: var(--ink);
+    display: flex; align-items: center; gap: 10px;
   }
-
-  .pv-close-btn {
-    width: 36px;
-    height: 36px;
-    border: none;
-    background: #f3f4f6;
-    border-radius: 10px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #6b7280;
-    transition: all .15s;
+  .jm-header h3 svg { width: 18px; height: 18px; color: var(--accent); }
+  .jm-close {
+    width: 32px; height: 32px; border: none; background: transparent;
+    border-radius: 8px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted); transition: all .15s;
   }
-
-  .pv-close-btn:hover {
-    background: #e5e7eb;
-    color: #111827;
+  .jm-close:hover { background: #f1ebde; color: var(--accent); }
+  .jm-close svg { width: 16px; height: 16px; }
+  .jm-body { padding: 16px 22px; overflow-y: auto; }
+  .jm-label {
+    font-family: Georgia, serif;
+    font-size: 10.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--muted); margin: 0 0 10px;
   }
-
-  .preview-modal-body {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
+  .jm-journals {
+    display: flex; flex-direction: column; gap: 6px;
+    margin-bottom: 18px; max-height: 220px; overflow-y: auto;
   }
-
-  .preview-info {
-    width: 340px;
-    flex-shrink: 0;
-    padding: 20px 24px;
-    overflow-y: auto;
-    border-right: 1px solid #f0f0f0;
+  .jm-journal {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border); border-radius: 10px;
+    background: var(--cream); cursor: pointer; text-align: left;
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 14px; color: var(--ink);
+    transition: border-color .12s, background .12s;
   }
-
-  .preview-info dl {
-    margin: 0;
+  .jm-journal:hover { border-color: var(--accent); }
+  .jm-journal.is-active {
+    border-color: var(--accent); background: var(--accent-quiet);
+    box-shadow: inset 0 0 0 1px var(--accent);
   }
-
-  .preview-info dt {
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: #6b7280;
-    margin-top: 14px;
-    letter-spacing: .5px;
+  .jm-radio {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 1.5px solid #c9beac; flex: 0 0 auto;
+    display: inline-flex; align-items: center; justify-content: center;
   }
-
-  .preview-info dt:first-child {
-    margin-top: 0;
+  .jm-journal.is-active .jm-radio { border-color: var(--accent); }
+  .jm-journal.is-active .jm-radio::after {
+    content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
   }
-
-  .preview-info dd {
-    font-size: 14px;
-    color: #111827;
-    margin: 4px 0 0;
-    word-break: break-word;
+  .jm-selected { border-top: 1px dashed var(--border); padding-top: 14px; }
+  .jm-selected__head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+  .jm-selected__head .jm-label { margin: 0; }
+  .jm-selected__count {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted);
   }
-
-  .preview-pdf {
-    flex: 1;
-    min-width: 0;
+  .jm-chips { display: flex; flex-direction: column; gap: 6px; max-height: 190px; overflow-y: auto; }
+  .jm-chip {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 8px 7px 11px;
+    border-radius: 8px;
+    background: var(--paper-sand-soft); border: 1px solid var(--border-soft);
   }
-
-  .preview-pdf iframe {
-    width: 100%;
-    height: 100%;
-    border: none;
+  .jm-chip__title {
+    flex: 1; min-width: 0;
+    font-family: Georgia, serif; font-size: 13px; color: var(--ink-soft);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-
-  /* Delete confirm overlay */
-  .del-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, .45);
-    backdrop-filter: blur(4px);
-    z-index: 9500;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    animation: pvFadeIn .15s ease;
+  .jm-chip__remove {
+    width: 24px; height: 24px; border: none; background: transparent;
+    border-radius: 6px; cursor: pointer; color: var(--muted);
+    display: flex; align-items: center; justify-content: center; flex: 0 0 auto;
   }
-
-  .del-overlay.show {
-    display: flex;
+  .jm-chip__remove:hover { background: var(--accent-quiet); color: var(--accent); }
+  .jm-chip__remove svg { width: 13px; height: 13px; }
+  .jm-empty {
+    font-family: Georgia, serif; font-style: italic;
+    font-size: 13px; color: var(--muted); padding: 8px 2px;
   }
-
-  .del-dialog {
-    background: #fff;
-    border-radius: 16px;
-    width: 420px;
-    max-width: 95vw;
-    box-shadow: 0 25px 60px rgba(0, 0, 0, .25);
-    padding: 28px;
-    animation: pvSlideUp .2s ease;
-    text-align: center;
+  .jm-footer {
+    display: flex; justify-content: flex-end; gap: 10px;
+    padding: 14px 22px; border-top: 1px solid var(--border);
+    background: var(--paper-sand-soft);
   }
-
-  .del-dialog h4 {
-    margin: 0 0 8px;
-    font-size: 18px;
-    font-weight: 700;
-    color: #111827;
-  }
-
-  .del-dialog p {
-    font-size: 14px;
-    color: #6b7280;
-    margin: 0 0 20px;
-  }
-
-  .del-dialog .del-fname {
-    font-weight: 600;
-    color: #ef4444;
-  }
-
-  .del-btns {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-  }
-
-  .del-btns button {
-    padding: 10px 24px;
-    border: none;
-    border-radius: 10px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all .15s;
-  }
-
-  .del-cancel {
-    background: #f3f4f6;
-    color: #374151;
-  }
-
-  .del-cancel:hover {
-    background: #e5e7eb;
-  }
-
-  .del-confirm {
-    background: #ef4444;
-    color: #fff;
-  }
-
-  .del-confirm:hover {
-    background: #dc2626;
-  }
-
-  @media (max-width: 768px) {
-    .preview-modal-body {
-      flex-direction: column;
-    }
-
-    .preview-info {
-      width: 100%;
-      border-right: none;
-      border-bottom: 1px solid #f0f0f0;
-      max-height: 40vh;
-    }
-  }
+  .jm-footer .kp-btn--primary[disabled] { opacity: .5; pointer-events: none; }
 </style>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <div>
-    <h1 class="display-6 fw-semibold text-primary">{{ _('Manage Papers') }}</h1>
-    <p class="text-muted mb-0">{{ _('Preview, modify, or delete papers from the library.') }}</p>
+<div class="kp-head">
+  <div class="kp-head__left">
+    <div class="kp-crumb">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v6H4z"/><path d="M14 4h6v6h-6z"/><path d="M4 14h6v6H4z"/><path d="M14 14h6v6h-6z"/></svg>
+      <span>{{ _('Library') }} · {{ _('Collection') }}</span>
+    </div>
+    <h1 class="kp-title">{{ _('Manage Papers') }}</h1>
+    <p class="kp-sub">{{ _('Every paper in the Keydion library. Search, filter by type, sort, and modify or remove entries.') }}</p>
   </div>
-  <a class="btn btn-primary" href="{{ url_for('upload') }}">
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg me-1"
-      viewBox="0 0 16 16" style="vertical-align:-2px">
-      <path d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2" />
-    </svg>
-    {{ _('Upload a Paper') }}
-  </a>
+  <div class="kp-head__right">
+    <a class="kp-btn kp-btn--primary" href="{{ url_for('upload') }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      <span>{{ _('Upload a paper') }}</span>
+    </a>
+  </div>
 </div>
 
 {% if papers|length == 0 %}
-<div class="text-center py-5">
-  <p class="text-muted fs-5 mb-3">{{ _('No papers in the library yet.') }}</p>
-  <a href="{{ url_for('upload') }}" class="btn btn-outline-primary">{{ _('Upload your first paper') }}</a>
-</div>
+  {# ─── Empty state ──────────────────────────────────────── #}
+  <div class="kp-empty">
+    <svg class="kp-empty__art" width="200" height="148" viewBox="0 0 200 148" fill="none">
+      <defs>
+        <pattern id="paperLines" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(135)">
+          <line x1="0" y1="0" x2="0" y2="6" stroke="#8b1a1a" stroke-opacity="0.12" stroke-width="1"/>
+        </pattern>
+      </defs>
+      <rect x="44" y="16" width="104" height="124" rx="5" fill="#fffdf9" stroke="#e0dbd0" stroke-width="1.2" transform="rotate(-7 96 78)"/>
+      <rect x="52" y="14" width="104" height="124" rx="5" fill="#fffdf9" stroke="#e0dbd0" stroke-width="1.5"/>
+      <rect x="52" y="14" width="104" height="34" fill="url(#paperLines)"/>
+      <line x1="66" y1="30" x2="142" y2="30" stroke="#8b1a1a" stroke-width="2.2"/>
+      <line x1="66" y1="40" x2="120" y2="40" stroke="#1a1a1a" stroke-opacity="0.45" stroke-width="1.4"/>
+      <line x1="66" y1="62" x2="142" y2="62" stroke="#1a1a1a" stroke-opacity="0.22" stroke-width="1"/>
+      <line x1="66" y1="72" x2="142" y2="72" stroke="#1a1a1a" stroke-opacity="0.22" stroke-width="1"/>
+      <line x1="66" y1="82" x2="134" y2="82" stroke="#1a1a1a" stroke-opacity="0.22" stroke-width="1"/>
+      <line x1="66" y1="92" x2="142" y2="92" stroke="#1a1a1a" stroke-opacity="0.22" stroke-width="1"/>
+      <line x1="66" y1="102" x2="128" y2="102" stroke="#1a1a1a" stroke-opacity="0.22" stroke-width="1"/>
+      <rect x="60" y="116" width="34" height="14" rx="3" fill="#8b1a1a"/>
+      <text x="77" y="126" text-anchor="middle" fill="#fffdf9" font-family="JetBrains Mono, monospace" font-size="8" font-weight="700">PDF</text>
+      <circle cx="138" cy="116" r="17" fill="none" stroke="#8b1a1a" stroke-width="3"/>
+      <line x1="150" y1="128" x2="166" y2="144" stroke="#8b1a1a" stroke-width="4" stroke-linecap="round"/>
+      <line x1="131" y1="116" x2="145" y2="116" stroke="#8b1a1a" stroke-opacity="0.5" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <h3>{{ _('No papers in the library yet') }}</h3>
+    <p>{{ _('Papers uploaded here become searchable across the public library, journal pages, and the research assistant. Upload your first PDF to get started.') }}</p>
+    <a href="{{ url_for('upload') }}" class="kp-btn kp-btn--primary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      <span>{{ _('Upload your first paper') }}</span>
+    </a>
+  </div>
 {% else %}
-<div class="card shadow-sm">
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0">
-        <thead class="table-light">
-          <tr>
-            <th style="min-width:280px">{{ _('Title') }}</th>
-            <th>{{ _('Category') }}</th>
-            <th>{{ _('Author') }}</th>
-            <th>{{ _('Published') }}</th>
-            <th class="text-end" style="min-width:220px">{{ _('Actions') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for p in papers %}
-          <tr>
-            <td>
-              <a href="javascript:void(0);" class="fw-semibold text-decoration-none text-primary"
-                onclick="openPreview('{{ p.filename }}')">{{ p.title }}</a>
-              {% if p.abstract %}
-              <div class="text-muted small text-truncate" style="max-width:400px">{{ p.abstract }}</div>
-              {% endif %}
-            </td>
-            <td>
-              {% if p.category %}
-              <span class="badge bg-secondary">{{ p.category }}</span>
-              {% else %}
-              <span class="text-muted">–</span>
-              {% endif %}
-            </td>
-            <td>
-              <small>{{ p.author_name or '–' }}</small>
-            </td>
-            <td>
-              <small class="text-muted">{{ p.published_at or '–' }}</small>
-            </td>
-            <td class="text-end">
 
-              <a href="{{ url_for('paper_modify', filename=p.filename) }}" class="btn btn-sm btn-outline-primary me-1">
-                {{ _('Modify') }}
+{# Categories derived from the papers themselves — no backend change needed #}
+{% set paper_cats = papers | map(attribute='category') | select | unique | list | sort %}
+
+{# Paper-type counts (populate once the route supplies p.paper_type — see notes above) #}
+{% set ee_count  = papers | selectattr('paper_type', 'equalto', 'Extended Essay')      | list | length %}
+{% set cp_count  = papers | selectattr('paper_type', 'equalto', 'Community Project')    | list | length %}
+{% set ind_count = papers | selectattr('paper_type', 'equalto', 'Independent Research') | list | length %}
+
+{# ─── Filter toolbar ──────────────────────────────────────── #}
+<div class="kp-toolbar" id="paperToolbar">
+  <div class="kp-search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input type="text" id="paperSearch" placeholder="{{ _('Search by title, abstract, author, or keyword…') }}" autocomplete="off">
+  </div>
+
+  <span class="kp-divider"></span>
+
+  <select class="kp-select" id="paperTypeFilter" aria-label="{{ _('Filter by paper type') }}">
+    <option value="all">{{ _('Type: All') }} ({{ papers|length }})</option>
+    <option value="ee">{{ _('Extended Essay') }} ({{ ee_count }})</option>
+    <option value="cp">{{ _('Community Project') }} ({{ cp_count }})</option>
+    <option value="independent">{{ _('Independent') }} ({{ ind_count }})</option>
+  </select>
+
+  <select class="kp-select" id="paperDateFilter" aria-label="{{ _('Date range') }}">
+    <option value="all">{{ _('Any date') }}</option>
+    <option value="30">{{ _('Last 30 days') }}</option>
+    <option value="90">{{ _('Last 90 days') }}</option>
+    <option value="365">{{ _('Last year') }}</option>
+  </select>
+
+  <select class="kp-select" id="paperSort" aria-label="{{ _('Sort') }}">
+    <option value="date-desc">{{ _('Newest first') }}</option>
+    <option value="date-asc">{{ _('Oldest first') }}</option>
+    <option value="title-asc">{{ _('Title A → Z') }}</option>
+    <option value="title-desc">{{ _('Title Z → A') }}</option>
+  </select>
+</div>
+
+{# ─── Bulk action bar (hidden until selection) ─────────────── #}
+<div class="kp-bulkbar" id="paperBulkbar" style="display:none;">
+  <div class="kp-bulkbar__count"><strong id="bulkCount">0</strong> <span id="bulkLabel">{{ _('papers selected') }}</span></div>
+  <div class="kp-bulkbar__spacer"></div>
+  <button type="button" id="bulkJournalBtn">{{ _('Add to journal') }}</button>
+  <button type="button" class="is-danger" data-bulk-op="delete">{{ _('Delete selected') }}</button>
+  <button type="button" id="bulkClear" title="{{ _('Clear selection') }}">{{ _('Cancel') }}</button>
+</div>
+
+{# ─── Table ────────────────────────────────────────────────── #}
+<div class="kp-card">
+  <div class="kp-tablewrap">
+  <table class="kp-table" id="paperTable">
+    <thead>
+      <tr>
+        <th style="width:36px; padding-right:0;">
+          <input type="checkbox" class="kp-check" id="paperSelectAll" aria-label="{{ _('Select all') }}">
+        </th>
+        <th style="min-width:320px;">{{ _('Paper') }}</th>
+        <th>{{ _('Type') }}</th>
+        <th>{{ _('Journal') }}</th>
+        <th>{{ _('Author') }}</th>
+        <th class="th-sortable th-sorted" data-sort-key="date">{{ _('Published') }} ↓</th>
+        <th class="text-end" style="width:120px;">{{ _('Actions') }}</th>
+      </tr>
+    </thead>
+    <tbody id="paperTbody">
+      {% for p in papers %}
+        {% set ptype = p.paper_type %}
+        {% set tkey = 'ee' if ptype == 'Extended Essay' else 'cp' if ptype == 'Community Project' else 'independent' if ptype == 'Independent Research' else '' %}
+        <tr data-row
+            data-filename="{{ p.filename }}"
+            data-title="{{ (p.title or '')|lower }}"
+            data-abstract="{{ (p.abstract or '')|lower }}"
+            data-author="{{ (p.author_name or '')|lower }}"
+            data-keywords="{{ (p.keywords or '')|lower }}"
+            data-category="{{ p.category or '' }}"
+            data-type="{{ tkey }}"
+            data-date="{{ p.published_at }}">
+          <td style="padding-right:0;">
+            <input type="checkbox" class="kp-check paper-row-check" value="{{ p.filename }}" aria-label="{{ _('Select paper') }}">
+          </td>
+          <td>
+            <span class="td-title">
+              <a href="{{ url_for('paper_modify', filename=p.filename) }}">{{ p.title }}</a>
+            </span>
+            {% if p.abstract %}
+              <div class="td-sub">{{ p.abstract }}</div>
+            {% endif %}
+            {% if p.keywords %}
+              <div class="kp-keywords">
+                {% for kw in p.keywords.split(',') %}
+                  {% if kw.strip() and loop.index <= 4 %}<span class="kp-kw">{{ kw.strip() }}</span>{% endif %}
+                {% endfor %}
+              </div>
+            {% endif %}
+          </td>
+          <td>
+            {% if ptype == 'Extended Essay' %}
+              <span class="kp-pill kp-pill--ee"><span class="kp-pill__dot"></span>{{ _('Extended Essay') }}</span>
+            {% elif ptype == 'Community Project' %}
+              <span class="kp-pill kp-pill--cp"><span class="kp-pill__dot"></span>{{ _('Community Project') }}</span>
+            {% elif ptype == 'Independent Research' %}
+              <span class="kp-pill kp-pill--independent"><span class="kp-pill__dot"></span>{{ _('Independent Research') }}</span>
+            {% else %}
+              <span class="td-meta">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if p.journal %}
+              <span class="kp-journal">{{ p.journal }}</span>
+            {% else %}
+              <span class="td-meta">—</span>
+            {% endif %}
+          </td>
+          <td style="font-family: Georgia, serif; color: var(--ink-soft);">{{ p.author_name or '—' }}</td>
+          <td><span class="td-meta">{{ p.published_at or '—' }}</span></td>
+          <td class="text-end">
+            <div class="td-actions">
+              <a class="kp-row-icon" href="{{ url_for('paper_file', filename=p.filename) }}" target="_blank" rel="noopener" title="{{ _('Open PDF') }}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
               </a>
-              <button type="button" class="btn btn-sm btn-outline-danger"
-                onclick="confirmDelete('{{ p.filename }}', '{{ p.title|e }}')">
-                {{ _('Delete') }}
-              </button>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+              <a class="kp-row-icon" href="{{ url_for('paper_modify', filename=p.filename) }}" title="{{ _('Modify') }}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+              </a>
+              <form method="post" action="{{ url_for('paper_delete', filename=p.filename) }}" class="d-inline" onsubmit="return confirm('{{ _('Delete this paper? This cannot be undone.') }}')">
+                <button type="submit" class="kp-row-icon" title="{{ _('Delete') }}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
   </div>
 </div>
-{% endif %}
 
-<!-- Preview Modal -->
-<div class="preview-overlay" id="previewOverlay">
-  <div class="preview-modal">
-    <div class="preview-modal-header">
-      <h3 id="pvTitle">{{ _('Paper Preview') }}</h3>
-      <button type="button" class="pv-close-btn" onclick="closePreview()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
-          <path d="M18 6L6 18M6 6l12 12" />
-        </svg>
+<div class="kp-foot">
+  <span id="paperCountLabel">{{ _('Showing') }} {{ papers|length }} {{ _('of') }} {{ papers|length }} {{ _('papers') }}</span>
+  <a href="{{ url_for('search') }}">{{ _('Browse the public library') }} →</a>
+</div>
+
+{# ─── No-results placeholder (toggled via JS) ─────────────── #}
+<div class="kp-empty" id="paperNoResults" style="display:none; margin-top:20px;">
+  <h3>{{ _('No papers match these filters') }}</h3>
+  <p>{{ _('Try a different type, category, or date range — or clear the search box.') }}</p>
+  <button type="button" class="kp-btn kp-btn--ghost" id="paperClearFilters">{{ _('Clear filters') }}</button>
+</div>
+
+{# Hidden per-row delete forms used as a fallback when the bulk endpoint is absent #}
+<div id="paperBulkForms"></div>
+
+{# ─── "Add to journal" modal ─────────────────────────────── #}
+<div class="jm-overlay" id="journalOverlay">
+  <div class="jm-modal" role="dialog" aria-labelledby="jmTitle" aria-modal="true">
+    <div class="jm-header">
+      <h3 id="jmTitle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        {{ _('Add papers to a journal') }}
+      </h3>
+      <button type="button" class="jm-close" id="jmClose" aria-label="{{ _('Close') }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
       </button>
     </div>
-    <div class="preview-modal-body">
-      <div class="preview-info" id="pvInfo">
-        <dl>
-          <dt>{{ _('Title') }}</dt>
-          <dd id="pvInfoTitle">–</dd>
-          <dt>{{ _('Category') }}</dt>
-          <dd id="pvInfoCategory">–</dd>
-          <dt>{{ _('Keywords') }}</dt>
-          <dd id="pvInfoKeywords">–</dd>
-          <dt>{{ _('Abstract') }}</dt>
-          <dd id="pvInfoAbstract">–</dd>
-          <dt>{{ _('Author') }}</dt>
-          <dd id="pvInfoAuthor">–</dd>
-          <dt>{{ _('Email') }}</dt>
-          <dd id="pvInfoEmail">–</dd>
-          <dt>{{ _('School') }}</dt>
-          <dd id="pvInfoSchool">–</dd>
-          <dt>{{ _('Published') }}</dt>
-          <dd id="pvInfoPublished">–</dd>
-        </dl>
+    <div class="jm-body">
+      <p class="jm-label">{{ _('Choose a journal') }}</p>
+      <div class="jm-journals" id="jmJournals"></div>
+      <div class="jm-selected">
+        <div class="jm-selected__head">
+          <p class="jm-label">{{ _('Selected papers') }}</p>
+          <span class="jm-selected__count"><strong id="jmCount">0</strong> {{ _('selected') }}</span>
+        </div>
+        <div class="jm-chips" id="jmChips"></div>
       </div>
-      <div class="preview-pdf">
-        <iframe id="pvPdfFrame" src="about:blank"></iframe>
-      </div>
+    </div>
+    <div class="jm-footer">
+      <button type="button" class="kp-btn kp-btn--ghost" id="jmCancel">{{ _('Cancel') }}</button>
+      <button type="button" class="kp-btn kp-btn--primary" id="jmConfirm" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        <span>{{ _('Add to journal') }}</span>
+      </button>
     </div>
   </div>
 </div>
 
-<!-- Delete Confirmation -->
-<div class="del-overlay" id="delOverlay">
-  <div class="del-dialog">
-    <h4>{{ _('Delete Paper') }}</h4>
-    <p>{{ _('Are you sure you want to delete') }} <span class="del-fname" id="delFname"></span>{{ _('?') }}</p>
-    <p class="small text-danger">{{ _('This action cannot be undone.') }}</p>
-    <form method="post" id="delForm">
-      <div class="del-btns">
-        <button type="button" class="del-cancel" onclick="closeDelete()">{{ _('Cancel') }}</button>
-        <button type="submit" class="del-confirm">{{ _('Delete') }}</button>
-      </div>
-    </form>
-  </div>
-</div>
+{% endif %}
+
+<div class="kp-toast" id="paperToast"></div>
 
 <script>
-  (function () {
-    // ---- Preview ----
-    var overlay = document.getElementById('previewOverlay');
+(function () {
+  /* === Bulk endpoint (see BACKEND NOTES at top of file) === */
+  var BULK_URL = "/dashboard/admin/papers/bulk";
 
-    window.openPreview = function (filename) {
-      // Fetch info
-      fetch('/paper/' + encodeURIComponent(filename) + '/info')
-        .then(function (r) { return r.json(); })
-        .then(function (d) {
-          document.getElementById('pvTitle').textContent = d.title || filename;
-          document.getElementById('pvInfoTitle').textContent = d.title || '–';
-          document.getElementById('pvInfoCategory').textContent = d.category || '–';
-          document.getElementById('pvInfoKeywords').textContent = d.keywords || '–';
-          document.getElementById('pvInfoAbstract').textContent = d.abstract || '–';
-          document.getElementById('pvInfoAuthor').textContent = d.author_name || '–';
-          document.getElementById('pvInfoEmail').textContent = d.author_email || '–';
-          document.getElementById('pvInfoSchool').textContent = d.author_school || '–';
-          document.getElementById('pvInfoPublished').textContent = d.published_at || '–';
-          document.getElementById('pvPdfFrame').src = d.pdf_url + '#view=FitH';
-          overlay.classList.add('show');
-        })
-        .catch(function (err) { alert('Failed to load preview: ' + err.message); });
-    };
+  /* Journal list for the "Add to journal" modal — pass
+     journals=get_journal_names() from paper_manage() (see notes).
+     Empty list ⇒ the modal shows a hint instead of choices. */
+  var journals = {{ (journals if journals is defined else []) | tojson }};
+  var jmSelectedJournal = null;
 
-    window.closePreview = function () {
-      overlay.classList.remove('show');
-      document.getElementById('pvPdfFrame').src = 'about:blank';
-    };
+  function escHtml(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : s); return d.innerHTML; }
+  function escAttr(s) { return escHtml(s).replace(/"/g, '&quot;'); }
+  function cssEsc(s) { return (window.CSS && CSS.escape) ? CSS.escape(s) : String(s).replace(/["\\]/g, '\\$&'); }
 
-    overlay.addEventListener('click', function (e) {
-      if (e.target === overlay) closePreview();
-    });
+  /* Bulk actions reload the page to resync; stash the success message
+     so it can be shown once the fresh page has loaded. */
+  function queueToast(m) { try { sessionStorage.setItem('keydion.paperToast', m); } catch (e) {} }
+  function flushQueuedToast() {
+    try {
+      var m = sessionStorage.getItem('keydion.paperToast');
+      if (m) { sessionStorage.removeItem('keydion.paperToast'); showToast(m); }
+    } catch (e) {}
+  }
 
-    // ---- Delete confirmation ----
-    var delOverlay = document.getElementById('delOverlay');
+  function showToast(msg) {
+    var t = document.getElementById('paperToast');
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(function () { t.classList.remove('show'); }, 2200);
+  }
 
-    window.confirmDelete = function (filename, title) {
-      document.getElementById('delFname').textContent = title || filename;
-      document.getElementById('delForm').action = '/dashboard/paper/' + encodeURIComponent(filename) + '/delete';
-      delOverlay.classList.add('show');
-    };
+  /* ============ Filtering & sorting (client-side) ============ */
+  var state = { type: 'all', category: 'all', search: '', days: 'all', sort: 'date-desc' };
 
-    window.closeDelete = function () {
-      delOverlay.classList.remove('show');
-    };
-
-    delOverlay.addEventListener('click', function (e) {
-      if (e.target === delOverlay) closeDelete();
-    });
-
-    // Close on Escape
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') {
-        if (delOverlay.classList.contains('show')) closeDelete();
-        else if (overlay.classList.contains('show')) closePreview();
+  function applyFilters() {
+    var rows = document.querySelectorAll('#paperTbody tr[data-row]');
+    var visible = 0;
+    var nowMs = Date.now();
+    rows.forEach(function (tr) {
+      var ok = true;
+      if (state.type !== 'all' && tr.dataset.type !== state.type) ok = false;
+      if (ok && state.category !== 'all' && tr.dataset.category !== state.category) ok = false;
+      if (ok && state.search) {
+        var s = state.search;
+        if (tr.dataset.title.indexOf(s) === -1 &&
+            tr.dataset.abstract.indexOf(s) === -1 &&
+            tr.dataset.author.indexOf(s) === -1 &&
+            tr.dataset.keywords.indexOf(s) === -1) ok = false;
       }
+      if (ok && state.days !== 'all') {
+        var d = Date.parse(tr.dataset.date);
+        if (!isNaN(d)) {
+          var ageDays = (nowMs - d) / 86400000;
+          if (ageDays > parseInt(state.days, 10)) ok = false;
+        }
+      }
+      tr.classList.toggle('is-hidden', !ok);
+      if (ok) visible++;
     });
-  })();
+    var label = document.getElementById('paperCountLabel');
+    if (label) label.textContent = "{{ _('Showing') }} " + visible + " {{ _('of') }} " + rows.length + " {{ _('papers') }}";
+    var noResults = document.getElementById('paperNoResults');
+    var card = document.querySelector('#paperTable').closest('.kp-card');
+    if (noResults) {
+      var empty = (visible === 0 && rows.length > 0);
+      noResults.style.display = empty ? '' : 'none';
+      if (card) card.style.display = empty ? 'none' : '';
+    }
+  }
+
+  function cmp(a, b) { if (a < b) return -1; if (a > b) return 1; return 0; }
+  function dateKey(s) { var t = Date.parse(s); return isNaN(t) ? null : t; }
+
+  function sortRows() {
+    var tbody = document.getElementById('paperTbody');
+    if (!tbody) return;
+    var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr[data-row]'));
+    rows.sort(function (a, b) {
+      var da = dateKey(a.dataset.date), db = dateKey(b.dataset.date);
+      switch (state.sort) {
+        case 'date-asc':
+          if (da === null && db === null) return 0;
+          if (da === null) return 1;
+          if (db === null) return -1;
+          return da - db;
+        case 'date-desc':
+          if (da === null && db === null) return 0;
+          if (da === null) return 1;
+          if (db === null) return -1;
+          return db - da;
+        case 'title-asc':  return cmp(a.dataset.title, b.dataset.title);
+        case 'title-desc': return cmp(b.dataset.title, a.dataset.title);
+      }
+      return 0;
+    });
+    rows.forEach(function (r) { tbody.appendChild(r); });
+    var th = document.querySelector('th[data-sort-key="date"]');
+    if (th) th.textContent = "{{ _('Published') }} " + (state.sort === 'date-asc' ? '↑' : '↓');
+  }
+
+  /* ============ Bulk selection ============ */
+  function refreshBulkbar() {
+    var checked = document.querySelectorAll('.paper-row-check:checked');
+    var bar = document.getElementById('paperBulkbar');
+    if (!bar) return;
+    if (checked.length === 0) {
+      bar.style.display = 'none';
+    } else {
+      bar.style.display = '';
+      document.getElementById('bulkCount').textContent = checked.length;
+      document.getElementById('bulkLabel').textContent =
+        checked.length === 1 ? "{{ _('paper selected') }}" : "{{ _('papers selected') }}";
+    }
+    document.querySelectorAll('.paper-row-check').forEach(function (c) {
+      c.closest('tr').classList.toggle('is-selected', c.checked);
+    });
+    var all = document.getElementById('paperSelectAll');
+    var visibleChecks = document.querySelectorAll('#paperTbody tr:not(.is-hidden) .paper-row-check');
+    var visibleChecked = document.querySelectorAll('#paperTbody tr:not(.is-hidden) .paper-row-check:checked');
+    if (all) {
+      all.checked = visibleChecks.length > 0 && visibleChecked.length === visibleChecks.length;
+      all.indeterminate = visibleChecked.length > 0 && visibleChecked.length < visibleChecks.length;
+    }
+  }
+
+  /* Fallback: submit per-row delete forms one-by-one when no bulk endpoint */
+  function bulkDeleteFallback(filenames) {
+    var holder = document.getElementById('paperBulkForms');
+    holder.innerHTML = '';
+    filenames.forEach(function (fn) {
+      var f = document.createElement('form');
+      f.method = 'post';
+      f.action = "{{ url_for('paper_delete', filename='__FN__') }}".replace('__FN__', encodeURIComponent(fn));
+      holder.appendChild(f);
+    });
+    // Submitting navigates away on the first; the server redirects back to the
+    // list, so this only removes one per click unless the bulk route exists.
+    var first = holder.querySelector('form');
+    if (first) first.submit();
+  }
+
+  /* ============ "Add to journal" modal ============ */
+  function checkedPapers() {
+    return Array.prototype.map.call(document.querySelectorAll('.paper-row-check:checked'), function (c) {
+      var tr = c.closest('tr');
+      var a = tr ? tr.querySelector('.td-title a') : null;
+      return { filename: c.value, title: a ? a.textContent.trim() : c.value };
+    });
+  }
+
+  function renderJournalChoices() {
+    var box = document.getElementById('jmJournals');
+    if (!box) return;
+    if (!journals || journals.length === 0) {
+      box.innerHTML = '<div class="jm-empty">' + "{{ _('No journals available yet — create one under Manage Journals first.') }}" + '</div>';
+      return;
+    }
+    box.innerHTML = journals.map(function (j) {
+      return '<button type="button" class="jm-journal" data-journal="' + escAttr(j) + '">' +
+        '<span class="jm-radio"></span><span>' + escHtml(j) + '</span></button>';
+    }).join('');
+    box.querySelectorAll('.jm-journal').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        box.querySelectorAll('.jm-journal').forEach(function (b) { b.classList.remove('is-active'); });
+        btn.classList.add('is-active');
+        jmSelectedJournal = btn.dataset.journal;
+        var conf = document.getElementById('jmConfirm');
+        if (conf) conf.disabled = (checkedPapers().length === 0);
+      });
+    });
+  }
+
+  function renderSelectedChips() {
+    var papers = checkedPapers();
+    var chips = document.getElementById('jmChips');
+    var count = document.getElementById('jmCount');
+    if (count) count.textContent = papers.length;
+    if (!chips) return;
+    if (papers.length === 0) {
+      chips.innerHTML = '<div class="jm-empty">' + "{{ _('No papers selected.') }}" + '</div>';
+      return;
+    }
+    chips.innerHTML = papers.map(function (p) {
+      return '<div class="jm-chip"><span class="jm-chip__title">' + escHtml(p.title) + '</span>' +
+        '<button type="button" class="jm-chip__remove" data-fn="' + escAttr(p.filename) + '" title="' + "{{ _('Remove from selection') }}" + '" aria-label="' + "{{ _('Remove from selection') }}" + '">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>';
+    }).join('');
+    chips.querySelectorAll('.jm-chip__remove').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var cb = document.querySelector('.paper-row-check[value="' + cssEsc(btn.dataset.fn) + '"]');
+        if (cb) cb.checked = false;
+        refreshBulkbar();
+        if (checkedPapers().length === 0) { closeJournalModal(); return; }
+        renderSelectedChips();
+      });
+    });
+  }
+
+  function openJournalModal() {
+    if (checkedPapers().length === 0) return;
+    jmSelectedJournal = null;
+    var conf = document.getElementById('jmConfirm');
+    if (conf) conf.disabled = true;
+    renderJournalChoices();
+    renderSelectedChips();
+    var ov = document.getElementById('journalOverlay');
+    if (ov) ov.classList.add('show');
+  }
+  function closeJournalModal() {
+    var ov = document.getElementById('journalOverlay');
+    if (ov) ov.classList.remove('show');
+  }
+  function confirmJournal() {
+    var ids = checkedPapers().map(function (p) { return p.filename; });
+    if (ids.length === 0 || !jmSelectedJournal) return;
+    fetch(BULK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filenames: ids, op: 'set_journal', journal: jmSelectedJournal })
+    })
+    .then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+    .then(function (d) {
+      var n = (d && d.count != null) ? d.count : ids.length;
+      queueToast("{{ _('Added') }} " + n + " " + (n === 1 ? "{{ _('paper') }}" : "{{ _('papers') }}") + " {{ _('to Journal') }} " + jmSelectedJournal + " {{ _('successfully') }}");
+      location.reload();
+    })
+    .catch(function () { alert("{{ _('Could not add papers to the journal. Add the bulk endpoint — see the notes at the top of paper_manage.html.') }}"); });
+  }
+
+  /* ============ Wire-up ============ */
+  document.addEventListener('DOMContentLoaded', init);
+  if (document.readyState !== 'loading') init();
+  function init() { flushQueuedToast(); wireUp(); }
+  var _wired = false;
+  function wireUp() {
+    if (_wired) return; _wired = true;
+    if (!document.getElementById('paperTable')) return; // empty state
+
+    // Selects
+    var typeF = document.getElementById('paperTypeFilter');
+    if (typeF) typeF.addEventListener('change', function () { state.type = typeF.value; applyFilters(); refreshBulkbar(); });
+    var cat = null;
+    var dateF = document.getElementById('paperDateFilter');
+    if (dateF) dateF.addEventListener('change', function () { state.days = dateF.value; applyFilters(); refreshBulkbar(); });
+    var sortS = document.getElementById('paperSort');
+    if (sortS) sortS.addEventListener('change', function () { state.sort = sortS.value; sortRows(); });
+
+    // Search
+    var srch = document.getElementById('paperSearch');
+    if (srch) srch.addEventListener('input', function () { state.search = srch.value.trim().toLowerCase(); applyFilters(); refreshBulkbar(); });
+
+    // Clear filters
+    var clr = document.getElementById('paperClearFilters');
+    if (clr) clr.addEventListener('click', function () {
+      state = { type: 'all', category: 'all', search: '', days: 'all', sort: state.sort };
+      if (srch)  srch.value = '';
+      if (cat)   cat.value = 'all';
+      if (dateF) dateF.value = 'all';
+      if (typeF) typeF.value = 'all';
+      applyFilters();
+      refreshBulkbar();
+    });
+
+    // Selection
+    var selAll = document.getElementById('paperSelectAll');
+    if (selAll) selAll.addEventListener('change', function () {
+      document.querySelectorAll('#paperTbody tr:not(.is-hidden) .paper-row-check').forEach(function (c) {
+        c.checked = selAll.checked;
+      });
+      refreshBulkbar();
+    });
+    document.querySelectorAll('.paper-row-check').forEach(function (c) {
+      c.addEventListener('change', refreshBulkbar);
+    });
+
+    // Bulk delete
+    document.querySelectorAll('[data-bulk-op]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var ids = Array.prototype.map.call(document.querySelectorAll('.paper-row-check:checked'), function (c) { return c.value; });
+        if (ids.length === 0) return;
+        if (!confirm("{{ _('Delete') }} " + ids.length + " {{ _('papers? This cannot be undone.') }}")) return;
+
+        fetch(BULK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filenames: ids, op: 'delete' })
+        })
+        .then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+        .then(function (d) {
+          var n = (d && d.count != null) ? d.count : ids.length;
+          queueToast("{{ _('Deleted') }} " + n + " " + (n === 1 ? "{{ _('paper') }}" : "{{ _('papers') }}") + " {{ _('successfully') }}");
+          location.reload();
+        })
+        .catch(function () {
+          // Endpoint missing/failed → graceful per-row fallback
+          bulkDeleteFallback(ids);
+        });
+      });
+    });
+
+    var bulkClear = document.getElementById('bulkClear');
+    if (bulkClear) bulkClear.addEventListener('click', function () {
+      document.querySelectorAll('.paper-row-check').forEach(function (c) { c.checked = false; });
+      refreshBulkbar();
+    });
+
+    // "Add to journal" modal
+    var jbtn = document.getElementById('bulkJournalBtn');
+    if (jbtn) jbtn.addEventListener('click', openJournalModal);
+    var jmClose = document.getElementById('jmClose');
+    if (jmClose) jmClose.addEventListener('click', closeJournalModal);
+    var jmCancel = document.getElementById('jmCancel');
+    if (jmCancel) jmCancel.addEventListener('click', closeJournalModal);
+    var jmConfirm = document.getElementById('jmConfirm');
+    if (jmConfirm) jmConfirm.addEventListener('click', confirmJournal);
+    var jmOverlay = document.getElementById('journalOverlay');
+    if (jmOverlay) jmOverlay.addEventListener('click', function (e) { if (e.target === jmOverlay) closeJournalModal(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && jmOverlay && jmOverlay.classList.contains('show')) closeJournalModal();
+    });
+
+    // Sortable header (date)
+    var dateHead = document.querySelector('th[data-sort-key="date"]');
+    if (dateHead) dateHead.addEventListener('click', function () {
+      state.sort = (state.sort === 'date-desc') ? 'date-asc' : 'date-desc';
+      if (sortS) sortS.value = state.sort;
+      sortRows();
+    });
+
+    // Initial paint
+    sortRows();
+    applyFilters();
+    refreshBulkbar();
+  }
+})();
 </script>
 
 {% endblock %}
