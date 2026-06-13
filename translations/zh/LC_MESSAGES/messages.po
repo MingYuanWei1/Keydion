@@ -992,7 +992,9 @@ msgid "Generation failed — try again or fill manually."
 msgstr "生成失败——请重试或手动填写。"
 
 #: app.py:1712
-msgid "Replace your existing title, authors, abstract and keywords with AI-generated ones?"
+msgid ""
+"Replace your existing title, authors, abstract and keywords with AI-"
+"generated ones?"
 msgstr "用 AI 生成的内容替换现有的标题、作者、摘要和关键词吗？"
 
 #: app.py:1729
@@ -3848,7 +3850,9 @@ msgid "Quick actions"
 msgstr "快捷操作"
 
 #: templates/_dashboard/overview.html:72
-msgid "Share a new paper for peers to explore. Supports PDF with metadata extraction."
+msgid ""
+"Share a new paper for peers to explore. Supports PDF with metadata "
+"extraction."
 msgstr "分享一篇新论文供同行查阅。支持从 PDF 提取元数据。"
 
 #: templates/_dashboard/overview.html:73
@@ -3897,29 +3901,17 @@ msgid "Update security"
 msgstr "更新安全设置"
 
 # ==================== BASE TEMPLATE ====================
-
 # ==================== DASHBOARD ====================
-
 # ==================== UPLOAD PAGE ====================
-
 # ==================== LANDING PAGE ====================
-
 # ==================== DELETE PAGE ====================
-
 # ==================== REVIEW SYSTEM ====================
-
 # ==================== UPLOAD ====================
-
 # ==================== DELETE ====================
-
 # ==================== ADMIN LOGIN PAGE ====================
-
 # ==================== LOGIN PAGE ====================
-
 # ==================== PAPER METADATA ====================
-
 # ==================== DASHBOARD OVERVIEW ====================
-
 msgid "Academic Resources"
 msgstr "学术资源"
 
@@ -4037,7 +4029,9 @@ msgstr "管理期刊"
 msgid "Manage Journals"
 msgstr "管理期刊"
 
-msgid "Journals group related papers and appear at /journals. Add a journal here, then edit it to set its introduction."
+msgid ""
+"Journals group related papers and appear at /journals. Add a journal "
+"here, then edit it to set its introduction."
 msgstr "期刊用于归类相关论文，并展示在 /journals 页面。在此添加期刊，然后编辑以设置简介。"
 
 msgid "New journal name…"
@@ -4114,3 +4108,154 @@ msgstr "预览论文 · Keydion"
 
 msgid "Edit Journal · Keydion"
 msgstr "编辑期刊 · Keydion"
+
+#: templates/paper_manage.html:459
+msgid "Add papers to a journal"
+msgstr "将论文加入期刊"
+
+#: templates/paper_manage.html:343 templates/paper_manage.html:480
+msgid "Add to journal"
+msgstr "加入期刊"
+
+#: templates/paper_manage.html:716
+msgid "Added"
+msgstr "已添加"
+
+#: templates/paper_manage.html:440
+msgid "Browse the public library"
+msgstr "浏览公开文献库"
+
+#: templates/paper_manage.html:466
+msgid "Choose a journal"
+msgstr "选择期刊"
+
+#: templates/advanced_search.html:19 templates/paper_manage.html:320
+#: templates/paper_manage.html:400 templates/search.html:56
+#: templates/search.html:233
+msgid "Community Project"
+msgstr "社区项目（CP）"
+
+#: templates/paper_manage.html:719
+msgid ""
+"Could not add papers to the journal. Add the bulk endpoint — see the "
+"notes at the top of paper_manage.html."
+msgstr "无法将论文加入期刊。请添加批量接口——参见 paper_manage.html 顶部说明。"
+
+#: templates/paper_manage.html:344
+msgid "Delete selected"
+msgstr "删除所选"
+
+#: templates/paper_manage.html:424
+msgid "Delete this paper? This cannot be undone."
+msgstr "删除这篇论文？此操作无法撤销。"
+
+#: templates/paper_manage.html:783
+msgid "Deleted"
+msgstr "已删除"
+
+#: templates/paper_manage.html:256
+msgid ""
+"Every paper in the Keydion library. Search, filter by type, sort, and "
+"modify or remove entries."
+msgstr "Keydion 文献库中的全部论文。可搜索、按类型筛选、排序，并修改或删除条目。"
+
+#: templates/advanced_search.html:18 templates/paper_manage.html:319
+#: templates/paper_manage.html:398 templates/search.html:55
+#: templates/search.html:219
+msgid "Extended Essay"
+msgstr "拓展论文（EE）"
+
+#: templates/paper_manage.html:317
+msgid "Filter by paper type"
+msgstr "按论文类型筛选"
+
+#: templates/paper_manage.html:321
+msgid "Independent"
+msgstr "独立研究"
+
+#: templates/paper_manage.html:253
+msgid "Library"
+msgstr "文献库"
+
+#: templates/paper_manage.html:647
+msgid "No journals available yet — create one under Manage Journals first."
+msgstr "暂无可用期刊——请先在「管理期刊」中创建。"
+
+#: templates/paper_manage.html:291
+msgid "No papers in the library yet"
+msgstr "文献库中暂无论文"
+
+#: templates/paper_manage.html:445
+msgid "No papers match these filters"
+msgstr "没有符合这些筛选条件的论文"
+
+#: templates/paper_manage.html:672
+msgid "No papers selected."
+msgstr "未选择论文。"
+
+#: templates/paper_manage.html:418
+msgid "Open PDF"
+msgstr "打开 PDF"
+
+#: templates/paper_manage.html:357
+msgid "Paper"
+msgstr "论文"
+
+#: templates/paper_manage.html:292
+msgid ""
+"Papers uploaded here become searchable across the public library, journal"
+" pages, and the research assistant. Upload your first PDF to get started."
+msgstr "在此上传的论文将可在公开文献库、期刊页面和研究助手中检索。上传第一份 PDF 即可开始。"
+
+#: templates/paper_manage.html:677
+msgid "Remove from selection"
+msgstr "从所选中移除"
+
+#: templates/paper_manage.html:312
+msgid "Search by title, abstract, author, or keyword…"
+msgstr "按标题、摘要、作者或关键词搜索…"
+
+#: templates/paper_manage.html:379
+msgid "Select paper"
+msgstr "选择论文"
+
+#: templates/paper_manage.html:470
+msgid "Selected papers"
+msgstr "已选论文"
+
+#: templates/paper_manage.html:446
+msgid "Try a different type, category, or date range — or clear the search box."
+msgstr "尝试其他类型、类别或日期范围 — 或清空搜索框。"
+
+#: templates/paper_manage.html:318
+msgid "Type: All"
+msgstr "类型：全部"
+
+#: templates/paper_manage.html:261
+msgid "Upload a paper"
+msgstr "上传论文"
+
+#: templates/paper_manage.html:716 templates/paper_manage.html:783
+msgid "paper"
+msgstr "篇论文"
+
+#: templates/paper_manage.html:604
+msgid "paper selected"
+msgstr "篇论文已选中"
+
+#: templates/paper_manage.html:341 templates/paper_manage.html:604
+msgid "papers selected"
+msgstr "篇论文已选中"
+
+#: templates/paper_manage.html:773
+msgid "papers? This cannot be undone."
+msgstr "篇论文？此操作无法撤销。"
+
+#: templates/paper_manage.html:716 templates/paper_manage.html:783
+msgid "successfully"
+msgstr "成功"
+
+#: templates/paper_manage.html:716
+msgid "to Journal"
+msgstr "至期刊"
+

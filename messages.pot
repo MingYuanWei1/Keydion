@@ -3776,3 +3776,141 @@ msgid_plural "{len_type} values are required, but {len_value} were given."
 msgstr[0] ""
 msgstr[1] ""
 
+#: templates/paper_manage.html:459
+msgid "Add papers to a journal"
+msgstr ""
+
+#: templates/paper_manage.html:343 templates/paper_manage.html:480
+msgid "Add to journal"
+msgstr ""
+
+#: templates/paper_manage.html:716
+msgid "Added"
+msgstr ""
+
+#: templates/paper_manage.html:440
+msgid "Browse the public library"
+msgstr ""
+
+#: templates/paper_manage.html:466
+msgid "Choose a journal"
+msgstr ""
+
+#: templates/paper_manage.html:719
+msgid ""
+"Could not add papers to the journal. Add the bulk endpoint — see the "
+"notes at the top of paper_manage.html."
+msgstr ""
+
+#: templates/paper_manage.html:344
+msgid "Delete selected"
+msgstr ""
+
+#: templates/paper_manage.html:424
+msgid "Delete this paper? This cannot be undone."
+msgstr ""
+
+#: templates/paper_manage.html:783
+msgid "Deleted"
+msgstr ""
+
+#: templates/paper_manage.html:256
+msgid ""
+"Every paper in the Keydion library. Search, filter by type, sort, and "
+"modify or remove entries."
+msgstr ""
+
+#: templates/paper_manage.html:317
+msgid "Filter by paper type"
+msgstr ""
+
+#: templates/paper_manage.html:321
+msgid "Independent"
+msgstr ""
+
+#: templates/paper_manage.html:253
+msgid "Library"
+msgstr ""
+
+#: templates/paper_manage.html:647
+msgid "No journals available yet — create one under Manage Journals first."
+msgstr ""
+
+#: templates/paper_manage.html:291
+msgid "No papers in the library yet"
+msgstr ""
+
+#: templates/paper_manage.html:445
+msgid "No papers match these filters"
+msgstr ""
+
+#: templates/paper_manage.html:672
+msgid "No papers selected."
+msgstr ""
+
+#: templates/paper_manage.html:418
+msgid "Open PDF"
+msgstr ""
+
+#: templates/paper_manage.html:357
+msgid "Paper"
+msgstr ""
+
+#: templates/paper_manage.html:292
+msgid ""
+"Papers uploaded here become searchable across the public library, journal"
+" pages, and the research assistant. Upload your first PDF to get started."
+msgstr ""
+
+#: templates/paper_manage.html:677
+msgid "Remove from selection"
+msgstr ""
+
+#: templates/paper_manage.html:312
+msgid "Search by title, abstract, author, or keyword…"
+msgstr ""
+
+#: templates/paper_manage.html:379
+msgid "Select paper"
+msgstr ""
+
+#: templates/paper_manage.html:470
+msgid "Selected papers"
+msgstr ""
+
+#: templates/paper_manage.html:446
+msgid "Try a different type, category, or date range — or clear the search box."
+msgstr ""
+
+#: templates/paper_manage.html:318
+msgid "Type: All"
+msgstr ""
+
+#: templates/paper_manage.html:261
+msgid "Upload a paper"
+msgstr ""
+
+#: templates/paper_manage.html:716 templates/paper_manage.html:783
+msgid "paper"
+msgstr ""
+
+#: templates/paper_manage.html:604
+msgid "paper selected"
+msgstr ""
+
+#: templates/paper_manage.html:341 templates/paper_manage.html:604
+msgid "papers selected"
+msgstr ""
+
+#: templates/paper_manage.html:773
+msgid "papers? This cannot be undone."
+msgstr ""
+
+#: templates/paper_manage.html:716 templates/paper_manage.html:783
+msgid "successfully"
+msgstr ""
+
+#: templates/paper_manage.html:716
+msgid "to Journal"
+msgstr ""
+
