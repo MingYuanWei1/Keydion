@@ -13,24 +13,6 @@
         border-radius: 8px;
         object-fit: cover;
     }
-
-    .paper-list-item {
-        padding: 10px 0;
-        border-bottom: 1px solid #eee;
-    }
-
-    .paper-list-item:last-child {
-        border-bottom: none;
-    }
-
-    .paper-list-item h6 {
-        margin-bottom: 2px;
-    }
-
-    .paper-list-item .meta {
-        font-size: 12px;
-        color: #888;
-    }
 </style>
 
 <div class="page-title">
@@ -84,38 +66,9 @@
         </div>
     </div>
 
-    <!-- Right: Papers in this journal -->
+    <!-- Right: Quick Info -->
     <div class="col-lg-5">
         <div class="card shadow-sm">
-            <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">{{ _('Papers in this Journal') }}</h5>
-                <span class="badge bg-primary">{{ papers|length }}</span>
-            </div>
-            <div class="card-body">
-                {% if papers %}
-                <div>
-                    {% for paper in papers %}
-                    <div class="paper-list-item">
-                        <h6>
-                            <a href="{{ url_for('preview_paper', filename=paper.filename) }}"
-                                class="text-decoration-none" style="color: #2b457a;">
-                                {{ paper.title or paper.filename }}
-                            </a>
-                        </h6>
-                        <div class="meta">
-                            {{ paper.author_name or _('Unknown') }} · {{ paper.published_at or '' }}
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <p class="text-muted mb-0">{{ _('No papers assigned to this journal yet.') }}</p>
-                <small class="text-muted">{{ _('Papers can be assigned when uploading or editing.') }}</small>
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="card shadow-sm mt-3">
             <div class="card-header bg-light">
                 <h5 class="mb-0">{{ _('Quick Info') }}</h5>
             </div>
@@ -133,5 +86,73 @@
         </div>
     </div>
 </div>
+
+<div class="card shadow-sm mt-4">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+            <h5 class="mb-0">{{ _('Papers in this Journal') }}</h5>
+            <span class="badge bg-primary" id="journalMemberCount">{{ journal_paper_filenames|length }}</span>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" id="journalPapersSaveBtn">{{ _('Save changes') }}</button>
+    </div>
+    <div class="card-body">
+        <p class="text-muted" style="font-size:13px;">{{ _('Check papers to include them in this journal; uncheck to remove.') }}</p>
+        <input type="text" class="form-control form-control-sm mb-3" id="journalPaperSearch"
+            placeholder="{{ _('Search papers by title or author…') }}" autocomplete="off">
+        <div style="max-height: 360px; overflow-y: auto;" id="journalPaperList">
+            {% for p in all_papers %}
+            <label class="jp-row d-flex align-items-center gap-2 py-2 border-bottom"
+                data-text="{{ ((p.title or p.filename) ~ ' ' ~ (p.author_name or ''))|lower }}">
+                <input type="checkbox" class="jp-check" data-filename="{{ p.filename }}"
+                    {% if p.filename in journal_paper_filenames %}checked{% endif %}>
+                <span style="flex:1;">
+                    <span style="font-size:14px;">{{ p.title or p.filename }}</span>
+                    <span class="text-muted" style="font-size:12px;"> · {{ p.author_name or _('Unknown') }}</span>
+                    {% if p.journal and p.journal != journal.name %}
+                    <span class="badge bg-secondary" style="font-size:10px;">{{ _('In:') }} {{ p.journal }}</span>
+                    {% endif %}
+                </span>
+            </label>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var SAVE_URL = "{{ url_for('admin_journal_papers', journal_id=journal.id) }}";
+    var search = document.getElementById('journalPaperSearch');
+    if (search) search.addEventListener('input', function () {
+        var q = this.value.trim().toLowerCase();
+        document.querySelectorAll('#journalPaperList .jp-row').forEach(function (row) {
+            row.style.display = (!q || row.dataset.text.indexOf(q) !== -1) ? '' : 'none';
+        });
+    });
+    function updateCount() {
+        var c = document.querySelectorAll('#journalPaperList .jp-check:checked').length;
+        var el = document.getElementById('journalMemberCount');
+        if (el) el.textContent = c;
+    }
+    document.querySelectorAll('#journalPaperList .jp-check').forEach(function (cb) {
+        cb.addEventListener('change', updateCount);
+    });
+    var saveBtn = document.getElementById('journalPapersSaveBtn');
+    if (saveBtn) saveBtn.addEventListener('click', function () {
+        var filenames = [];
+        document.querySelectorAll('#journalPaperList .jp-check:checked').forEach(function (c) {
+            filenames.push(c.dataset.filename);
+        });
+        saveBtn.disabled = true;
+        fetch(SAVE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filenames: filenames })
+        })
+            .then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
+            .then(function () { window.location.reload(); })
+            .catch(function () { saveBtn.disabled = false; alert("{{ _('Could not save paper membership.') }}"); });
+    });
+})();
+</script>
 
 {% endblock %}

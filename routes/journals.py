@@ -155,13 +155,40 @@ def register_routes(app):
             flash(_("Journal updated."), "success")
             return redirect(url_for("admin_journal_edit", journal_id=journal_id))
 
-        # GET: load papers belonging to this journal
+        # GET: load papers belonging to this journal + the full pool for the picker
         all_papers = gather_paper_records()
         journal_papers = [p for p in all_papers if p.get("journal") == journal["name"]]
         journal_papers.sort(key=lambda r: r.get("published_at") or "", reverse=True)
+        journal_paper_filenames = [p.get("filename") for p in journal_papers]
 
         return render_template("journal_edit.html", user=user, journal=journal,
-                               papers=journal_papers, partial=request.args.get("partial"))
+                               all_papers=all_papers,
+                               journal_paper_filenames=journal_paper_filenames,
+                               partial=request.args.get("partial"))
+
+    @app.route("/dashboard/admin/journal/<journal_id>/papers", methods=["POST"], endpoint="admin_journal_papers")
+    def journal_papers(journal_id):
+        user = require_login(level=3)
+        if not user:
+            return jsonify(error="Unauthorized"), 401
+        journal = get_journal_by_id(journal_id)
+        if not journal:
+            return jsonify(error=str(_("Journal not found."))), 404
+        desired = set((request.json or {}).get("filenames", []))
+        name = journal["name"]
+        meta_rows = load_paper_metadata()
+        changed = False
+        for row in meta_rows:
+            fn = row.get("filename")
+            if fn in desired and row.get("journal") != name:
+                row["journal"] = name
+                changed = True
+            elif fn not in desired and row.get("journal") == name:
+                row["journal"] = ""
+                changed = True
+        if changed:
+            save_paper_metadata(meta_rows)
+        return jsonify(ok=True)
 
     @app.route("/admin/journal/<journal_id>/edit", endpoint="admin_journal_edit_legacy")
     def admin_journal_edit_legacy(journal_id):
