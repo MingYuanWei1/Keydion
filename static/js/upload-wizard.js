@@ -30,6 +30,7 @@
     title: fd.title || '',
     language: fd.language || '',
     category: fd.category || '',
+    journal: fd.journal || '',
     keywords: parseKeywords(fd.keywords),
     abstract: fd.abstract || '',
     isIbSample: !!fd.is_ib_sample,
@@ -301,6 +302,15 @@
             </select>
           </div>
 
+          <div class="field field--6">
+            <label class="field__label" for="f-journal">${t('journal', 'Journal')}</label>
+            <select class="select" id="f-journal">
+              <option value="">${t('journal_none', '— None —')}</option>
+              ${(BOOT.journals || []).map(j => `<option value="${esc(j)}" ${state.journal === j ? 'selected' : ''}>${esc(j)}</option>`).join('')}
+            </select>
+            <div class="field__hint">${t('journal_hint', 'Optional — assign this paper to a journal.')}</div>
+          </div>
+
           ${!isIbType ? `
           ${BOOT.llm_metadata_enabled ? `
           <div class="ee-autofill">
@@ -356,6 +366,9 @@
 
     const catEl = stepsContainer.querySelector('#f-category');
     if (catEl) catEl.addEventListener('change', e => { state.category = e.target.value; touch(); });
+
+    const jrnEl = stepsContainer.querySelector('#f-journal');
+    if (jrnEl) jrnEl.addEventListener('change', e => { state.journal = e.target.value; touch(); });
 
     const abstractEl = stepsContainer.querySelector('#f-abstract');
     const abstractCount = stepsContainer.querySelector('#abstractCount');
@@ -1166,6 +1179,7 @@
     add('title', state.title);
     add('language', state.language);
     add('category', state.category);
+    add('journal', state.journal);
 
     if (state.paperType === 'standard') {
       add('keywords', state.keywords.join(', '));

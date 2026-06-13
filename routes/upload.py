@@ -61,6 +61,7 @@ def register_routes(app):
             "draft_id": draft_id or "",
             "form_data": form_data,
             "paper_categories": load_paper_categories(),
+            "journals": get_journal_names(),
             "ee_subjects": load_ee_subjects(),
             "cp_global_contexts": CP_GLOBAL_CONTEXTS,
             "cp_action_types": CP_ACTION_TYPES,
@@ -232,6 +233,9 @@ def register_routes(app):
                 "meta_autofill_error": _("Generation failed — try again or fill manually."),
                 "meta_autofill_no_file": _("Upload your PDF in the File step first."),
                 "meta_autofill_overwrite": _("Replace your existing title, authors, abstract and keywords with AI-generated ones?"),
+                "journal": _("Journal"),
+                "journal_none": _("— None —"),
+                "journal_hint": _("Optional — assign this paper to a journal."),
             },
         }
         return render_template("upload.html",
