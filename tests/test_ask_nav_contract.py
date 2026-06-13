@@ -22,6 +22,9 @@ class NavLinks(unittest.TestCase):
         self.assertIn("ask_library", html)
         self.assertIn("btn-search", html)  # CTA reuses the landing button style
 
+    def test_base_includes_header_partial(self):
+        self.assertIn('include "_header.html"', _read("templates/base.html"))
+
 
 if __name__ == "__main__":
     unittest.main()
