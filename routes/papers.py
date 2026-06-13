@@ -236,6 +236,41 @@ def register_routes(app):
     def paper_manage_legacy():
         return redirect(url_for("paper_manage"), code=301)
 
+    @app.route("/dashboard/admin/papers/bulk", methods=["POST"])
+    def papers_bulk_action():
+        user = require_login(level=3)
+        if not user:
+            return jsonify({"error": "Unauthorized"}), 401
+        data = request.get_json(silent=True) or {}
+        filenames = data.get("filenames", [])
+        op = data.get("op", "")
+        papers_root = PAPERS_DIR.resolve()
+        if op == "delete":
+            deleted = []
+            for fname in filenames:
+                p = (PAPERS_DIR / fname).resolve()
+                if not p.is_relative_to(papers_root):
+                    continue
+                if p.exists():
+                    remove_paper_metadata(fname)
+                    p.unlink(missing_ok=True)
+                    try:
+                        rag_index.purge(fname)
+                    except Exception:
+                        app.logger.exception("purge failed")
+                    deleted.append(fname)
+            return jsonify({"deleted": deleted, "count": len(deleted)})
+        if op == "set_journal":
+            journal = (data.get("journal") or "").strip()
+            updated = []
+            for fname in filenames:
+                p = (PAPERS_DIR / fname).resolve()
+                if p.is_relative_to(papers_root) and p.exists():
+                    upsert_paper_metadata(fname, {"journal": journal})
+                    updated.append(fname)
+            return jsonify({"updated": updated, "count": len(updated)})
+        return jsonify({"error": "Unsupported operation"}), 400
+
     @app.route("/paper/<path:filename>/info")
     def paper_info(filename):
         """Return paper metadata as JSON for the preview modal."""

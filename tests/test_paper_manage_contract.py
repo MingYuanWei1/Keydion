@@ -78,5 +78,20 @@ class PaperManageRouteContract(unittest.TestCase):
         self.assertIn("journals=get_journal_names()", src)
 
 
+class PaperBulkEndpointContract(unittest.TestCase):
+    def test_bulk_route_exists_with_guard_and_ops(self):
+        src = source_of("papers_bulk_action")
+        self.assertIn("require_login(level=3)", src)
+        self.assertIn('op == "delete"', src)
+        self.assertIn('op == "set_journal"', src)
+        self.assertIn("rag_index.purge", src)
+        self.assertIn("upsert_paper_metadata", src)
+        self.assertIn("remove_paper_metadata", src)
+        self.assertIn("is_relative_to", src)
+
+    def test_bulk_route_registered_at_expected_url(self):
+        self.assertIn('"/dashboard/admin/papers/bulk"', all_sources())
+
+
 if __name__ == "__main__":
     unittest.main()
