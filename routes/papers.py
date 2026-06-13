@@ -556,7 +556,6 @@ def register_routes(app):
             return redirect(target)
         return render_template("paper_manage.html", user=user,
                                paper_categories=load_paper_categories(),
-                               journals=load_journals(),
                                ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES)
 
     @app.route("/admin/paper-manage", endpoint="paper_manage_legacy")

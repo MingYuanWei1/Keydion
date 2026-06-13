@@ -3408,7 +3408,7 @@ msgstr "Criterion"
 #: templates/paper_modify.html:203
 #, fuzzy
 msgid "Commentary for Criterion"
-msgstr "Commentary for Criterion %(k)s…"
+msgstr "Commentary for Criterion"
 
 #: templates/paper_modify.html:225
 #, fuzzy
@@ -4273,3 +4273,9 @@ msgstr "Could not save paper membership."
 
 msgid "Delete this journal?"
 msgstr "Delete this journal?"
+
+msgid "Manage Categories · Keydion"
+msgstr "Manage Categories · Keydion"
+
+msgid "Add, rename, or remove paper subject categories."
+msgstr "Add, rename, or remove paper subject categories."

@@ -3176,7 +3176,7 @@ msgstr "评分标准"
 
 #: templates/paper_modify.html:203
 msgid "Commentary for Criterion"
-msgstr "对评分标准 %(k)s 的评语…"
+msgstr "对评分标准的评语"
 
 #: templates/paper_modify.html:225
 msgid "This is an IB Community Project Paper"
@@ -4096,3 +4096,9 @@ msgstr "无法保存论文归属。"
 
 msgid "Delete this journal?"
 msgstr "确定删除此期刊？"
+
+msgid "Manage Categories · Keydion"
+msgstr "管理分类 · Keydion"
+
+msgid "Add, rename, or remove paper subject categories."
+msgstr "添加、重命名或删除论文学科分类。"

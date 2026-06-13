@@ -1,5 +1,5 @@
 {% extends "_bare.html" if partial else "_dashboard_shell.html" %}
-{% block title %}{{ _('Manage Categories & Journals · Keydion') }}{% endblock %}
+{% block title %}{{ _('Manage Categories · Keydion') }}{% endblock %}
 {% block panel %}
 
 <style>
@@ -74,25 +74,11 @@
         font-size: 13px;
         padding: 12px 0;
     }
-
-    .journal-cover-thumb {
-        width: 36px;
-        height: 48px;
-        object-fit: cover;
-        border-radius: 4px;
-        border: 1px solid #ddd;
-        margin-right: 10px;
-    }
-
-    .journal-item {
-        display: flex;
-        align-items: center;
-    }
 </style>
 
 <div class="page-title">
-    <h1>{{ _('Manage Categories & Journals') }}</h1>
-    <p class="text-muted">{{ _('Add, rename, or remove paper subject categories and journal names.') }}</p>
+    <h1>{{ _('Manage Categories') }}</h1>
+    <p class="text-muted">{{ _('Add, rename, or remove paper subject categories.') }}</p>
 </div>
 
 <div class="mb-3">
@@ -103,7 +89,7 @@
 
 <div class="row g-4">
     <!-- Paper Categories -->
-    <div class="col-lg-4">
+    <div class="col-lg-6">
         <div class="card shadow-sm">
             <div class="card-header bg-light">
                 <h5 class="mb-0">{{ _('Paper Categories') }}</h5>
@@ -147,7 +133,7 @@
     </div>
 
     <!-- EE Subjects -->
-    <div class="col-lg-4">
+    <div class="col-lg-6">
         <div class="card shadow-sm">
             <div class="card-header bg-light">
                 <h5 class="mb-0">{{ _('EE Subjects') }}</h5>
@@ -168,57 +154,6 @@
                     <input type="text" class="form-control form-control-sm" id="new-ee-subject-name"
                         placeholder="{{ _('New subject name...') }}">
                     <button class="btn btn-primary btn-sm" onclick="addEeSubject()">{{ _('Add') }}</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Journals -->
-    <div class="col-lg-4">
-        <div class="card shadow-sm">
-            <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">{{ _('Journals') }}</h5>
-            </div>
-            <div class="card-body">
-                <ul class="manage-list" id="journal-list">
-                    {% for j in journals %}
-                    <li data-id="{{ j.id }}">
-                        <div class="journal-item">
-                            {% if j.cover_image %}
-                            <img src="{{ url_for('static', filename='uploads/journal_covers/' ~ j.cover_image) }}"
-                                class="journal-cover-thumb" alt="">
-                            {% endif %}
-                            <span class="item-name">{{ j.name }}</span>
-                        </div>
-                        <span class="item-actions">
-                            <a class="btn-edit" href="{{ url_for('admin_journal_edit', journal_id=j.id) }}"
-                                title="{{ _('Edit') }}">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
-                                    viewBox="0 0 16 16">
-                                    <path
-                                        d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293z" />
-                                </svg>
-                            </a>
-                            <button class="btn-delete" onclick="deleteJournal(this)" title="{{ _('Delete') }}">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
-                                    viewBox="0 0 16 16">
-                                    <path
-                                        d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z" />
-                                    <path
-                                        d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z" />
-                                </svg>
-                            </button>
-                        </span>
-                    </li>
-                    {% endfor %}
-                </ul>
-                {% if not journals %}
-                <div class="empty-hint" id="journal-empty">{{ _('No journals yet. Add one below.') }}</div>
-                {% endif %}
-                <div class="add-form">
-                    <input type="text" class="form-control form-control-sm" id="new-journal-name"
-                        placeholder="{{ _('New journal name...') }}">
-                    <button class="btn btn-primary btn-sm" onclick="addJournal()">{{ _('Add') }}</button>
                 </div>
             </div>
         </div>
@@ -334,26 +269,8 @@
     // Initialize EE subject list for the first group
     rebuildEeSubjectList({{ ee_subjects.groups[0].id if ee_subjects.groups else 1 }});
 
-    /* ---------- Journals ---------- */
-    async function addJournal() {
-        const input = document.getElementById('new-journal-name');
-        const name = input.value.trim();
-        if (!name) return;
-        const data = await apiCall("{{ url_for('admin_journals_add') }}", { name });
-        if (data) { location.reload(); }
-    }
-    async function deleteJournal(btn) {
-        const li = btn.closest('li');
-        const id = li.dataset.id;
-        const name = li.querySelector('.item-name').textContent;
-        if (!confirm("{{ _('Are you sure you want to delete') }} \"" + name + "\"?")) return;
-        const data = await apiCall("{{ url_for('admin_journals_delete') }}", { id });
-        if (data) { location.reload(); }
-    }
-
     document.getElementById('new-category-name').addEventListener('keydown', e => { if (e.key === 'Enter') addCategory(); });
     document.getElementById('new-ee-subject-name').addEventListener('keydown', e => { if (e.key === 'Enter') addEeSubject(); });
-    document.getElementById('new-journal-name').addEventListener('keydown', e => { if (e.key === 'Enter') addJournal(); });
 </script>
 
 {% endblock %}
