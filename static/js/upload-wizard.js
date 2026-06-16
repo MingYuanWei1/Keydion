@@ -1212,7 +1212,89 @@
 
     (extraInputs || []).forEach(([n, v]) => add(n, v));
 
-    form.submit();
+    // Save Draft posts the old-fashioned way (no file, instant). The real
+    // paper submission goes through XHR so we can show upload progress and
+    // land back on the upload page with a success banner.
+    const isDraft = (extraInputs || []).some(([n]) => n === 'save_draft');
+    if (isDraft) {
+      form.submit();
+    } else {
+      submitViaXhr(form);
+    }
+  }
+
+  // ─── XHR submit with upload progress ───────────────────────
+  function submitViaXhr(form) {
+    showUploadProgress(0);
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', form.action, true);
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    xhr.upload.addEventListener('progress', e => {
+      if (!e.lengthComputable) return;
+      // Hold at 99% until the server confirms; jumping to 100 before the
+      // response lands reads as "done" while the request is still in flight.
+      showUploadProgress(Math.min(99, Math.round((e.loaded / e.total) * 100)));
+    });
+    xhr.addEventListener('load', () => {
+      let resp = null;
+      try { resp = JSON.parse(xhr.responseText); } catch (_) { /* non-JSON */ }
+      if (xhr.status >= 200 && xhr.status < 300 && resp && resp.ok) {
+        showUploadProgress(100, t('upload_finishing', 'Finishing up…'));
+        try {
+          sessionStorage.setItem('kd:upload-success', resp.message || t('upload_done', 'Upload successful!'));
+        } catch (_) { /* storage disabled — banner just won't show */ }
+        window.location = resp.redirect || form.action;
+      } else {
+        showUploadError((resp && resp.error) || t('upload_failed', 'Upload failed. Please check your connection and try again.'));
+      }
+    });
+    xhr.addEventListener('error', () => {
+      showUploadError(t('upload_failed', 'Upload failed. Please check your connection and try again.'));
+    });
+    xhr.send(new FormData(form));
+  }
+
+  function showUploadProgress(pct, label) {
+    if (!footerEl) return;
+    footerEl.innerHTML = `
+      <div class="upload-progress" role="status" aria-live="polite">
+        <div class="upload-progress__head">
+          <span class="upload-progress__label">${esc(label || t('uploading', 'Uploading… %(pct)s%', { pct: pct }))}</span>
+          <span class="upload-progress__pct">${pct}%</span>
+        </div>
+        <div class="upload-progress__track"><div class="upload-progress__fill" style="width:${pct}%"></div></div>
+      </div>`;
+  }
+
+  function showUploadError(msg) {
+    if (!footerEl) return;
+    footerEl.innerHTML = `
+      <div class="upload-error" role="alert">
+        <span class="upload-error__msg">${esc(msg)}</span>
+        <button type="button" class="btn btn--primary" id="retryBtn">${esc(t('try_again', 'Try again'))}</button>
+      </div>`;
+    const retry = footerEl.querySelector('#retryBtn');
+    if (retry) retry.addEventListener('click', renderFooter);
+  }
+
+  function showSuccessBannerIfAny() {
+    let msg = null;
+    try {
+      msg = sessionStorage.getItem('kd:upload-success');
+      if (msg) sessionStorage.removeItem('kd:upload-success');
+    } catch (_) { return; }
+    if (!msg) return;
+    const host = document.querySelector('.kd-upload-wizard');
+    if (!host) return;
+    const banner = document.createElement('div');
+    banner.className = 'upload-banner';
+    banner.setAttribute('role', 'status');
+    banner.innerHTML = `
+      <span class="upload-banner__icon" aria-hidden="true">✓</span>
+      <span class="upload-banner__msg">${esc(msg)}</span>
+      <button type="button" class="upload-banner__close" aria-label="${esc(t('discard_btn', 'Discard'))}">×</button>`;
+    host.insertBefore(banner, host.firstChild);
+    banner.querySelector('.upload-banner__close').addEventListener('click', () => banner.remove());
   }
 
   function autosaveSaving() {
@@ -1425,6 +1507,7 @@
       console.error('[upload-wizard] mount points missing');
       return;
     }
+    showSuccessBannerIfAny();
     const stored = loadLocalStorage();
     const fdEmpty = !state.title && !state.paperType && state.keywords.length === 0 && !state.eeCoreSubject && !state.cpGlobalContext;
     if (stored && stored.state && (fdEmpty || stored.ts > (Number(fd.last_modified) || 0))) {

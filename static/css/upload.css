@@ -893,4 +893,78 @@
 .ee-autofill__status--partial { color: var(--bs-warning, #fd7e14); }
 .ee-autofill__status--error   { color: var(--bs-danger, #dc3545); }
 .ee-autofill__status--loading { color: var(--bs-secondary, #6c757d); }
+
+/* Upload progress / error / success — shown in the wizard footer area when
+   the final submission is uploading via XHR. */
+.kd-upload-wizard .upload-progress { flex: 1 1 100%; }
+.kd-upload-wizard .upload-progress__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.kd-upload-wizard .upload-progress__label { font-family: Georgia, serif; font-size: 13.5px; color: var(--ink-soft); }
+.kd-upload-wizard .upload-progress__pct { font-family: Georgia, serif; font-size: 13.5px; font-weight: 600; color: var(--accent); }
+.kd-upload-wizard .upload-progress__track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--border, #e7e1d5);
+  overflow: hidden;
+}
+.kd-upload-wizard .upload-progress__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 180ms ease;
+}
+.kd-upload-wizard .upload-error {
+  flex: 1 1 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.kd-upload-wizard .upload-error__msg { font-size: 13.5px; color: var(--bs-danger, #b3261e); }
+.kd-upload-wizard .upload-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #ecf6ec;
+  border: 1px solid #b9dcb9;
+  color: #2f6b2f;
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 22px;
+  animation: upload-banner-in 360ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes upload-banner-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.kd-upload-wizard .upload-banner__icon {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #2f6b2f;
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+}
+.kd-upload-wizard .upload-banner__msg { flex: 1 1 auto; font-size: 14px; font-weight: 600; }
+.kd-upload-wizard .upload-banner__close {
+  flex: 0 0 auto;
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: #2f6b2f;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
 .ee-autofill__status--idle:empty { display: none; }

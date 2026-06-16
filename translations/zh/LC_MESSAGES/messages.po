@@ -4681,3 +4681,25 @@ msgstr "已成功将分类重命名为"
 msgid "Successfully deleted category"
 msgstr "已成功删除分类"
 
+#, python-format
+msgid "Uploading… %(pct)s%"
+msgstr "上传中… %(pct)s%"
+
+msgid "Finishing up…"
+msgstr "即将完成…"
+
+msgid "Upload failed. Please check your connection and try again."
+msgstr "上传失败，请检查网络连接后重试。"
+
+msgid "Upload failed. Please try again."
+msgstr "上传失败，请重试。"
+
+msgid "Upload successful!"
+msgstr "上传成功！"
+
+msgid "Try again"
+msgstr "重试"
+
+msgid "Your paper has been submitted and is now pending review."
+msgstr "您的论文已提交，正在等待审核。"
+

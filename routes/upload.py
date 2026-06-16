@@ -5,6 +5,7 @@ from uuid import uuid4
 
 from flask import (
     flash,
+    get_flashed_messages,
     jsonify,
     redirect,
     render_template,
@@ -236,6 +237,11 @@ def register_routes(app):
                 "journal": _("Journal"),
                 "journal_none": _("— None —"),
                 "journal_hint": _("Optional — assign this paper to a journal."),
+                "uploading": _("Uploading… %(pct)s%"),
+                "upload_finishing": _("Finishing up…"),
+                "upload_failed": _("Upload failed. Please check your connection and try again."),
+                "upload_done": _("Upload successful!"),
+                "try_again": _("Try again"),
             },
         }
         return render_template("upload.html",
@@ -259,6 +265,7 @@ def register_routes(app):
 
         today = datetime.utcnow().date().isoformat()
         draft_id = request.args.get("draft", "")
+        is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
 
         # If editing an existing draft, pre-fill form data
         if request.method == "GET" and draft_id:
@@ -484,7 +491,10 @@ def register_routes(app):
                                     "cp_data": form_data.get("cp_data", ""),
                                 },
                             )
-                            flash(_("Paper %(filename)s uploaded successfully!", filename=filename), "success")
+                            msg = _("Paper %(filename)s uploaded successfully!", filename=filename)
+                            if is_ajax:
+                                return jsonify(ok=True, redirect=url_for("upload"), message=msg)
+                            flash(msg, "success")
                             return redirect(url_for("upload"))
                     else:
                         # Reader: save to pending review queue
@@ -543,26 +553,23 @@ def register_routes(app):
                                 "cp_data": form_data.get("cp_data", ""),
                             }
                             _save_submission(submission)
-                        return redirect(url_for("upload_success", title=form_data["title"]))
+                        msg = _("Your paper has been submitted and is now pending review.")
+                        if is_ajax:
+                            return jsonify(ok=True, redirect=url_for("upload"), message=msg)
+                        flash(msg, "success")
+                        return redirect(url_for("upload"))
 
+        if is_ajax and request.method == "POST":
+            errors = [m for _cat, m in get_flashed_messages(with_categories=True)]
+            return jsonify(
+                ok=False,
+                error="；".join(errors) if errors else _("Upload failed. Please try again."),
+            ), 400
         return _render_upload(user, form_data, request.args.get("draft", ""))
-
-    @app.route("/dashboard/upload/success")
-    def upload_success():
-        user = require_login()
-        if not user:
-            return redirect(url_for("login"))
-        title = request.args.get("title", "")
-        submitted_at = datetime.utcnow().strftime("%Y.%m.%d %H:%M:%S")
-        return render_template("upload_success.html", user=user, title=title, submitted_at=submitted_at)
 
     @app.route("/upload", endpoint="upload_legacy")
     def upload_legacy():
         return redirect(url_for("upload"), code=301)
-
-    @app.route("/upload/success", endpoint="upload_success_legacy")
-    def upload_success_legacy():
-        return redirect(url_for("upload_success"), code=301)
 
     @app.route("/api/upload/extract-ee-metadata", methods=["POST"])
     def api_extract_ee_metadata():

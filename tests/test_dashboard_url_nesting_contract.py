@@ -14,7 +14,6 @@ ROOT = Path(__file__).resolve().parents[1]
 MOVED_ROUTES = {
     # Task 4: workspace
     "upload":                          ("/dashboard/upload",                          "/upload"),
-    "upload_success":                  ("/dashboard/upload/success",                  "/upload/success"),
     "my_submissions":                  ("/dashboard/my-submissions",                  "/my-submissions"),
     "my_submission_view":              ("/dashboard/my-submissions/<sub_id>",         "/my-submissions/<sub_id>"),
     "my_submission_file":              ("/dashboard/my-submissions/<sub_id>/file",    "/my-submissions/<sub_id>/file"),
