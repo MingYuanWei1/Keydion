@@ -173,7 +173,6 @@
   .cm-row button svg { width: 15px; height: 15px; }
   .cm-add { display: flex; gap: 8px; }
   .cm-add input { flex: 1; }
-  .cm-note { font-family: Georgia, serif; font-style: italic; font-size: 12px; color: var(--muted); }
 </style>
 
 <div class="kp-head">
@@ -439,10 +438,6 @@
           <span>{{ _('Add') }}</span>
         </button>
       </div>
-    </div>
-    <div class="jm-footer" style="justify-content:space-between;">
-      <span class="cm-note">{{ _('Changes apply immediately.') }}</span>
-      <button type="button" class="kp-btn kp-btn--ghost" id="catDone">{{ _('Done') }}</button>
     </div>
   </div>
 </div>
@@ -798,6 +793,13 @@
 
   function escHtml(s){var d=document.createElement('div');d.textContent=(s==null?'':s);return d.innerHTML;}
 
+  function toast(msg) {
+    var t = document.getElementById('paperToast');
+    if (!t) return;
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(t._timer); t._timer = setTimeout(function () { t.classList.remove('show'); }, 2400);
+  }
+
   function api(url, body) {
     return fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
@@ -817,7 +819,6 @@
   document.getElementById('manageCatsBtn').addEventListener('click', function () { renderRows(); overlay.classList.add('show'); });
   function close() { overlay.classList.remove('show'); }
   document.getElementById('catClose').addEventListener('click', close);
-  document.getElementById('catDone').addEventListener('click', close);
   overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && overlay.classList.contains('show')) close(); });
 
@@ -827,8 +828,10 @@
     var name = newName.value.trim();
     if (!name) return;
     api(ADD_URL, { name: name }).then(function (res) {
-      if (res.ok && res.d.items) { cats = res.d.items; renderRows(); newName.value = ''; }
-      else alert(res.d.error || "{{ _('Error') }}");
+      if (res.ok && res.d.items) {
+        cats = res.d.items; renderRows(); newName.value = '';
+        toast("{{ _('Successfully added category') }} \"" + name + "\"");
+      } else alert(res.d.error || "{{ _('Error') }}");
     });
   }
 
@@ -839,14 +842,18 @@
       var nn = prompt("{{ _('Enter new name:') }}", name);
       if (!nn || nn.trim() === name) return;
       api(REN_URL, { old_name: name, new_name: nn.trim() }).then(function (res) {
-        if (res.ok && res.d.items) { cats = res.d.items; renderRows(); }
-        else alert(res.d.error || "{{ _('Error') }}");
+        if (res.ok && res.d.items) {
+          cats = res.d.items; renderRows();
+          toast("{{ _('Successfully renamed category to') }} \"" + nn.trim() + "\"");
+        } else alert(res.d.error || "{{ _('Error') }}");
       });
     } else {
       if (!confirm("{{ _('Are you sure you want to delete') }} \"" + name + "\"?")) return;
       api(DEL_URL, { name: name }).then(function (res) {
-        if (res.ok && res.d.items) { cats = res.d.items; renderRows(); }
-        else alert(res.d.error || "{{ _('Error') }}");
+        if (res.ok && res.d.items) {
+          cats = res.d.items; renderRows();
+          toast("{{ _('Successfully deleted category') }} \"" + name + "\"");
+        } else alert(res.d.error || "{{ _('Error') }}");
       });
     }
   });

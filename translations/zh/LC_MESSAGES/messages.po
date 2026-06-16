@@ -4671,3 +4671,13 @@ msgstr "网络错误，请重试。"
 msgid "Error"
 msgstr "出错"
 
+
+msgid "Successfully added category"
+msgstr "已成功添加分类"
+
+msgid "Successfully renamed category to"
+msgstr "已成功将分类重命名为"
+
+msgid "Successfully deleted category"
+msgstr "已成功删除分类"
+

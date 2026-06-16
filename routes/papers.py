@@ -234,7 +234,8 @@ def register_routes(app):
             })
 
         return render_template("paper_manage.html", user=user,
-                               papers=papers, journals=get_journal_names())
+                               papers=papers, journals=get_journal_names(),
+                               paper_categories=load_paper_categories())
 
     @app.route("/admin/papers", endpoint="paper_manage_legacy")
     def paper_manage_legacy():
