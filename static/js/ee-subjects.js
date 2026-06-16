@@ -240,7 +240,7 @@
   function showConflicts(conflicts) {
     if (!conflictsEl) return;
     var items = conflicts.map(function (c) { return '<li>' + escHtml(c.subject) + ' — ' + c.paper_count + '</li>'; }).join('');
-    conflictsEl.innerHTML = '<p>' + escHtml(t('conflictIntro', "These subjects are still used by papers and can't be deleted:")) + '</p><ul>' + items + '</ul>';
+    conflictsEl.innerHTML = '<p>' + escHtml(t('conflictIntro', 'These subjects are still used by papers and can\'t be deleted:')) + '</p><ul>' + items + '</ul>';
     conflictsEl.style.display = '';
   }
 
