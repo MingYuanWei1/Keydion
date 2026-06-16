@@ -966,7 +966,7 @@
                 {% endif %}
             </h1>
             <div class="editor-actions">
-                <a class="btn-ed" href="{{ url_for('news_manage') if editing else url_for('news_list') }}">{{ _('Cancel') }}</a>
+                <a class="btn-ed" href="{{ url_for('news_manage') }}">{{ _('Cancel') }}</a>
                 <button type="submit" name="action" value="publish" class="btn-ed primary" id="btnPublish" style="order:2">
                     {% if editing %}{{ _('Publish Changes') }}{% else %}{{ _('Publish Article') }}{% endif %}
                 </button>
