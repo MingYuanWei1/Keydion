@@ -187,7 +187,8 @@ def reconcile_ee_subjects(old_tree: dict, payload: dict) -> dict:
                 interdisciplinary.append(sname)
         groups_out.append({"id": gid, "name": name, "subjects": subj_names})
 
-    deletions = sorted(old_names - seen_originals)
+    output_names = {s for g in groups_out for s in g["subjects"]}
+    deletions = sorted(old_names - seen_originals - output_names)
     tree = {"groups": groups_out, "interdisciplinary_subjects": interdisciplinary}
     return {"tree": tree, "renames": renames, "deletions": deletions, "errors": errors}
 
@@ -213,6 +214,8 @@ def rename_ee_subject_in_papers(old: str, new: str) -> int:
 
     Returns the number of papers changed; saves once if anything changed.
     """
+    if old == new:
+        return 0
     rows = load_paper_metadata()
     changed = 0
     for row in rows:

@@ -65,7 +65,18 @@ class ReconcileTest(unittest.TestCase):
             {"name": "X", "original_name": None, "interdisciplinary": False},
             {"name": "X", "original_name": None, "interdisciplinary": False}]}]}
         r = sp.reconcile_ee_subjects(_old_tree(), payload)
-        self.assertTrue(r["errors"])
+        self.assertGreaterEqual(len(r["errors"]), 2)
+
+    def test_new_subject_reusing_name_not_a_deletion(self):
+        payload = {"groups": [
+            {"id": 1, "name": "G1", "subjects": [
+                {"name": "Alpha", "original_name": None, "interdisciplinary": False},
+                {"name": "Beta", "original_name": "Beta", "interdisciplinary": True}]},
+            {"id": 2, "name": "G2", "subjects": [
+                {"name": "Gamma", "original_name": "Gamma", "interdisciplinary": False}]},
+        ]}
+        r = sp.reconcile_ee_subjects(_old_tree(), payload)
+        self.assertEqual(r["deletions"], [])
 
 
 def _rows():
@@ -92,6 +103,14 @@ class CascadeTest(unittest.TestCase):
         self.assertEqual(n, 2)
         self.assertEqual(json.loads(captured["rows"][0]["ib_ee_data"])["core_subject"], "Omega")
         self.assertEqual(json.loads(captured["rows"][1]["ib_ee_data"])["interdisciplinary_subject"], "Omega")
+
+    def test_noop_rename_does_not_save(self):
+        called = {"save": False}
+        with mock.patch.object(sp, "load_paper_metadata", return_value=_rows()), \
+             mock.patch.object(sp, "save_paper_metadata", side_effect=lambda r: called.update(save=True)):
+            n = sp.rename_ee_subject_in_papers("Alpha", "Alpha")
+        self.assertEqual(n, 0)
+        self.assertFalse(called["save"])
 
 
 class RouteWiringTest(unittest.TestCase):
