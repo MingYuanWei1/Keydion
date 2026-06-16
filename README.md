@@ -21,6 +21,38 @@ Keydion is a robust, scholarly-focused web application for managing, searching, 
 
   Without it, scanned PDFs simply yield no extracted text; text-based PDFs are unaffected.
 
+## Database Setup
+
+Keydion reaches MySQL through the `PAPERQUERY_DATABASE_URL` connection string in
+your `.env` / `.env.prod`. You must create the **database** (and, typically, a
+dedicated user) before first start — the application creates and migrates all
+**tables** automatically, but it does not create the database itself.
+
+Connect as a MySQL admin (`mysql -u root -p`) and run:
+
+```sql
+-- utf8mb4 is required: PDF-extracted text and CJK metadata need 4-byte chars.
+CREATE DATABASE keydion CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE USER 'keydion'@'localhost' IDENTIFIED BY 'change-me';
+GRANT ALL PRIVILEGES ON keydion.* TO 'keydion'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+Then point your `.env` at it (keep the `?charset=utf8mb4` query string):
+
+```
+PAPERQUERY_DATABASE_URL="mysql+pymysql://keydion:change-me@127.0.0.1:3306/keydion?charset=utf8mb4"
+```
+
+On first start the app connects, creates every table, and runs its idempotent
+`ALTER TABLE` migrations — there is no separate schema or migration step.
+
+> **MySQL version & RAG:** semantic search and "Ask the Library" store
+> embeddings in a binary `VECTOR` column that **requires MySQL 9.x**. On MySQL
+> 8.x the app still runs — the `VECTOR` migration is silently skipped — but the
+> RAG / semantic features stay disabled until you move to 9.x.
+
 ## Production Deployment (gunicorn under systemd, host nginx)
 
 Production runs gunicorn directly under systemd, with the host's nginx as
@@ -142,7 +174,7 @@ Clone the repository and create a `.env` file in the root directory by copying
    pip install -r requirements.txt
    ```
 
-2. **Database**: ensure your MySQL server is running and the database named in `.env` exists. Tables are created automatically on first start.
+2. **Database**: ensure MySQL is running and that you've created the database (see [Database Setup](#database-setup)). Tables are created automatically on first start.
 
 3. **Start the dev server**:
    ```bash
