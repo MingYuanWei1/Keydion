@@ -160,6 +160,20 @@
     background: var(--paper-sand-soft);
   }
   .jm-footer .kp-btn--primary[disabled] { opacity: .5; pointer-events: none; }
+  /* ── Category modal rows (rides on .jm-overlay / .jm-modal) ─── */
+  .cm-rows { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .cm-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 11px; border: 1px solid var(--border-soft);
+    border-radius: 9px; background: var(--cream);
+  }
+  .cm-row__name { flex: 1; font-family: 'Source Serif 4', Georgia, serif; font-size: 14px; color: var(--ink); }
+  .cm-row button { border: none; background: transparent; cursor: pointer; color: var(--muted); padding: 3px; border-radius: 6px; display: flex; }
+  .cm-row button:hover { background: var(--accent-quiet); color: var(--accent); }
+  .cm-row button svg { width: 15px; height: 15px; }
+  .cm-add { display: flex; gap: 8px; }
+  .cm-add input { flex: 1; }
+  .cm-note { font-family: Georgia, serif; font-style: italic; font-size: 12px; color: var(--muted); }
 </style>
 
 <div class="kp-head">
@@ -172,6 +186,10 @@
     <p class="kp-sub">{{ _('Every paper in the Keydion library. Search, filter by type, sort, and modify or remove entries.') }}</p>
   </div>
   <div class="kp-head__right">
+    <button type="button" class="kp-btn kp-btn--ghost" id="manageCatsBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h.01"/><path d="M3 5a2 2 0 0 1 2-2h5l9 9-7 7-9-9z"/></svg>
+      <span>{{ _('Manage categories') }}</span>
+    </button>
     <a class="kp-btn kp-btn--primary" href="{{ url_for('upload') }}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
       <span>{{ _('Upload a paper') }}</span>
@@ -398,6 +416,36 @@
 {% endif %}
 
 <div class="kp-toast" id="paperToast"></div>
+
+{# ─── "Manage categories" modal ──────────────────────────── #}
+<div class="jm-overlay" id="catOverlay">
+  <div class="jm-modal" role="dialog" aria-labelledby="catTitle" aria-modal="true" style="width:440px;">
+    <div class="jm-header">
+      <h3 id="catTitle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h.01"/><path d="M3 5a2 2 0 0 1 2-2h5l9 9-7 7-9-9z"/></svg>
+        {{ _('Manage categories') }}
+      </h3>
+      <button type="button" class="jm-close" id="catClose" aria-label="{{ _('Close') }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="jm-body">
+      <p class="jm-label">{{ _('Paper categories') }}</p>
+      <div class="cm-rows" id="catList"></div>
+      <div class="cm-add">
+        <input type="text" class="kp-input" id="catNewName" placeholder="{{ _('New category name…') }}" autocomplete="off">
+        <button type="button" class="kp-btn kp-btn--primary kp-btn--sm" id="catAddBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          <span>{{ _('Add') }}</span>
+        </button>
+      </div>
+    </div>
+    <div class="jm-footer" style="justify-content:space-between;">
+      <span class="cm-note">{{ _('Changes apply immediately.') }}</span>
+      <button type="button" class="kp-btn kp-btn--ghost" id="catDone">{{ _('Done') }}</button>
+    </div>
+  </div>
+</div>
 
 <script>
 (function () {
@@ -733,6 +781,75 @@
     applyFilters();
     refreshBulkbar();
   }
+})();
+</script>
+
+<script>
+(function () {
+  var ADD_URL = "{{ url_for('admin_paper_categories_add') }}";
+  var REN_URL = "{{ url_for('admin_paper_categories_rename') }}";
+  var DEL_URL = "{{ url_for('admin_paper_categories_delete') }}";
+  var cats = {{ (paper_categories if paper_categories is defined else []) | tojson }};
+
+  var overlay = document.getElementById('catOverlay');
+  var list = document.getElementById('catList');
+  var newName = document.getElementById('catNewName');
+  if (!overlay || !list || !newName) return;
+
+  function escHtml(s){var d=document.createElement('div');d.textContent=(s==null?'':s);return d.innerHTML;}
+
+  function api(url, body) {
+    return fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+      .catch(function () { return { ok: false, d: { error: "{{ _('Network error. Please try again.') }}" } }; });
+  }
+
+  function renderRows() {
+    list.innerHTML = cats.map(function (name) {
+      return '<div class="cm-row" data-name="' + escHtml(name).replace(/"/g, '&quot;') + '">' +
+        '<span class="cm-row__name">' + escHtml(name) + '</span>' +
+        '<button type="button" data-act="rename" title="{{ _('Rename') }}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207z"/></svg></button>' +
+        '<button type="button" data-act="delete" title="{{ _('Delete') }}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/><path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1z"/></svg></button>' +
+        '</div>';
+    }).join('');
+  }
+
+  document.getElementById('manageCatsBtn').addEventListener('click', function () { renderRows(); overlay.classList.add('show'); });
+  function close() { overlay.classList.remove('show'); }
+  document.getElementById('catClose').addEventListener('click', close);
+  document.getElementById('catDone').addEventListener('click', close);
+  overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && overlay.classList.contains('show')) close(); });
+
+  document.getElementById('catAddBtn').addEventListener('click', addCat);
+  newName.addEventListener('keydown', function (e) { if (e.key === 'Enter') addCat(); });
+  function addCat() {
+    var name = newName.value.trim();
+    if (!name) return;
+    api(ADD_URL, { name: name }).then(function (res) {
+      if (res.ok && res.d.items) { cats = res.d.items; renderRows(); newName.value = ''; }
+      else alert(res.d.error || "{{ _('Error') }}");
+    });
+  }
+
+  list.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-act]'); if (!btn) return;
+    var name = btn.closest('.cm-row').dataset.name;
+    if (btn.dataset.act === 'rename') {
+      var nn = prompt("{{ _('Enter new name:') }}", name);
+      if (!nn || nn.trim() === name) return;
+      api(REN_URL, { old_name: name, new_name: nn.trim() }).then(function (res) {
+        if (res.ok && res.d.items) { cats = res.d.items; renderRows(); }
+        else alert(res.d.error || "{{ _('Error') }}");
+      });
+    } else {
+      if (!confirm("{{ _('Are you sure you want to delete') }} \"" + name + "\"?")) return;
+      api(DEL_URL, { name: name }).then(function (res) {
+        if (res.ok && res.d.items) { cats = res.d.items; renderRows(); }
+        else alert(res.d.error || "{{ _('Error') }}");
+      });
+    }
+  });
 })();
 </script>
 
