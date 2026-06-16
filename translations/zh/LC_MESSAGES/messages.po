@@ -4595,3 +4595,79 @@ msgstr "更新安全设置"
 #~ "paper_manage.html."
 #~ msgstr "无法将论文加入期刊。请添加批量接口——参见 paper_manage.html 顶部说明。"
 
+
+msgid "Manage EE Subjects"
+msgstr "管理 EE 学科"
+
+msgid "Manage EE Subjects · Keydion"
+msgstr "管理 EE 学科 · Keydion"
+
+msgid "Curriculum"
+msgstr "课程"
+
+msgid "The IB subject groups behind the Extended Essay upload form and the public search filter."
+msgstr "支撑扩展论文（EE）上传表单与公开检索筛选的 IB 学科组。"
+
+msgid "Add group"
+msgstr "添加学科组"
+
+msgid "Unsaved changes"
+msgstr "未保存的更改"
+
+msgid "New group"
+msgstr "新建学科组"
+
+msgid "Group name"
+msgstr "学科组名称"
+
+msgid "Add a subject to this group…"
+msgstr "向该学科组添加学科…"
+
+msgid "Subjects saved."
+msgstr "学科已保存。"
+
+msgid "Could not save. Please try again."
+msgstr "保存失败，请重试。"
+
+msgid "Delete subject"
+msgstr "删除学科"
+
+msgid "Delete group"
+msgstr "删除学科组"
+
+msgid "Collapse / expand"
+msgstr "折叠 / 展开"
+
+msgid "renamed"
+msgstr "已重命名"
+
+msgid "removed"
+msgstr "已删除"
+
+msgid "These subjects are still used by papers and can't be deleted:"
+msgstr "以下学科仍被论文使用，无法删除："
+
+msgid "Delete this group and all its subjects?"
+msgstr "删除该学科组及其所有学科？"
+
+msgid "Please fix the highlighted fields before saving."
+msgstr "请先修正高亮的字段再保存。"
+
+msgid "Some subjects are still used by papers."
+msgstr "部分学科仍被论文使用。"
+
+msgid "Manage categories"
+msgstr "管理分类"
+
+msgid "Paper categories"
+msgstr "论文分类"
+
+msgid "Changes apply immediately."
+msgstr "更改将立即生效。"
+
+msgid "Network error. Please try again."
+msgstr "网络错误，请重试。"
+
+msgid "Error"
+msgstr "出错"
+
