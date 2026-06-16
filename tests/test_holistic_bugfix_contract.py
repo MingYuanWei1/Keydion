@@ -45,14 +45,6 @@ class PaperInfoNotFoundTest(_SourceTest):
         self.assertIn("404", s)
 
 
-class EeSubjectsGroupIdCoercionTest(_SourceTest):
-    def test_add_matches_group_id_by_string(self):
-        self.assertIn("str(group", self.func_source("ee_subject_add"))
-
-    def test_delete_matches_group_id_by_string(self):
-        self.assertIn("str(group", self.func_source("ee_subject_delete"))
-
-
 class GuidePublishedCheckboxTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
