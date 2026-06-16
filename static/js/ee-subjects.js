@@ -65,6 +65,7 @@
     groupsEl.innerHTML = '';
     model.groups.forEach(function (g) { groupsEl.appendChild(renderGroup(g)); });
     refreshSaveBar();
+    initSortables();
   }
 
   function renderGroup(g) {
@@ -74,7 +75,7 @@
     var head = document.createElement('div');
     head.className = 'ee-ghead';
     head.innerHTML =
-      '<span class="ee-grip" draggable="true" data-grip="group" title="' + escHtml(t('drag', 'Drag to reorder')) + '">' + ic('grip') + '</span>' +
+      '<span class="ee-grip" data-grip="group" title="' + escHtml(t('drag', 'Drag to reorder')) + '">' + ic('grip') + '</span>' +
       '<input class="ee-gname" value="' + escHtml(g.name).replace(/"/g, '&quot;') + '" placeholder="' + escHtml(t('groupName', 'Group name')) + '">' +
       '<span class="ee-count">' + g.subjects.length + '</span>' +
       '<button class="ee-iconbtn" data-act="del-group" title="' + escHtml(t('deleteGroup', 'Delete group')) + '">' + ic('trash') + '</button>' +
@@ -98,7 +99,7 @@
     row.className = 'ee-subj';
     row.dataset.suid = s.uid;
     row.innerHTML =
-      '<span class="ee-grip" draggable="true" data-grip="subject" title="' + escHtml(t('drag', 'Drag to reorder')) + '">' + ic('grip') + '</span>' +
+      '<span class="ee-grip" data-grip="subject" title="' + escHtml(t('drag', 'Drag to reorder')) + '">' + ic('grip') + '</span>' +
       '<input class="ee-name" value="' + escHtml(s.name).replace(/"/g, '&quot;') + '">' +
       '<button class="ee-tag' + (s.interdisciplinary ? ' is-on' : '') + '" data-act="toggle-inter">' + ic(s.interdisciplinary ? 'check' : 'circle') + escHtml(t('interdisciplinary', 'Interdisciplinary')) + '</button>' +
       '<button class="ee-iconbtn" data-act="del-subj" title="' + escHtml(t('deleteSubject', 'Delete subject')) + '">' + ic('trash') + '</button>';
@@ -156,40 +157,45 @@
     if (c) { var inp = c.querySelector('.ee-addinput'); if (inp) inp.focus(); }
   }
 
-  var drag = null;
-  groupsEl.addEventListener('dragstart', function (e) {
-    var grip = e.target.closest('.ee-grip'); if (!grip) return;
-    if (grip.dataset.grip === 'group') {
-      drag = { kind: 'group', guid: +grip.closest('.ee-card').dataset.guid };
-    } else {
-      drag = { kind: 'subject', suid: +grip.closest('.ee-subj').dataset.suid, guid: +grip.closest('.ee-card').dataset.guid };
-    }
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', 'x');
-  });
-  groupsEl.addEventListener('dragover', function (e) { if (drag) e.preventDefault(); });
-  groupsEl.addEventListener('drop', function (e) {
-    if (!drag) return;
-    e.preventDefault();
-    if (drag.kind === 'group') {
-      var overCard = e.target.closest('.ee-card');
-      if (overCard) moveByUid(model.groups, drag.guid, +overCard.dataset.guid);
-    } else {
-      var card = e.target.closest('.ee-card');
-      if (card && +card.dataset.guid === drag.guid) {
-        var g = groupByUid(drag.guid);
-        var overRow = e.target.closest('.ee-subj');
-        if (g && overRow) moveByUid(g.subjects, drag.suid, +overRow.dataset.suid);
-      }
-    }
-    drag = null; markDirty(); render();
-  });
-  function moveByUid(arr, fromU, toU) {
-    if (fromU === toU) return;
-    var fromI = -1, toI = -1;
-    for (var i = 0; i < arr.length; i++) { if (arr[i].uid === fromU) fromI = i; if (arr[i].uid === toU) toI = i; }
-    if (fromI < 0 || toI < 0) return;
-    arr.splice(toI, 0, arr.splice(fromI, 1)[0]);
+  /* ── Drag-reorder via SortableJS — live animation, same-group only ── */
+  var sortables = [];
+  function initSortables() {
+    sortables.forEach(function (s) { try { s.destroy(); } catch (e) {} });
+    sortables = [];
+    if (!window.Sortable) return;
+    var opts = {
+      animation: 160, easing: 'cubic-bezier(.2,.7,.3,1)',
+      ghostClass: 'ee-ghost', chosenClass: 'ee-chosen', dragClass: 'ee-drag',
+      onEnd: commitOrder
+    };
+    // Outer list: reorder group cards (group grip only).
+    sortables.push(Sortable.create(groupsEl, Object.assign({
+      handle: '.ee-grip[data-grip="group"]', draggable: '.ee-card'
+    }, opts)));
+    // Inner lists: reorder subjects within each group (subject grip only).
+    // Separate instances ⇒ no cross-group drag; the add-row stays put.
+    groupsEl.querySelectorAll('.ee-subjects').forEach(function (list) {
+      sortables.push(Sortable.create(list, Object.assign({
+        handle: '.ee-grip[data-grip="subject"]', draggable: '.ee-subj', filter: '.ee-addrow'
+      }, opts)));
+    });
+  }
+
+  /* After a drop, read the DOM order back into the model (reorder only —
+     counts and group membership are unchanged by a same-list sort). */
+  function commitOrder() {
+    var newGroups = [];
+    groupsEl.querySelectorAll('.ee-card').forEach(function (card) {
+      var g = groupByUid(+card.dataset.guid); if (!g) return;
+      var subs = [];
+      card.querySelectorAll('.ee-subj').forEach(function (row) {
+        var s = find(g.subjects, +row.dataset.suid); if (s) subs.push(s);
+      });
+      if (subs.length === g.subjects.length) g.subjects = subs;
+      newGroups.push(g);
+    });
+    if (newGroups.length === model.groups.length) model.groups = newGroups;
+    markDirty();
   }
 
   if (addGroupBtn) addGroupBtn.addEventListener('click', function () {
