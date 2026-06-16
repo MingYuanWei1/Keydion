@@ -39,11 +39,15 @@ from services.papers import (
     build_ib_ee_data_from_form,
     build_paper_record,
     build_preview_pdf,
+    count_papers_using_ee_subject,
     gather_paper_records,
     load_ee_subjects,
     load_paper_categories,
     load_paper_metadata,
+    reconcile_ee_subjects,
     remove_paper_metadata,
+    rename_ee_subject_in_papers,
+    save_ee_subjects,
     set_pdf_metadata,
     upsert_paper_metadata,
 )
@@ -591,17 +595,43 @@ def register_routes(app):
                 return redirect(url_for("login"))
         return send_from_directory(PAPERS_DIR, filename, as_attachment=True)
 
-    # ---------- Paper categories & journals management ----------
-    @app.route("/dashboard/admin/categories")
-    def category_manage():
+    # ---------- EE subjects management ----------
+    @app.route("/dashboard/admin/ee-subjects", endpoint="ee_subjects_manage")
+    def ee_subjects_manage():
         user = require_login(level=3)
         if not user:
             target = url_for("login") if not session.get("user") else url_for("dashboard")
             return redirect(target)
-        return render_template("category_manage.html", user=user,
-                               paper_categories=load_paper_categories(),
-                               ee_subjects=load_ee_subjects(), cp_global_contexts=CP_GLOBAL_CONTEXTS, cp_action_types=CP_ACTION_TYPES)
+        return render_template("ee_subjects_manage.html", user=user,
+                               ee_subjects=load_ee_subjects())
 
-    @app.route("/admin/categories", endpoint="category_manage_legacy")
-    def category_manage_legacy():
-        return redirect(url_for("category_manage"), code=301)
+    @app.route("/admin/categories", endpoint="ee_subjects_manage_legacy")
+    def ee_subjects_manage_legacy():
+        return redirect(url_for("ee_subjects_manage"), code=301)
+
+    @app.route("/dashboard/admin/categories", endpoint="ee_subjects_manage_legacy_dash")
+    def ee_subjects_manage_legacy_dash():
+        return redirect(url_for("ee_subjects_manage"), code=301)
+
+    @app.route("/dashboard/admin/ee-subjects/save", methods=["POST"], endpoint="admin_ee_subjects_save")
+    def ee_subjects_save():
+        user = require_login(level=3)
+        if not user:
+            return jsonify(error="Unauthorized"), 401
+        payload = request.json or {}
+        result = reconcile_ee_subjects(load_ee_subjects(), payload)
+        if result["errors"]:
+            return jsonify(error=str(_("Please fix the highlighted fields before saving.")),
+                           details=result["errors"]), 400
+        conflicts = []
+        for name in result["deletions"]:
+            n = count_papers_using_ee_subject(name)
+            if n > 0:
+                conflicts.append({"subject": name, "paper_count": n})
+        if conflicts:
+            return jsonify(error=str(_("Some subjects are still used by papers.")),
+                           conflicts=conflicts), 409
+        for old_name, new_name in result["renames"]:
+            rename_ee_subject_in_papers(old_name, new_name)
+        save_ee_subjects(result["tree"])
+        return jsonify(ok=True, **result["tree"])

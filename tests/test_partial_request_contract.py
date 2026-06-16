@@ -53,7 +53,7 @@ class PartialAwareTemplatesContractTest(unittest.TestCase):
         "review_list.html",
         "review_paper.html",
         "paper_manage.html",
-        "category_manage.html",
+        "ee_subjects_manage.html",
         "news_publish.html",
         "news_manage.html",
         "admin_users.html",

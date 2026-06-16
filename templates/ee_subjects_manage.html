@@ -1,0 +1,107 @@
+{% extends "_bare.html" if partial else "_dashboard_shell.html" %}
+{% block title %}{{ _('Manage EE Subjects · Keydion') }}{% endblock %}
+{% block head_extra %}{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/manage.css') }}">
+{% endblock %}
+{% block panel %}
+{% if partial %}<link rel="stylesheet" href="{{ url_for('static', filename='css/manage.css') }}">{% endif %}
+
+<style>
+  .ee-savebar { display:flex; align-items:center; justify-content:space-between; gap:16px;
+    background: var(--accent-quiet); border:1px solid var(--accent-wash);
+    border-radius:10px; padding:10px 14px; margin-bottom:18px; }
+  .ee-savebar__msg { display:flex; align-items:center; gap:9px; font-size:13px; color: var(--accent); }
+  .ee-savebar__msg svg { width:16px; height:16px; }
+  .ee-card { background: var(--paper-warm); border:.5px solid var(--border); border-radius:12px; margin-bottom:12px; overflow:hidden; }
+  .ee-ghead { display:flex; align-items:center; gap:11px; padding:11px 14px; background: var(--paper-sand-soft); border-bottom:.5px solid var(--border); }
+  .ee-gname { flex:1; border:none; background:transparent; font-family:'Cormorant Garamond', Georgia, serif; font-size:19px; font-weight:600; color: var(--ink); padding:2px 4px; border-radius:6px; }
+  .ee-gname:hover, .ee-gname:focus { background:#fff; outline:1px solid var(--border); }
+  .ee-count { font-family:'JetBrains Mono', monospace; font-size:11px; color: var(--muted); }
+  .ee-subjects { display:flex; flex-direction:column; }
+  .ee-subj { display:flex; align-items:center; gap:11px; padding:8px 14px; border-bottom:.5px solid var(--border-soft); }
+  .ee-name { flex:1; border:none; background:transparent; font-family:'Source Serif 4', Georgia, serif; font-size:14.5px; color: var(--ink); padding:4px 6px; border-radius:6px; }
+  .ee-name:hover, .ee-name:focus { background: var(--cream); outline:1px solid var(--border-soft); }
+  .ee-grip { color:#c4baa6; cursor:grab; display:flex; }
+  .ee-grip svg, .ee-ic { width:17px; height:17px; }
+  .ee-iconbtn { border:none; background:transparent; color: var(--muted); cursor:pointer; padding:4px; border-radius:6px; display:flex; }
+  .ee-iconbtn:hover { background:#f1ebde; color: var(--accent); }
+  .ee-tag { display:inline-flex; align-items:center; gap:5px; border:1px solid var(--border-soft); background:transparent; color: var(--muted-soft);
+    border-radius:999px; padding:3px 10px; font-family:'JetBrains Mono', monospace; font-size:10px; letter-spacing:.04em; text-transform:uppercase; cursor:pointer; }
+  .ee-tag.is-on { background:#efe7d2; border-color:#d8c9a3; color: var(--status-gold); }
+  .ee-tag .ee-ic { width:12px; height:12px; }
+  .ee-addrow { display:flex; align-items:center; gap:9px; padding:9px 14px; background: var(--cream); }
+  .ee-addrow .ee-ic { width:15px; height:15px; color:#c4baa6; }
+  .ee-addinput { flex:1; border:.5px solid var(--border); background:#fff; border-radius:8px; padding:7px 11px; font-family:'Source Serif 4', serif; font-size:13.5px; color: var(--ink); }
+  .ee-conflicts { background: var(--accent-quiet); border:1px solid var(--accent-wash); border-radius:10px; padding:12px 16px; margin-bottom:16px; color: var(--accent); font-size:13px; }
+  .ee-conflicts ul { margin:6px 0 0; padding-left:18px; }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="ee-grip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></symbol>
+  <symbol id="ee-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="ee-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="ee-chev-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></symbol>
+  <symbol id="ee-chev-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="ee-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></symbol>
+  <symbol id="ee-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></symbol>
+</svg>
+
+<div class="kp-head">
+  <div class="kp-head__left">
+    <div class="kp-crumb">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18"/><path d="M3 12h18"/><path d="M3 17h12"/></svg>
+      <span>{{ _('Library') }} · {{ _('Curriculum') }}</span>
+    </div>
+    <h1 class="kp-title">{{ _('EE Subjects') }}</h1>
+    <p class="kp-sub">{{ _('The IB subject groups behind the Extended Essay upload form and the public search filter.') }}</p>
+  </div>
+  <div class="kp-head__right">
+    <button type="button" class="kp-btn kp-btn--ghost" id="eeAddGroup">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      <span>{{ _('Add group') }}</span>
+    </button>
+  </div>
+</div>
+
+<div class="ee-conflicts" id="eeConflicts" style="display:none;"></div>
+
+<div class="ee-savebar" id="eeSaveBar" style="display:none;">
+  <span class="ee-savebar__msg">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+    <span id="eeSaveSummary">{{ _('Unsaved changes') }}</span>
+  </span>
+  <span style="display:flex; gap:8px;">
+    <button type="button" class="kp-btn kp-btn--ghost kp-btn--sm" id="eeDiscard">{{ _('Discard') }}</button>
+    <button type="button" class="kp-btn kp-btn--primary kp-btn--sm" id="eeSave">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+      <span>{{ _('Save changes') }}</span>
+    </button>
+  </span>
+</div>
+
+<div id="eeGroups"></div>
+
+<script type="application/json" id="eeData">{{ ee_subjects | tojson }}</script>
+<script type="application/json" id="eeI18n">{
+  "newGroup": {{ _('New group') | tojson }},
+  "groupName": {{ _('Group name') | tojson }},
+  "addSubject": {{ _('Add a subject to this group…') | tojson }},
+  "saved": {{ _('Subjects saved.') | tojson }},
+  "saveFailed": {{ _('Could not save. Please try again.') | tojson }},
+  "deleteSubject": {{ _('Delete subject') | tojson }},
+  "deleteGroup": {{ _('Delete group') | tojson }},
+  "collapse": {{ _('Collapse / expand') | tojson }},
+  "drag": {{ _('Drag to reorder') | tojson }},
+  "interdisciplinary": {{ _('Interdisciplinary') | tojson }},
+  "renamed": {{ _('renamed') | tojson }},
+  "added": {{ _('added') | tojson }},
+  "removed": {{ _('removed') | tojson }},
+  "unsaved": {{ _('Unsaved changes') | tojson }},
+  "conflictIntro": {{ _('These subjects are still used by papers and can\'t be deleted:') | tojson }},
+  "confirmDeleteGroup": {{ _('Delete this group and all its subjects?') | tojson }}
+}</script>
+
+<div class="kp-toast" id="eeToast"></div>
+
+<script src="{{ url_for('static', filename='js/ee-subjects.js') }}"></script>
+{% endblock %}

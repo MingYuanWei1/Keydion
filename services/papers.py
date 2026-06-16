@@ -135,6 +135,109 @@ def _get_ee_subjects_list() -> list:
     return sorted(subjects)
 
 
+def reconcile_ee_subjects(old_tree: dict, payload: dict) -> dict:
+    """Pure diff of a posted EE-subjects payload against the saved tree.
+
+    Returns ``{"tree", "renames", "deletions", "errors"}`` and touches no
+    DB or filesystem. ``tree`` is in the on-disk shape (groups carry plain
+    name lists; a top-level ``interdisciplinary_subjects`` list is rebuilt
+    from the per-subject flags).
+    """
+    errors: List[str] = []
+    old_names = set()
+    for g in (old_tree or {}).get("groups", []):
+        for s in g.get("subjects", []):
+            old_names.add(s)
+
+    existing_ids = [g.get("id") for g in (old_tree or {}).get("groups", [])
+                    if isinstance(g.get("id"), int)]
+    next_id = (max(existing_ids) + 1) if existing_ids else 1
+
+    groups_out = []
+    renames = []
+    seen_originals = set()
+    interdisciplinary: List[str] = []
+
+    for g in payload.get("groups", []):
+        name = (g.get("name") or "").strip()
+        if not name:
+            errors.append("Group name cannot be empty.")
+        gid = g.get("id")
+        if not isinstance(gid, int):
+            gid = next_id
+            next_id += 1
+        subj_names = []
+        seen_in_group = set()
+        for s in g.get("subjects", []):
+            sname = (s.get("name") or "").strip()
+            if not sname:
+                errors.append("Subject name cannot be empty.")
+                continue
+            if sname.lower() in seen_in_group:
+                errors.append("Duplicate subject '%s' in group '%s'." % (sname, name))
+                continue
+            seen_in_group.add(sname.lower())
+            subj_names.append(sname)
+            orig = s.get("original_name")
+            if orig:
+                seen_originals.add(orig)
+                if orig != sname:
+                    renames.append((orig, sname))
+            if s.get("interdisciplinary"):
+                interdisciplinary.append(sname)
+        groups_out.append({"id": gid, "name": name, "subjects": subj_names})
+
+    deletions = sorted(old_names - seen_originals)
+    tree = {"groups": groups_out, "interdisciplinary_subjects": interdisciplinary}
+    return {"tree": tree, "renames": renames, "deletions": deletions, "errors": errors}
+
+
+def count_papers_using_ee_subject(name: str) -> int:
+    """Number of papers whose ib_ee_data core/interdisciplinary subject equals name."""
+    count = 0
+    for row in load_paper_metadata():
+        raw = row.get("ib_ee_data", "")
+        if not raw:
+            continue
+        try:
+            ib = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            continue
+        if ib.get("core_subject") == name or ib.get("interdisciplinary_subject") == name:
+            count += 1
+    return count
+
+
+def rename_ee_subject_in_papers(old: str, new: str) -> int:
+    """Rewrite core/interdisciplinary subject == old to new across papers.
+
+    Returns the number of papers changed; saves once if anything changed.
+    """
+    rows = load_paper_metadata()
+    changed = 0
+    for row in rows:
+        raw = row.get("ib_ee_data", "")
+        if not raw:
+            continue
+        try:
+            ib = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            continue
+        touched = False
+        if ib.get("core_subject") == old:
+            ib["core_subject"] = new
+            touched = True
+        if ib.get("interdisciplinary_subject") == old:
+            ib["interdisciplinary_subject"] = new
+            touched = True
+        if touched:
+            row["ib_ee_data"] = json.dumps(ib, ensure_ascii=False)
+            changed += 1
+    if changed:
+        save_paper_metadata(rows)
+    return changed
+
+
 def _form_int(form, name: str) -> int:
     raw = form.get(name, "").strip()
     return int(raw) if raw.isdigit() else 0

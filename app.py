@@ -91,8 +91,8 @@ from services.journals import (  # noqa: F401
 )
 from services.papers import (  # noqa: F401
     load_paper_metadata, save_paper_metadata,
-    load_paper_categories, save_paper_categories, load_ee_subjects,
-    save_ee_subjects, _get_ee_subjects_list, _build_safe_paper_filename,
+    load_paper_categories, save_paper_categories,
+    _get_ee_subjects_list, _build_safe_paper_filename,
     build_ib_ee_data_from_form, build_cp_data_from_form,
     parse_ib_ee_data_for_form, parse_cp_data_for_form,
     _is_ee_paper, _is_cp_paper, _matches_ee_subject, _matches_cp_context,
@@ -752,48 +752,6 @@ def create_app() -> Flask:
         cats.remove(name)
         save_paper_categories(cats)
         return jsonify(items=cats)
-
-    @app.route("/dashboard/admin/ee-subjects/add", methods=["POST"], endpoint="admin_ee_subjects_add")
-    def ee_subject_add():
-        user = require_login(level=3)
-        if not user:
-            return jsonify(error="Unauthorized"), 401
-        data = request.json or {}
-        group_id = data.get("group_id")
-        name = data.get("name", "").strip()
-        if not group_id or not name:
-            return jsonify(error=str(_("Group ID and subject name are required."))), 400
-        subjects_data = load_ee_subjects()
-        for group in subjects_data.get("groups", []):
-            if str(group["id"]) == str(group_id):
-                if name in group["subjects"]:
-                    return jsonify(error=str(_("Subject already exists in this group."))), 409
-                group["subjects"].append(name)
-                save_ee_subjects(subjects_data)
-                return jsonify(groups=subjects_data["groups"])
-        return jsonify(error=str(_("Group not found."))), 404
-
-    @app.route("/dashboard/admin/ee-subjects/delete", methods=["POST"], endpoint="admin_ee_subjects_delete")
-    def ee_subject_delete():
-        user = require_login(level=3)
-        if not user:
-            return jsonify(error="Unauthorized"), 401
-        data = request.json or {}
-        group_id = data.get("group_id")
-        name = data.get("name", "").strip()
-        if not group_id or not name:
-            return jsonify(error=str(_("Group ID and subject name are required."))), 400
-        subjects_data = load_ee_subjects()
-        for group in subjects_data.get("groups", []):
-            if str(group["id"]) == str(group_id):
-                if name not in group["subjects"]:
-                    return jsonify(error=str(_("Subject not found in this group."))), 404
-                group["subjects"].remove(name)
-                if name in subjects_data.get("interdisciplinary_subjects", []):
-                    subjects_data["interdisciplinary_subjects"].remove(name)
-                save_ee_subjects(subjects_data)
-                return jsonify(groups=subjects_data["groups"])
-        return jsonify(error=str(_("Group not found."))), 404
 
     from routes import register_all
     register_all(app)
