@@ -221,7 +221,7 @@ msgstr "请选择语言"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/config.py:288
 msgid "Please enter keywords"
-msgstr "请输入新密码。"
+msgstr "请输入关键词"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/config.py:289
 msgid "Please enter the abstract"
@@ -229,15 +229,15 @@ msgstr "请输入摘要"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/config.py:290
 msgid "Please enter the author name"
-msgstr "请输入摘要"
+msgstr "请输入作者姓名"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/config.py:291
 msgid "Please enter the contact email"
-msgstr "请输入论文标题"
+msgstr "请输入联系邮箱"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/config.py:292
 msgid "Please enter the school name"
-msgstr "请输入链接标识。"
+msgstr "请输入学校名称"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/config.py:320
 msgid "Reader - View & Download"
@@ -575,7 +575,7 @@ msgstr "未找到论文。"
 msgid ""
 "A paper can only be one of: Extended Essay, Community Project, or "
 "Internal Assessment."
-msgstr ""
+msgstr "论文只能属于以下类型之一：延伸论文、社区项目或内部评估。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:451
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:473
@@ -590,7 +590,7 @@ msgstr "请选择全球背景…"
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:457
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:481
 msgid "Please select at least one Type of Action."
-msgstr "请选择要上传的文件"
+msgstr "请至少选择一种行动类型。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:462
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:486
@@ -1592,7 +1592,7 @@ msgstr "上传失败，请重试。"
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:650
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:674
 msgid "Unauthorized"
-msgstr "论文分类"
+msgstr "未授权"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:633
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:656
