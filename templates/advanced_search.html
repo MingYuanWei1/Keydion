@@ -17,6 +17,7 @@
                     <option value="">{{ _('Any Type') }}</option>
                     <option value="ee">{{ _('Extended Essay') }}</option>
                     <option value="cp">{{ _('Community Project') }}</option>
+                    <option value="ia">{{ _('Internal Assessment') }}</option>
                     <option value="independent">{{ _('Independent Research') }}</option>
                 </select>
             </fieldset>
@@ -49,6 +50,18 @@
                     style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; width: 100%;">
                     <option value="">{{ _('Any Subject') }}</option>
                     {% for subj in ee_subjects_list %}
+                    <option value="{{ subj }}">{{ subj }}</option>
+                    {% endfor %}
+                </select>
+            </fieldset>
+
+            <!-- IA Subject (shown when Internal Assessment) -->
+            <fieldset id="advIaSubject" style="border: none; padding: 0; margin-bottom: 24px; display: none;">
+                <legend style="display: block; margin-bottom: 8px;"><b>{{ _('IA Subject') }}</b></legend>
+                <select name="ia_subject"
+                    style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; width: 100%;">
+                    <option value="">{{ _('Any Subject') }}</option>
+                    {% for subj in ia_subjects_list %}
                     <option value="{{ subj }}">{{ subj }}</option>
                     {% endfor %}
                 </select>
@@ -112,11 +125,13 @@
 document.getElementById('advPaperType').addEventListener('change', function() {
   var isEE = this.value === 'ee';
   var isCP = this.value === 'cp';
+  var isIA = this.value === 'ia';
   document.getElementById('advEeSubject').style.display = isEE ? '' : 'none';
   document.getElementById('advCpContext').style.display = isCP ? '' : 'none';
-  // EE and CP papers don't have meaningful free-text keywords — hide the terms field
+  document.getElementById('advIaSubject').style.display = isIA ? '' : 'none';
+  // EE, CP, and IA papers don't have meaningful free-text keywords — hide the terms field
   var termsField = document.getElementById('advTermsField');
-  if (isEE || isCP) {
+  if (isEE || isCP || isIA) {
     termsField.style.display = 'none';
     document.getElementById('advanced-search-keywords').value = '';
   } else {
