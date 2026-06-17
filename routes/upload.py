@@ -73,7 +73,7 @@ def register_routes(app):
             "cp_global_contexts": CP_GLOBAL_CONTEXTS,
             "cp_action_types": CP_ACTION_TYPES,
             "user_key": user.get("username", ""),
-            "extract_assist_enabled": llm_client.llm_enabled() and _role >= 2,
+            "extract_assist_enabled": (llm_client.vision_enabled() or llm_client.llm_enabled()) and _role >= 2,
             "i18n": {
                 "step_name_type": _("Paper Type"),
                 "step_name_metadata": _("Metadata"),
