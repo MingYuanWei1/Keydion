@@ -185,8 +185,8 @@
   }
   function summaryText(s) {
     if (!s.criteria.length) return ' ' + escHtml(t('noCriteria', 'no criteria yet'));
-    var tpl = t('critSummary', '%(n)s criteria · max %(m)s');
-    return ' ' + escHtml(tpl.replace('%(n)s', s.criteria.length).replace('%(m)s', totalMax(s)));
+    var tpl = t('critSummary', '{n} criteria · max {m}');
+    return ' ' + escHtml(tpl.replace('{n}', s.criteria.length).replace('{m}', totalMax(s)));
   }
 
   /* Find the subject object for any node inside a group card. */
