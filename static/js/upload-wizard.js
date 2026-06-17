@@ -68,6 +68,7 @@
     iaScores: parseIndexed(fd, 'ia_crit_', '_score'),     // { 0: '3', 1: '', ... }
     iaComments: parseIndexed(fd, 'ia_crit_', '_comment'),
     iaHolistic: fd.ia_holistic_comment || '',
+    iaIncludeComments: !!(Object.values(parseIndexed(fd, 'ia_crit_', '_comment')).some(Boolean) || fd.ia_holistic_comment),
     // IA auto-fill UI
     iaAutofillStatus: '',
     iaAutofillMessage: '',
@@ -911,11 +912,6 @@
             <span class="crit-score__max">/ ${esc(c.max)}</span>
           </span>
         </td>
-      </tr>
-      <tr>
-        <td colspan="2">
-          <textarea class="textarea" rows="2" data-ia-comment="${i}" placeholder="${t('ia_comment_ph', 'Commentary for this criterion…')}">${esc(state.iaComments[i] || '')}</textarea>
-        </td>
       </tr>`).join('');
 
     return `${autofill}${subjectBlock}
@@ -932,9 +928,25 @@
         </div>
         <div class="total-readout__value"><span id="iaTotal">${totalScore}</span><small>/ <span id="iaTotalMax">${totalMax}</span></small></div>
       </div>
-      <div class="section-sub" style="margin-top:28px;">${t('holistic_comment', 'Holistic Commentary')} <span class="opt">${t('optional', 'Optional')}</span></div>
-      <div class="field">
-        <textarea class="textarea" rows="3" id="iaHolistic" placeholder="${t('holistic_ph', 'An overall holistic commentary…')}">${esc(state.iaHolistic || '')}</textarea>
+      <div class="section-sub" style="margin-top:28px;">${t('crit_comments', 'Criterion Commentaries')} <span class="opt">${t('optional', 'Optional')}</span></div>
+      <label class="checkfield">
+        <input type="checkbox" id="iaIncComments" ${state.iaIncludeComments ? 'checked' : ''}>
+        <span class="checkfield__body">
+          <span class="checkfield__title">${t('include_comments', 'Include commentaries for all criteria')}</span>
+          <span class="checkfield__hint">${t('include_comments_hint', 'Provide short remarks on each criterion plus an optional overall holistic commentary.')}</span>
+        </span>
+      </label>
+      <div id="iaCommentsBox" class="${state.iaIncludeComments ? '' : 'is-hidden'}" style="margin-top:16px;">
+        ${criteria.map((c, i) => `
+          <div class="field" style="margin-bottom:14px;">
+            <label class="field__label">${esc(c.name)}</label>
+            <textarea class="textarea" rows="2" data-ia-comment="${i}" placeholder="${t('ia_comment_ph', 'Commentary for this criterion…')}">${esc(state.iaComments[i] || '')}</textarea>
+          </div>
+        `).join('')}
+        <div class="field">
+          <label class="field__label">${t('holistic_comment', 'Holistic Commentary')} <span class="opt">${t('optional', 'Optional')}</span></label>
+          <textarea class="textarea" rows="3" id="iaHolistic" placeholder="${t('holistic_ph', 'An overall holistic commentary…')}">${esc(state.iaHolistic || '')}</textarea>
+        </div>
       </div>
       ` : ''}`;
   }
@@ -956,7 +968,14 @@
         touch();
       });
     });
-    stepsContainer.querySelectorAll('#iaCriteria textarea[data-ia-comment]').forEach(ta => {
+    const iaInc = stepsContainer.querySelector('#iaIncComments');
+    if (iaInc) iaInc.addEventListener('change', e => {
+      state.iaIncludeComments = e.target.checked;
+      const box = stepsContainer.querySelector('#iaCommentsBox');
+      if (box) box.classList.toggle('is-hidden', !state.iaIncludeComments);
+      touch();
+    });
+    stepsContainer.querySelectorAll('#iaCommentsBox textarea[data-ia-comment]').forEach(ta => {
       ta.addEventListener('input', e => { state.iaComments[ta.dataset.iaComment] = e.target.value; touch(); });
     });
     const hol = stepsContainer.querySelector('#iaHolistic');
@@ -1008,6 +1027,10 @@
         if (c && c.comment) state.iaComments[i] = c.comment;
       });
       if (data.holistic_comment) state.iaHolistic = data.holistic_comment;
+      // Auto-reveal the commentary section if anything came back for it.
+      if ((data.criteria || []).some(c => c && c.comment) || data.holistic_comment) {
+        state.iaIncludeComments = true;
+      }
       const warnings = data.warnings || [];
       state.iaAutofillStatus = warnings.length ? 'partial' : 'ok';
       state.iaAutofillMessage = warnings.length ? warnings.join(' ') : t('ia_autofill_ok', 'Extracted scores.');
