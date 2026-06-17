@@ -108,6 +108,7 @@ Environment variables: see `.env.example` for the full annotated list. The impor
 - `LLM_API_KEY` / `LLM_BASE_URL` — OpenAI-compatible chat provider; **empty key disables all AI features**
 - `LLM_DEFAULT_FLASH` / `LLM_DEFAULT_THINK` — model tiers (cheap/fast vs. reasoning)
 - `LLM_EMBED_API_KEY` / `LLM_EMBED_BASE_URL` / `LLM_EMBED_MODEL` — separate embedding provider (defaults to Gemini's OpenAI-compatible endpoint; falls back to chat credentials when unset)
+- `LLM_VISION` / `LLM_VISION_API_KEY` / `LLM_VISION_BASE_URL` — separate **vision** (multimodal) provider for reading rendered PDF pages; falls back to chat credentials when the `*_VISION_*` values are unset. Empty `LLM_VISION` ⇒ `vision_enabled()` is false and everything uses the legacy OCR/text path
 - `WEB_SEARCH_PROVIDER` / `WEB_SEARCH_API_KEY` — Ask-the-Library web access (Tavily default); empty key hides the web toggle
 - `PAPERQUERY_DATA_DIR` / `PAPERQUERY_UPLOAD_DIR` / `PAPERQUERY_RESOURCES_DIR` — path overrides
 
@@ -122,15 +123,16 @@ Environment variables: see `.env.example` for the full annotated list. The impor
 - Hard rule: `routes/` and `services/` modules never import `app` (enforced by `tests/test_split_imports_contract.py`)
 
 Self-contained concerns remain factored into satellite modules:
-- `ee_pdf_extractor.py` — PDF parser for IB EE metadata auto-fill
-- `pdf_text.py` — shared PDF→text extraction (PyPDF2 first, Tesseract OCR fallback for scanned PDFs)
-- `llm_client.py` — central LLM client + model resolution (flash/think tiers, separate embedding provider)
-- `llm_metadata.py` — abstract + keyword drafting from a paper PDF
+- `ee_pdf_extractor.py` — PDF parser for IB EE metadata auto-fill (vision-first when `vision_enabled()`, else the local regex/pdfplumber path)
+- `pdf_text.py` — shared PDF→text extraction (PyPDF2 first, Tesseract OCR fallback for scanned PDFs). Stays a **leaf module** (never imports `llm_client`); for scanned pages it calls an optional caller-**injected** `vision_fallback(file_bytes, max_pages)` callable when one is passed, else Tesseract. Also exposes `render_pdf_pages()` (PyMuPDF rasterizer → PNG bytes per page)
+- `llm_client.py` — central LLM client + model resolution: **three providers** — chat (flash/think tiers, `LLM_*`), embeddings (`LLM_EMBED_*`), and vision (`LLM_VISION_*`); `vision_enabled()` gates the vision path independently of `llm_enabled()`
+- `llm_metadata.py` — abstract + keyword drafting from a paper PDF (vision-first when `vision_enabled()`; OCR+text-LLM fallback)
+- `vision_read.py` — vision-model PDF reading: `transcribe_pdf()` (vision-as-OCR, `""` on failure) and `extract_with_vision()` (structured `json_object` extraction over page images, raises `VisionError`). Used by the extractors and the scanned-page RAG ingestion fallback
 - `rag_index.py` — RAG index: chunking, embeddings stored in MySQL 9 binary `VECTOR` columns (`papers_chunks.embedding_vec`), numpy cosine (normalized mat-vec) over a per-process snapshot that auto-refreshes when the `rag_index_meta.chunks_version` stamp moves (any process's write invalidates all gunicorn workers within one request)
 - `library_tools.py` — tool-calling core for Ask-the-Library agentic mode (tool schemas + dispatch)
 - `web_search.py` — pluggable web search for Ask-the-Library (disabled when unconfigured)
 
-**LLM features** (all degrade gracefully when `LLM_API_KEY` is unset): Ask-the-Library RAG chat at `/ask` + `/api/ask` (conversations, citations, PDF attachments, optional agentic web/document tools), semantic search + semantic "related papers", abstract/keyword auto-fill (`/api/upload/generate-abstract-keywords`), EE metadata extraction (`/api/upload/extract-ee-metadata`, local-only), and IA score/comment extraction (`/api/upload/extract-ia-metadata`, LLM-only — the button is hidden when `LLM_API_KEY` is unset, with no local fallback). The idea backlog and implementation status live in `LLM_DEPLOYMENT_IDEAS.md`.
+**LLM features** (all degrade gracefully when `LLM_API_KEY` is unset): Ask-the-Library RAG chat at `/ask` + `/api/ask` (conversations, citations, PDF attachments, optional agentic web/document tools), semantic search + semantic "related papers", abstract/keyword auto-fill (`/api/upload/generate-abstract-keywords`), EE metadata extraction (`/api/upload/extract-ee-metadata`), and IA score/comment extraction (`/api/upload/extract-ia-metadata`). The three PDF-reading extractors are **vision-first**: when `vision_enabled()` they read rendered page images via the vision model, otherwise they fall back to the legacy path (abstract/IA → OCR+text-LLM; EE → local regex/pdfplumber). The abstract/IA auto-extract buttons show when `(vision_enabled() or llm_enabled())` for a contributor (the EE button is always on); RAG ingestion transcribes **scanned** pages with the vision model when configured, else Tesseract. The idea backlog and implementation status live in `LLM_DEPLOYMENT_IDEAS.md`.
 
 **Dashboard URL nesting** — authenticated admin routes live under `/dashboard/...` (e.g. `/dashboard/admin/users`, `/dashboard/admin/guides`). Bare `/admin/*` paths exist only as 301-redirect legacy endpoints. Enforced by `test_dashboard_url_nesting_contract.py`.
 
