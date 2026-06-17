@@ -54,6 +54,7 @@
           <option value="">{{ _('Any Type') }}</option>
           <option value="ee" {% if paper_type_filter=='ee' %}selected{% endif %}>{{ _('Extended Essay') }}</option>
           <option value="cp" {% if paper_type_filter=='cp' %}selected{% endif %}>{{ _('Community Project') }}</option>
+          <option value="ia" {% if paper_type_filter=='ia' %}selected{% endif %}>{{ _('Internal Assessment') }}</option>
           <option value="independent" {% if paper_type_filter=='independent' %}selected{% endif %}>{{ _('Independent Research') }}</option>
         </select>
       </div>
@@ -68,6 +69,21 @@
           <option value="">{{ _('Any Subject') }}</option>
           {% for subj in ee_subjects_list %}
           <option value="{{ subj }}" {% if ee_subject_filter==subj %}selected{% endif %}>{{ subj }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      <!-- IA Subject Filter (only when Internal Assessment selected) -->
+      {% if paper_type_filter == 'ia' %}
+      <div class="mb-4" id="iaSubjectFilter">
+        <label for="ia_subject" class="form-label text-uppercase text-muted fw-bold"
+          style="font-size: 11px; letter-spacing: 0.5px;">{{ _('IA Subject') }}</label>
+        <select class="form-select form-select-sm shadow-none" id="ia_subject" name="ia_subject"
+          onchange="this.form.submit()">
+          <option value="">{{ _('Any Subject') }}</option>
+          {% for subj in ia_subjects_list %}
+          <option value="{{ subj }}" {% if ia_subject_filter==subj %}selected{% endif %}>{{ subj }}</option>
           {% endfor %}
         </select>
       </div>
@@ -139,6 +155,7 @@
         <input type="hidden" name="date" value="{{ date_filter }}">
         <input type="hidden" name="paper_type" value="{{ paper_type_filter }}">
         <input type="hidden" name="ee_subject" value="{{ ee_subject_filter }}">
+        <input type="hidden" name="ia_subject" value="{{ ia_subject_filter }}">
         <input type="hidden" name="cp_context" value="{{ cp_context_filter }}">
         <input type="hidden" name="journal" value="{{ journal_filter|default('') }}">
 
@@ -233,6 +250,15 @@
               Community Project
             </span>
           </div>
+          {% elif paper.get('ia_subject') %}
+          <div class="d-flex flex-wrap gap-1 mb-2">
+            <span class="badge rounded-pill" style="font-size: 12px; background: linear-gradient(135deg, #7048e8 0%, #4c2db5 100%); border: 1px solid #4c2db5;">
+              Internal Assessment
+            </span>
+            <span class="badge rounded-pill" style="font-size: 12px; background-color: #fff; color: #212529; border: 1px solid #dee2e6;">
+              {{ paper.ia_subject }}
+            </span>
+          </div>
           {% else %}
           <div class="d-flex flex-wrap gap-1 mb-2">
             <span class="badge rounded-pill" style="font-size: 12px; background: linear-gradient(135deg, #e0a800 0%, #b8860b 100%); color: #fff; border: 1px solid #b8860b;">
@@ -240,7 +266,7 @@
             </span>
           </div>
           {% endif %}
-          {% if not paper.get('ee_core_subject') and not paper.get('cp_global_context') %}
+          {% if not paper.get('ee_core_subject') and not paper.get('cp_global_context') and not paper.get('ia_subject') %}
           <p class="text-muted" style="font-size: 12.5px; line-height: 1.5; margin-bottom: 0;">
             {% if paper.abstract %}
             {{ paper.abstract[:200] ~ '...' if paper.abstract|length > 200 else paper.abstract }}
@@ -294,6 +320,7 @@
           <input type="hidden" name="date" value="{{ date_filter }}">
         <input type="hidden" name="paper_type" value="{{ paper_type_filter }}">
         <input type="hidden" name="ee_subject" value="{{ ee_subject_filter }}">
+        <input type="hidden" name="ia_subject" value="{{ ia_subject_filter }}">
         <input type="hidden" name="cp_context" value="{{ cp_context_filter }}">
         <input type="hidden" name="journal" value="{{ journal_filter|default('') }}">
           <input type="hidden" name="page" value="{{ pagination.prev_page }}">
@@ -309,6 +336,7 @@
           <input type="hidden" name="date" value="{{ date_filter }}">
         <input type="hidden" name="paper_type" value="{{ paper_type_filter }}">
         <input type="hidden" name="ee_subject" value="{{ ee_subject_filter }}">
+        <input type="hidden" name="ia_subject" value="{{ ia_subject_filter }}">
         <input type="hidden" name="cp_context" value="{{ cp_context_filter }}">
         <input type="hidden" name="journal" value="{{ journal_filter|default('') }}">
           <input type="hidden" name="page" value="{{ pagination.next_page }}">
