@@ -380,6 +380,7 @@ def register_routes(app):
                 categories=load_paper_categories(),
                 journals=get_journal_names(),
                 ee_subjects=load_ee_subjects(),
+                ia_subjects=load_ia_subjects(),
                 cp_global_contexts=CP_GLOBAL_CONTEXTS,
                 cp_action_types=CP_ACTION_TYPES,
                 ib_criteria_defs=IB_EE_CRITERIA_DEFS,
@@ -397,8 +398,10 @@ def register_routes(app):
             is_anonymous = not is_ib_sample and request.form.get("is_anonymous") == "1"
             is_ib_ee = request.form.get("is_ib_ee") == "1"
             is_cp_paper = request.form.get("is_cp_paper") == "1"
+            is_ia = request.form.get("is_ia") == "1"
             ib_ee_data = build_ib_ee_data_from_form(request.form) if is_ib_ee else ""
             cp_data = build_cp_data_from_form(request.form) if is_cp_paper else ""
+            ia_data = build_ia_data_from_form(request.form) if is_ia else ""
 
             if is_ib_sample:
                 author_names = ["IB SAMPLE"]
@@ -438,10 +441,11 @@ def register_routes(app):
                 "is_anonymous": "1" if is_anonymous else "",
                 "ib_ee_data": ib_ee_data,
                 "cp_data": cp_data,
+                "ia_data": ia_data,
             }
 
-            if is_ib_ee and is_cp_paper:
-                flash(_("A paper cannot be both an Extended Essay and a CP Paper."), "danger")
+            if sum([is_ib_ee, is_cp_paper, is_ia]) > 1:
+                flash(_("A paper can only be one of: Extended Essay, Community Project, or Internal Assessment."), "danger")
                 return render_modify_form(form_meta)
             if is_ib_ee and not request.form.get("ib_ee_core_subject", "").strip():
                 flash(_("Please select an EE core subject."), "danger")
@@ -452,6 +456,14 @@ def register_routes(app):
             if is_cp_paper and not request.form.getlist("cp_action_type"):
                 flash(_("Please select at least one Type of Action."), "danger")
                 return render_modify_form(form_meta)
+            if is_ia:
+                ia_parsed = json.loads(ia_data)
+                if not ia_parsed.get("subject"):
+                    flash(_("Please select an IA subject."), "danger")
+                    return render_modify_form(form_meta)
+                if not ia_parsed.get("criteria"):
+                    flash(_("The selected IA subject has no assessment criteria configured."), "danger")
+                    return render_modify_form(form_meta)
 
             # We use the raw first author for the filename
             primary_author = author_names[0] if author_names else ""
@@ -483,6 +495,7 @@ def register_routes(app):
                 "is_anonymous": "1" if is_anonymous else "",
                 "ib_ee_data": ib_ee_data,
                 "cp_data": cp_data,
+                "ia_data": ia_data,
             })
             flash(_("Paper information updated."), "success")
             return redirect(url_for("paper_manage"))
