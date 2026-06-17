@@ -496,6 +496,77 @@ def parse_cp_data_for_form(json_str) -> dict:
     return out
 
 
+def _ia_criteria_for_subject(subject: str, data: dict = None) -> list:
+    """Return the criteria list ([{name, max}, ...]) for an IA subject by name.
+
+    Walks the on-disk taxonomy (groups -> subjects), loading it via
+    ``load_ia_subjects()`` when ``data`` is not supplied. Returns [] when the
+    subject is unknown, so a stray form value yields an empty (zero-total) blob.
+    """
+    target = (subject or "").strip().lower()
+    if not target:
+        return []
+    if data is None:
+        data = load_ia_subjects()
+    for group in data.get("groups", []):
+        for s in group.get("subjects", []):
+            if (s.get("name") or "").strip().lower() == target:
+                return s.get("criteria") or []
+    return []
+
+
+def build_ia_data_from_form(form) -> str:
+    subject = form.get("ia_subject", "").strip()
+    # Criterion list (and thus each max) comes from the on-disk taxonomy;
+    # the form's numbers are never trusted.
+    defs = _ia_criteria_for_subject(subject, load_ia_subjects())
+    criteria = []
+    for i, cdef in enumerate(defs):
+        max_mark = int(cdef.get("max", 0))
+        score = min(_form_int(form, f"ia_crit_{i}_score"), max_mark)
+        criteria.append({
+            "name": cdef.get("name", ""),
+            "max": max_mark,
+            "score": score,
+            "comment": form.get(f"ia_crit_{i}_comment", "").strip(),
+        })
+    total_score = sum(c["score"] for c in criteria)
+    total_max = sum(c["max"] for c in criteria)
+    return json.dumps(
+        {
+            "is_ia": True,
+            "subject": subject,
+            "criteria": criteria,
+            "total_score": total_score,
+            "total_max": total_max,
+            "holistic_comment": form.get("ia_holistic_comment", "").strip(),
+        },
+        ensure_ascii=False,
+    )
+
+
+def parse_ia_data_for_form(json_str) -> dict:
+    """Flatten ia_data JSON back into form-style keys for draft hydration.
+
+    Returns {} for missing/invalid input so callers can safely .update() it.
+    """
+    if not json_str:
+        return {}
+    try:
+        data = json.loads(json_str)
+    except (json.JSONDecodeError, TypeError):
+        return {}
+    out = {
+        "is_ia": "1",
+        "ia_subject": data.get("subject", ""),
+        "ia_holistic_comment": data.get("holistic_comment", ""),
+    }
+    for i, criterion in enumerate(data.get("criteria") or []):
+        out[f"ia_crit_{i}_score"] = str(criterion.get("score", ""))
+        out[f"ia_crit_{i}_comment"] = criterion.get("comment", "")
+    return out
+
+
 def _is_ee_paper(record: dict) -> bool:
     raw = record.get("ib_ee_data", "")
     if not raw:
@@ -535,6 +606,27 @@ def _matches_cp_context(record: dict, context: str) -> bool:
     try:
         cp = json.loads(raw)
         return context.lower() in (cp.get("global_context", "")).lower()
+    except (json.JSONDecodeError, TypeError):
+        return False
+
+
+def _is_ia_paper(record: dict) -> bool:
+    raw = record.get("ia_data", "")
+    if not raw:
+        return False
+    try:
+        return bool(json.loads(raw).get("is_ia"))
+    except (json.JSONDecodeError, TypeError):
+        return False
+
+
+def _matches_ia_subject(record: dict, subject: str) -> bool:
+    raw = record.get("ia_data", "")
+    if not raw:
+        return False
+    try:
+        ia = json.loads(raw)
+        return subject.lower() in (ia.get("subject", "")).lower()
     except (json.JSONDecodeError, TypeError):
         return False
 
