@@ -82,8 +82,11 @@ python3 -m unittest discover -s tests -p "test_*.py" -v
 # Run a single test file
 python3 -m unittest tests/test_ee_total_grade_contract.py -v
 
-# Compile translations after editing .po files (restart dev server to pick up new .mo)
-python3 tools/compile_translations.py
+# Sync translations after changing any _()/_l() source string (then restart dev server for new .mo):
+python3 tools/extract_translations.py   # source -> messages.pot
+python3 tools/update_translations.py    # merge .pot into each .po: keeps existing translations, adds new as empty, marks changed #, fuzzy
+python3 tools/compile_translations.py   # .po -> .mo
+# (If you only hand-edited .po msgstr values, just run compile_translations.py.)
 
 # Backfill / rebuild RAG chunk embeddings for published papers
 python3 tools/build_embeddings.py
