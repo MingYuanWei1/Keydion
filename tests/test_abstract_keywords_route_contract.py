@@ -36,13 +36,13 @@ class AbstractKeywordsRouteContractTest(unittest.TestCase):
         )
 
     def test_boot_exposes_enabled_flag(self):
-        self.assertIn("llm_metadata_enabled", self.source)
+        self.assertIn("extract_assist_enabled", self.source)
 
     def test_boot_flag_is_role_gated(self):
         # The enabled flag must require BOTH a configured key AND contributor
         # role (>=2), so role-1 users don't see a button that 401s.
-        line = next(l for l in self.source.splitlines() if '"llm_metadata_enabled"' in l)
-        self.assertIn("llm_client.llm_enabled()", line)
+        line = next(l for l in self.source.splitlines() if '"extract_assist_enabled"' in l)
+        self.assertIn("llm_client.vision_enabled() or llm_client.llm_enabled()", line)
         self.assertIn("_role", line)
 
     def test_i18n_key_present(self):
