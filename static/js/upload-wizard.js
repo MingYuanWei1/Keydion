@@ -1195,6 +1195,22 @@
         if (v === '' || v == null) missing.push({ label: t('cp_score_x', 'CP criterion score %(k)s', { k }), step: stepIdx('metadata') });
       });
     }
+    if (state.paperType === 'ia') {
+      const steps2 = getSteps();
+      const mIdx = steps2.findIndex(s => s.id === 'metadata');
+      if (!state.iaSubject) {
+        missing.push({ label: t('ia_subject', 'IA subject'), step: mIdx });
+      } else {
+        const crit = iaCriteriaFor(state.iaSubject);
+        if (crit.length === 0) {
+          missing.push({ label: t('ia_no_criteria_short', 'IA subject has no criteria'), step: mIdx });
+        }
+        crit.forEach((c, i) => {
+          const v = state.iaScores[i];
+          if (v === '' || v == null) missing.push({ label: t('ia_score_x', 'IA criterion score %(k)s', { k: i + 1 }), step: mIdx });
+        });
+      }
+    }
     if (!state.file) missing.push({ label: t('pdf_file', 'PDF file'), step: stepIdx('file') });
     return missing.filter(m => m.step >= 0);
   }
@@ -1206,6 +1222,7 @@
     const typeName = state.paperType === 'standard' ? t('type_standard', 'Independent Research Paper')
       : state.paperType === 'ee' ? t('type_ee', 'IB Extended Essay')
       : state.paperType === 'cp' ? t('type_cp', 'IB Community Project')
+      : state.paperType === 'ia' ? t('type_ia', 'IB Internal Assessment')
       : '—';
     const langName = state.language === 'en' ? t('english', 'English')
       : state.language === 'zh' ? t('chinese', 'Chinese') : '';
@@ -1283,6 +1300,7 @@
 
         ${state.paperType === 'ee' ? renderReviewEE(idx('metadata')) : ''}
         ${state.paperType === 'cp' ? renderReviewCP(idx('metadata')) : ''}
+        ${state.paperType === 'ia' ? renderReviewIA(idx('metadata')) : ''}
 
         <div class="review-section">
           <div class="review-section__head">
@@ -1342,6 +1360,24 @@
     `;
   }
 
+  function renderReviewIA(jumpIdx) {
+    const criteria = iaCriteriaFor(state.iaSubject);
+    const totalScore = criteria.reduce((s, c, i) => s + (parseInt(state.iaScores[i], 10) || 0), 0);
+    const totalMax = criteria.reduce((s, c) => s + (parseInt(c.max, 10) || 0), 0);
+    return `
+      <div class="review-section">
+        <div class="review-section__head">
+          <div class="review-section__title">${t('ia_details', 'IA Details')}</div>
+          <button type="button" class="review-section__edit" data-jump="${jumpIdx}">${t('edit', 'Edit')}</button>
+        </div>
+        <dl class="review-grid">
+          <dt>${t('ia_subject', 'IA Subject')}</dt><dd${state.iaSubject ? '' : ' class="is-missing"'}>${esc(state.iaSubject) || t('not_chosen', 'Not chosen')}</dd>
+          ${criteria.map((c, i) => `<dt>${esc(c.name)}</dt><dd>${state.iaScores[i] || 0} / ${esc(c.max)}</dd>`).join('')}
+          <dt>${t('total', 'Total')}</dt><dd><strong>${totalScore} / ${totalMax}</strong></dd>
+        </dl>
+      </div>`;
+  }
+
   function bindReview() {
     stepsContainer.querySelectorAll('[data-jump]').forEach(b => {
       b.addEventListener('click', () => goToStep(parseInt(b.dataset.jump, 10)));
@@ -1365,6 +1401,7 @@
 
     if (state.paperType === 'ee') add('is_ib_ee', '1');
     if (state.paperType === 'cp') add('is_cp_paper', '1');
+    if (state.paperType === 'ia') add('is_ia', '1');
     if (state.isIbSample && state.paperType !== 'standard') add('is_ib_sample', '1');
     if (!state.isIbSample && state.isAnonymous) add('is_anonymous', '1');
 
@@ -1400,6 +1437,16 @@
       add('cp_global_context', state.cpGlobalContext);
       state.cpActionTypes.forEach(a => add('cp_action_type', a));
       ['A', 'B', 'C', 'D'].forEach(k => add(`cp_crit_${k}_score`, state.cpScores[k] || '0'));
+    }
+
+    if (state.paperType === 'ia') {
+      add('ia_subject', state.iaSubject);
+      const crit = iaCriteriaFor(state.iaSubject);
+      crit.forEach((c, i) => {
+        add(`ia_crit_${i}_score`, state.iaScores[i] || '0');
+        add(`ia_crit_${i}_comment`, state.iaComments[i] || '');
+      });
+      add('ia_holistic_comment', state.iaHolistic || '');
     }
 
     (extraInputs || []).forEach(([n, v]) => add(n, v));
@@ -1648,6 +1695,15 @@
             state.eeInterSubject = value;
           } else if (id === 'cp-global') {
             state.cpGlobalContext = value;
+          } else if (id === 'ia-subject') {
+            if (state.iaSubject !== value) {
+              state.iaSubject = value;
+              state.iaScores = {};
+              state.iaComments = {};
+              touch();
+              renderStep();   // rebuild the dynamic criteria table for the new subject
+              return;
+            }
           }
           labelEl.textContent = value;
           labelEl.classList.remove('placeholder');
