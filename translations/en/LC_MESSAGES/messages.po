@@ -1609,18 +1609,17 @@ msgid "Optional — assign this paper to a journal."
 msgstr "Optional — assign this paper to a journal."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:265
-#, fuzzy, python-format
+#, python-format
 msgid "Uploading… %(pct)s%"
-msgstr "Upload"
+msgstr "Uploading… %(pct)s%"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:266
 msgid "Finishing up…"
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:267
-#, fuzzy
 msgid "Upload failed. Please check your connection and try again."
-msgstr "Microsoft sign-in is not configured. Please contact the administrator."
+msgstr "Upload failed. Please check your connection and try again."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:268
 #, fuzzy
@@ -1663,9 +1662,8 @@ msgid "Your paper has been submitted and is now pending review."
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:615
-#, fuzzy
 msgid "Upload failed. Please try again."
-msgstr "Microsoft sign-in is not configured. Please contact the administrator."
+msgstr "Upload failed. Please try again."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:627
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:650
@@ -4195,9 +4193,8 @@ msgid "Deleted"
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:811
-#, fuzzy
 msgid "Network error. Please try again."
-msgstr "Session expired. Please sign in again."
+msgstr "Network error. Please try again."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:838
 #, fuzzy
