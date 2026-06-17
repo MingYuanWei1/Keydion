@@ -23,6 +23,7 @@ import re
 from pdf_text import extract_pdf_text, PdfTextError
 
 import llm_client
+import vision_read
 
 MAX_PDF_CHARS = 12_000          # bound the prompt size / token cost
 
@@ -179,16 +180,69 @@ def _complete(client, text: str, subject: str, criteria: list, language: str) ->
     return {"criteria": out_criteria, "holistic_comment": holistic, "warnings": warnings}
 
 
-def generate_ia_scores(file_bytes: bytes, subject: str, criteria: list,
-                       language: str = "en") -> dict:
-    """Public entry point: PDF bytes + subject + its criteria ->
+def _legacy_generate_ia_scores(file_bytes: bytes, subject: str, criteria: list,
+                               language: str = "en") -> dict:
+    """OCR+text-LLM path: PDF bytes + subject + its criteria ->
     {criteria, holistic_comment, warnings}.
 
     `criteria` is the authoritative [{"name", "max"}, ...] list from the subject
     config; returned scores are clamped to those maxes server-side.
     """
-    if not criteria:
-        raise IAMetadataError("This subject has no assessment criteria configured.")
     text = _pdf_text_from_bytes(file_bytes, language)
     client = _build_client()
     return _complete(client, text, subject, criteria, language)
+
+
+def _vision_prompt(subject: str, criteria: list, language: str) -> str:
+    lang_name = "Chinese" if language == "zh" else "English"
+    lines = "\n".join(
+        f'- "{c.get("name", "")}" (maximum {int(c.get("max", 0))})' for c in criteria
+    )
+    return (
+        "You are an IB examiner. The images are the rendered pages of a student "
+        f"Internal Assessment for {subject}. Score it against these criteria:\n"
+        f"{lines}\n"
+        'Return a JSON object: "criteria" — an array of objects '
+        '{"name","score","comment"} (one per criterion above, score an integer not '
+        f'exceeding the maximum, comment in {lang_name}); "holistic_comment" — an '
+        f'overall comment in {lang_name}; "warnings" — an array of short strings. '
+        "Return ONLY the JSON object, no prose."
+    )
+
+
+def _result_from_vision(data: dict, criteria: list) -> dict:
+    """Shape a vision extract_with_vision dict like _complete's return value.
+
+    Reuses _normalise_criteria for the same name-reconcile + clamp-to-max logic
+    the text path uses, then folds in any model-reported warnings.
+    """
+    out_criteria, warnings = _normalise_criteria(data.get("criteria"), criteria)
+    raw_holistic = data.get("holistic_comment")
+    holistic = raw_holistic.strip() if isinstance(raw_holistic, str) else ""
+    extra = data.get("warnings")
+    if isinstance(extra, list):
+        for w in extra:
+            if isinstance(w, str) and w.strip():
+                warnings.append(w.strip())
+    return {"criteria": out_criteria, "holistic_comment": holistic, "warnings": warnings}
+
+
+def generate_ia_scores(file_bytes: bytes, subject: str, criteria: list,
+                       language: str = "en") -> dict:
+    """Public entry point: vision-first IA scoring; OCR+text-LLM fallback.
+
+    `criteria` is the authoritative [{"name", "max"}, ...] list from the subject
+    config; returned scores are clamped to those maxes server-side. A vision
+    failure falls back to the legacy path rather than hard-erroring.
+    """
+    if not criteria:
+        raise IAMetadataError("This subject has no assessment criteria configured.")
+    if llm_client.vision_enabled():
+        prompt = _vision_prompt(subject, criteria, language)
+        try:
+            data = vision_read.extract_with_vision(file_bytes, prompt, language=language)
+            return _result_from_vision(data, criteria)
+        except vision_read.VisionError:
+            _log.warning("vision IA scoring failed; falling back to OCR path",
+                         exc_info=True)
+    return _legacy_generate_ia_scores(file_bytes, subject, criteria, language)
