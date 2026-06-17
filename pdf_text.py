@@ -191,13 +191,22 @@ def render_pdf_pages(file_bytes: bytes, *, max_pages: int = 10, dpi: int = 200) 
 
 
 def extract_pdf_text(file_bytes: bytes, *, ocr_langs: str = DEFAULT_OCR_LANGS,
-                     max_ocr_pages: int = DEFAULT_MAX_OCR_PAGES) -> str:
-    """PDF bytes -> text. PyPDF2 first; OCR fallback for scanned PDFs.
+                     max_ocr_pages: int = DEFAULT_MAX_OCR_PAGES,
+                     vision_fallback=None) -> str:
+    """PDF bytes -> text. PyPDF2 first; scanned-doc fallback for thin text layers.
 
-    Raises PdfTextError for a corrupt or encrypted PDF.
+    For a scanned/image-only PDF (pypdf yields < MIN_TEXT_CHARS), the fallback is:
+      - vision_fallback(file_bytes, max_ocr_pages) when a callable is injected
+        (caller pre-binds language), else
+      - the local Tesseract _ocr_pdf path (unchanged).
+    Blank fallback output degrades to the pypdf text. Raises PdfTextError for a
+    corrupt or encrypted PDF.
     """
     text = _pypdf_text(file_bytes)
     if _meaningful_len(text) >= MIN_TEXT_CHARS:
         return text
-    ocr_text = _ocr_pdf(file_bytes, ocr_langs, max_ocr_pages)
-    return ocr_text if ocr_text.strip() else text
+    if vision_fallback is not None:
+        scanned_text = vision_fallback(file_bytes, max_ocr_pages)
+    else:
+        scanned_text = _ocr_pdf(file_bytes, ocr_langs, max_ocr_pages)
+    return scanned_text if scanned_text.strip() else text

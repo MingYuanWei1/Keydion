@@ -404,5 +404,53 @@ class RenderPdfPagesTest(unittest.TestCase):
         self.assertEqual(out, [b"PNGDATA", b"PNGDATA"])   # bad page dropped
 
 
+class VisionFallbackTest(unittest.TestCase):
+    def test_thin_text_uses_injected_vision_fallback(self):
+        stub = _StubReader(pages=[_StubPage("abc")])      # < 50 meaningful chars
+        vf = mock.Mock(return_value="vision-transcribed")
+        with mock.patch.object(pdf_text, "PdfReader", return_value=stub), \
+             mock.patch.object(pdf_text, "_ocr_pdf") as ocr:
+            out = extract_pdf_text(b"%PDF-fake", vision_fallback=vf)
+        self.assertEqual(out, "vision-transcribed")
+        vf.assert_called_once()
+        ocr.assert_not_called()                            # vision replaces Tesseract
+
+    def test_vision_fallback_receives_bytes_and_max_pages(self):
+        stub = _StubReader(pages=[_StubPage("")])
+        captured = {}
+        def _vf(b, mp):
+            captured["bytes"] = b
+            captured["max_pages"] = mp
+            return "ok"
+        with mock.patch.object(pdf_text, "PdfReader", return_value=stub):
+            extract_pdf_text(b"%PDF-fake", max_ocr_pages=42, vision_fallback=_vf)
+        self.assertEqual(captured["bytes"], b"%PDF-fake")
+        self.assertEqual(captured["max_pages"], 42)
+
+    def test_no_fallback_falls_back_to_tesseract(self):
+        stub = _StubReader(pages=[_StubPage("")])
+        with mock.patch.object(pdf_text, "PdfReader", return_value=stub), \
+             mock.patch.object(pdf_text, "_ocr_pdf", return_value="tess") as ocr:
+            out = extract_pdf_text(b"%PDF-fake")            # no vision_fallback
+        self.assertEqual(out, "tess")
+        ocr.assert_called_once()
+
+    def test_sufficient_text_skips_vision_fallback(self):
+        long_text = "word " * 40                            # > 50 meaningful chars
+        stub = _StubReader(pages=[_StubPage(long_text)])
+        vf = mock.Mock(return_value="should-not-be-used")
+        with mock.patch.object(pdf_text, "PdfReader", return_value=stub):
+            out = extract_pdf_text(b"%PDF-fake", vision_fallback=vf)
+        self.assertIn("word", out)
+        vf.assert_not_called()
+
+    def test_empty_vision_result_returns_pypdf_text(self):
+        # Mirrors the existing OCR-empty contract: blank vision output -> pypdf text.
+        stub = _StubReader(pages=[_StubPage("")])
+        with mock.patch.object(pdf_text, "PdfReader", return_value=stub):
+            out = extract_pdf_text(b"%PDF-fake", vision_fallback=lambda b, mp: "")
+        self.assertEqual(out, "")
+
+
 if __name__ == "__main__":
     unittest.main()
