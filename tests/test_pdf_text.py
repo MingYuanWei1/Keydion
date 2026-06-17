@@ -326,5 +326,83 @@ class OcrLangsTest(unittest.TestCase):
         self.assertIn("eng", pdf_text.DEFAULT_OCR_LANGS)
 
 
+class RenderPdfPagesTest(unittest.TestCase):
+    def test_renders_png_bytes_per_page_capped(self):
+        class _Pix:
+            def tobytes(self, fmt):
+                return b"PNGDATA"
+        class _Page:
+            def get_pixmap(self, dpi=200):
+                return _Pix()
+        class _Doc:
+            def __init__(self):
+                self._pages = [_Page() for _ in range(25)]
+            def __iter__(self):
+                return iter(self._pages)
+            def close(self):
+                pass
+        fitz = mock.Mock()
+        fitz.open.return_value = _Doc()
+        with mock.patch.dict(sys.modules, {"fitz": fitz}):
+            out = pdf_text.render_pdf_pages(b"%PDF-fake", max_pages=10)
+        self.assertEqual(len(out), 10)              # capped at max_pages
+        self.assertTrue(all(p == b"PNGDATA" for p in out))
+
+    def test_dpi_is_forwarded_to_get_pixmap(self):
+        captured = {}
+        class _Pix:
+            def tobytes(self, fmt):
+                return b"PNGDATA"
+        class _Page:
+            def get_pixmap(self, dpi=200):
+                captured["dpi"] = dpi
+                return _Pix()
+        class _Doc:
+            def __iter__(self):
+                return iter([_Page()])
+            def close(self):
+                pass
+        fitz = mock.Mock()
+        fitz.open.return_value = _Doc()
+        with mock.patch.dict(sys.modules, {"fitz": fitz}):
+            pdf_text.render_pdf_pages(b"%PDF-fake", dpi=200)
+        self.assertEqual(captured.get("dpi"), 200)
+
+    def test_bad_pdf_returns_empty_list(self):
+        fitz = mock.Mock()
+        fitz.open.side_effect = RuntimeError("not a pdf")
+        with mock.patch.dict(sys.modules, {"fitz": fitz}):
+            out = pdf_text.render_pdf_pages(b"garbage")
+        self.assertEqual(out, [])
+
+    def test_missing_deps_returns_empty_list(self):
+        with mock.patch.dict(sys.modules, {"fitz": None}):
+            out = pdf_text.render_pdf_pages(b"%PDF-fake")
+        self.assertEqual(out, [])
+
+    def test_per_page_render_failure_is_skipped(self):
+        class _Pix:
+            def tobytes(self, fmt):
+                return b"PNGDATA"
+        class _GoodPage:
+            def get_pixmap(self, dpi=200):
+                return _Pix()
+        class _BadPage:
+            def get_pixmap(self, dpi=200):
+                raise RuntimeError("render failed")
+        class _Doc:
+            def __init__(self):
+                self._pages = [_GoodPage(), _BadPage(), _GoodPage()]
+            def __iter__(self):
+                return iter(self._pages)
+            def close(self):
+                pass
+        fitz = mock.Mock()
+        fitz.open.return_value = _Doc()
+        with mock.patch.dict(sys.modules, {"fitz": fitz}):
+            out = pdf_text.render_pdf_pages(b"%PDF-fake", max_pages=10)
+        self.assertEqual(out, [b"PNGDATA", b"PNGDATA"])   # bad page dropped
+
+
 if __name__ == "__main__":
     unittest.main()

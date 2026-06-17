@@ -150,6 +150,46 @@ def _ocr_pdf(file_bytes: bytes, langs: str, max_pages: int) -> str:
     return "\n".join(parts)
 
 
+def render_pdf_pages(file_bytes: bytes, *, max_pages: int = 10, dpi: int = 200) -> list[bytes]:
+    """Rasterise up to max_pages pages to PNG bytes (one entry per rendered page).
+
+    Reuses the PyMuPDF render path from _ocr_pdf. Returns [] on any failure
+    (missing PyMuPDF / unopenable PDF / iteration error); pages that fail to
+    render individually are skipped. Lazy fitz import keeps this a leaf concern.
+    """
+    try:
+        import fitz                       # PyMuPDF
+    except Exception:
+        _log.warning("PyMuPDF unavailable; cannot render PDF pages", exc_info=True)
+        return []
+    try:
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+    except Exception:
+        _log.warning("PyMuPDF could not open PDF for rendering", exc_info=True)
+        return []
+
+    pngs: list[bytes] = []
+    try:
+        try:
+            for i, page in enumerate(doc):
+                if i >= max_pages:
+                    _log.info("render truncated at %d pages (document has more)", max_pages)
+                    break
+                try:
+                    pngs.append(page.get_pixmap(dpi=dpi).tobytes("png"))
+                except Exception:
+                    _log.warning("render failed on page %d", i, exc_info=True)
+        except Exception:
+            _log.warning("render failed during page iteration", exc_info=True)
+            return []
+    finally:
+        try:
+            doc.close()
+        except Exception:
+            pass
+    return pngs
+
+
 def extract_pdf_text(file_bytes: bytes, *, ocr_langs: str = DEFAULT_OCR_LANGS,
                      max_ocr_pages: int = DEFAULT_MAX_OCR_PAGES) -> str:
     """PDF bytes -> text. PyPDF2 first; OCR fallback for scanned PDFs.
