@@ -46,11 +46,20 @@ docker-compose.yml
 *.crt
 *.cert
 
-# Data — runtime files (keep config JSONs tracked)
+# Data — runtime files
 data/active_sessions.json
 data/active_sessions
 data/pending_papers/
 data/papersz
+
+# Curriculum / category configs — runtime-editable via the manage pages; admin/local
+# edits must NOT sync. The repo ships *.sample.json baselines; the app self-seeds the
+# live file from config.py defaults on first run (or copy the sample over it). Don't re-track.
+data/ee_subjects.json
+data/ia_subjects.json
+data/paper_categories.json
+data/news_categories.json
+data/guide_categories.json
 
 # Superpowers plans/specs (local only)
 docs/superpowers/
