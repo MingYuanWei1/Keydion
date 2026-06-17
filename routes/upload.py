@@ -32,10 +32,13 @@ from services.papers import (
     _build_safe_paper_filename,
     allowed_file,
     build_cp_data_from_form,
+    build_ia_data_from_form,
     build_ib_ee_data_from_form,
     load_ee_subjects,
+    load_ia_subjects,
     load_paper_categories,
     parse_cp_data_for_form,
+    parse_ia_data_for_form,
     parse_ib_ee_data_for_form,
     set_pdf_metadata,
     upsert_paper_metadata,
@@ -64,6 +67,7 @@ def register_routes(app):
             "paper_categories": load_paper_categories(),
             "journals": get_journal_names(),
             "ee_subjects": load_ee_subjects(),
+            "ia_subjects": load_ia_subjects(),
             "cp_global_contexts": CP_GLOBAL_CONTEXTS,
             "cp_action_types": CP_ACTION_TYPES,
             "user_key": user.get("username", ""),
@@ -94,6 +98,25 @@ def register_routes(app):
                 "type_title_cp": _("Community Project (CP)"),
                 "type_body_cp": _("An IB MYP Community Project graded against Criteria A–D, with a Global Context and a chosen type of action."),
                 "type_meta_cp": _("Title · Global Context · type of action · criteria A–D"),
+                "type_tag_ia": _("IB Diploma"),
+                "type_title_ia": _("Internal Assessment (IA)"),
+                "type_body_ia": _("A subject-specific IB Internal Assessment graded against that subject's assessment criteria."),
+                "type_meta_ia": _("Title · IA subject · per-criterion scores"),
+                "type_ia": _("IB Internal Assessment"),
+                "tell_us_ia": _("Tell us about your assessment"),
+                "ia_subject": _("IA Subject"),
+                "select_ia_subject": _("Select an IA subject…"),
+                "overall_ia_sub": _("Calculated server-side from the criteria above"),
+                "ia_details": _("IA Details"),
+                "ia_score_x": _("IA criterion score %(k)s"),
+                "ia_no_criteria": _("This subject has no assessment criteria configured yet. Choose another subject or ask an administrator to add criteria."),
+                "ia_no_criteria_short": _("IA subject has no criteria"),
+                "ia_comment_ph": _("Commentary for this criterion…"),
+                "ia_autofill_btn": _("Auto-fill scores from PDF"),
+                "ia_autofill_extracting": _("Extracting…"),
+                "ia_autofill_ok": _("Extracted scores."),
+                "ia_autofill_error": _("Auto-fill failed — try again or fill manually."),
+                "ia_autofill_no_subject": _("Choose an IA subject first."),
                 "research_question": _("Research Question"),
                 "paper_title": _("Paper Title"),
                 "research_question_ph": _("e.g. To what extent did monetary policy contribute to the 2008 financial crisis?"),
@@ -250,6 +273,7 @@ def register_routes(app):
             journals=get_journal_names(),
             paper_categories=load_paper_categories(),
             ee_subjects=load_ee_subjects(),
+            ia_subjects=load_ia_subjects(),
             cp_global_contexts=CP_GLOBAL_CONTEXTS,
             cp_action_types=CP_ACTION_TYPES,
             draft_id=draft_id,
@@ -285,11 +309,13 @@ def register_routes(app):
                     "is_anonymous": draft.get("is_anonymous", ""),
                     "ib_ee_data": draft.get("ib_ee_data", ""),
                     "cp_data": draft.get("cp_data", ""),
+                    "ia_data": draft.get("ia_data", ""),
                     "published_at": today,
                 }
-                # Hydrate EE/CP fieldsets so the wizard can repopulate them.
+                # Hydrate EE/CP/IA fieldsets so the wizard can repopulate them.
                 form_data.update(parse_ib_ee_data_for_form(draft.get("ib_ee_data", "")))
                 form_data.update(parse_cp_data_for_form(draft.get("cp_data", "")))
+                form_data.update(parse_ia_data_for_form(draft.get("ia_data", "")))
                 return _render_upload(user, form_data, draft_id)
 
         raw_names = request.form.getlist("author_name")
@@ -350,6 +376,14 @@ def register_routes(app):
         else:
             form_data["cp_data"] = ""
 
+        # ---- IA data processing ----
+        is_ia = request.form.get("is_ia") == "1"
+        if is_ia:
+            form_data["ia_data"] = build_ia_data_from_form(request.form)
+            form_data["is_ia"] = "1"
+        else:
+            form_data["ia_data"] = ""
+
         if request.method == "POST":
             # Handle "Save as Draft"
             draft_id = request.form.get("draft_id", "").strip()
@@ -379,6 +413,7 @@ def register_routes(app):
                         "is_anonymous": form_data.get("is_anonymous", ""),
                         "ib_ee_data": form_data.get("ib_ee_data", ""),
                         "cp_data": form_data.get("cp_data", ""),
+                        "ia_data": form_data.get("ia_data", ""),
                         "submitted_at": now,
                     })
                 else:
@@ -408,6 +443,7 @@ def register_routes(app):
                         "is_anonymous": form_data.get("is_anonymous", ""),
                         "ib_ee_data": form_data.get("ib_ee_data", ""),
                         "cp_data": form_data.get("cp_data", ""),
+                        "ia_data": form_data.get("ia_data", ""),
                     }
                     _save_submission(submission)
                 flash(_("Draft saved successfully."), "success")
@@ -416,7 +452,7 @@ def register_routes(app):
             # Per-type required-field cascade. Keywords/abstract apply to Standard
             # papers only; author fields are skipped for IB Sample and anonymous submissions.
             required = ["title", "language"] if is_cp_paper else ["title", "category", "language"]
-            if not (is_ib_ee or is_cp_paper):
+            if not (is_ib_ee or is_cp_paper or is_ia):
                 required += ["keywords", "abstract"]
             if not (is_ib_sample or is_anonymous):
                 required += ["author_name", "author_email", "author_school"]
@@ -426,8 +462,8 @@ def register_routes(app):
                     flash(_MISSING_FIELD_MESSAGES[field], "danger")
                     return _render_upload(user, form_data, draft_id)
 
-            if is_ib_ee and is_cp_paper:
-                flash(_("A paper cannot be both an Extended Essay and a CP Paper."), "danger")
+            if sum([is_ib_ee, is_cp_paper, is_ia]) > 1:
+                flash(_("A paper can only be one of: Extended Essay, Community Project, or Internal Assessment."), "danger")
                 return _render_upload(user, form_data, draft_id)
             if is_ib_ee:
                 ib_data = json.loads(form_data["ib_ee_data"])
@@ -441,6 +477,14 @@ def register_routes(app):
                     return _render_upload(user, form_data, draft_id)
                 if not cp_data.get("action_types"):
                     flash(_("Please select at least one Type of Action."), "danger")
+                    return _render_upload(user, form_data, draft_id)
+            if is_ia:
+                ia_data = json.loads(form_data["ia_data"])
+                if not ia_data.get("subject"):
+                    flash(_("Please select an IA subject."), "danger")
+                    return _render_upload(user, form_data, draft_id)
+                if not ia_data.get("criteria"):
+                    flash(_("The selected IA subject has no assessment criteria configured."), "danger")
                     return _render_upload(user, form_data, draft_id)
 
             # 格式化关键词
@@ -489,6 +533,7 @@ def register_routes(app):
                                     "is_anonymous": form_data.get("is_anonymous", ""),
                                     "ib_ee_data": form_data.get("ib_ee_data", ""),
                                     "cp_data": form_data.get("cp_data", ""),
+                                    "ia_data": form_data.get("ia_data", ""),
                                 },
                             )
                             msg = _("Paper %(filename)s uploaded successfully!", filename=filename)
@@ -525,6 +570,7 @@ def register_routes(app):
                                 "is_anonymous": form_data.get("is_anonymous", ""),
                                 "ib_ee_data": form_data.get("ib_ee_data", ""),
                                 "cp_data": form_data.get("cp_data", ""),
+                                "ia_data": form_data.get("ia_data", ""),
                             })
                         else:
                             submission = {
@@ -551,6 +597,7 @@ def register_routes(app):
                                 "is_anonymous": form_data.get("is_anonymous", ""),
                                 "ib_ee_data": form_data.get("ib_ee_data", ""),
                                 "cp_data": form_data.get("cp_data", ""),
+                                "ia_data": form_data.get("ia_data", ""),
                             }
                             _save_submission(submission)
                         msg = _("Your paper has been submitted and is now pending review.")
