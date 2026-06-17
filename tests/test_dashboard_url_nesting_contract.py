@@ -28,6 +28,8 @@ MOVED_ROUTES = {
     "admin_paper_categories_rename":   ("/dashboard/admin/paper-categories/rename",   None),
     "admin_paper_categories_delete":   ("/dashboard/admin/paper-categories/delete",   None),
     "admin_ee_subjects_save":          ("/dashboard/admin/ee-subjects/save",          None),
+    "ia_subjects_manage":              ("/dashboard/admin/ia-subjects",               None),
+    "admin_ia_subjects_save":          ("/dashboard/admin/ia-subjects/save",          None),
     "admin_journals_add":              ("/dashboard/admin/journals/add",              None),
     "admin_journals_delete":           ("/dashboard/admin/journals/delete",           None),
     "admin_journal_edit":              ("/dashboard/admin/journal/<journal_id>/edit", "/admin/journal/<journal_id>/edit"),

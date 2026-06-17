@@ -31,11 +31,15 @@ from services.journals import get_journal_id_map, get_journal_names, get_journal
 from services.papers import (
     _build_safe_paper_filename,
     _get_ee_subjects_list,
+    _get_ia_subjects_list,
     _is_cp_paper,
     _is_ee_paper,
+    _is_ia_paper,
     _matches_cp_context,
     _matches_ee_subject,
+    _matches_ia_subject,
     build_cp_data_from_form,
+    build_ia_data_from_form,
     build_ib_ee_data_from_form,
     build_paper_record,
     build_preview_pdf,
@@ -69,7 +73,9 @@ def register_routes(app):
         is_guest = user is None
         journals = load_journals()
         return render_template("advanced_search.html", user=user, journals=journals,
-                               ee_subjects_list=_get_ee_subjects_list(), cp_contexts=CP_GLOBAL_CONTEXTS)
+                               ee_subjects_list=_get_ee_subjects_list(),
+                               ia_subjects_list=_get_ia_subjects_list(),
+                               cp_contexts=CP_GLOBAL_CONTEXTS)
 
     @app.route("/search", methods=["GET", "POST"])
     def search():
@@ -95,6 +101,7 @@ def register_routes(app):
         paper_type_filter = request.args.get("paper_type", "").strip()
         ee_subject_filter = request.args.get("ee_subject", "").strip()
         cp_context_filter = request.args.get("cp_context", "").strip()
+        ia_subject_filter = request.args.get("ia_subject", "").strip()
 
         try:
             page = int(request.args.get("page", "1"))
@@ -102,7 +109,7 @@ def register_routes(app):
             page = 1
 
         per_page = 20
-        filtered = bool(query) or bool(category_filter) or bool(language_filter) or bool(date_filter) or bool(author_filter) or bool(title_filter) or bool(start_year) or bool(end_year) or bool(journal_filter) or bool(paper_type_filter) or bool(ee_subject_filter) or bool(cp_context_filter)
+        filtered = bool(query) or bool(category_filter) or bool(language_filter) or bool(date_filter) or bool(author_filter) or bool(title_filter) or bool(start_year) or bool(end_year) or bool(journal_filter) or bool(paper_type_filter) or bool(ee_subject_filter) or bool(cp_context_filter) or bool(ia_subject_filter)
 
         # Only run full text search if 'q' is actually present
         record_pool = _hybrid_search_records(query) if bool(query) else gather_paper_records()
@@ -134,11 +141,17 @@ def register_routes(app):
                 record_pool = [r for r in record_pool if _is_ee_paper(r)]
             elif paper_type_filter == "cp":
                 record_pool = [r for r in record_pool if _is_cp_paper(r)]
+            elif paper_type_filter == "ia":
+                record_pool = [r for r in record_pool if _is_ia_paper(r)]
             elif paper_type_filter == "independent":
-                record_pool = [r for r in record_pool if not _is_ee_paper(r) and not _is_cp_paper(r)]
+                record_pool = [r for r in record_pool
+                               if not _is_ee_paper(r) and not _is_cp_paper(r) and not _is_ia_paper(r)]
 
         if ee_subject_filter:
             record_pool = [r for r in record_pool if _matches_ee_subject(r, ee_subject_filter)]
+
+        if ia_subject_filter:
+            record_pool = [r for r in record_pool if _matches_ia_subject(r, ia_subject_filter)]
 
         if cp_context_filter:
             record_pool = [r for r in record_pool if _matches_cp_context(r, cp_context_filter)]
@@ -179,6 +192,15 @@ def register_routes(app):
                         p["ee_interdisciplinary_subject"] = ib_info.get("interdisciplinary_subject", "")
                 except (json.JSONDecodeError, TypeError):
                     pass
+            raw_ia = p.get("ia_data", "")
+            if raw_ia and p["paper_type"] == "Independent Research":
+                try:
+                    ia_info = json.loads(raw_ia)
+                    if ia_info.get("is_ia"):
+                        p["paper_type"] = "Internal Assessment"
+                        p["ia_subject"] = ia_info.get("subject", "")
+                except (json.JSONDecodeError, TypeError):
+                    pass
 
         return render_template(
             "search.html",
@@ -190,6 +212,8 @@ def register_routes(app):
             paper_type_filter=paper_type_filter,
             ee_subject_filter=ee_subject_filter,
             ee_subjects_list=_get_ee_subjects_list(),
+            ia_subject_filter=ia_subject_filter,
+            ia_subjects_list=_get_ia_subjects_list(),
             cp_context_filter=cp_context_filter,
             cp_contexts=CP_GLOBAL_CONTEXTS,
             filtered=filtered,
@@ -222,6 +246,8 @@ def register_routes(app):
                 paper_type = "Community Project"
             elif _is_ee_paper(m):
                 paper_type = "Extended Essay"
+            elif _is_ia_paper(m):
+                paper_type = "Internal Assessment"
             else:
                 paper_type = "Independent Research"
             papers.append({
@@ -557,6 +583,15 @@ def register_routes(app):
             except (json.JSONDecodeError, TypeError):
                 pass
 
+        # Parse IA data if present
+        ia_info = None
+        raw_ia = paper.get("ia_data", "")
+        if raw_ia:
+            try:
+                ia_info = json.loads(raw_ia)
+            except (json.JSONDecodeError, TypeError):
+                pass
+
         return render_template(
             "preview.html",
             user=user,
@@ -572,6 +607,7 @@ def register_routes(app):
             journal_slug_map=get_journal_slug_map(),
             ib_ee_info=ib_ee_info,
             cp_info=cp_info,
+            ia_info=ia_info,
         )
 
     @app.route("/papers/preview/<path:filename>")
