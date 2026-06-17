@@ -335,6 +335,22 @@ def init_db() -> None:
                 conn.commit()
         except Exception:
             pass
+        # Migrate: add ia_data column to papers_metadata if it doesn't exist
+        try:
+            with db._ENGINE.connect() as conn:
+                from sqlalchemy import text
+                conn.execute(text("ALTER TABLE papers_metadata ADD COLUMN ia_data TEXT"))
+                conn.commit()
+        except Exception:
+            pass
+        # Migrate: add ia_data column to submissions if it doesn't exist
+        try:
+            with db._ENGINE.connect() as conn:
+                from sqlalchemy import text
+                conn.execute(text("ALTER TABLE submissions ADD COLUMN ia_data TEXT"))
+                conn.commit()
+        except Exception:
+            pass
         # Migrate: add status column to news_articles if it doesn't exist
         try:
             with db._ENGINE.connect() as conn:
