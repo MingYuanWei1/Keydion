@@ -23,7 +23,7 @@ class AbstractKeywordsJsContractTest(unittest.TestCase):
         self.assertIn("metaAutofillBtn", self.js)
 
     def test_gated_on_flag(self):
-        self.assertIn("BOOT.llm_metadata_enabled", self.js)
+        self.assertIn("BOOT.extract_assist_enabled", self.js)
 
     def test_sends_language(self):
         self.assertRegex(self.js, r"form\.append\(\s*['\"]language['\"]")

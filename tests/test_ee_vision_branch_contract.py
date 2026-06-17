@@ -1,0 +1,68 @@
+import unittest
+from unittest import mock
+
+import ee_pdf_extractor
+from ee_pdf_extractor import extract_ee_metadata, EePdfExtractionError
+
+
+class EeVisionBranchTest(unittest.TestCase):
+    def _vision_payload(self):
+        # 'Biology' is a real canonical subject in data/ee_subjects.json.
+        return {
+            "core_subject": "Biology",
+            "interdisciplinary_subject": "",
+            "research_question": "To what extent...?",
+            "criteria": {l: {"score": 1, "comment": "c"} for l in "ABCDE"},
+            "holistic_comment": "Solid.",
+            "warnings": [],
+        }
+
+    def test_uses_vision_when_enabled(self):
+        with mock.patch.object(ee_pdf_extractor.llm_client, "vision_enabled", return_value=True), \
+             mock.patch.object(ee_pdf_extractor.vision_read, "extract_with_vision",
+                               return_value=self._vision_payload()) as ev, \
+             mock.patch.object(ee_pdf_extractor, "_read_pdf_text") as legacy_text, \
+             mock.patch.object(ee_pdf_extractor, "_extract_via_pdfplumber") as legacy_plumber:
+            out = extract_ee_metadata(b"%PDF-fake")
+        ev.assert_called_once()
+        legacy_text.assert_not_called()
+        legacy_plumber.assert_not_called()
+        self.assertEqual(out["core_subject"], "Biology")     # canonicalised
+        self.assertEqual(out["research_question"], "To what extent...?")
+        self.assertEqual(out["criteria"]["A"]["score"], 1)
+
+    def test_unrecognised_vision_subject_warns(self):
+        payload = self._vision_payload()
+        payload["core_subject"] = "Underwater Basket Weaving"
+        with mock.patch.object(ee_pdf_extractor.llm_client, "vision_enabled", return_value=True), \
+             mock.patch.object(ee_pdf_extractor.vision_read, "extract_with_vision",
+                               return_value=payload):
+            out = extract_ee_metadata(b"%PDF-fake")
+        self.assertEqual(out["core_subject"], "")            # dropped
+        self.assertTrue(any("not recognised" in w for w in out["warnings"]))
+
+    def test_uses_legacy_when_vision_disabled(self):
+        with mock.patch.object(ee_pdf_extractor.llm_client, "vision_enabled", return_value=False), \
+             mock.patch.object(ee_pdf_extractor, "_read_pdf_text", return_value="some text"), \
+             mock.patch.object(ee_pdf_extractor, "_extract_via_pdfplumber", return_value=None), \
+             mock.patch.object(ee_pdf_extractor, "_extract_via_regex",
+                               return_value=ee_pdf_extractor._empty_result()) as regex, \
+             mock.patch.object(ee_pdf_extractor.vision_read, "extract_with_vision") as ev:
+            extract_ee_metadata(b"%PDF-fake")
+        ev.assert_not_called()
+        regex.assert_called_once()
+
+    def test_vision_error_falls_back_to_legacy(self):
+        with mock.patch.object(ee_pdf_extractor.llm_client, "vision_enabled", return_value=True), \
+             mock.patch.object(ee_pdf_extractor.vision_read, "extract_with_vision",
+                               side_effect=ee_pdf_extractor.vision_read.VisionError("boom")), \
+             mock.patch.object(ee_pdf_extractor, "_read_pdf_text", return_value="some text"), \
+             mock.patch.object(ee_pdf_extractor, "_extract_via_pdfplumber", return_value=None), \
+             mock.patch.object(ee_pdf_extractor, "_extract_via_regex",
+                               return_value=ee_pdf_extractor._empty_result()) as regex:
+            extract_ee_metadata(b"%PDF-fake")
+        regex.assert_called_once()
+
+
+if __name__ == "__main__":
+    unittest.main()

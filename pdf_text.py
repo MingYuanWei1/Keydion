@@ -150,14 +150,63 @@ def _ocr_pdf(file_bytes: bytes, langs: str, max_pages: int) -> str:
     return "\n".join(parts)
 
 
-def extract_pdf_text(file_bytes: bytes, *, ocr_langs: str = DEFAULT_OCR_LANGS,
-                     max_ocr_pages: int = DEFAULT_MAX_OCR_PAGES) -> str:
-    """PDF bytes -> text. PyPDF2 first; OCR fallback for scanned PDFs.
+def render_pdf_pages(file_bytes: bytes, *, max_pages: int = 10, dpi: int = 200) -> list[bytes]:
+    """Rasterise up to max_pages pages to PNG bytes (one entry per rendered page).
 
-    Raises PdfTextError for a corrupt or encrypted PDF.
+    Reuses the PyMuPDF render path from _ocr_pdf. Returns [] on any failure
+    (missing PyMuPDF / unopenable PDF / iteration error); pages that fail to
+    render individually are skipped. Lazy fitz import keeps this a leaf concern.
+    """
+    try:
+        import fitz                       # PyMuPDF
+    except Exception:
+        _log.warning("PyMuPDF unavailable; cannot render PDF pages", exc_info=True)
+        return []
+    try:
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+    except Exception:
+        _log.warning("PyMuPDF could not open PDF for rendering", exc_info=True)
+        return []
+
+    pngs: list[bytes] = []
+    try:
+        try:
+            for i, page in enumerate(doc):
+                if i >= max_pages:
+                    _log.info("render truncated at %d pages (document has more)", max_pages)
+                    break
+                try:
+                    pngs.append(page.get_pixmap(dpi=dpi).tobytes("png"))
+                except Exception:
+                    _log.warning("render failed on page %d", i, exc_info=True)
+        except Exception:
+            _log.warning("render failed during page iteration", exc_info=True)
+            return []
+    finally:
+        try:
+            doc.close()
+        except Exception:
+            pass
+    return pngs
+
+
+def extract_pdf_text(file_bytes: bytes, *, ocr_langs: str = DEFAULT_OCR_LANGS,
+                     max_ocr_pages: int = DEFAULT_MAX_OCR_PAGES,
+                     vision_fallback=None) -> str:
+    """PDF bytes -> text. PyPDF2 first; scanned-doc fallback for thin text layers.
+
+    For a scanned/image-only PDF (pypdf yields < MIN_TEXT_CHARS), the fallback is:
+      - vision_fallback(file_bytes, max_ocr_pages) when a callable is injected
+        (caller pre-binds language), else
+      - the local Tesseract _ocr_pdf path (unchanged).
+    Blank fallback output degrades to the pypdf text. Raises PdfTextError for a
+    corrupt or encrypted PDF.
     """
     text = _pypdf_text(file_bytes)
     if _meaningful_len(text) >= MIN_TEXT_CHARS:
         return text
-    ocr_text = _ocr_pdf(file_bytes, ocr_langs, max_ocr_pages)
-    return ocr_text if ocr_text.strip() else text
+    if vision_fallback is not None:
+        scanned_text = vision_fallback(file_bytes, max_ocr_pages)
+    else:
+        scanned_text = _ocr_pdf(file_bytes, ocr_langs, max_ocr_pages)
+    return scanned_text if scanned_text.strip() else text

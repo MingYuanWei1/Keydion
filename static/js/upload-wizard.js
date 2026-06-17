@@ -340,7 +340,7 @@
           </div>
 
           ${!isIbType ? `
-          ${BOOT.llm_metadata_enabled ? `
+          ${BOOT.extract_assist_enabled ? `
           <div class="ee-autofill">
             <button type="button" id="metaAutofillBtn" class="btn btn-outline-primary btn-sm" ${state.metaAutofillStatus === 'loading' ? 'disabled' : ''}>
               ${t('meta_autofill_btn', 'Generate abstract & keywords from PDF')}
@@ -878,7 +878,7 @@
     const criteria = iaCriteriaFor(state.iaSubject);
     const totalScore = criteria.reduce((s, c, i) => s + (parseInt(state.iaScores[i], 10) || 0), 0);
     const totalMax = criteria.reduce((s, c) => s + (parseInt(c.max, 10) || 0), 0);
-    const autofill = BOOT.llm_metadata_enabled ? `
+    const autofill = BOOT.extract_assist_enabled ? `
       <div class="ee-autofill">
         <button type="button" id="iaAutofillBtn" class="btn btn-outline-primary btn-sm" ${state.iaAutofillStatus === 'loading' ? 'disabled' : ''}>
           ${t('ia_autofill_btn', 'Auto-fill scores from PDF')}
