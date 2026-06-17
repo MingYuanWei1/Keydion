@@ -40,14 +40,19 @@ from services.papers import (
     build_paper_record,
     build_preview_pdf,
     count_papers_using_ee_subject,
+    count_papers_using_ia_subject,
     gather_paper_records,
     load_ee_subjects,
+    load_ia_subjects,
     load_paper_categories,
     load_paper_metadata,
     reconcile_ee_subjects,
+    reconcile_ia_subjects,
     remove_paper_metadata,
     rename_ee_subject_in_papers,
+    rename_ia_subject_in_papers,
     save_ee_subjects,
+    save_ia_subjects,
     set_pdf_metadata,
     upsert_paper_metadata,
 )
@@ -635,4 +640,37 @@ def register_routes(app):
         for old_name, new_name in result["renames"]:
             rename_ee_subject_in_papers(old_name, new_name)
         save_ee_subjects(result["tree"])
+        return jsonify(ok=True, **result["tree"])
+
+    # ---------- IA subjects management ----------
+    @app.route("/dashboard/admin/ia-subjects", endpoint="ia_subjects_manage")
+    def ia_subjects_manage():
+        user = require_login(level=3)
+        if not user:
+            target = url_for("login") if not session.get("user") else url_for("dashboard")
+            return redirect(target)
+        return render_template("ia_subjects_manage.html", user=user,
+                               ia_subjects=load_ia_subjects())
+
+    @app.route("/dashboard/admin/ia-subjects/save", methods=["POST"], endpoint="admin_ia_subjects_save")
+    def admin_ia_subjects_save():
+        user = require_login(level=3)
+        if not user:
+            return jsonify(error="Unauthorized"), 401
+        payload = request.json or {}
+        result = reconcile_ia_subjects(load_ia_subjects(), payload)
+        if result["errors"]:
+            return jsonify(error=str(_("Please fix the highlighted fields before saving.")),
+                           details=result["errors"]), 400
+        conflicts = []
+        for name in result["deletions"]:
+            n = count_papers_using_ia_subject(name)
+            if n > 0:
+                conflicts.append({"subject": name, "paper_count": n})
+        if conflicts:
+            return jsonify(error=str(_("Some subjects are still used by papers.")),
+                           conflicts=conflicts), 409
+        for old_name, new_name in result["renames"]:
+            rename_ia_subject_in_papers(old_name, new_name)
+        save_ia_subjects(result["tree"])
         return jsonify(ok=True, **result["tree"])
