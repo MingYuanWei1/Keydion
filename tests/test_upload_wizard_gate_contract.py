@@ -10,16 +10,17 @@ import support  # noqa: E402
 
 
 class UploadWizardGateContractTest(unittest.TestCase):
-    """The abstract/IA auto-extract buttons are gated on vision OR chat LLM
-    being configured for a contributor; the EE extract button stays always-on."""
+    """The abstract/IA auto-extract buttons are gated on the chat LLM being
+    configured for a contributor; the EE extract button stays always-on.
+    Vision is irrelevant here: both buttons call generators that hard-require
+    the chat LLM (_build_client) and have no vision path, so gating on vision
+    would render a button that 400s in a vision-only config."""
 
     def test_extract_assist_gate_expression(self):
         src = support.source_of("_render_upload")
         self.assertIn("extract_assist_enabled", src)
-        self.assertIn(
-            "(llm_client.vision_enabled() or llm_client.llm_enabled())",
-            src,
-        )
+        self.assertIn("llm_client.llm_enabled() and _role >= 2", src)
+        self.assertNotIn("vision_enabled", src)
         self.assertNotIn("\"llm_metadata_enabled\"", src)
 
     def test_wizard_js_consumes_renamed_flag(self):
