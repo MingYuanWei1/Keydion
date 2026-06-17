@@ -3010,8 +3010,8 @@ msgstr "no criteria yet"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:150
 #, python-format
-msgid "%(n)s criteria · max %(m)s"
-msgstr "%(n)s criteria · max %(m)s"
+msgid "{n} criteria · max {m}"
+msgstr "{n} criteria · max {m}"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:151
 msgid "Bulk add"

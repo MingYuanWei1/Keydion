@@ -1,0 +1,349 @@
+{
+  "groups": [
+    {
+      "id": 1,
+      "name": "Group 1: Studies in Language and Literature",
+      "subjects": [
+        {
+          "name": "Language A: Literature",
+          "criteria": []
+        },
+        {
+          "name": "Language A: Language and Literature",
+          "criteria": []
+        },
+        {
+          "name": "Literature and Performance",
+          "criteria": []
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Group 2: Language Acquisition",
+      "subjects": [
+        {
+          "name": "Language B",
+          "criteria": []
+        },
+        {
+          "name": "Language ab initio",
+          "criteria": []
+        },
+        {
+          "name": "Classical Languages",
+          "criteria": []
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Group 3: Individuals and Societies",
+      "subjects": [
+        {
+          "name": "Business Management",
+          "criteria": []
+        },
+        {
+          "name": "Economics",
+          "criteria": []
+        },
+        {
+          "name": "Geography",
+          "criteria": []
+        },
+        {
+          "name": "Global Politics",
+          "criteria": []
+        },
+        {
+          "name": "History",
+          "criteria": []
+        },
+        {
+          "name": "Information Technology in a Global Society",
+          "criteria": []
+        },
+        {
+          "name": "Philosophy",
+          "criteria": []
+        },
+        {
+          "name": "Psychology",
+          "criteria": []
+        },
+        {
+          "name": "Social and Cultural Anthropology",
+          "criteria": []
+        },
+        {
+          "name": "World Religions",
+          "criteria": []
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Group 4: Sciences",
+      "subjects": [
+        {
+          "name": "Biology",
+          "criteria": [
+            {
+              "name": "Personal engagement",
+              "max": 2
+            },
+            {
+              "name": "Exploration",
+              "max": 6
+            },
+            {
+              "name": "Analysis",
+              "max": 6
+            },
+            {
+              "name": "Evaluation",
+              "max": 6
+            },
+            {
+              "name": "Communication",
+              "max": 4
+            }
+          ]
+        },
+        {
+          "name": "Chemistry",
+          "criteria": [
+            {
+              "name": "Personal engagement",
+              "max": 2
+            },
+            {
+              "name": "Exploration",
+              "max": 6
+            },
+            {
+              "name": "Analysis",
+              "max": 6
+            },
+            {
+              "name": "Evaluation",
+              "max": 6
+            },
+            {
+              "name": "Communication",
+              "max": 4
+            }
+          ]
+        },
+        {
+          "name": "Computer Science",
+          "criteria": [
+            {
+              "name": "Personal engagement",
+              "max": 2
+            },
+            {
+              "name": "Exploration",
+              "max": 6
+            },
+            {
+              "name": "Analysis",
+              "max": 6
+            },
+            {
+              "name": "Evaluation",
+              "max": 6
+            },
+            {
+              "name": "Communication",
+              "max": 4
+            }
+          ]
+        },
+        {
+          "name": "Design Technology",
+          "criteria": [
+            {
+              "name": "Personal engagement",
+              "max": 2
+            },
+            {
+              "name": "Exploration",
+              "max": 6
+            },
+            {
+              "name": "Analysis",
+              "max": 6
+            },
+            {
+              "name": "Evaluation",
+              "max": 6
+            },
+            {
+              "name": "Communication",
+              "max": 4
+            }
+          ]
+        },
+        {
+          "name": "Environmental Systems and Societies",
+          "criteria": [
+            {
+              "name": "Personal engagement",
+              "max": 2
+            },
+            {
+              "name": "Exploration",
+              "max": 6
+            },
+            {
+              "name": "Analysis",
+              "max": 6
+            },
+            {
+              "name": "Evaluation",
+              "max": 6
+            },
+            {
+              "name": "Communication",
+              "max": 4
+            }
+          ]
+        },
+        {
+          "name": "Physics",
+          "criteria": [
+            {
+              "name": "Personal engagement",
+              "max": 2
+            },
+            {
+              "name": "Exploration",
+              "max": 6
+            },
+            {
+              "name": "Analysis",
+              "max": 6
+            },
+            {
+              "name": "Evaluation",
+              "max": 6
+            },
+            {
+              "name": "Communication",
+              "max": 4
+            }
+          ]
+        },
+        {
+          "name": "Sports, Exercise and Health Science",
+          "criteria": [
+            {
+              "name": "Personal engagement",
+              "max": 2
+            },
+            {
+              "name": "Exploration",
+              "max": 6
+            },
+            {
+              "name": "Analysis",
+              "max": 6
+            },
+            {
+              "name": "Evaluation",
+              "max": 6
+            },
+            {
+              "name": "Communication",
+              "max": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Group 5: Mathematics",
+      "subjects": [
+        {
+          "name": "Mathematics: Analysis and Approaches",
+          "criteria": [
+            {
+              "name": "Presentation",
+              "max": 4
+            },
+            {
+              "name": "Mathematical communication",
+              "max": 4
+            },
+            {
+              "name": "Personal engagement",
+              "max": 3
+            },
+            {
+              "name": "Reflection",
+              "max": 3
+            },
+            {
+              "name": "Use of mathematics",
+              "max": 6
+            }
+          ]
+        },
+        {
+          "name": "Mathematics: Applications and Interpretation",
+          "criteria": [
+            {
+              "name": "Presentation",
+              "max": 4
+            },
+            {
+              "name": "Mathematical communication",
+              "max": 4
+            },
+            {
+              "name": "Personal engagement",
+              "max": 3
+            },
+            {
+              "name": "Reflection",
+              "max": 3
+            },
+            {
+              "name": "Use of mathematics",
+              "max": 6
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Group 6: The Arts",
+      "subjects": [
+        {
+          "name": "Dance",
+          "criteria": []
+        },
+        {
+          "name": "Film",
+          "criteria": []
+        },
+        {
+          "name": "Music",
+          "criteria": []
+        },
+        {
+          "name": "Theatre",
+          "criteria": []
+        },
+        {
+          "name": "Visual Arts",
+          "criteria": []
+        }
+      ]
+    }
+  ]
+}

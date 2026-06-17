@@ -2925,8 +2925,8 @@ msgstr "尚无评分标准"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:150
 #, python-format
-msgid "%(n)s criteria · max %(m)s"
-msgstr "%(n)s 项评分 · 总分上限 %(m)s"
+msgid "{n} criteria · max {m}"
+msgstr "{n} 项评分 · 总分上限 {m}"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:151
 msgid "Bulk add"

@@ -317,5 +317,33 @@ class RevampedTemplateWiringTest(unittest.TestCase):
         self.assertNotIn("TOGGLE_URL_TEMPLATE = null", self.guide_tpl)
 
 
+class CurriculumManagePagesRenderTest(unittest.TestCase):
+    """Live-render the EE/IA subjects manage pages through real Flask-Babel.
+
+    The DOM/AST contract tests render templates with a stubbed gettext, so they
+    miss server-side gettext failures. A real render catches them — e.g. a
+    `{{ _('…%(x)s…') }}` call with no args raises KeyError during `rv % {}`.
+    Regression guard for the IA `critSummary` crash.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.app, cls.app_module = _build_app()
+
+    def test_ia_subjects_manage_renders(self):
+        client = self.app.test_client()
+        _login_as(client, self.app_module, level=3)
+        resp = client.get("/dashboard/admin/ia-subjects")
+        self.assertEqual(resp.status_code, 200, resp.data[:400])
+        self.assertIn(b"iaData", resp.data)
+
+    def test_ee_subjects_manage_renders(self):
+        client = self.app.test_client()
+        _login_as(client, self.app_module, level=3)
+        resp = client.get("/dashboard/admin/ee-subjects")
+        self.assertEqual(resp.status_code, 200, resp.data[:400])
+        self.assertIn(b"eeData", resp.data)
+
+
 if __name__ == "__main__":
     unittest.main()
