@@ -7,7 +7,9 @@ from uuid import uuid4
 
 from werkzeug.utils import secure_filename
 
+import llm_client
 import pdf_text
+import vision_read
 from config import (
     ALLOWED_EXTENSIONS,
     CP_CRITERIA_DEFS,
@@ -656,7 +658,9 @@ def extract_text_from_upload(filename: str, raw: bytes) -> str:
     """
     name = (filename or "").lower()
     if name.endswith(".pdf"):
-        return pdf_text.extract_pdf_text(raw)
+        vf = (lambda b, mp: vision_read.transcribe_pdf(b, max_pages=mp, language="en")) \
+            if llm_client.vision_enabled() else None
+        return pdf_text.extract_pdf_text(raw, vision_fallback=vf)
     if name.endswith(".docx"):
         from docx import Document
         doc = Document(BytesIO(raw))
