@@ -22,7 +22,27 @@ import pdfplumber
 from PyPDF2 import PdfReader
 from PyPDF2.errors import PdfReadError
 
+import llm_client
+import vision_read
+
 _DATA_DIR = Path(__file__).resolve().parent / "data"
+
+_EE_PROMPT_BODY = (
+    "The images are the rendered pages of an IB Extended Essay examiner "
+    "commentary form. Return a JSON object with these keys: "
+    '"core_subject" — the DP subject of a subject-focused essay (empty string if '
+    'the essay is interdisciplinary); "interdisciplinary_subject" — the second DP '
+    'subject for an interdisciplinary essay (empty string otherwise); '
+    '"research_question" — the stated research question; "criteria" — an object '
+    'with keys "A","B","C","D","E", each an object {"score": <integer or null>, '
+    '"comment": <string>} taken from the examiner marks and remarks; '
+    '"holistic_comment" — the holistic comment on the essay; and "warnings" — an '
+    "array of short strings for anything you could not read. Use the exact subject "
+    "names as printed. Return ONLY the JSON object, no prose."
+)
+
+EE_SYSTEM_PROMPT_EN = "You read IB assessment forms. " + _EE_PROMPT_BODY
+EE_SYSTEM_PROMPT_ZH = EE_SYSTEM_PROMPT_EN  # field values are copied verbatim; locale affects nothing structural here
 
 
 class EePdfExtractionError(Exception):
@@ -344,35 +364,67 @@ def _extract_via_pdfplumber(file_bytes: bytes) -> Optional[dict]:
     return result if found_anything else None
 
 
+def _result_from_vision(data: dict) -> dict:
+    """Coerce extract_with_vision output into the _empty_result() shape."""
+    result = _empty_result()
+    for key in ("core_subject", "interdisciplinary_subject", "framework",
+                "research_question", "holistic_comment"):
+        val = data.get(key)
+        result[key] = val.strip() if isinstance(val, str) else ""
+    crit_in = data.get("criteria") or {}
+    for letter in "ABCDE":
+        c = crit_in.get(letter) or {}
+        raw_score = c.get("score")
+        score = raw_score if isinstance(raw_score, int) else None
+        comment = c.get("comment")
+        result["criteria"][letter] = {
+            "score": score,
+            "comment": comment.strip() if isinstance(comment, str) else "",
+        }
+    extra = data.get("warnings")
+    if isinstance(extra, list):
+        result["warnings"] = [str(w) for w in extra if str(w).strip()]
+    return result
+
+
 def extract_ee_metadata(file_bytes: bytes) -> dict:
     """Parse an IB EE commentary PDF. See module docstring for contract."""
     if not file_bytes:
         raise EePdfExtractionError("Empty file")
 
-    # Always read the text first — also covers encrypted / scanned detection
-    # before we attempt the more expensive pdfplumber pass.
-    text = _read_pdf_text(file_bytes)
+    result = None
+    if llm_client.vision_enabled():
+        try:
+            data = vision_read.extract_with_vision(file_bytes, EE_SYSTEM_PROMPT_EN)
+            result = _result_from_vision(data)
+        except vision_read.VisionError:
+            result = None  # fall through to the local regex/pdfplumber path
 
-    plumber = _extract_via_pdfplumber(file_bytes)
-    regex_result = _extract_via_regex(text)
+    if result is None:
+        # Always read the text first — also covers encrypted / scanned detection
+        # before we attempt the more expensive pdfplumber pass.
+        text = _read_pdf_text(file_bytes)
 
-    if plumber is None:
-        result = regex_result
-    else:
-        # Merge: pdfplumber wins where it has a value; regex fills gaps.
-        result = _empty_result()
-        for key in ("core_subject", "interdisciplinary_subject", "framework",
-                    "research_question", "holistic_comment"):
-            result[key] = plumber.get(key) or regex_result.get(key) or ""
-        for letter in "ABCDE":
-            p_crit = plumber["criteria"].get(letter, {})
-            r_crit = regex_result["criteria"].get(letter, {})
-            result["criteria"][letter] = {
-                "score": p_crit.get("score") if p_crit.get("score") is not None else r_crit.get("score"),
-                "comment": p_crit.get("comment") or r_crit.get("comment") or "",
-            }
+        plumber = _extract_via_pdfplumber(file_bytes)
+        regex_result = _extract_via_regex(text)
 
-    # Subject normalisation (same as before).
+        if plumber is None:
+            result = regex_result
+        else:
+            # Merge: pdfplumber wins where it has a value; regex fills gaps.
+            result = _empty_result()
+            for key in ("core_subject", "interdisciplinary_subject", "framework",
+                        "research_question", "holistic_comment"):
+                result[key] = plumber.get(key) or regex_result.get(key) or ""
+            for letter in "ABCDE":
+                p_crit = plumber["criteria"].get(letter, {})
+                r_crit = regex_result["criteria"].get(letter, {})
+                result["criteria"][letter] = {
+                    "score": p_crit.get("score") if p_crit.get("score") is not None else r_crit.get("score"),
+                    "comment": p_crit.get("comment") or r_crit.get("comment") or "",
+                }
+
+    # Subject normalisation (shared by both branches).
     core, core_warn = _normalise_subject(result["core_subject"])
     inter, inter_warn = _normalise_subject(result["interdisciplinary_subject"])
     result["core_subject"] = core
