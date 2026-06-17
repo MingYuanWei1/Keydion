@@ -9,6 +9,9 @@
 
   var groupsEl = document.getElementById('iaGroups');
   if (!groupsEl) return;
+  // #iaSelBar is rendered as a sibling of #iaGroups, so selection-bar clicks
+  // bubble to this host (the shared parent), not to groupsEl itself.
+  var selbarHost = groupsEl.parentNode;
   var saveBar = document.getElementById('iaSaveBar');
   var saveSummary = document.getElementById('iaSaveSummary');
   var saveBtn = document.getElementById('iaSave');
@@ -82,7 +85,7 @@
   }
 
   function renderSelBar() {
-    var existing = groupsEl.parentNode.querySelector('#iaSelBar');
+    var existing = selbarHost.querySelector('#iaSelBar');
     if (existing) existing.parentNode.removeChild(existing);
     var sel = allSelected();
     if (!sel.length) return;
@@ -94,7 +97,7 @@
       '<span class="ia-selbar__spacer"></span>' +
       '<button data-act="sel-clear">' + escHtml(t('clearSelection', 'Clear')) + '</button>' +
       '<button data-act="sel-delete">' + escHtml(t('deleteSelected', 'Delete selected')) + '</button>';
-    groupsEl.parentNode.insertBefore(bar, groupsEl);
+    selbarHost.insertBefore(bar, groupsEl);
   }
 
   function renderGroup(g) {
@@ -255,7 +258,9 @@
     if (open) open.focus();
   }
 
-  groupsEl.addEventListener('click', function (e) {
+  // Bound to selbarHost (the shared parent of #iaGroups and #iaSelBar) so the
+  // selection-bar buttons — siblings of #iaGroups — are reachable too.
+  selbarHost.addEventListener('click', function (e) {
     var btn = e.target.closest('[data-act]'); if (!btn) return;
     var act = btn.dataset.act;
 
