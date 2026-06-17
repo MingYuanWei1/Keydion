@@ -25,6 +25,7 @@ from config import (
     _MISSING_FIELD_MESSAGES,
 )
 from ee_pdf_extractor import EePdfExtractionError, extract_ee_metadata
+from ia_metadata import IAMetadataError, generate_ia_scores
 from llm_metadata import LLMMetadataError, generate_abstract_keywords
 from services.auth import require_login
 from services.journals import get_journal_names
@@ -661,6 +662,44 @@ def register_routes(app):
         try:
             result = generate_abstract_keywords(raw, language)
         except LLMMetadataError as exc:
+            return jsonify({"error": str(exc)}), 400
+
+        return jsonify(result), 200
+
+    def _criteria_for_ia_subject(subject_name):
+        """Find the criteria list for an IA subject by name across all groups."""
+        target = (subject_name or "").strip()
+        for group in (load_ia_subjects() or {}).get("groups", []):
+            for subj in group.get("subjects", []):
+                if subj.get("name", "").strip() == target:
+                    return subj.get("criteria", []) or []
+        return []
+
+    @app.route("/api/upload/extract-ia-metadata", methods=["POST"])
+    def api_extract_ia_metadata():
+        user = require_login(level=2)
+        if not user:
+            return jsonify({"error": str(_("Unauthorized"))}), 401
+
+        upload = request.files.get("file")
+        if not upload or not upload.filename:
+            return jsonify({"error": str(_("No file provided"))}), 400
+        if not upload.filename.lower().endswith(".pdf"):
+            return jsonify({"error": str(_("File must be a PDF"))}), 400
+
+        raw = upload.read()
+        if not raw.startswith(b"%PDF-"):
+            return jsonify({"error": str(_("File is not a valid PDF"))}), 400
+
+        language = request.form.get("language", "en")
+        subject = request.form.get("subject", "").strip()
+        criteria = _criteria_for_ia_subject(subject)
+        if not criteria:
+            return jsonify({"error": str(_("Unknown or unconfigured IA subject"))}), 400
+
+        try:
+            result = generate_ia_scores(raw, subject, criteria, language)
+        except IAMetadataError as exc:
             return jsonify({"error": str(exc)}), 400
 
         return jsonify(result), 200
