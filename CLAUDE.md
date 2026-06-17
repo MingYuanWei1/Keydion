@@ -130,7 +130,7 @@ Self-contained concerns remain factored into satellite modules:
 - `library_tools.py` — tool-calling core for Ask-the-Library agentic mode (tool schemas + dispatch)
 - `web_search.py` — pluggable web search for Ask-the-Library (disabled when unconfigured)
 
-**LLM features** (all degrade gracefully when `LLM_API_KEY` is unset): Ask-the-Library RAG chat at `/ask` + `/api/ask` (conversations, citations, PDF attachments, optional agentic web/document tools), semantic search + semantic "related papers", abstract/keyword auto-fill (`/api/upload/generate-abstract-keywords`), and EE metadata extraction (`/api/upload/extract-ee-metadata`). The idea backlog and implementation status live in `LLM_DEPLOYMENT_IDEAS.md`.
+**LLM features** (all degrade gracefully when `LLM_API_KEY` is unset): Ask-the-Library RAG chat at `/ask` + `/api/ask` (conversations, citations, PDF attachments, optional agentic web/document tools), semantic search + semantic "related papers", abstract/keyword auto-fill (`/api/upload/generate-abstract-keywords`), EE metadata extraction (`/api/upload/extract-ee-metadata`, local-only), and IA score/comment extraction (`/api/upload/extract-ia-metadata`, LLM-only — the button is hidden when `LLM_API_KEY` is unset, with no local fallback). The idea backlog and implementation status live in `LLM_DEPLOYMENT_IDEAS.md`.
 
 **Dashboard URL nesting** — authenticated admin routes live under `/dashboard/...` (e.g. `/dashboard/admin/users`, `/dashboard/admin/guides`). Bare `/admin/*` paths exist only as 301-redirect legacy endpoints. Enforced by `test_dashboard_url_nesting_contract.py`.
 
@@ -138,7 +138,7 @@ Self-contained concerns remain factored into satellite modules:
 
 **Data layer** — MySQL via SQLAlchemy ORM with models defined at module level in `models.py`:
 - `LocalUser` / `MsUser` — local password auth and Microsoft Graph OAuth users
-- `PaperMetadataModel` — published papers (JSON fields stored as text: `ib_ee_data`, `cp_data`)
+- `PaperMetadataModel` — published papers (JSON fields stored as text: `ib_ee_data`, `cp_data`, `ia_data`)
 - `PaperChunkModel` — RAG chunk embeddings per published paper (vectors stored as JSON text)
 - `ConversationModel` / `ChatMessageModel` — Ask-the-Library chat history
 - `AttachmentChunkModel` — embeddings for per-conversation uploaded attachments
@@ -151,7 +151,7 @@ Self-contained concerns remain factored into satellite modules:
 
 **Roles** (stored as int in `role` column): 1 = Reader, 2 = Contributor (can upload), 3 = Curator/Admin. Enforced via `require_login(level)`.
 
-**Paper types** — three mutually exclusive categories: independent papers, IB Extended Essay (EE, `is_ib_ee` flag + `ib_ee_data` JSON), and IB Community Project (CP, `is_cp_paper` flag + `cp_data` JSON). Legacy IB sample papers identified by `author_name == "IB SAMPLE"`. Two mutually exclusive author-bypass flags: `is_ib_sample` (EE/CP only, displays an "IB SAMPLE" placeholder) and `is_anonymous` (any type, stores empty author fields and hides the author row everywhere); IB Sample wins server-side if both arrive.
+**Paper types** — four mutually exclusive categories: independent papers, IB Extended Essay (EE, `is_ib_ee` flag + `ib_ee_data` JSON), IB Community Project (CP, `is_cp_paper` flag + `cp_data` JSON), and IB Internal Assessment (IA, `is_ia` flag + `ia_data` JSON). Like EE/CP, the `is_ia` discriminator lives **inside** the JSON blob (no `is_ia` DB column). IA differs from EE in that **marking criteria vary by subject**: each IA subject in `data/ia_subjects.json` owns its own `criteria` list (`{name, max}`), the total max is the sum of those maxes, and the grade is numeric-only (no A–E letter). Criteria are snapshotted into each paper's `ia_data` at submit time; per-criterion `max` + total are computed server-side in `build_ia_data_from_form` (form values ignored — same server-trust rule as EE). Legacy IB sample papers identified by `author_name == "IB SAMPLE"`. Two mutually exclusive author-bypass flags: `is_ib_sample` (non-`standard` types only — EE/CP/IA — displays an "IB SAMPLE" placeholder) and `is_anonymous` (any type, stores empty author fields and hides the author row everywhere); IB Sample wins server-side if both arrive.
 
 **i18n** — Flask-Babel with `en`/`zh` locales. Translation catalogs in `translations/<locale>/LC_MESSAGES/messages.po`. The `_()` gettext function and `_l()` lazy_gettext are used throughout `app.py`. All user-facing LLM output must be bilingual too.
 
@@ -170,7 +170,7 @@ Self-contained concerns remain factored into satellite modules:
 | `static/css/` | Per-page stylesheets (`styles.css`, `dashboard.css`, `ask.css`, `guides.css`, `manage.css`, `resources.css`, `upload.css`) — no build step |
 | `static/js/` | Per-page scripts (`ask.js`, `dashboard.js`, `guides-editor.js`, `upload-wizard.js`) |
 | `static/vendor/` | Bootstrap CSS/JS (manually vendored) |
-| `data/` | JSON configs (paper/news/guide categories, EE subjects); runtime `pending_papers/` |
+| `data/` | JSON configs (paper/news/guide categories, EE subjects, IA subjects + per-subject criteria); runtime `pending_papers/` |
 | `papers/` | Uploaded PDF storage (gitignored) |
 | `resource_files/` | Academic Resources file storage |
 | `tools/` | CLI scripts: user management, translation compilation, embedding backfill |
