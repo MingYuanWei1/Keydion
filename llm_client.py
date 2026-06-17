@@ -22,6 +22,10 @@ def embed_model() -> str:
     return os.environ.get("LLM_EMBED_MODEL") or "gemini-embedding-001"
 
 
+def vision_model() -> str:
+    return os.environ.get("LLM_VISION") or ""
+
+
 def embed_batch_size() -> int:
     """Max inputs per embeddings request. Some providers cap this (DashScope: 10);
     OpenAI allows far more. Tune via LLM_EMBED_BATCH. Defaults to a safe 10."""
@@ -42,6 +46,13 @@ def _embed_credentials() -> tuple[str, str | None]:
     return api_key, base_url
 
 
+def _vision_credentials() -> tuple[str, str | None]:
+    """(api_key, base_url) for the vision provider, falling back to chat vars."""
+    api_key = os.environ.get("LLM_VISION_API_KEY") or os.environ.get("LLM_API_KEY") or ""
+    base_url = os.environ.get("LLM_VISION_BASE_URL") or os.environ.get("LLM_BASE_URL") or None
+    return api_key, base_url
+
+
 def _new_client(api_key: str, base_url):
     from openai import OpenAI  # imported lazily so import errors surface at call time
     return OpenAI(api_key=api_key, base_url=base_url)
@@ -58,3 +69,13 @@ def build_embed_client():
     """Embedding client from LLM_EMBED_* (fallback to chat vars)."""
     api_key, base_url = _embed_credentials()
     return _new_client(api_key, base_url)
+
+
+def build_vision_client():
+    """Vision client from LLM_VISION_* (fallback to chat vars)."""
+    api_key, base_url = _vision_credentials()
+    return _new_client(api_key, base_url)
+
+
+def vision_enabled() -> bool:
+    return bool(vision_model()) and bool(_vision_credentials()[0])

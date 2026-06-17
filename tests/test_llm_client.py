@@ -66,5 +66,47 @@ class LlmClientEmbedConfig(unittest.TestCase):
             self.assertEqual(base, "https://gemini.example/v1beta/openai/")
 
 
+class LlmClientVisionConfig(unittest.TestCase):
+    def test_vision_model_defaults_empty_when_unset(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(llm_client.vision_model(), "")
+
+    def test_vision_model_uses_env(self):
+        with mock.patch.dict(os.environ, {"LLM_VISION": "vqa-x"}, clear=True):
+            self.assertEqual(llm_client.vision_model(), "vqa-x")
+
+    def test_vision_credentials_fall_back_to_chat_vars(self):
+        env = {"LLM_API_KEY": "chatkey", "LLM_BASE_URL": "https://chat.example/v1"}
+        with mock.patch.dict(os.environ, env, clear=True):
+            key, base = llm_client._vision_credentials()
+            self.assertEqual(key, "chatkey")
+            self.assertEqual(base, "https://chat.example/v1")
+
+    def test_vision_credentials_prefer_vision_vars(self):
+        env = {
+            "LLM_API_KEY": "chatkey",
+            "LLM_BASE_URL": "https://chat.example/v1",
+            "LLM_VISION_API_KEY": "viskey",
+            "LLM_VISION_BASE_URL": "https://vis.example/v1",
+        }
+        with mock.patch.dict(os.environ, env, clear=True):
+            key, base = llm_client._vision_credentials()
+            self.assertEqual(key, "viskey")
+            self.assertEqual(base, "https://vis.example/v1")
+
+    def test_vision_enabled_false_without_model(self):
+        with mock.patch.dict(os.environ, {"LLM_API_KEY": "k"}, clear=True):
+            self.assertFalse(llm_client.vision_enabled())
+
+    def test_vision_enabled_false_without_key(self):
+        with mock.patch.dict(os.environ, {"LLM_VISION": "vqa-x"}, clear=True):
+            self.assertFalse(llm_client.vision_enabled())
+
+    def test_vision_enabled_true_with_model_and_key(self):
+        env = {"LLM_VISION": "vqa-x", "LLM_API_KEY": "k"}
+        with mock.patch.dict(os.environ, env, clear=True):
+            self.assertTrue(llm_client.vision_enabled())
+
+
 if __name__ == "__main__":
     unittest.main()
