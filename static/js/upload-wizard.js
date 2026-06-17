@@ -857,6 +857,169 @@
     });
   }
 
+  // ─── IA fieldset ───────────────────────────────────────────
+  function iaGroupsForCombobox() {
+    return ((BOOT.ia_subjects && BOOT.ia_subjects.groups) || []).map(g => ({
+      name: g.name,
+      subjects: (g.subjects || []).map(s => s.name),
+    }));
+  }
+  function iaCriteriaFor(subjectName) {
+    for (const g of ((BOOT.ia_subjects && BOOT.ia_subjects.groups) || [])) {
+      for (const s of (g.subjects || [])) {
+        if (s.name === subjectName) return s.criteria || [];
+      }
+    }
+    return [];
+  }
+
+  function renderIAFieldset() {
+    const criteria = iaCriteriaFor(state.iaSubject);
+    const totalScore = criteria.reduce((s, c, i) => s + (parseInt(state.iaScores[i], 10) || 0), 0);
+    const totalMax = criteria.reduce((s, c) => s + (parseInt(c.max, 10) || 0), 0);
+    const autofill = BOOT.llm_metadata_enabled ? `
+      <div class="ee-autofill">
+        <button type="button" id="iaAutofillBtn" class="btn btn-outline-primary btn-sm" ${state.iaAutofillStatus === 'loading' ? 'disabled' : ''}>
+          ${t('ia_autofill_btn', 'Auto-fill scores from PDF')}
+        </button>
+        <input type="file" id="iaAutofillFile" accept="application/pdf,.pdf" hidden>
+        <span id="iaAutofillStatus" class="ee-autofill__status ee-autofill__status--${state.iaAutofillStatus || 'idle'}">
+          ${esc(state.iaAutofillMessage || '')}
+        </span>
+      </div>` : '';
+
+    const subjectBlock = `
+      <div class="section-sub">${t('ia_subject', 'IA Subject')} <span class="req">*</span></div>
+      <div class="form-grid">
+        <div class="field field--6">
+          <label class="field__label">${t('ia_subject', 'IA Subject')} <span class="req">*</span></label>
+          ${renderCombobox('ia-subject', state.iaSubject, t('select_ia_subject', 'Select an IA subject…'), iaGroupsForCombobox())}
+        </div>
+      </div>`;
+
+    if (state.iaSubject && criteria.length === 0) {
+      return `${autofill}${subjectBlock}
+        <div class="review-missing"><div class="review-missing__head">${t('ia_no_criteria', 'This subject has no assessment criteria configured yet. Choose another subject or ask an administrator to add criteria.')}</div></div>`;
+    }
+
+    const rows = criteria.map((c, i) => `
+      <tr>
+        <td class="crit-name">${esc(c.name)}</td>
+        <td class="crit-score">
+          <span class="crit-score__input">
+            <input type="number" min="0" max="${esc(c.max)}" value="${esc(state.iaScores[i] || '')}" data-ia-score="${i}" placeholder="0">
+            <span class="crit-score__max">/ ${esc(c.max)}</span>
+          </span>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2">
+          <textarea class="textarea" rows="2" data-ia-comment="${i}" placeholder="${t('ia_comment_ph', 'Commentary for this criterion…')}">${esc(state.iaComments[i] || '')}</textarea>
+        </td>
+      </tr>`).join('');
+
+    return `${autofill}${subjectBlock}
+      ${criteria.length ? `
+      <div class="section-sub">${t('crit_scores', 'Criterion Scores')} <span class="req">*</span></div>
+      <table class="crit-table" id="iaCriteria">
+        <thead><tr><th>${t('criterion', 'Criterion')}</th><th style="width:140px;">${t('score', 'Score')}</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="total-readout">
+        <div>
+          <div class="total-readout__label">${t('overall_grade', 'Overall Grade')}</div>
+          <div class="total-readout__sub">${t('overall_ia_sub', 'Calculated server-side from the criteria above')}</div>
+        </div>
+        <div class="total-readout__value"><span id="iaTotal">${totalScore}</span><small>/ <span id="iaTotalMax">${totalMax}</span></small></div>
+      </div>
+      <div class="section-sub" style="margin-top:28px;">${t('holistic_comment', 'Holistic Commentary')} <span class="opt">${t('optional', 'Optional')}</span></div>
+      <div class="field">
+        <textarea class="textarea" rows="3" id="iaHolistic" placeholder="${t('holistic_ph', 'An overall holistic commentary…')}">${esc(state.iaHolistic || '')}</textarea>
+      </div>
+      ` : ''}`;
+  }
+
+  function bindIAFieldset() {
+    const criteria = iaCriteriaFor(state.iaSubject);
+    const recomputeTotal = () => {
+      const el = stepsContainer.querySelector('#iaTotal');
+      if (el) el.textContent = criteria.reduce((s, c, i) => s + (parseInt(state.iaScores[i], 10) || 0), 0);
+    };
+    stepsContainer.querySelectorAll('#iaCriteria input[data-ia-score]').forEach(inp => {
+      inp.addEventListener('input', e => {
+        const i = inp.dataset.iaScore;
+        const max = parseInt(inp.max, 10);
+        let v = parseInt(e.target.value, 10);
+        if (!isNaN(v)) { if (v < 0) v = 0; if (v > max) v = max; }
+        state.iaScores[i] = isNaN(v) ? '' : String(v);
+        recomputeTotal();
+        touch();
+      });
+    });
+    stepsContainer.querySelectorAll('#iaCriteria textarea[data-ia-comment]').forEach(ta => {
+      ta.addEventListener('input', e => { state.iaComments[ta.dataset.iaComment] = e.target.value; touch(); });
+    });
+    const hol = stepsContainer.querySelector('#iaHolistic');
+    if (hol) hol.addEventListener('input', e => { state.iaHolistic = e.target.value; touch(); });
+
+    const autoBtn = stepsContainer.querySelector('#iaAutofillBtn');
+    const autoFile = stepsContainer.querySelector('#iaAutofillFile');
+    if (autoBtn && autoFile) {
+      autoBtn.addEventListener('click', () => autoFile.click());
+      autoFile.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        e.target.value = '';
+        if (!file) return;
+        await runIAAutofill(file);
+      });
+    }
+  }
+
+  async function runIAAutofill(file) {
+    if (state.iaAutofillStatus === 'loading') return;
+    if (!state.iaSubject) {
+      state.iaAutofillStatus = 'error';
+      state.iaAutofillMessage = t('ia_autofill_no_subject', 'Choose an IA subject first.');
+      render();
+      return;
+    }
+    state.iaAutofillStatus = 'loading';
+    state.iaAutofillMessage = t('ia_autofill_extracting', 'Extracting…');
+    render();
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('language', state.language || 'en');
+      form.append('subject', state.iaSubject);
+      const resp = await fetch('/api/upload/extract-ia-metadata', {
+        method: 'POST', body: form, credentials: 'same-origin',
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        state.iaAutofillStatus = 'error';
+        state.iaAutofillMessage = data.error || t('ia_autofill_error', 'Auto-fill failed — try again or fill manually.');
+        render();
+        return;
+      }
+      // data.criteria is a list aligned to the subject's criteria order:
+      // [{score: int|null, comment: str}, ...]
+      (data.criteria || []).forEach((c, i) => {
+        if (c && c.score !== null && c.score !== undefined) state.iaScores[i] = String(c.score);
+        if (c && c.comment) state.iaComments[i] = c.comment;
+      });
+      if (data.holistic_comment) state.iaHolistic = data.holistic_comment;
+      const warnings = data.warnings || [];
+      state.iaAutofillStatus = warnings.length ? 'partial' : 'ok';
+      state.iaAutofillMessage = warnings.length ? warnings.join(' ') : t('ia_autofill_ok', 'Extracted scores.');
+      touch();
+      render();
+    } catch (err) {
+      state.iaAutofillStatus = 'error';
+      state.iaAutofillMessage = t('ia_autofill_error', 'Auto-fill failed — try again or fill manually.');
+      render();
+    }
+  }
+
   // ─── Step 3: Authors ───────────────────────────────────────
   function authorMode() {
     return state.isIbSample ? 'ibsample' : (state.isAnonymous ? 'anonymous' : 'named');
