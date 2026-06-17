@@ -18,9 +18,30 @@ import re
 from pdf_text import extract_pdf_text, PdfTextError
 
 import llm_client
+import vision_read
 
 MAX_PDF_CHARS = 12_000          # bound the prompt size / token cost
 MAX_KEYWORDS = 6
+
+ABSTRACT_SYSTEM_PROMPT_EN = (
+    "You are an academic editor. The images are the rendered pages of a paper. "
+    'Return a JSON object with these keys: "abstract" — a concise summary of at '
+    'most 250 words written in English; "keywords" — an array of 3 to 6 short '
+    'topical keyword strings; "title" — the paper title; and "authors" — an array '
+    'of author full names. Include "title" and "authors" ONLY if you are certain '
+    'they are correct from the pages; otherwise set "title" to null and "authors" '
+    "to []. Return ONLY the JSON object, no prose."
+)
+
+ABSTRACT_SYSTEM_PROMPT_ZH = (
+    "You are an academic editor. The images are the rendered pages of a paper. "
+    'Return a JSON object with these keys: "abstract" — a concise summary of at '
+    'most 250 words written in Chinese; "keywords" — an array of 3 to 6 short '
+    'topical keyword strings; "title" — the paper title; and "authors" — an array '
+    'of author full names. Include "title" and "authors" ONLY if you are certain '
+    'they are correct from the pages; otherwise set "title" to null and "authors" '
+    "to []. Return ONLY the JSON object, no prose."
+)
 
 _log = logging.getLogger(__name__)
 
@@ -157,8 +178,39 @@ def _complete(client, text: str, language: str) -> dict:
             "title": title, "authors": authors, "warnings": warnings}
 
 
+def _result_from_vision(data: dict) -> dict:
+    """Shape a vision extract_with_vision dict like _complete's return value."""
+    warnings: list = []
+    raw_abstract = data.get("abstract")
+    abstract = raw_abstract.strip() if isinstance(raw_abstract, str) else ""
+    keywords = _normalise_keywords(data.get("keywords"))
+    if not abstract:
+        warnings.append("No abstract was generated — please write one manually.")
+    if not keywords:
+        warnings.append("No keywords were generated — please add them manually.")
+    raw_title = data.get("title")
+    title = raw_title.strip() if isinstance(raw_title, str) else ""
+    authors = _normalise_authors(data.get("authors"))
+    return {"abstract": abstract, "keywords": keywords,
+            "title": title, "authors": authors, "warnings": warnings}
+
+
 def generate_abstract_keywords(file_bytes: bytes, language: str = "en") -> dict:
-    """Public entry point: PDF bytes -> {abstract, keywords, warnings}."""
+    """Public entry point: PDF bytes -> {abstract, keywords, title, authors, warnings}.
+
+    Vision-first when a vision model is configured; OCR+text-LLM otherwise.
+    A vision failure falls back to the legacy path rather than hard-erroring.
+    """
+    if not file_bytes:
+        raise LLMMetadataError("Empty file")
+    if llm_client.vision_enabled():
+        prompt = ABSTRACT_SYSTEM_PROMPT_ZH if language == "zh" else ABSTRACT_SYSTEM_PROMPT_EN
+        try:
+            data = vision_read.extract_with_vision(file_bytes, prompt, language=language)
+            return _result_from_vision(data)
+        except vision_read.VisionError:
+            _log.warning("vision abstract extraction failed; falling back to OCR path",
+                         exc_info=True)
     text = _pdf_text_from_bytes(file_bytes, language)
     client = _build_client()
     return _complete(client, text, language)
