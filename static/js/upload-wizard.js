@@ -26,7 +26,7 @@
   // ─── State ─────────────────────────────────────────────────
   const fd = BOOT.form_data || {};
   const state = {
-    paperType: fd.is_ib_ee ? 'ee' : (fd.is_cp_paper ? 'cp' : (fd.title ? 'standard' : '')),
+    paperType: fd.is_ia ? 'ia' : (fd.is_ib_ee ? 'ee' : (fd.is_cp_paper ? 'cp' : (fd.title ? 'standard' : ''))),
     title: fd.title || '',
     language: fd.language || '',
     category: fd.category || '',
@@ -63,6 +63,14 @@
       A: fd.cp_crit_A_score || '', B: fd.cp_crit_B_score || '',
       C: fd.cp_crit_C_score || '', D: fd.cp_crit_D_score || '',
     },
+    // IA
+    iaSubject: fd.ia_subject || '',
+    iaScores: parseIndexed(fd, 'ia_crit_', '_score'),     // { 0: '3', 1: '', ... }
+    iaComments: parseIndexed(fd, 'ia_crit_', '_comment'),
+    iaHolistic: fd.ia_holistic_comment || '',
+    // IA auto-fill UI
+    iaAutofillStatus: '',
+    iaAutofillMessage: '',
     file: null,           // wizard tracks {name, size} only; real input lives in #uploadFormFile
     step: 0,
     visitedSteps: new Set([0]),
@@ -82,6 +90,16 @@
     return names.map((n, i) => ({
       name: n, email: emails[i] || '', school: schools[i] || ''
     }));
+  }
+  function parseIndexed(fd, prefix, suffix) {
+    const out = {};
+    Object.keys(fd || {}).forEach(key => {
+      if (key.startsWith(prefix) && key.endsWith(suffix)) {
+        const i = key.slice(prefix.length, key.length - suffix.length);
+        if (/^\d+$/.test(i)) out[i] = fd[key];
+      }
+    });
+    return out;
   }
 
   // ─── Step shape (dynamic per type / IB Sample) ─────────────
@@ -222,6 +240,11 @@
             t('type_title_cp', 'Community Project (CP)'),
             t('type_body_cp', 'An IB MYP Community Project graded against Criteria A–D, with a Global Context and a chosen type of action.'),
             t('type_meta_cp', 'Title · Global Context · type of action · criteria A–D'))}
+          ${renderTypeCard('ia',
+            t('type_tag_ia', 'IB Diploma'),
+            t('type_title_ia', 'Internal Assessment (IA)'),
+            t('type_body_ia', 'A subject-specific IB Internal Assessment graded against that subject’s assessment criteria.'),
+            t('type_meta_ia', 'Title · IA subject · per-criterion scores'))}
         </div>
       </div>
     `;
@@ -255,13 +278,15 @@
   function renderMetadata() {
     const isEE = state.paperType === 'ee';
     const isCP = state.paperType === 'cp';
-    const isIbType = isEE || isCP;
+    const isIA = state.paperType === 'ia';
+    const isIbType = isEE || isCP || isIA;
     const titleLabel = isEE ? t('research_question', 'Research Question') : t('paper_title', 'Paper Title');
     const titlePlaceholder = isEE
       ? t('research_question_ph', 'e.g. To what extent did monetary policy contribute to the 2008 financial crisis?')
       : t('paper_title_ph', 'Enter the complete paper title');
     const head = isEE ? t('tell_us_ee', 'Tell us about your essay')
       : isCP ? t('tell_us_cp', 'Tell us about your community project')
+      : isIA ? t('tell_us_ia', 'Tell us about your assessment')
       : t('tell_us_std', 'Tell us about your paper');
     const sub = isIbType
       ? t('metadata_sub_ib', 'IB grading information and bibliographic details for the submission.')
@@ -350,6 +375,7 @@
 
         ${isEE ? renderEEFieldset() : ''}
         ${isCP ? renderCPFieldset() : ''}
+        ${isIA ? renderIAFieldset() : ''}
       </div>
     `;
   }
@@ -433,6 +459,7 @@
 
     if (state.paperType === 'ee') bindEEFieldset();
     if (state.paperType === 'cp') bindCPFieldset();   // hooked up in Task 11
+    if (state.paperType === 'ia') bindIAFieldset();
     bindComboboxes();
   }
 
