@@ -26,7 +26,7 @@
   // ─── State ─────────────────────────────────────────────────
   const fd = BOOT.form_data || {};
   const state = {
-    paperType: fd.is_ib_ee ? 'ee' : (fd.is_cp_paper ? 'cp' : (fd.title ? 'standard' : '')),
+    paperType: fd.is_ia ? 'ia' : (fd.is_ib_ee ? 'ee' : (fd.is_cp_paper ? 'cp' : (fd.title ? 'standard' : ''))),
     title: fd.title || '',
     language: fd.language || '',
     category: fd.category || '',
@@ -63,6 +63,14 @@
       A: fd.cp_crit_A_score || '', B: fd.cp_crit_B_score || '',
       C: fd.cp_crit_C_score || '', D: fd.cp_crit_D_score || '',
     },
+    // IA
+    iaSubject: fd.ia_subject || '',
+    iaScores: parseIndexed(fd, 'ia_crit_', '_score'),     // { 0: '3', 1: '', ... }
+    iaComments: parseIndexed(fd, 'ia_crit_', '_comment'),
+    iaHolistic: fd.ia_holistic_comment || '',
+    // IA auto-fill UI
+    iaAutofillStatus: '',
+    iaAutofillMessage: '',
     file: null,           // wizard tracks {name, size} only; real input lives in #uploadFormFile
     step: 0,
     visitedSteps: new Set([0]),
@@ -82,6 +90,16 @@
     return names.map((n, i) => ({
       name: n, email: emails[i] || '', school: schools[i] || ''
     }));
+  }
+  function parseIndexed(fd, prefix, suffix) {
+    const out = {};
+    Object.keys(fd || {}).forEach(key => {
+      if (key.startsWith(prefix) && key.endsWith(suffix)) {
+        const i = key.slice(prefix.length, key.length - suffix.length);
+        if (/^\d+$/.test(i)) out[i] = fd[key];
+      }
+    });
+    return out;
   }
 
   // ─── Step shape (dynamic per type / IB Sample) ─────────────
@@ -222,6 +240,11 @@
             t('type_title_cp', 'Community Project (CP)'),
             t('type_body_cp', 'An IB MYP Community Project graded against Criteria A–D, with a Global Context and a chosen type of action.'),
             t('type_meta_cp', 'Title · Global Context · type of action · criteria A–D'))}
+          ${renderTypeCard('ia',
+            t('type_tag_ia', 'IB Diploma'),
+            t('type_title_ia', 'Internal Assessment (IA)'),
+            t('type_body_ia', 'A subject-specific IB Internal Assessment graded against that subject’s assessment criteria.'),
+            t('type_meta_ia', 'Title · IA subject · per-criterion scores'))}
         </div>
       </div>
     `;
@@ -255,13 +278,15 @@
   function renderMetadata() {
     const isEE = state.paperType === 'ee';
     const isCP = state.paperType === 'cp';
-    const isIbType = isEE || isCP;
+    const isIA = state.paperType === 'ia';
+    const isIbType = isEE || isCP || isIA;
     const titleLabel = isEE ? t('research_question', 'Research Question') : t('paper_title', 'Paper Title');
     const titlePlaceholder = isEE
       ? t('research_question_ph', 'e.g. To what extent did monetary policy contribute to the 2008 financial crisis?')
       : t('paper_title_ph', 'Enter the complete paper title');
     const head = isEE ? t('tell_us_ee', 'Tell us about your essay')
       : isCP ? t('tell_us_cp', 'Tell us about your community project')
+      : isIA ? t('tell_us_ia', 'Tell us about your assessment')
       : t('tell_us_std', 'Tell us about your paper');
     const sub = isIbType
       ? t('metadata_sub_ib', 'IB grading information and bibliographic details for the submission.')
@@ -350,6 +375,7 @@
 
         ${isEE ? renderEEFieldset() : ''}
         ${isCP ? renderCPFieldset() : ''}
+        ${isIA ? renderIAFieldset() : ''}
       </div>
     `;
   }
@@ -433,6 +459,7 @@
 
     if (state.paperType === 'ee') bindEEFieldset();
     if (state.paperType === 'cp') bindCPFieldset();   // hooked up in Task 11
+    if (state.paperType === 'ia') bindIAFieldset();
     bindComboboxes();
   }
 
@@ -830,6 +857,169 @@
     });
   }
 
+  // ─── IA fieldset ───────────────────────────────────────────
+  function iaGroupsForCombobox() {
+    return ((BOOT.ia_subjects && BOOT.ia_subjects.groups) || []).map(g => ({
+      name: g.name,
+      subjects: (g.subjects || []).map(s => s.name),
+    }));
+  }
+  function iaCriteriaFor(subjectName) {
+    for (const g of ((BOOT.ia_subjects && BOOT.ia_subjects.groups) || [])) {
+      for (const s of (g.subjects || [])) {
+        if (s.name === subjectName) return s.criteria || [];
+      }
+    }
+    return [];
+  }
+
+  function renderIAFieldset() {
+    const criteria = iaCriteriaFor(state.iaSubject);
+    const totalScore = criteria.reduce((s, c, i) => s + (parseInt(state.iaScores[i], 10) || 0), 0);
+    const totalMax = criteria.reduce((s, c) => s + (parseInt(c.max, 10) || 0), 0);
+    const autofill = BOOT.llm_metadata_enabled ? `
+      <div class="ee-autofill">
+        <button type="button" id="iaAutofillBtn" class="btn btn-outline-primary btn-sm" ${state.iaAutofillStatus === 'loading' ? 'disabled' : ''}>
+          ${t('ia_autofill_btn', 'Auto-fill scores from PDF')}
+        </button>
+        <input type="file" id="iaAutofillFile" accept="application/pdf,.pdf" hidden>
+        <span id="iaAutofillStatus" class="ee-autofill__status ee-autofill__status--${state.iaAutofillStatus || 'idle'}">
+          ${esc(state.iaAutofillMessage || '')}
+        </span>
+      </div>` : '';
+
+    const subjectBlock = `
+      <div class="section-sub">${t('ia_subject', 'IA Subject')} <span class="req">*</span></div>
+      <div class="form-grid">
+        <div class="field field--6">
+          <label class="field__label">${t('ia_subject', 'IA Subject')} <span class="req">*</span></label>
+          ${renderCombobox('ia-subject', state.iaSubject, t('select_ia_subject', 'Select an IA subject…'), iaGroupsForCombobox())}
+        </div>
+      </div>`;
+
+    if (state.iaSubject && criteria.length === 0) {
+      return `${autofill}${subjectBlock}
+        <div class="review-missing"><div class="review-missing__head">${t('ia_no_criteria', 'This subject has no assessment criteria configured yet. Choose another subject or ask an administrator to add criteria.')}</div></div>`;
+    }
+
+    const rows = criteria.map((c, i) => `
+      <tr>
+        <td class="crit-name">${esc(c.name)}</td>
+        <td class="crit-score">
+          <span class="crit-score__input">
+            <input type="number" min="0" max="${esc(c.max)}" value="${esc(state.iaScores[i] || '')}" data-ia-score="${i}" placeholder="0">
+            <span class="crit-score__max">/ ${esc(c.max)}</span>
+          </span>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2">
+          <textarea class="textarea" rows="2" data-ia-comment="${i}" placeholder="${t('ia_comment_ph', 'Commentary for this criterion…')}">${esc(state.iaComments[i] || '')}</textarea>
+        </td>
+      </tr>`).join('');
+
+    return `${autofill}${subjectBlock}
+      ${criteria.length ? `
+      <div class="section-sub">${t('crit_scores', 'Criterion Scores')} <span class="req">*</span></div>
+      <table class="crit-table" id="iaCriteria">
+        <thead><tr><th>${t('criterion', 'Criterion')}</th><th style="width:140px;">${t('score', 'Score')}</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="total-readout">
+        <div>
+          <div class="total-readout__label">${t('overall_grade', 'Overall Grade')}</div>
+          <div class="total-readout__sub">${t('overall_ia_sub', 'Calculated server-side from the criteria above')}</div>
+        </div>
+        <div class="total-readout__value"><span id="iaTotal">${totalScore}</span><small>/ <span id="iaTotalMax">${totalMax}</span></small></div>
+      </div>
+      <div class="section-sub" style="margin-top:28px;">${t('holistic_comment', 'Holistic Commentary')} <span class="opt">${t('optional', 'Optional')}</span></div>
+      <div class="field">
+        <textarea class="textarea" rows="3" id="iaHolistic" placeholder="${t('holistic_ph', 'An overall holistic commentary…')}">${esc(state.iaHolistic || '')}</textarea>
+      </div>
+      ` : ''}`;
+  }
+
+  function bindIAFieldset() {
+    const criteria = iaCriteriaFor(state.iaSubject);
+    const recomputeTotal = () => {
+      const el = stepsContainer.querySelector('#iaTotal');
+      if (el) el.textContent = criteria.reduce((s, c, i) => s + (parseInt(state.iaScores[i], 10) || 0), 0);
+    };
+    stepsContainer.querySelectorAll('#iaCriteria input[data-ia-score]').forEach(inp => {
+      inp.addEventListener('input', e => {
+        const i = inp.dataset.iaScore;
+        const max = parseInt(inp.max, 10);
+        let v = parseInt(e.target.value, 10);
+        if (!isNaN(v)) { if (v < 0) v = 0; if (v > max) v = max; }
+        state.iaScores[i] = isNaN(v) ? '' : String(v);
+        recomputeTotal();
+        touch();
+      });
+    });
+    stepsContainer.querySelectorAll('#iaCriteria textarea[data-ia-comment]').forEach(ta => {
+      ta.addEventListener('input', e => { state.iaComments[ta.dataset.iaComment] = e.target.value; touch(); });
+    });
+    const hol = stepsContainer.querySelector('#iaHolistic');
+    if (hol) hol.addEventListener('input', e => { state.iaHolistic = e.target.value; touch(); });
+
+    const autoBtn = stepsContainer.querySelector('#iaAutofillBtn');
+    const autoFile = stepsContainer.querySelector('#iaAutofillFile');
+    if (autoBtn && autoFile) {
+      autoBtn.addEventListener('click', () => autoFile.click());
+      autoFile.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        e.target.value = '';
+        if (!file) return;
+        await runIAAutofill(file);
+      });
+    }
+  }
+
+  async function runIAAutofill(file) {
+    if (state.iaAutofillStatus === 'loading') return;
+    if (!state.iaSubject) {
+      state.iaAutofillStatus = 'error';
+      state.iaAutofillMessage = t('ia_autofill_no_subject', 'Choose an IA subject first.');
+      render();
+      return;
+    }
+    state.iaAutofillStatus = 'loading';
+    state.iaAutofillMessage = t('ia_autofill_extracting', 'Extracting…');
+    render();
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('language', state.language || 'en');
+      form.append('subject', state.iaSubject);
+      const resp = await fetch('/api/upload/extract-ia-metadata', {
+        method: 'POST', body: form, credentials: 'same-origin',
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        state.iaAutofillStatus = 'error';
+        state.iaAutofillMessage = data.error || t('ia_autofill_error', 'Auto-fill failed — try again or fill manually.');
+        render();
+        return;
+      }
+      // data.criteria is a list aligned to the subject's criteria order:
+      // [{score: int|null, comment: str}, ...]
+      (data.criteria || []).forEach((c, i) => {
+        if (c && c.score !== null && c.score !== undefined) state.iaScores[i] = String(c.score);
+        if (c && c.comment) state.iaComments[i] = c.comment;
+      });
+      if (data.holistic_comment) state.iaHolistic = data.holistic_comment;
+      const warnings = data.warnings || [];
+      state.iaAutofillStatus = warnings.length ? 'partial' : 'ok';
+      state.iaAutofillMessage = warnings.length ? warnings.join(' ') : t('ia_autofill_ok', 'Extracted scores.');
+      touch();
+      render();
+    } catch (err) {
+      state.iaAutofillStatus = 'error';
+      state.iaAutofillMessage = t('ia_autofill_error', 'Auto-fill failed — try again or fill manually.');
+      render();
+    }
+  }
+
   // ─── Step 3: Authors ───────────────────────────────────────
   function authorMode() {
     return state.isIbSample ? 'ibsample' : (state.isAnonymous ? 'anonymous' : 'named');
@@ -1005,6 +1195,22 @@
         if (v === '' || v == null) missing.push({ label: t('cp_score_x', 'CP criterion score %(k)s', { k }), step: stepIdx('metadata') });
       });
     }
+    if (state.paperType === 'ia') {
+      const steps2 = getSteps();
+      const mIdx = steps2.findIndex(s => s.id === 'metadata');
+      if (!state.iaSubject) {
+        missing.push({ label: t('ia_subject', 'IA subject'), step: mIdx });
+      } else {
+        const crit = iaCriteriaFor(state.iaSubject);
+        if (crit.length === 0) {
+          missing.push({ label: t('ia_no_criteria_short', 'IA subject has no criteria'), step: mIdx });
+        }
+        crit.forEach((c, i) => {
+          const v = state.iaScores[i];
+          if (v === '' || v == null) missing.push({ label: t('ia_score_x', 'IA criterion score %(k)s', { k: i + 1 }), step: mIdx });
+        });
+      }
+    }
     if (!state.file) missing.push({ label: t('pdf_file', 'PDF file'), step: stepIdx('file') });
     return missing.filter(m => m.step >= 0);
   }
@@ -1016,6 +1222,7 @@
     const typeName = state.paperType === 'standard' ? t('type_standard', 'Independent Research Paper')
       : state.paperType === 'ee' ? t('type_ee', 'IB Extended Essay')
       : state.paperType === 'cp' ? t('type_cp', 'IB Community Project')
+      : state.paperType === 'ia' ? t('type_ia', 'IB Internal Assessment')
       : '—';
     const langName = state.language === 'en' ? t('english', 'English')
       : state.language === 'zh' ? t('chinese', 'Chinese') : '';
@@ -1093,6 +1300,7 @@
 
         ${state.paperType === 'ee' ? renderReviewEE(idx('metadata')) : ''}
         ${state.paperType === 'cp' ? renderReviewCP(idx('metadata')) : ''}
+        ${state.paperType === 'ia' ? renderReviewIA(idx('metadata')) : ''}
 
         <div class="review-section">
           <div class="review-section__head">
@@ -1152,6 +1360,24 @@
     `;
   }
 
+  function renderReviewIA(jumpIdx) {
+    const criteria = iaCriteriaFor(state.iaSubject);
+    const totalScore = criteria.reduce((s, c, i) => s + (parseInt(state.iaScores[i], 10) || 0), 0);
+    const totalMax = criteria.reduce((s, c) => s + (parseInt(c.max, 10) || 0), 0);
+    return `
+      <div class="review-section">
+        <div class="review-section__head">
+          <div class="review-section__title">${t('ia_details', 'IA Details')}</div>
+          <button type="button" class="review-section__edit" data-jump="${jumpIdx}">${t('edit', 'Edit')}</button>
+        </div>
+        <dl class="review-grid">
+          <dt>${t('ia_subject', 'IA Subject')}</dt><dd${state.iaSubject ? '' : ' class="is-missing"'}>${esc(state.iaSubject) || t('not_chosen', 'Not chosen')}</dd>
+          ${criteria.map((c, i) => `<dt>${esc(c.name)}</dt><dd>${state.iaScores[i] || 0} / ${esc(c.max)}</dd>`).join('')}
+          <dt>${t('total', 'Total')}</dt><dd><strong>${totalScore} / ${totalMax}</strong></dd>
+        </dl>
+      </div>`;
+  }
+
   function bindReview() {
     stepsContainer.querySelectorAll('[data-jump]').forEach(b => {
       b.addEventListener('click', () => goToStep(parseInt(b.dataset.jump, 10)));
@@ -1175,6 +1401,7 @@
 
     if (state.paperType === 'ee') add('is_ib_ee', '1');
     if (state.paperType === 'cp') add('is_cp_paper', '1');
+    if (state.paperType === 'ia') add('is_ia', '1');
     if (state.isIbSample && state.paperType !== 'standard') add('is_ib_sample', '1');
     if (!state.isIbSample && state.isAnonymous) add('is_anonymous', '1');
 
@@ -1210,6 +1437,16 @@
       add('cp_global_context', state.cpGlobalContext);
       state.cpActionTypes.forEach(a => add('cp_action_type', a));
       ['A', 'B', 'C', 'D'].forEach(k => add(`cp_crit_${k}_score`, state.cpScores[k] || '0'));
+    }
+
+    if (state.paperType === 'ia') {
+      add('ia_subject', state.iaSubject);
+      const crit = iaCriteriaFor(state.iaSubject);
+      crit.forEach((c, i) => {
+        add(`ia_crit_${i}_score`, state.iaScores[i] || '0');
+        add(`ia_crit_${i}_comment`, state.iaComments[i] || '');
+      });
+      add('ia_holistic_comment', state.iaHolistic || '');
     }
 
     (extraInputs || []).forEach(([n, v]) => add(n, v));
@@ -1458,6 +1695,15 @@
             state.eeInterSubject = value;
           } else if (id === 'cp-global') {
             state.cpGlobalContext = value;
+          } else if (id === 'ia-subject') {
+            if (state.iaSubject !== value) {
+              state.iaSubject = value;
+              state.iaScores = {};
+              state.iaComments = {};
+              touch();
+              renderStep();   // rebuild the dynamic criteria table for the new subject
+              return;
+            }
           }
           labelEl.textContent = value;
           labelEl.classList.remove('placeholder');

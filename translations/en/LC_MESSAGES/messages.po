@@ -1,18 +1,18 @@
-
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: Keydion 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-14 02:40+0800\n"
+"POT-Creation-Date: 2026-06-17 23:44+0800\n"
 "PO-Revision-Date: 2025-10-11 00:00+0000\n"
 "Last-Translator: \n"
-"Language: en\n"
 "Language-Team: English\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Language: en\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Generated-By: Babel 2.18.0\n"
 
 # ==================== AUTH FLASH MESSAGES ====================
 #: /Users/mingyuanw/Desktop/Project/Keydion/app.py:260
@@ -30,7 +30,8 @@ msgstr "Invalid username or password"
 #: /Users/mingyuanw/Desktop/Project/Keydion/app.py:294
 #: /Users/mingyuanw/Desktop/Project/Keydion/app.py:310
 msgid "Microsoft sign-in is not configured. Please contact the administrator."
-msgstr "Microsoft sign-in is not configured. Please contact the administrator."
+msgstr ""
+"Microsoft sign-in is not configured. Please contact the administrator."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/app.py:286
 msgid "Email-based registration is disabled. Please sign in with Microsoft."
@@ -48,42 +49,36 @@ msgid "Microsoft sign-in failed: %(reason)s"
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/app.py:324
-#, fuzzy
 msgid "Microsoft sign-in failed. Please try again."
-msgstr "Microsoft sign-in is not configured. Please contact the administrator."
+msgstr "Microsoft sign-in failed. Please try again."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/app.py:339
-#, fuzzy
 msgid "Microsoft sign-in did not return a valid profile."
-msgstr "Microsoft sign-in is not configured yet."
+msgstr "Microsoft sign-in did not return a valid profile."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/app.py:368
 msgid "Signed out successfully."
 msgstr "Signed out successfully."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/app.py:379
-#, fuzzy
 msgid "Unable to load your profile. Please sign in again."
-msgstr "Session timed out. Please sign in again."
+msgstr "Unable to load your profile. Please sign in again."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/app.py:387
-#, fuzzy
 msgid "Please enter your first and last name."
-msgstr "Please enter the author name"
+msgstr "Please enter your first and last name."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/app.py:402
-#, fuzzy
 msgid "Profile saved successfully."
-msgstr "Signed out successfully."
+msgstr "Profile saved successfully."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/app.py:441
 msgid "Current password is incorrect."
 msgstr "Current password is incorrect."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/app.py:445
-#, fuzzy
 msgid "Please enter a new password."
-msgstr "Please enter the abstract"
+msgstr "Please enter a new password."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/app.py:448
 msgid "Passwords do not match."
@@ -195,15 +190,13 @@ msgstr "Language not supported."
 #: /Users/mingyuanw/Desktop/Project/Keydion/app.py:748
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/news.py:257
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/news.py:306
-#, fuzzy
 msgid "Category name is required."
-msgstr "Journal name is required."
+msgstr "Category name is required."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/app.py:708
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/news.py:260
-#, fuzzy
 msgid "Category already exists."
-msgstr "Journal already exists."
+msgstr "Category already exists."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/app.py:722
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/news.py:274
@@ -214,99 +207,74 @@ msgstr ""
 #: /Users/mingyuanw/Desktop/Project/Keydion/app.py:751
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/news.py:277
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/news.py:309
-#, fuzzy
 msgid "Category not found."
-msgstr "Paper not found."
+msgstr "Category not found."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/app.py:727
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/news.py:279
-#, fuzzy
 msgid "A category with that name already exists."
-msgstr "A journal with that name already exists."
+msgstr "A category with that name already exists."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/app.py:765
-#: /Users/mingyuanw/Desktop/Project/Keydion/app.py:785
-msgid "Group ID and subject name are required."
-msgstr ""
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/app.py:770
-msgid "Subject already exists in this group."
-msgstr ""
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/app.py:774
-#: /Users/mingyuanw/Desktop/Project/Keydion/app.py:796
-#, fuzzy
-msgid "Group not found."
-msgstr "Guide not found."
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/app.py:790
-msgid "Subject not found in this group."
-msgstr ""
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/config.py:190
+#: /Users/mingyuanw/Desktop/Project/Keydion/config.py:285
 #, fuzzy
 msgid "Please enter the paper title"
 msgstr "Please enter the paper title"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/config.py:191
+#: /Users/mingyuanw/Desktop/Project/Keydion/config.py:286
 #, fuzzy
 msgid "Please select a subject category"
 msgstr "Please select a category..."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/config.py:192
+#: /Users/mingyuanw/Desktop/Project/Keydion/config.py:287
 #, fuzzy
 msgid "Please select a language"
 msgstr "Please select a language"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/config.py:193
-#, fuzzy
+#: /Users/mingyuanw/Desktop/Project/Keydion/config.py:288
 msgid "Please enter keywords"
-msgstr "Please enter the abstract"
+msgstr "Please enter keywords"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/config.py:194
+#: /Users/mingyuanw/Desktop/Project/Keydion/config.py:289
 #, fuzzy
 msgid "Please enter the abstract"
 msgstr "Please enter the abstract"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/config.py:195
-#, fuzzy
+#: /Users/mingyuanw/Desktop/Project/Keydion/config.py:290
 msgid "Please enter the author name"
-msgstr "Please enter the abstract"
+msgstr "Please enter the author name"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/config.py:196
-#, fuzzy
+#: /Users/mingyuanw/Desktop/Project/Keydion/config.py:291
 msgid "Please enter the contact email"
-msgstr "Please enter the paper title"
+msgstr "Please enter the contact email"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/config.py:197
-#, fuzzy
+#: /Users/mingyuanw/Desktop/Project/Keydion/config.py:292
 msgid "Please enter the school name"
-msgstr "Please enter a slug."
+msgstr "Please enter the school name"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/config.py:225
+#: /Users/mingyuanw/Desktop/Project/Keydion/config.py:320
 msgid "Reader - View & Download"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/config.py:226
+#: /Users/mingyuanw/Desktop/Project/Keydion/config.py:321
 msgid "Contributor - Upload Enabled"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/config.py:227
+#: /Users/mingyuanw/Desktop/Project/Keydion/config.py:322
 msgid "Curator - Full Access"
 msgstr ""
 
 # ==================== LANGUAGE ====================
-#: /Users/mingyuanw/Desktop/Project/Keydion/config.py:230
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:108
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:69
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:99
+#: /Users/mingyuanw/Desktop/Project/Keydion/config.py:325
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:134
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:71
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:115
 msgid "English"
 msgstr "English"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/config.py:231
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:109
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:67
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:98
+#: /Users/mingyuanw/Desktop/Project/Keydion/config.py:326
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:135
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:69
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:114
 msgid "Chinese"
 msgstr "Chinese"
 
@@ -328,15 +296,15 @@ msgid "Find papers about machine learning in healthcare."
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:87
-msgid "Ask a question and I'll answer from the published library, with citations."
+msgid ""
+"Ask a question and I'll answer from the published library, with citations."
 msgstr ""
 
 # ==================== ADMIN USER MANAGEMENT ====================
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:88
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ai.html:80
-#, fuzzy
 msgid "Message Keydion AI…"
-msgstr "User Management - Keydion"
+msgstr "Message Keydion AI…"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:89
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ai.html:100
@@ -362,40 +330,34 @@ msgid "Copy"
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:94
-#, fuzzy
 msgid "Regenerate"
-msgstr "Rename"
+msgstr "Regenerate"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:95
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/category_manage.html:103
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/category_manage.html:184
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:509
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:818
 msgid "Rename"
 msgstr "Rename"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:96
-#, fuzzy
 msgid "Today"
-msgstr "Body"
+msgstr "Today"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:97
 msgid "Yesterday"
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:98
-#, fuzzy
 msgid "Previous 7 days"
-msgstr "No previous guide"
+msgstr "Previous 7 days"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:99
-#, fuzzy
 msgid "Older"
-msgstr "Role"
+msgstr "Older"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:100
-#, fuzzy
 msgid "No conversations match."
-msgstr "Manage Collection"
+msgstr "No conversations match."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:101
 msgid "Thinking…"
@@ -404,17 +366,15 @@ msgstr ""
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:102
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:270
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:659
-#, fuzzy
 msgid "Something went wrong. Please try again."
-msgstr "Session expired. Please sign in again."
+msgstr "Something went wrong. Please try again."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:103
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:224
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:289
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ai.html:42
-#, fuzzy
 msgid "AI assistant is not configured."
-msgstr "Microsoft sign-in is not configured yet."
+msgstr "AI assistant is not configured."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:104
 #, fuzzy
@@ -426,7 +386,8 @@ msgid "Searched the web"
 msgstr "Searched the web"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:106
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:383
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:155
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:405
 #, fuzzy
 msgid "selected"
 msgstr "None selected"
@@ -437,17 +398,17 @@ msgid "Select papers to attach as citations"
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:108
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:117
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:80
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:290
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:143
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:82
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:384
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/review_paper.html:33
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/submission_detail.html:30
 msgid "Abstract"
 msgstr "Abstract"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:109
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:295
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:248
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:389
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:274
 msgid "No abstract available."
 msgstr "No abstract available."
 
@@ -460,14 +421,12 @@ msgstr ""
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:142
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:354
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ai.html:48
-#, fuzzy
 msgid "New conversation"
-msgstr "Manage Collection"
+msgstr "New conversation"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:161
-#, fuzzy
 msgid "Not found"
-msgstr "Paper not found."
+msgstr "Not found"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:233
 msgid "Conversation not found."
@@ -479,8 +438,9 @@ msgid "Too many requests — please slow down."
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:251
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:575
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:598
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:631
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:654
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:678
 msgid "No file provided"
 msgstr "No file provided"
 
@@ -501,9 +461,8 @@ msgid "No readable text found in the file."
 msgstr "No readable text found in the file."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:332
-#, fuzzy
 msgid "Please enter a question."
-msgstr "Please enter the paper title"
+msgstr "Please enter a question."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:334
 msgid "Your question is too long."
@@ -582,9 +541,8 @@ msgstr "Please enter the abstract"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/news.py:105
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/news.py:193
-#, fuzzy
 msgid "Please write the article body."
-msgstr "Please enter the paper title"
+msgstr "Please write the article body."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/news.py:118
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/news.py:204
@@ -597,79 +555,96 @@ msgid "Draft saved."
 msgstr "Draft saved."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/news.py:141
-#, fuzzy
 msgid "Article published successfully."
-msgstr "Signed out successfully."
+msgstr "Article published successfully."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/news.py:161
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/news.py:238
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/news.py:357
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/news.py:366
-#, fuzzy
 msgid "Article not found."
-msgstr "Paper not found."
+msgstr "Article not found."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/news.py:219
-#, fuzzy
 msgid "Article updated."
-msgstr "Role updated."
+msgstr "Article updated."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/news.py:236
-#, fuzzy
 msgid "Article deleted."
-msgstr "Local user deleted."
+msgstr "Article deleted."
 
 # ==================== SEARCH ====================
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:73
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:88
 msgid "Enter a keyword to search."
 msgstr "Enter a keyword to search."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:138
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:160
 msgid "No matching papers found."
 msgstr "No matching papers found."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:310
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:468
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:486
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:346
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:517
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:535
 msgid "Paper not found."
 msgstr "Paper not found."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:408
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:423
-msgid "A paper cannot be both an Extended Essay and a CP Paper."
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:448
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:468
+msgid ""
+"A paper can only be one of: Extended Essay, Community Project, or Internal "
+"Assessment."
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:411
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:428
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:451
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:473
 #, fuzzy
 msgid "Please select an EE core subject."
 msgstr "Select a core subject…"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:414
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:433
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:454
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:478
 #, fuzzy
 msgid "Please select a Global Context."
 msgstr "Select a Global Context…"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:417
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:436
-#, fuzzy
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:457
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:481
 msgid "Please select at least one Type of Action."
-msgstr "Please select a file to upload"
+msgstr "Please select at least one Type of Action."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:426
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:462
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:486
+msgid "Please select an IA subject."
+msgstr "Please select an IA subject."
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:465
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:489
+msgid "The selected IA subject has no assessment criteria configured."
+msgstr "The selected IA subject has no assessment criteria configured."
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:474
 #, fuzzy
 msgid "A file with the new name already exists, unable to rename."
 msgstr "A file with this name already exists"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:451
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:500
 msgid "Paper information updated."
 msgstr "Paper information updated."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:473
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:522
 #, python-format
 msgid "Deleted %(filename)s."
 msgstr "Deleted %(filename)s."
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:679
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:712
+msgid "Please fix the highlighted fields before saving."
+msgstr ""
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:687
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:720
+msgid "Some subjects are still used by papers."
+msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/resources.py:89
 msgid "Folder not found."
@@ -732,122 +707,122 @@ msgid "Submission not found."
 msgstr "Submission not found."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/submissions.py:70
-#, fuzzy
 msgid "Submission deleted."
-msgstr "Submission Details"
+msgstr "Submission deleted."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/submissions.py:163
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/submissions.py:225
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/submissions.py:226
 msgid "Submission not found or already reviewed."
 msgstr "Submission not found or already reviewed."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/submissions.py:210
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/submissions.py:211
 msgid "Paper accepted and published."
 msgstr "Paper accepted and published."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/submissions.py:242
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/submissions.py:243
 msgid "Paper rejected."
 msgstr "Paper rejected."
 
 # ==================== UPLOAD WIZARD (JS) ====================
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:71
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:174
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:78
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:200
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:14
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:51
 msgid "Paper Type"
 msgstr "Paper Type"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:72
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:195
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:79
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:221
 msgid "Metadata"
 msgstr "Metadata"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:73
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:207
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:80
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:233
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/landing.html:671
 msgid "Authors"
 msgstr "Authors"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:74
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:209
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:81
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:235
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/resource_manage.html:98
 msgid "File"
 msgstr "File"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:75
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:82
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:80
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/review_list.html:84
 msgid "Review"
 msgstr "Review"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:76
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:83
 #, python-format
 msgid "Step %(n)s"
 msgstr "Step %(n)s"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:77
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:84
 msgid "Submit Paper"
 msgstr "Submit Paper"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:78
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:85
 msgid "Continue →"
 msgstr "Continue →"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:79
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:86
 msgid "← Back"
 msgstr "← Back"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:80
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:87
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:974
 msgid "Save Draft"
 msgstr "Save Draft"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:81
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:88
 msgid "Choose paper type"
 msgstr "Choose paper type"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:82
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:89
 msgid "What kind of paper are you submitting?"
 msgstr "What kind of paper are you submitting?"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:83
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:90
 msgid ""
-"The fields you'll be asked for next depend on this. You can come back and"
-" change it before submitting."
+"The fields you'll be asked for next depend on this. You can come back and "
+"change it before submitting."
 msgstr ""
-"The fields you'll be asked for next depend on this. You can come back and"
-" change it before submitting."
+"The fields you'll be asked for next depend on this. You can come back and "
+"change it before submitting."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:84
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:20
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:314
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:57
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:239
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:91
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:21
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:336
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:58
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:265
 msgid "Independent Research"
 msgstr "Independent Research"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:85
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:92
 msgid "Standard Paper"
 msgstr "Standard Paper"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:86
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:93
 msgid "A self-directed research paper, conference paper, or article."
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:87
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:94
 msgid "Title · authors · abstract · subject"
 msgstr "Title · authors · abstract · subject"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:88
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:92
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:95
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:99
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:103
 msgid "IB Diploma"
 msgstr "IB Diploma"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:89
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:96
 msgid "Extended Essay (EE)"
 msgstr "Extended Essay (EE)"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:90
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:97
 msgid ""
 "A 4,000-word IB Diploma research essay with structured criterion scores "
 "(A–E) and an EE subject from the six IB subject groups."
@@ -855,15 +830,15 @@ msgstr ""
 "A 4,000-word IB Diploma research essay with structured criterion scores "
 "(A–E) and an EE subject from the six IB subject groups."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:91
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:98
 msgid "Research Question · EE subject · criterion scores A–E"
 msgstr "Research Question · EE subject · criterion scores A–E"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:93
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:100
 msgid "Community Project (CP)"
 msgstr "Community Project (CP)"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:94
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:101
 msgid ""
 "An IB MYP Community Project graded against Criteria A–D, with a Global "
 "Context and a chosen type of action."
@@ -871,21 +846,111 @@ msgstr ""
 "An IB MYP Community Project graded against Criteria A–D, with a Global "
 "Context and a chosen type of action."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:95
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:102
 msgid "Title · Global Context · type of action · criteria A–D"
 msgstr "Title · Global Context · type of action · criteria A–D"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:96
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:104
+msgid "Internal Assessment (IA)"
+msgstr "Internal Assessment (IA)"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:105
+msgid ""
+"A subject-specific IB Internal Assessment graded against that subject's "
+"assessment criteria."
+msgstr ""
+"A subject-specific IB Internal Assessment graded against that subject's "
+"assessment criteria."
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:106
+msgid "Title · IA subject · per-criterion scores"
+msgstr "Title · IA subject · per-criterion scores"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:107
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:290
+msgid "IB Internal Assessment"
+msgstr "IB Internal Assessment"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:108
+msgid "Tell us about your assessment"
+msgstr "Tell us about your assessment"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:109
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:60
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:244
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:314
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:81
+msgid "IA Subject"
+msgstr "IA Subject"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:110
+msgid "Select an IA subject…"
+msgstr "Select an IA subject…"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:111
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:168
+msgid "Calculated server-side from the criteria above"
+msgstr "Calculated server-side from the criteria above"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:112
+msgid "IA Details"
+msgstr "IA Details"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:113
+#, python-format
+msgid "IA criterion score %(k)s"
+msgstr "IA criterion score %(k)s"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:114
+msgid ""
+"This subject has no assessment criteria configured yet. Choose another "
+"subject or ask an administrator to add criteria."
+msgstr ""
+"This subject has no assessment criteria configured yet. Choose another "
+"subject or ask an administrator to add criteria."
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:115
+msgid "IA subject has no criteria"
+msgstr "IA subject has no criteria"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:116
+msgid "Commentary for this criterion…"
+msgstr "Commentary for this criterion…"
+
+# ==================== EE PDF AUTO-FILL ====================
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:117
+msgid "Auto-fill scores from PDF"
+msgstr "Auto-fill scores from PDF"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:118
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:251
+msgid "Extracting…"
+msgstr "Extracting…"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:119
+msgid "Extracted scores."
+msgstr "Extracted scores."
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:120
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:254
+msgid "Auto-fill failed — try again or fill manually."
+msgstr "Auto-fill failed — try again or fill manually."
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:121
+msgid "Choose an IA subject first."
+msgstr "Choose an IA subject first."
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:122
 msgid "Research Question"
 msgstr "Research Question"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:97
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:123
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/my_submissions.html:25
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/review_list.html:50
 msgid "Paper Title"
 msgstr "Paper Title"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:98
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:124
 msgid ""
 "e.g. To what extent did monetary policy contribute to the 2008 financial "
 "crisis?"
@@ -893,418 +958,424 @@ msgstr ""
 "e.g. To what extent did monetary policy contribute to the 2008 financial "
 "crisis?"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:99
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:125
 msgid "Enter the complete paper title"
 msgstr "Enter the complete paper title"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:100
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:126
 msgid "Tell us about your essay"
 msgstr "Tell us about your essay"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:101
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:127
 msgid "Tell us about your community project"
 msgstr "Tell us about your community project"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:102
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:128
 msgid "Tell us about your paper"
 msgstr "Tell us about your paper"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:103
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:129
 msgid "IB grading information and bibliographic details for the submission."
 msgstr "IB grading information and bibliographic details for the submission."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:104
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:130
 msgid "Bibliographic information that will appear on the public paper page."
 msgstr "Bibliographic information that will appear on the public paper page."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:105
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:131
 msgid "Paper details"
 msgstr "Paper details"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:106
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:132
 msgid "Bibliographic"
 msgstr "Bibliographic"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:107
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:63
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:94
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:133
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:65
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:110
 msgid "Language"
 msgstr "Language"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:110
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:136
 msgid "Subject Category"
 msgstr "Subject Category"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:111
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:137
 msgid "Choose a subject category…"
 msgstr "Choose a subject category…"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:112
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:74
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:317
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:138
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:76
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:411
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/review_paper.html:30
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/submission_detail.html:27
 msgid "Keywords"
 msgstr "Keywords"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:113
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:139
 msgid "Add another…"
 msgstr "Add another…"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:114
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:140
 msgid "Type a keyword and press Enter"
 msgstr "Type a keyword and press Enter"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:115
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:141
 msgid "Press Enter or comma to add. Aim for 3–6 keywords."
 msgstr "Press Enter or comma to add. Aim for 3–6 keywords."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:116
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:142
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:102
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:139
 msgid "added"
 msgstr "added"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:118
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:144
 msgid "Briefly describe your research background, methods, and conclusions…"
 msgstr "Briefly describe your research background, methods, and conclusions…"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:119
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:145
 msgid "A short summary that appears in search results."
 msgstr "A short summary that appears in search results."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:120
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:92
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:146
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:94
 msgid "This is an IB Sample Paper"
 msgstr "This is an IB Sample Paper"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:121
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:147
 msgid "Sample papers are reference essays without an identified author."
 msgstr "Sample papers are reference essays without an identified author."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:122
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:148
 msgid "Named authors"
 msgstr "Named authors"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:123
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:149
 msgid "List the authors with their contact details."
 msgstr "List the authors with their contact details."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:124
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:103
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:150
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:105
 msgid "Upload as anonymous"
 msgstr "Upload as anonymous"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:125
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:105
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:151
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:107
 msgid "The paper is published without any author information."
 msgstr "The paper is published without any author information."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:126
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:152
 msgid "Framework for the essay"
 msgstr "Framework for the essay"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:127
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:153
 msgid "Knowledge and understanding"
 msgstr "Knowledge and understanding"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:128
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:154
 msgid "Analysis and line of argument"
 msgstr "Analysis and line of argument"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:129
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:155
 msgid "Discussion and evaluation"
 msgstr "Discussion and evaluation"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:130
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:156
 msgid "Reflection"
 msgstr "Reflection"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:131
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:47
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:157
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:48
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:125
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:65
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:66
 msgid "EE Subject"
 msgstr "EE Subject"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:132
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:152
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:158
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:154
 msgid "Core Subject"
 msgstr "Core Subject"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:133
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:159
 msgid "Select a core subject…"
 msgstr "Select a core subject…"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:134
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:160
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:100
 msgid "Interdisciplinary"
 msgstr "Interdisciplinary"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:135
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:161
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/resource_manage.html:99
 msgid "Optional"
 msgstr "Optional"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:136
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:162
 msgid "Optional — select if applicable…"
 msgstr "Optional — select if applicable…"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:137
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:163
 msgid "Criterion Scores"
 msgstr "Criterion Scores"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:138
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:192
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:270
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:164
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:194
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:348
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:266
 msgid "Crit."
 msgstr "Crit."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:139
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:165
 msgid "Criterion"
 msgstr "Criterion"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:140
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:194
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:272
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:166
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:196
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:264
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:350
 msgid "Score"
 msgstr "Score"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:141
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:167
 msgid "Overall Grade"
 msgstr "Overall Grade"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:142
-msgid "Calculated server-side from the criteria above"
-msgstr "Calculated server-side from the criteria above"
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:143
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:169
 msgid "Criterion Commentaries"
 msgstr "Criterion Commentaries"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:144
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:170
 msgid "Include commentaries for all criteria"
 msgstr "Include commentaries for all criteria"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:145
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:171
 msgid ""
-"Provide short remarks on each criterion plus an optional overall holistic"
-" commentary."
+"Provide short remarks on each criterion plus an optional overall holistic "
+"commentary."
 msgstr ""
-"Provide short remarks on each criterion plus an optional overall holistic"
-" commentary."
+"Provide short remarks on each criterion plus an optional overall holistic "
+"commentary."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:146
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:172
 #, python-format
 msgid "Commentary for Criterion %(k)s…"
 msgstr "Commentary for Criterion %(k)s…"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:147
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:224
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:173
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:226
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:302
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:192
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:362
 msgid "Holistic Commentary"
 msgstr "Holistic Commentary"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:148
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:174
 msgid "An overall holistic commentary for the essay…"
 msgstr "An overall holistic commentary for the essay…"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:149
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:175
 msgid "Investigating"
 msgstr "Investigating"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:150
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:176
 msgid "Planning"
 msgstr "Planning"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:151
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:177
 msgid "Taking Action"
 msgstr "Taking Action"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:152
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:178
 msgid "Reflecting"
 msgstr "Reflecting"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:153
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:59
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:243
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:179
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:72
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:321
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:239
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:80
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:96
 msgid "Global Context"
 msgstr "Global Context"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:154
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:180
 msgid "Select a Global Context…"
 msgstr "Select a Global Context…"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:155
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:181
 msgid "Global Contexts"
 msgstr "Global Contexts"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:156
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:254
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:182
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:332
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:247
 msgid "Type of Action"
 msgstr "Type of Action"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:157
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:183
 msgid "Mean of the four criterion scores, rounded"
 msgstr "Mean of the four criterion scores, rounded"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:158
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:184
 msgid "Author information"
 msgstr "Author information"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:159
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:185
 msgid "Who wrote this?"
 msgstr "Who wrote this?"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:160
-msgid "The first author's contact details are required. Add co-authors as needed."
-msgstr "The first author's contact details are required. Add co-authors as needed."
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:186
+msgid ""
+"The first author's contact details are required. Add co-authors as needed."
+msgstr ""
+"The first author's contact details are required. Add co-authors as needed."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:161
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:119
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:187
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:121
 msgid "Name"
 msgstr "Name"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:162
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:188
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/admin_users.html:78
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:123
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:125
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/register.html:14
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/review_paper.html:40
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/submission_detail.html:37
 msgid "Email"
 msgstr "Email"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:163
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:189
 msgid "School / Institution"
 msgstr "School / Institution"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:164
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:190
 msgid "Remove author"
 msgstr "Remove author"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:165
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:191
 msgid "+ Add another author"
 msgstr "+ Add another author"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:166
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:192
 msgid "File upload"
 msgstr "File upload"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:167
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:193
 msgid "Upload your PDF"
 msgstr "Upload your PDF"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:168
-msgid "Submit a single PDF, up to 50 MB. You can change this before publishing."
-msgstr "Submit a single PDF, up to 50 MB. You can change this before publishing."
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:194
+msgid ""
+"Submit a single PDF, up to 50 MB. You can change this before publishing."
+msgstr ""
+"Submit a single PDF, up to 50 MB. You can change this before publishing."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:169
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:195
 msgid "No file chosen"
 msgstr "No file chosen"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:170
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:196
 msgid "PDF only · single file"
 msgstr "PDF only · single file"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:171
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:197
 msgid "Replace"
 msgstr "Replace"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:172
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:198
 msgid "Choose file"
 msgstr "Choose file"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:173
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:199
 msgid ""
-"If you'd like to come back to this later, click Save Draft below — your "
-"form will be restored next time you visit."
+"If you'd like to come back to this later, click Save Draft below — your form"
+" will be restored next time you visit."
 msgstr ""
-"If you'd like to come back to this later, click Save Draft below — your "
-"form will be restored next time you visit."
+"If you'd like to come back to this later, click Save Draft below — your form"
+" will be restored next time you visit."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:175
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:201
 msgid "First author (name, email, school)"
 msgstr "First author (name, email, school)"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:176
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:202
 msgid "EE core subject"
 msgstr "EE core subject"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:177
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:203
 #, python-format
 msgid "EE criterion score %(k)s"
 msgstr "EE criterion score %(k)s"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:178
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:204
 msgid "Global context"
 msgstr "Global context"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:179
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:205
 msgid "Type of action"
 msgstr "Type of action"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:180
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:206
 #, python-format
 msgid "CP criterion score %(k)s"
 msgstr "CP criterion score %(k)s"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:181
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:207
 msgid "PDF file"
 msgstr "PDF file"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:182
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:208
 msgid "Independent Research Paper"
 msgstr "Independent Research Paper"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:183
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:209
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:113
 msgid "IB Extended Essay"
 msgstr "IB Extended Essay"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:184
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:210
 msgid "IB Community Project"
 msgstr "IB Community Project"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:185
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:211
 msgid "Review & submit"
 msgstr "Review & submit"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:186
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:212
 msgid "Almost there — review your submission"
 msgstr "Almost there — review your submission"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:187
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:213
 msgid ""
-"Make sure everything looks right. You can jump back to any section to "
-"make changes."
+"Make sure everything looks right. You can jump back to any section to make "
+"changes."
 msgstr ""
-"Make sure everything looks right. You can jump back to any section to "
-"make changes."
+"Make sure everything looks right. You can jump back to any section to make "
+"changes."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:188
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:214
 msgid "1 field still needs attention"
 msgstr "1 field still needs attention"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:189
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:215
 #, python-format
 msgid "%(n)s fields still need attention"
 msgstr "%(n)s fields still need attention"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:190
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:216
 #, python-format
 msgid "go to %(step)s"
 msgstr "go to %(step)s"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:191
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:217
 msgid "Everything required is filled in."
 msgstr "Everything required is filled in."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:192
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:218
 msgid "Click Submit Paper below to send your submission for review."
 msgstr "Click Submit Paper below to send your submission for review."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:193
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:219
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:175
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:240
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_publish.html:20
@@ -1317,248 +1388,273 @@ msgstr "Click Submit Paper below to send your submission for review."
 msgid "Edit"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:194
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:271
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:220
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:291
 msgid "Type"
 msgstr "Type"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:196
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:222
 msgid "Research Q."
 msgstr "Research Q."
 
 # ==================== PAPER METADATA ====================
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:197
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:223
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_publish.html:84
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_publish.html:116
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:986
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:34
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:313
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:36
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:407
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/review_paper.html:24
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/submission_detail.html:21
 msgid "Title"
 msgstr "Title"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:198
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:224
 msgid "Not provided"
 msgstr "Not provided"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:199
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:225
 msgid "Not chosen"
 msgstr "Not chosen"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:200
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:226
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:30
 msgid "Subject"
 msgstr "Subject"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:201
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:167
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:227
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:169
 msgid "None"
 msgstr "None"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:202
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:228
 msgid "Not written"
 msgstr "Not written"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:203
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:229
 msgid "IB Sample"
 msgstr "IB Sample"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:204
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:230
 msgid "Yes — author info skipped"
 msgstr "Yes — author info skipped"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:205
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:231
 msgid "Anonymous — author info skipped"
 msgstr "Anonymous — author info skipped"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:206
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:232
 msgid "No"
 msgstr "No"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:208
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:234
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:151
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1001
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:273
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:293
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/review_paper.html:36
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/submission_detail.html:33
 #, fuzzy
 msgid "Author"
 msgstr "Authors"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:210
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:236
 msgid "No file uploaded"
 msgstr "No file uploaded"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:211
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:237
 msgid "EE Details"
 msgstr "EE Details"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:212
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:238
 msgid "Total"
 msgstr "Total"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:213
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:239
 msgid "CP Details"
 msgstr "CP Details"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:214
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:240
 msgid "None selected"
 msgstr "None selected"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:215
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:241
 msgid "Avg. Grade"
 msgstr "Avg. Grade"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:216
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:242
 msgid "Saving…"
 msgstr "Saving…"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:217
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:243
 #, python-format
 msgid "Draft saved · %(time)s"
 msgstr "Draft saved · %(time)s"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:218
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:244
 msgid "Unsaved changes from earlier"
 msgstr "Unsaved changes from earlier"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:219
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:245
 msgid ""
-"Your last session in this browser had changes you didn't save. Restore "
-"them?"
+"Your last session in this browser had changes you didn't save. Restore them?"
 msgstr ""
-"Your last session in this browser had changes you didn't save. Restore "
-"them?"
+"Your last session in this browser had changes you didn't save. Restore them?"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:220
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:246
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:79
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:117
 msgid "Discard"
 msgstr "Discard"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:221
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:247
 msgid "Restore"
 msgstr "Restore"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:222
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:248
 msgid "Search…"
 msgstr "Search…"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:223
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:249
 msgid "No matches"
 msgstr "No matches"
 
 # ==================== EE PDF AUTO-FILL ====================
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:224
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:250
 msgid "Auto-fill from commentary PDF"
 msgstr "Auto-fill from commentary PDF"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:225
-msgid "Extracting…"
-msgstr "Extracting…"
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:226
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:252
 msgid "Extracted all fields."
 msgstr "Extracted all fields."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:227
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:253
 #, python-format
 msgid "Extracted %(filled)s of %(total)s fields."
 msgstr "Extracted %(filled)s of %(total)s fields."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:228
-msgid "Auto-fill failed — try again or fill manually."
-msgstr "Auto-fill failed — try again or fill manually."
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:229
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:255
 msgid "Replace your existing EE entries with values from the PDF?"
 msgstr "Replace your existing EE entries with values from the PDF?"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:230
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:256
 msgid "Generate abstract & keywords from PDF"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:231
-#, fuzzy
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:257
 msgid "Generating…"
-msgstr "Extracting…"
+msgstr "Generating…"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:232
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:258
 msgid "Generated abstract and keywords."
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:233
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:259
 #, fuzzy
 msgid "Generation failed — try again or fill manually."
 msgstr "Auto-fill failed — try again or fill manually."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:234
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:260
 msgid "Upload your PDF in the File step first."
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:235
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:261
 msgid ""
 "Replace your existing title, authors, abstract and keywords with AI-"
 "generated ones?"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:236
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:72
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:272
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:41
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:107
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:262
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:85
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:292
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:43
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:123
 msgid "Journal"
 msgstr "Journal"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:237
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:263
 msgid "— None —"
 msgstr "— None —"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:238
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:264
 msgid "Optional — assign this paper to a journal."
 msgstr "Optional — assign this paper to a journal."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:351
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:265
+#, python-format
+msgid "Uploading… %(pct)s%"
+msgstr "Uploading… %(pct)s%"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:266
+msgid "Finishing up…"
+msgstr ""
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:267
+msgid "Upload failed. Please check your connection and try again."
+msgstr "Upload failed. Please check your connection and try again."
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:268
 #, fuzzy
+msgid "Upload successful!"
+msgstr "Upload Success"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:269
+msgid "Try again"
+msgstr ""
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:394
 msgid "Please enter at least a paper title to save a draft."
-msgstr "Please enter the paper title"
+msgstr "Please enter at least a paper title to save a draft."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:406
-#, fuzzy
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:451
 msgid "Draft saved successfully."
-msgstr "Signed out successfully."
+msgstr "Draft saved successfully."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:447
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:500
 msgid "Please select a file to upload"
 msgstr "Please select a file to upload"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:453
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:506
 msgid "Only PDF files are supported"
 msgstr "Only PDF files are supported"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:464
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:517
 msgid "A file with this name already exists"
 msgstr "A file with this name already exists"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:487
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:541
 #, python-format
 msgid "Paper %(filename)s uploaded successfully!"
 msgstr "Paper %(filename)s uploaded successfully!"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:571
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:594
-#, fuzzy
-msgid "Unauthorized"
-msgstr "Authors"
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:605
+msgid "Your paper has been submitted and is now pending review."
+msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:577
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:600
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:615
+msgid "Upload failed. Please try again."
+msgstr "Upload failed. Please try again."
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:627
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:650
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:674
+msgid "Unauthorized"
+msgstr "Unauthorized"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:633
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:656
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:680
 msgid "File must be a PDF"
 msgstr "File must be a PDF"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:581
-#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:604
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:637
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:660
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:684
 msgid "File is not a valid PDF"
 msgstr "File is not a valid PDF"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:690
+msgid "Unknown or unconfigured IA subject"
+msgstr "Unknown or unconfigured IA subject"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/services/ai.py:323
 msgid "Searching the library…"
@@ -1608,11 +1704,11 @@ msgstr "You do not have access to that action."
 #: /Users/mingyuanw/Desktop/Project/Keydion/services/auth.py:564
 #, python-format
 msgid ""
-"This account is already signed in. Please sign out from the other session"
-" or wait %(minutes)d minutes."
+"This account is already signed in. Please sign out from the other session or"
+" wait %(minutes)d minutes."
 msgstr ""
-"This account is already signed in. Please sign out from the other session"
-" or wait %(minutes)d minutes."
+"This account is already signed in. Please sign out from the other session or"
+" wait %(minutes)d minutes."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/services/resources.py:158
 msgid "Unsupported file type."
@@ -1652,9 +1748,8 @@ msgstr "Q. I am not from a school currently running Keydion. Can I submit?"
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/FAQ.html:191
 msgid "faq_a2"
 msgstr ""
-"A. Yes. Keydion is open to all schools and feel free to submit your "
-"essays to make a contribution to the academia and gain more attentions "
-"from others."
+"A. Yes. Keydion is open to all schools and feel free to submit your essays "
+"to make a contribution to the academia and gain more attentions from others."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/FAQ.html:197
 msgid "faq_q3"
@@ -1663,9 +1758,9 @@ msgstr "Q. I want to join or collaborate with Keydion, how can I?"
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/FAQ.html:199
 msgid "faq_a3"
 msgstr ""
-"A. We always welcome either students or institutions to collaborate or "
-"join with us. Please contact us with the info given in the bottom of the "
-"main page."
+"A. We always welcome either students or institutions to collaborate or join "
+"with us. Please contact us with the info given in the bottom of the main "
+"page."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/FAQ.html:205
 msgid "faq_q4"
@@ -1674,9 +1769,9 @@ msgstr "Q. My essay appeared in Keydion without permission, what shall I do?"
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/FAQ.html:207
 msgid "faq_a4"
 msgstr ""
-"A. Keydion absolutely prioritizes your rights. Please contact us ASAP "
-"with the info given in the bottom of the main page. We will try our best "
-"to provide assistance."
+"A. Keydion absolutely prioritizes your rights. Please contact us ASAP with "
+"the info given in the bottom of the main page. We will try our best to "
+"provide assistance."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/FAQ.html:213
 msgid "faq_q5"
@@ -1685,11 +1780,11 @@ msgstr "Q. I found an issue of Keydion, what can I do?"
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/FAQ.html:215
 msgid "faq_a5"
 msgstr ""
-"A. You may contact us with the info given in the bottom of the main page."
-" Awards may be given."
+"A. You may contact us with the info given in the bottom of the main page. "
+"Awards may be given."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/FAQ.html:219
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:124
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:140
 msgid "Back to Home"
 msgstr "Back to Home"
 
@@ -1735,7 +1830,7 @@ msgstr "Review submissions"
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:95
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:30
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/journal_manage.html:25
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:169
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:183
 msgid "Collection"
 msgstr "Collection"
 
@@ -1744,16 +1839,10 @@ msgid "Manage papers"
 msgstr "Manage papers"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:106
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/landing.html:675
-#, fuzzy
-msgid "Categories"
-msgstr "Subject Category"
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:112
 msgid "Manage journals"
 msgstr "Manage journals"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:118
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:112
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_publish.html:15
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_publish.html:26
 msgid "Manage guides"
@@ -1770,7 +1859,7 @@ msgstr "Manage guides"
 # ==================== ADMIN LOGIN PAGE ====================
 # ==================== LOGIN PAGE ====================
 # ==================== PAPER METADATA ====================
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:124
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:118
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/landing.html:726
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/resource_manage.html:2
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/resource_manage.html:10
@@ -1779,7 +1868,21 @@ msgstr "Manage guides"
 msgid "Academic Resources"
 msgstr "Academic Resources"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:131
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:125
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:58
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:96
+msgid "Curriculum"
+msgstr "Curriculum"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:130
+msgid "Manage EE Subjects"
+msgstr "Manage EE Subjects"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:136
+msgid "Manage IA Subjects"
+msgstr "Manage IA Subjects"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:143
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/_header.html:138
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/landing.html:716
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news.html:8
@@ -1789,43 +1892,43 @@ msgid "News"
 msgstr "News"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard/overview.html:96
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:136
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:148
 msgid "Write an article"
 msgstr "Write an article"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:142
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:154
 msgid "Manage news"
 msgstr "Manage news"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:152
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:164
 msgid "Admin"
 msgstr "Admin"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard/overview.html:104
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:157
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:169
 msgid "Manage users"
 msgstr "Manage users"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:164
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:176
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ai.html:24
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/change_password.html:297
 msgid "Account"
 msgstr "Account"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard/overview.html:111
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:169
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:181
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/change_password.html:297
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/change_password.html:300
 msgid "Change password"
 msgstr "Change password"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:175
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:187
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/_header.html:146
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ai.html:29
 msgid "Sign out"
 msgstr "Sign out"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:180
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard_shell.html:192
 msgid "Show sidebar"
 msgstr "Show sidebar"
 
@@ -1907,13 +2010,14 @@ msgstr "Password"
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ai.html:174
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/change_password.html:444
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_publish.html:148
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:154
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:137
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:519
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:524
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:969
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:258
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:389
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:326
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:278
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:411
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:404
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/resource_manage.html:87
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/resource_manage.html:110
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/resource_manage.html:131
@@ -2017,7 +2121,7 @@ msgstr "Role"
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/admin_users.html:80
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/my_submissions.html:28
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:153
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:275
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:295
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/resource_manage.html:31
 msgid "Actions"
 msgstr "Actions"
@@ -2034,9 +2138,6 @@ msgstr "Reset"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/admin_users.html:54
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/admin_users.html:108
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/category_manage.html:110
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/category_manage.html:185
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/category_manage.html:234
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:182
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:244
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/journal_manage.html:64
@@ -2047,8 +2148,9 @@ msgstr "Reset"
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:443
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:512
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:525
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:337
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:682
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:359
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:730
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:819
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/resource_manage.html:58
 msgid "Delete"
 msgstr "Delete"
@@ -2074,9 +2176,8 @@ msgid "Unknown"
 msgstr "Unknown"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/admin_users.html:103
-#, fuzzy
 msgid "Reset Password"
-msgstr "Set password"
+msgstr "Reset Password"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/admin_users.html:103
 #, fuzzy
@@ -2091,14 +2192,14 @@ msgstr "No Microsoft users found."
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/admin_users.html:151
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ai.html:158
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:240
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:373
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:395
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:432
 msgid "Close"
 msgstr "Close"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/admin_users.html:152
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/category_manage.html:129
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/category_manage.html:156
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:248
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:443
 msgid "Add"
 msgstr "Add"
 
@@ -2107,9 +2208,8 @@ msgid "Advanced Search · Keydion"
 msgstr "Advanced Search · Keydion"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:6
-#, fuzzy
 msgid "Advanced search"
-msgstr "Go to Search"
+msgstr "Advanced search"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:17
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:54
@@ -2118,121 +2218,123 @@ msgid "Any Type"
 msgstr "Type"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:18
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:232
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:310
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:251
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:330
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:55
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:219
 #, fuzzy
 msgid "Extended Essay"
 msgstr "IB Extended Essay"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:19
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:233
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:312
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:252
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:332
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:56
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:233
 #, fuzzy
 msgid "Community Project"
 msgstr "IB Community Project"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:24
-#, fuzzy
-msgid "Find articles…"
-msgstr "Paper Title"
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:20
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:253
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:334
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:57
+msgid "Internal Assessment"
+msgstr "Internal Assessment"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:26
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:25
+msgid "Find articles…"
+msgstr "Find articles…"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:27
 msgid "that contain these"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:27
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:28
 msgid "terms"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:29
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:30
 msgid "Keywords, e.g., neural networks"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:33
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:34
 msgid "where the list of"
-msgstr ""
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:34
-#, fuzzy
-msgid "authors"
-msgstr "Authors"
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:34
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:39
-msgid "contains"
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:35
 #, fuzzy
+msgid "authors"
+msgstr "Authors"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:35
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:40
+msgid "contains"
+msgstr ""
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:36
+#, fuzzy
 msgid "Author name"
 msgstr "Author Name"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:38
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:39
 msgid "where the"
 msgstr ""
 
 # ==================== PAPER METADATA ====================
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:38
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:39
 #, fuzzy
 msgid "title"
 msgstr "Title"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:40
-#, fuzzy
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:41
 msgid "Title keywords"
-msgstr "Keywords"
+msgstr "Title keywords"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:43
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:44
 #, fuzzy
 msgid "Refine your results by…"
 msgstr "Refine Results"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:50
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:51
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:63
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:33
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:68
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:69
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:84
 msgid "Any Subject"
 msgstr "Any Subject"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:62
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:83
-#, fuzzy
-msgid "Any Context"
-msgstr "Global context"
-
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:75
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:110
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:99
+msgid "Any Context"
+msgstr "Any Context"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:88
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:126
 msgid "Any Journal"
 msgstr "Any Journal"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:84
-#, fuzzy
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:97
 msgid "publication"
-msgstr "Public Page"
+msgstr "publication"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:84
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:97
 #, fuzzy
 msgid "date"
 msgstr "Date"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:89
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:96
-#, fuzzy
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:102
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:109
 msgid "Year"
-msgstr "Search"
+msgstr "Year"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:94
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:107
 msgid "to"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:105
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:118
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/landing.html:557
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/landing.html:715
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:158
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:163
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:175
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:180
 msgid "Search"
 msgstr "Search"
 
@@ -2244,24 +2346,21 @@ msgid "Search papers"
 msgstr "Search Papers · Keydion"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ai.html:46
-#, fuzzy
 msgid "Conversations"
-msgstr "Manage Collection"
+msgstr "Conversations"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ai.html:49
-#, fuzzy
 msgid "Search conversations"
-msgstr "Manage Collection"
+msgstr "Search conversations"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ai.html:56
-#, fuzzy
 msgid "Toggle conversations"
-msgstr "Manage Collection"
+msgstr "Toggle conversations"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ai.html:62
 msgid ""
-"Chat or cite papers straight from your library. I'll reason over the "
-"sources and keep the references attached."
+"Chat or cite papers straight from your library. I'll reason over the sources"
+" and keep the references attached."
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ai.html:66
@@ -2273,9 +2372,8 @@ msgid "Attach"
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ai.html:88
-#, fuzzy
 msgid "Upload a file"
-msgstr "Upload a Paper"
+msgstr "Upload a file"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ai.html:88
 msgid "PDF, DOCX, TXT, Markdown…"
@@ -2299,9 +2397,8 @@ msgid "Web access"
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ai.html:99
-#, fuzzy
 msgid "Agent"
-msgstr "Manage"
+msgstr "Agent"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ai.html:107
 msgid "AI can be wrong — verify citations against the source."
@@ -2312,9 +2409,8 @@ msgid "Your Library"
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ai.html:156
-#, fuzzy
 msgid "Cite a paper"
-msgstr "Untitled Paper"
+msgstr "Cite a paper"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ai.html:160
 #, fuzzy
@@ -2329,70 +2425,8 @@ msgid "All"
 msgstr "All"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ai.html:175
-#, fuzzy
 msgid "Cite papers"
-msgstr "Untitled Paper"
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/category_manage.html:2
-msgid "Manage Categories · Keydion"
-msgstr "Manage Categories · Keydion"
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/category_manage.html:80
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:38
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:238
-#, fuzzy
-msgid "Manage Categories"
-msgstr "Paper Categories"
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/category_manage.html:81
-msgid "Add, rename, or remove paper subject categories."
-msgstr "Add, rename, or remove paper subject categories."
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/category_manage.html:86
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/my_submissions.html:11
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/review_list.html:11
-msgid "Back to Dashboard"
-msgstr "Back to Dashboard"
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/category_manage.html:95
-msgid "Paper Categories"
-msgstr "Paper Categories"
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/category_manage.html:124
-msgid "No categories yet. Add one below."
-msgstr "No categories yet. Add one below."
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/category_manage.html:128
-msgid "New category name..."
-msgstr "New category name..."
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/category_manage.html:139
-#, fuzzy
-msgid "EE Subjects"
-msgstr "EE Subject"
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/category_manage.html:143
-msgid "Group"
-msgstr ""
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/category_manage.html:152
-#, fuzzy
-msgid "No subjects in this group. Add one below."
-msgstr "No categories yet. Add one below."
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/category_manage.html:155
-#, fuzzy
-msgid "New subject name..."
-msgstr "New category name..."
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/category_manage.html:200
-msgid "Enter new name:"
-msgstr "Enter new name:"
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/category_manage.html:208
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/category_manage.html:261
-msgid "Are you sure you want to delete"
-msgstr "Are you sure you want to delete"
+msgstr "Cite papers"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/change_password.html:2
 msgid "Change Password · Keydion"
@@ -2400,11 +2434,9 @@ msgstr "Change Password · Keydion"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/change_password.html:301
 msgid ""
-"Update the password used to sign in to Keydion with your email or "
-"username."
+"Update the password used to sign in to Keydion with your email or username."
 msgstr ""
-"Update the password used to sign in to Keydion with your email or "
-"username."
+"Update the password used to sign in to Keydion with your email or username."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/change_password.html:303
 msgid "Set a password"
@@ -2412,11 +2444,9 @@ msgstr "Set a password"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/change_password.html:304
 msgid ""
-"Create a password so you can sign in with email and password in the "
-"future."
+"Create a password so you can sign in with email and password in the future."
 msgstr ""
-"Create a password so you can sign in with email and password in the "
-"future."
+"Create a password so you can sign in with email and password in the future."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/change_password.html:334
 msgid "Current password"
@@ -2502,6 +2532,112 @@ msgstr "Strong"
 msgid "Hide password"
 msgstr "Hide password"
 
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:2
+msgid "Manage EE Subjects · Keydion"
+msgstr "Manage EE Subjects · Keydion"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:58
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:96
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:183
+msgid "Library"
+msgstr ""
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:60
+#, fuzzy
+msgid "EE Subjects"
+msgstr "EE Subject"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:61
+msgid ""
+"The IB subject groups behind the Extended Essay upload form and the public "
+"search filter."
+msgstr ""
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:66
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:104
+msgid "Add group"
+msgstr "Add group"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:76
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:104
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:114
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:141
+msgid "Unsaved changes"
+msgstr "Unsaved changes"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:82
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:120
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/journal_edit.html:74
+msgid "Save changes"
+msgstr "Save changes"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:91
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:129
+msgid "New group"
+msgstr "New group"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:92
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:130
+msgid "Group name"
+msgstr "Group name"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:93
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:131
+msgid "Add a subject to this group…"
+msgstr ""
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:94
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:132
+msgid "Subjects saved."
+msgstr "Subjects saved."
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:95
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:133
+msgid "Could not save. Please try again."
+msgstr "Could not save. Please try again."
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:96
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:134
+msgid "Delete subject"
+msgstr "Delete subject"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:97
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:135
+msgid "Delete group"
+msgstr "Delete group"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:98
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:136
+msgid "Collapse / expand"
+msgstr ""
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:99
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:145
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:215
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:137
+msgid "Drag to reorder"
+msgstr ""
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:101
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:138
+msgid "renamed"
+msgstr "renamed"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:103
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:140
+msgid "removed"
+msgstr "removed"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:105
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:142
+msgid "These subjects are still used by papers and can't be deleted:"
+msgstr ""
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:106
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:143
+msgid "Delete this group and all its subjects?"
+msgstr "Delete this group and all its subjects?"
+
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_article.html:10
 msgid "Preview · not yet published"
 msgstr "Preview · not yet published"
@@ -2517,7 +2653,7 @@ msgstr "Last updated"
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_article.html:38
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_article.html:43
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news.html:494
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:300
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:327
 msgid "Previous"
 msgstr ""
 
@@ -2528,7 +2664,7 @@ msgstr "No previous guide"
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_article.html:49
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_article.html:54
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news.html:505
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:315
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:343
 msgid "Next"
 msgstr ""
 
@@ -2551,9 +2687,9 @@ msgstr "Manage Guides"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:33
 msgid ""
-"Long-form documentation served at /guides. Each guide supports English "
-"and Chinese, and appears in a sidebar grouped by category. Drag entries "
-"to reorder or recategorise."
+"Long-form documentation served at /guides. Each guide supports English and "
+"Chinese, and appears in a sidebar grouped by category. Drag entries to "
+"reorder or recategorise."
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:38
@@ -2568,9 +2704,9 @@ msgstr "No guides yet."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:67
 msgid ""
-"Guides appear in the public help center at /guides, grouped by category "
-"and sorted by the order you set here. Start with a “Getting Started” "
-"piece — that's where most readers begin."
+"Guides appear in the public help center at /guides, grouped by category and "
+"sorted by the order you set here. Start with a “Getting Started” piece — "
+"that's where most readers begin."
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:70
@@ -2593,9 +2729,9 @@ msgstr ""
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:152
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:192
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:349
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:274
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:501
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:311
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:294
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:549
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:389
 #, fuzzy
 msgid "Published"
 msgstr "Published At"
@@ -2613,31 +2749,22 @@ msgstr "Draft"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:92
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:108
-#, fuzzy
 msgid "Filter by category"
-msgstr "Select a category"
+msgstr "Filter by category"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:93
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:109
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:548
-#, fuzzy
 msgid "Category: All"
-msgstr "Subject Category"
+msgstr "Category: All"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:132
-#, fuzzy
 msgid "Add guide to"
-msgstr "Edit Guide"
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:145
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:215
-msgid "Drag to reorder"
-msgstr ""
+msgstr "Add guide to"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:158
-#, fuzzy
 msgid "words"
-msgstr "Keywords"
+msgstr "words"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:165
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:234
@@ -2645,9 +2772,8 @@ msgid "Click to publish or unpublish"
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:166
-#, fuzzy
 msgid "Toggle published"
-msgstr "Guide published."
+msgstr "Toggle published"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:168
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:236
@@ -2658,9 +2784,8 @@ msgstr "Live"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:172
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/journal_manage.html:58
-#, fuzzy
 msgid "Preview public"
-msgstr "Review & submit"
+msgstr "Preview public"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:178
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_article.html:560
@@ -2673,9 +2798,8 @@ msgid "Delete this guide?"
 msgstr "Delete this guide?"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:202
-#, fuzzy
 msgid "Uncategorised"
-msgstr "Paper Categories"
+msgstr "Uncategorised"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:260
 msgid "Order on the live site"
@@ -2688,9 +2812,8 @@ msgid ""
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:264
-#, fuzzy
 msgid "No guides match these filters"
-msgstr "No submissions match the selected filter."
+msgstr "No guides match these filters"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:265
 msgid "Try a different status or category — or clear the search box."
@@ -2698,19 +2821,17 @@ msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:266
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:227
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:359
-#, fuzzy
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:381
 msgid "Clear filters"
-msgstr "300 characters max"
+msgstr "Clear filters"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:399
 msgid "Order saved locally. Wire admin_guides_reorder to persist."
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:408
-#, fuzzy
 msgid "Order saved"
-msgstr "Draft saved."
+msgstr "Order saved"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:409
 msgid "Could not save order — please refresh."
@@ -2756,13 +2877,12 @@ msgstr "Publish dual-language guides with rich text."
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_publish.html:35
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:149
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:991
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:52
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:315
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:54
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:409
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/review_paper.html:27
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/submission_detail.html:24
-#, fuzzy
 msgid "Category"
-msgstr "Subject Category"
+msgstr "Category"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_publish.html:38
 msgid "— Select —"
@@ -2814,9 +2934,8 @@ msgstr "All changes saved"
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_publish.html:150
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:199
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/resources.html:51
-#, fuzzy
 msgid "Preview"
-msgstr "Review"
+msgstr "Preview"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_publish.html:151
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:518
@@ -2847,6 +2966,73 @@ msgstr "No guides published yet. Check back soon."
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guides.html:27
 msgid "Articles"
 msgstr "Articles"
+
+# ==================== PAPER MANAGEMENT ====================
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:2
+msgid "Manage IA Subjects · Keydion"
+msgstr "Manage IA Subjects · Keydion"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:98
+msgid "IA Subjects"
+msgstr "IA Subjects"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:99
+msgid ""
+"The IB subjects and assessment criteria behind the Internal Assessment "
+"upload form and the public search filter."
+msgstr ""
+"The IB subjects and assessment criteria behind the Internal Assessment "
+"upload form and the public search filter."
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:144
+msgid "Criteria"
+msgstr "Criteria"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:145
+msgid "Criterion name"
+msgstr "Criterion name"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:146
+msgid "Add criterion"
+msgstr "Add criterion"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:147
+msgid "Max"
+msgstr "Max"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:148
+msgid "Total max"
+msgstr "Total max"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:149
+msgid "no criteria yet"
+msgstr "no criteria yet"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:150
+#, python-format
+msgid "%(n)s criteria · max %(m)s"
+msgstr "%(n)s criteria · max %(m)s"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:151
+msgid "Bulk add"
+msgstr "Bulk add"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:152
+msgid "Paste one subject per line…"
+msgstr "Paste one subject per line…"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:153
+msgid "Add all"
+msgstr "Add all"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:156
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:277
+msgid "Delete selected"
+msgstr "Delete selected"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:157
+msgid "Clear"
+msgstr "Clear"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/journal_detail.html:6
 msgid "Back to Journals"
@@ -2905,7 +3091,7 @@ msgid "Write the journal introduction..."
 msgstr "Write the journal introduction..."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/journal_edit.html:41
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:324
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:402
 msgid "Save Changes"
 msgstr "Save Changes"
 
@@ -2933,10 +3119,6 @@ msgstr "View Journal Page"
 msgid "Papers in this Journal"
 msgstr "Papers in this Journal"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/journal_edit.html:74
-msgid "Save changes"
-msgstr "Save changes"
-
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/journal_edit.html:77
 msgid "Check papers to include them in this journal; uncheck to remove."
 msgstr "Check papers to include them in this journal; uncheck to remove."
@@ -2955,9 +3137,8 @@ msgstr "Could not save paper membership."
 
 # ==================== ADMIN USER MANAGEMENT ====================
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/journal_list.html:2
-#, fuzzy
 msgid "Journals · Keydion"
-msgstr "User Management - Keydion"
+msgstr "Journals · Keydion"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/journal_list.html:68
 msgid "Browse our collection of academic journals."
@@ -2966,10 +3147,10 @@ msgstr "Browse our collection of academic journals."
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/journal_list.html:76
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/journal_manage.html:56
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/landing.html:642
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:351
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:464
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:627
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:692
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:373
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:512
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:675
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:740
 msgid "papers"
 msgstr "papers"
 
@@ -2987,11 +3168,11 @@ msgstr "Manage Journals"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/journal_manage.html:28
 msgid ""
-"Journals group related papers and appear at /journals. Add a journal "
-"here, then edit it to set its introduction."
+"Journals group related papers and appear at /journals. Add a journal here, "
+"then edit it to set its introduction."
 msgstr ""
-"Journals group related papers and appear at /journals. Add a journal "
-"here, then edit it to set its introduction."
+"Journals group related papers and appear at /journals. Add a journal here, "
+"then edit it to set its introduction."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/journal_manage.html:35
 msgid "New journal name…"
@@ -3032,8 +3213,8 @@ msgstr ""
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/landing.html:543
 msgid "tagline_quote_2"
 msgstr ""
-"A living vessel for scholarly learning, research exploration, and "
-"academic prowess."
+"A living vessel for scholarly learning, research exploration, and academic "
+"prowess."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/landing.html:550
 msgid "Search by title, author, or keyword..."
@@ -3041,9 +3222,8 @@ msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/landing.html:561
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/landing.html:727
-#, fuzzy
 msgid "Advanced Search"
-msgstr "Go to Search"
+msgstr "Advanced Search"
 
 # ==================== LANDING PAGE - SECTIONS & FOOTER ====================
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/landing.html:570
@@ -3060,16 +3240,13 @@ msgid "Recent Journals"
 msgstr "Recent Journals"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/landing.html:660
-#, fuzzy
 msgid "About Keydion"
-msgstr "Keydion"
+msgstr "About Keydion"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/landing.html:661
 msgid ""
-"Keydion is an academic asset platform designed for high school research. "
-"We focus on student\n"
-"            scholarship — IA, EE, TOK, and independent projects — "
-"ensuring that excellent work is systematically\n"
+"Keydion is an academic asset platform designed for high school research. We focus on student\n"
+"            scholarship — IA, EE, TOK, and independent projects — ensuring that excellent work is systematically\n"
 "            preserved, searchable, and citable."
 msgstr ""
 
@@ -3078,17 +3255,18 @@ msgstr ""
 msgid "Papers"
 msgstr "PAPERS"
 
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/landing.html:675
+msgid "Categories"
+msgstr "Categories"
+
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/landing.html:680
-#, fuzzy
 msgid "Our Mission"
-msgstr "My submissions"
+msgstr "Our Mission"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/landing.html:681
 msgid ""
-"By building a living archive of student research, we help schools "
-"maintain academic integrity,\n"
-"            prevent topic collisions, and let each cohort build on the "
-"discoveries of the last."
+"By building a living archive of student research, we help schools maintain academic integrity,\n"
+"            prevent topic collisions, and let each cohort build on the discoveries of the last."
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/landing.html:691
@@ -3108,8 +3286,7 @@ msgstr "Search Papers · Keydion"
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/landing.html:709
 #, fuzzy
 msgid ""
-"Dedicated to cultivating academic research skills for young scholars — a "
-"platform for writing,\n"
+"Dedicated to cultivating academic research skills for young scholars — a platform for writing,\n"
 "            publishing, and discovery."
 msgstr ""
 "Dedicated to cultivating academic research skills for young scholars, "
@@ -3154,6 +3331,11 @@ msgstr "My Submissions"
 msgid "Track the review status of your submitted papers."
 msgstr "Track the review status of your submitted papers."
 
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/my_submissions.html:11
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/review_list.html:11
+msgid "Back to Dashboard"
+msgstr "Back to Dashboard"
+
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/my_submissions.html:14
 msgid "Submit a New Paper"
 msgstr "Submit a New Paper"
@@ -3196,9 +3378,8 @@ msgid "Rejected"
 msgstr "Rejected"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/my_submissions.html:61
-#, fuzzy
 msgid "Are you sure you want to delete this submission?"
-msgstr "Are you sure you want to delete"
+msgstr "Are you sure you want to delete this submission?"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/my_submissions.html:77
 msgid "No submissions yet"
@@ -3233,12 +3414,16 @@ msgid "A moderator or administrator will review your paper."
 msgstr "A moderator or administrator will review your paper."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/my_submissions.html:91
-msgid "If <strong>Accepted</strong>, your paper becomes available in the library."
-msgstr "If <strong>Accepted</strong>, your paper becomes available in the library."
+msgid ""
+"If <strong>Accepted</strong>, your paper becomes available in the library."
+msgstr ""
+"If <strong>Accepted</strong>, your paper becomes available in the library."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/my_submissions.html:92
-msgid "If <strong>Rejected</strong>, you will see the reviewer's comments here."
-msgstr "If <strong>Rejected</strong>, you will see the reviewer's comments here."
+msgid ""
+"If <strong>Rejected</strong>, you will see the reviewer's comments here."
+msgstr ""
+"If <strong>Rejected</strong>, you will see the reviewer's comments here."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news.html:448
 msgid "No news articles yet"
@@ -3271,14 +3456,12 @@ msgstr ""
 
 # ==================== ADMIN USER MANAGEMENT ====================
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:2
-#, fuzzy
 msgid "Manage News · Keydion"
-msgstr "User Management - Keydion"
+msgstr "Manage News · Keydion"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:30
-#, fuzzy
 msgid "Editorial"
-msgstr "Edit Journal"
+msgstr "Editorial"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:32
 msgid "Manage News"
@@ -3286,25 +3469,28 @@ msgstr "Manage News"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:33
 msgid ""
-"Articles, announcements, and editorial pieces published on Keydion. "
-"Drafts stay private until you publish."
+"Articles, announcements, and editorial pieces published on Keydion. Drafts "
+"stay private until you publish."
 msgstr ""
 
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:38
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:238
+msgid "Manage Categories"
+msgstr "Manage Categories"
+
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:42
-#, fuzzy
 msgid "Publish new article"
-msgstr "Published At"
+msgstr "Publish new article"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:72
-#, fuzzy
 msgid "No articles yet"
-msgstr "Articles"
+msgstr "No articles yet"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:73
 msgid ""
 "Articles published here surface on the public News page, in the category "
-"landing pages, and in newsletter digests. Pick a category to start with —"
-" you can always add more later."
+"landing pages, and in newsletter digests. Pick a category to start with — "
+"you can always add more later."
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:77
@@ -3312,9 +3498,8 @@ msgid "Publish your first article"
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:81
-#, fuzzy
 msgid "Set up categories"
-msgstr "Paper Categories"
+msgstr "Set up categories"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:91
 msgid "Search by title, abstract, or author…"
@@ -3326,92 +3511,79 @@ msgid "Scheduled"
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:115
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:237
-#, fuzzy
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:257
 msgid "Date range"
-msgstr "Save Changes"
+msgstr "Date range"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:116
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:238
-#, fuzzy
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:258
 msgid "Any date"
-msgstr "Undated"
+msgstr "Any date"
 
 # ==================== LANDING PAGE - SECTIONS & FOOTER ====================
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:117
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:239
-#, fuzzy
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:259
 msgid "Last 30 days"
-msgstr "Latest Updates"
+msgstr "Last 30 days"
 
 # ==================== LANDING PAGE - SECTIONS & FOOTER ====================
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:118
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:240
-#, fuzzy
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:260
 msgid "Last 90 days"
-msgstr "Latest Updates"
+msgstr "Last 90 days"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:119
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:241
-#, fuzzy
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:261
 msgid "Last year"
-msgstr "Last name"
+msgstr "Last year"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:122
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:244
-#, fuzzy
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:264
 msgid "Sort"
-msgstr "Score"
+msgstr "Sort"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:123
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:245
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:265
 msgid "Newest first"
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:124
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:246
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:266
 msgid "Oldest first"
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:125
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:247
-#, fuzzy
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:267
 msgid "Title A → Z"
-msgstr "Title (ZH)"
+msgstr "Title A → Z"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:126
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:248
-#, fuzzy
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:268
 msgid "Title Z → A"
-msgstr "Title (ZH)"
+msgstr "Title Z → A"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:132
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:364
-#, fuzzy
 msgid "articles selected"
-msgstr "Local user deleted."
+msgstr "articles selected"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:134
-#, fuzzy
 msgid "Publish"
-msgstr "Published At"
+msgstr "Publish"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:135
-#, fuzzy
 msgid "Move to draft"
-msgstr "Save Draft"
+msgstr "Move to draft"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:137
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:258
-#, fuzzy
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:278
 msgid "Clear selection"
-msgstr "Reflection"
+msgstr "Clear selection"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:146
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:268
-#, fuzzy
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:288
 msgid "Select all"
-msgstr "Select PDF file"
+msgstr "Select all"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:148
 #, fuzzy
@@ -3419,9 +3591,8 @@ msgid "Article"
 msgstr "Articles"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:167
-#, fuzzy
 msgid "Select article"
-msgstr "Select PDF file"
+msgstr "Select article"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:190
 msgid "Archived"
@@ -3429,54 +3600,50 @@ msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:219
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:311
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:351
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:464
-#, fuzzy
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:373
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:512
 msgid "Showing"
-msgstr "Strong"
+msgstr "Showing"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:219
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:311
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:351
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:464
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:373
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:512
 msgid "of"
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:219
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:311
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:507
-#, fuzzy
 msgid "articles"
-msgstr "Paper Title"
+msgstr "articles"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:220
-#, fuzzy
 msgid "Preview public news page"
-msgstr "Public Page"
+msgstr "Preview public news page"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:225
-#, fuzzy
 msgid "No articles match these filters"
-msgstr "No submissions match the selected filter."
+msgstr "No articles match these filters"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:226
-msgid "Try a different status, category, or date range — or clear the search box."
+msgid ""
+"Try a different status, category, or date range — or clear the search box."
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:245
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:440
 #, fuzzy
 msgid "New category name…"
 msgstr "New category name..."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:364
-#, fuzzy
 msgid "article selected"
-msgstr "Local user deleted."
+msgstr "article selected"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:443
-#, fuzzy
 msgid "articles? This cannot be undone."
-msgstr "Delete this guide? This cannot be undone."
+msgstr "articles? This cannot be undone."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:452
 msgid "Bulk action failed."
@@ -3494,35 +3661,29 @@ msgid ""
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:572
-#, fuzzy
 msgid "Category added"
-msgstr "Subject Category"
+msgstr "Category added"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:611
-#, fuzzy
 msgid "Category renamed"
-msgstr "New category name..."
+msgstr "Category renamed"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:626
-#, fuzzy
 msgid "Category deleted"
-msgstr "Local user deleted."
+msgstr "Category deleted"
 
 # ==================== SEARCH PAGE ====================
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:2
-#, fuzzy
 msgid "Publish News · Keydion"
-msgstr "Search Papers · Keydion"
+msgstr "Publish News · Keydion"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:958
-#, fuzzy
 msgid "Edit News Article"
-msgstr "Write an Article"
+msgstr "Edit News Article"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:964
-#, fuzzy
 msgid "Publish News Article"
-msgstr "Published At"
+msgstr "Publish News Article"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:965
 msgid "Block Editor"
@@ -3541,18 +3702,16 @@ msgid "Save as Draft"
 msgstr "Save as Draft"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:984
-#, fuzzy
 msgid "Article Info"
-msgstr "Paper not found."
+msgstr "Article Info"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:988
 msgid "Enter article title"
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:993
-#, fuzzy
 msgid "Select category"
-msgstr "Subject Category"
+msgstr "Select category"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1003
 msgid "Author name (optional)"
@@ -3578,9 +3737,8 @@ msgstr "Remove image"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1023
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1540
-#, fuzzy
 msgid "Click to upload"
-msgstr "File Upload"
+msgstr "Click to upload"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1034
 msgid "Writing Tips"
@@ -3623,18 +3781,16 @@ msgid "Shortcuts"
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1050
-#, fuzzy
 msgid "Publish / Save"
-msgstr "Published At"
+msgstr "Publish / Save"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1051
 msgid "Next block"
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1067
-#, fuzzy
 msgid "Article Content"
-msgstr "Paper not found."
+msgstr "Article Content"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1077
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1318
@@ -3643,9 +3799,8 @@ msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1085
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1319
-#, fuzzy
 msgid "Image"
-msgstr "Manage"
+msgstr "Image"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1091
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1320
@@ -3691,14 +3846,12 @@ msgid "Justify"
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1219
-#, fuzzy
 msgid "Add Text"
-msgstr "Related text"
+msgstr "Add Text"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1226
-#, fuzzy
 msgid "Add Image"
-msgstr "Cover Image"
+msgstr "Add Image"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1233
 msgid "Add Divider"
@@ -3706,23 +3859,20 @@ msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1239
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1510
-#, fuzzy
 msgid "characters"
-msgstr "300 characters max"
+msgstr "characters"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1240
-#, fuzzy
 msgid "Ready"
-msgstr "Created"
+msgstr "Ready"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1373
 msgid "Write your paragraph here…"
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1396
-#, fuzzy
 msgid "Uploading…"
-msgstr "Upload"
+msgstr "Uploading…"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1402
 msgid "Add image caption (optional)"
@@ -3733,18 +3883,16 @@ msgid "Click or drag to upload"
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1482
-#, fuzzy
 msgid "Image upload failed. Please try again."
-msgstr "Microsoft sign-in is not configured. Please contact the administrator."
+msgstr "Image upload failed. Please try again."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1511
 msgid "text"
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1511
-#, fuzzy
 msgid "images"
-msgstr "Manage"
+msgstr "images"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:1511
 msgid "dividers"
@@ -3763,157 +3911,190 @@ msgstr ""
 msgid "Manage Papers · Keydion"
 msgstr "Manage Papers · Keydion"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:169
-msgid "Library"
-msgstr ""
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:171
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:185
 msgid "Manage Papers"
 msgstr "Manage Papers"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:172
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:186
 msgid ""
-"Every paper in the Keydion library. Search, filter by type, sort, and "
-"modify or remove entries."
+"Every paper in the Keydion library. Search, filter by type, sort, and modify"
+" or remove entries."
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:177
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:191
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:430
+msgid "Manage categories"
+msgstr "Manage categories"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:195
 msgid "Upload a paper"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:207
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:225
 msgid "No papers in the library yet"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:208
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:226
 msgid ""
-"Papers uploaded here become searchable across the public library, journal"
-" pages, and the research assistant. Upload your first PDF to get started."
+"Papers uploaded here become searchable across the public library, journal "
+"pages, and the research assistant. Upload your first PDF to get started."
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:211
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:229
 msgid "Upload your first paper"
 msgstr "Upload your first paper"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:225
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:244
 msgid "Search by title, abstract, author, or keyword…"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:230
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:249
 msgid "Filter by paper type"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:231
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:250
 msgid "Type: All"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:234
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:254
 msgid "Independent"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:254
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:515
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:274
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:563
 msgid "papers selected"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:256
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:392
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:276
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:414
 msgid "Add to journal"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:257
-msgid "Delete selected"
-msgstr ""
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:270
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:290
 msgid "Paper"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:291
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:311
 msgid "Select paper"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:330
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:352
 msgid "Open PDF"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:333
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:355
 msgid "Modify"
 msgstr "Modify"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:336
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:358
 msgid "Delete this paper? This cannot be undone."
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:352
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:374
 msgid "Browse the public library"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:357
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:379
 msgid "No papers match these filters"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:358
-msgid "Try a different type, category, or date range — or clear the search box."
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:380
+msgid ""
+"Try a different type, category, or date range — or clear the search box."
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:371
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:393
 msgid "Add papers to a journal"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:378
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:400
 msgid "Choose a journal"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:382
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:404
 msgid "Selected papers"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:515
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:437
+#, fuzzy
+msgid "Paper categories"
+msgstr "Paper Categories"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:563
 msgid "paper selected"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:558
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:606
 msgid "No journals available yet — create one under Manage Journals first."
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:583
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:631
 msgid "No papers selected."
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:588
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:636
 msgid "Remove from selection"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:627
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:675
 msgid "Added"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:627
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:692
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:675
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:740
 msgid "paper"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:627
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:675
 msgid "to Journal"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:627
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:692
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:675
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:740
 msgid "successfully"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:630
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:678
 msgid "Could not add papers to the journal. Please try again."
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:682
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:730
 msgid "papers? This cannot be undone."
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:692
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:740
 msgid "Deleted"
 msgstr ""
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:811
+msgid "Network error. Please try again."
+msgstr "Network error. Please try again."
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:838
+msgid "Successfully added category"
+msgstr "Successfully added category"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:839
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:853
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:861
+msgid "Error"
+msgstr ""
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:847
+msgid "Enter new name:"
+msgstr "Enter new name:"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:852
+msgid "Successfully renamed category to"
+msgstr ""
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:856
+msgid "Are you sure you want to delete"
+msgstr "Are you sure you want to delete"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:860
+msgid "Successfully deleted category"
+msgstr "Successfully deleted category"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:2
 msgid "Modify Paper · Keydion"
@@ -3924,110 +4105,134 @@ msgid "Modify Paper Information"
 msgstr "Modify Paper Information"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:7
-msgid "Edit the metadata for this paper. Changes will take effect immediately."
-msgstr "Edit the metadata for this paper. Changes will take effect immediately."
+msgid ""
+"Edit the metadata for this paper. Changes will take effect immediately."
+msgstr ""
+"Edit the metadata for this paper. Changes will take effect immediately."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:12
 msgid "Back to Paper Management"
 msgstr "Back to Paper Management"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:21
-#, fuzzy
 msgid "Paper Details"
-msgstr "Paper Title"
+msgstr "Paper Details"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:43
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:45
 msgid "No journal (leave blank)"
 msgstr "No journal (leave blank)"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:54
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:56
 msgid "Select a category"
 msgstr "Select a category"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:65
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:67
 #, fuzzy
 msgid "Select a language"
 msgstr "Please select a language"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:76
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:78
 msgid "Comma-separated keywords"
 msgstr "Comma-separated keywords"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:82
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:84
 msgid "Brief summary of the paper"
 msgstr "Brief summary of the paper"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:94
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:96
 msgid "Author information is not required for sample papers"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:109
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:111
 msgid "Author Information"
 msgstr "Author Information"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:111
-#, fuzzy
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:113
 msgid "Add Author"
-msgstr "Authors"
+msgstr "Add Author"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:127
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:129
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/review_paper.html:43
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/submission_detail.html:40
 msgid "School"
 msgstr "School"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:145
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:147
 #, fuzzy
 msgid "This is an IB Extended Essay (EE)"
 msgstr "Extended Essay (EE)"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:154
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:156
 #, fuzzy
 msgid "Select a core subject..."
 msgstr "Select a core subject…"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:165
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:167
 #, fuzzy
 msgid "Interdisciplinary Subject"
 msgstr "Interdisciplinary"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:180
-#, fuzzy
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:182
 msgid "Numeric Grade"
-msgstr "Overall Grade"
+msgstr "Numeric Grade"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:193
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:271
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:195
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:263
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:349
 #, fuzzy
 msgid "Criterion Name"
 msgstr "Criterion"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:215
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:217
 #, fuzzy
 msgid "Commentary for Criterion"
 msgstr "Commentary for Criterion"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:237
-#, fuzzy
-msgid "This is an IB Community Project Paper"
-msgstr "This is an IB Sample Paper"
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:238
+msgid "This is an IB Internal Assessment (IA)"
+msgstr "This is an IB Internal Assessment (IA)"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:245
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:246
+msgid "Select an IA subject..."
+msgstr "Select an IA subject..."
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:255
+msgid ""
+"Changing the subject rebuilds the criteria after you save. Edit scores below"
+" for the saved subject."
+msgstr ""
+"Changing the subject rebuilds the criteria after you save. Edit scores below"
+" for the saved subject."
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:282
+msgid "Commentary for this criterion..."
+msgstr "Commentary for this criterion..."
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:291
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:371
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:230
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:304
+msgid "Total Score"
+msgstr "Total Score"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:297
+msgid "Calculated server-side from the criteria above."
+msgstr "Calculated server-side from the criteria above."
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:315
+msgid "This is an IB Community Project Paper"
+msgstr "This is an IB Community Project Paper"
+
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:323
 #, fuzzy
 msgid "Select a Global Context..."
 msgstr "Select a Global Context…"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:293
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:230
-#, fuzzy
-msgid "Total Score"
-msgstr "Total"
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:313
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:391
 msgid "Submission date cannot be modified."
 msgstr "Submission date cannot be modified."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:337
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:415
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/review_paper.html:104
 msgid "Paper Preview"
 msgstr "Paper Preview"
@@ -4057,38 +4262,36 @@ msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:46
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/resources.html:53
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:272
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:298
 msgid "Download"
 msgstr "Download"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:65
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:195
-#, fuzzy
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:212
 msgid "Uncategorized"
-msgstr "Paper Categories"
+msgstr "Uncategorized"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:68
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:343
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:378
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:200
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:437
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:472
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:217
 msgid "Untitled Paper"
 msgstr "Untitled Paper"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:78
-#, fuzzy
 msgid "Search this author"
-msgstr "Searching for"
+msgstr "Search this author"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:83
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:89
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:314
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:316
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:318
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:320
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:346
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:208
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:213
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:214
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:408
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:410
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:412
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:414
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:440
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:225
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:230
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:231
 msgid "Not specified"
 msgstr ""
 
@@ -4102,32 +4305,31 @@ msgid "Sign in to view full papers"
 msgstr "Sign in to view full papers"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:175
-#, fuzzy
 msgid "No commentary provided."
-msgstr "Not provided"
+msgstr "No commentary provided."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:214
 #, fuzzy
 msgid "MYP Community Project"
 msgstr "IB Community Project"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:307
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:401
 msgid "About this issue"
 msgstr "About this issue"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:319
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:413
 msgid "Organization"
 msgstr "Organization"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:332
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:426
 msgid "Related text"
 msgstr "Related text"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:352
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:446
 msgid "No related texts found."
 msgstr "No related texts found."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:372
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:466
 msgid "PDF Preview"
 msgstr "PDF Preview"
 
@@ -4154,9 +4356,8 @@ msgid "Last name"
 msgstr "Last name"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/profile_setup.html:25
-#, fuzzy
 msgid "Save profile"
-msgstr "Save role changes"
+msgstr "Save profile"
 
 # ==================== REGISTER PAGE ====================
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/register.html:2
@@ -4282,8 +4483,10 @@ msgid "Review Submissions"
 msgstr "Review Submissions"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/review_list.html:6
-msgid "Review papers submitted by readers. Accept or reject pending submissions."
-msgstr "Review papers submitted by readers. Accept or reject pending submissions."
+msgid ""
+"Review papers submitted by readers. Accept or reject pending submissions."
+msgstr ""
+"Review papers submitted by readers. Accept or reject pending submissions."
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/review_list.html:20
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/review_list.html:73
@@ -4379,46 +4582,46 @@ msgstr "Search Within Results"
 msgid "Date"
 msgstr "Date"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:97
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:113
 msgid "Any Language"
 msgstr "Any Language"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:121
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:137
 #, fuzzy
 msgid ""
 "Back to\n"
 "        Dashboard"
 msgstr "Back to Dashboard"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:153
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:170
 msgid "Searching for"
 msgstr "Searching for"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:155
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:172
 msgid "Enter keywords to search papers..."
 msgstr "Enter keywords to search papers..."
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:171
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:188
 #, python-format
 msgid "%(count)s result"
 msgid_plural "%(count)s results"
 msgstr[0] "%(count)s result"
 msgstr[1] "%(count)s results"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:259
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:285
 msgid "Sign in to Download"
 msgstr "Sign in to Download"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:277
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:303
 msgid "View"
 msgstr "View"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:321
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:349
 #, python-format
 msgid "Page %(current)d of %(total)d"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:328
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:356
 msgid "No papers match your search criteria. Try adjusting your filters."
 msgstr "No papers match your search criteria. Try adjusting your filters."
 
@@ -4462,29 +4665,8 @@ msgid "Submit your research for review by the Keydion editorial team."
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/upload.html:21
-#, fuzzy
 msgid "Draft not yet saved"
-msgstr "Draft saved."
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/upload_success.html:8
-msgid "Upload Success"
-msgstr "Upload Success"
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/upload_success.html:176
-msgid "Submission Successful!"
-msgstr "Submission Successful!"
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/upload_success.html:177
-msgid "Submitted at"
-msgstr "Submitted at"
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/upload_success.html:183
-msgid "Done"
-msgstr "Done"
-
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/upload_success.html:184
-msgid "View My Submissions"
-msgstr "View My Submissions"
+msgstr "Draft not yet saved"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard/overview.html:17
 #, python-format
@@ -4561,7 +4743,8 @@ msgid "Open editor"
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard/overview.html:105
-msgid "Review local and Microsoft-linked accounts, adjust roles, set passwords."
+msgid ""
+"Review local and Microsoft-linked accounts, adjust roles, set passwords."
 msgstr ""
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard/overview.html:106
@@ -4577,15 +4760,11 @@ msgid "Update security"
 msgstr ""
 
 #~ msgid ""
-#~ "A self-directed research paper, "
-#~ "conference paper, or article that is "
-#~ "not part of the IB Diploma "
-#~ "framework."
+#~ "A self-directed research paper, conference paper, or article that is not "
+#~ "part of the IB Diploma framework."
 #~ msgstr ""
-#~ "A self-directed research paper, "
-#~ "conference paper, or article that is "
-#~ "not part of the IB Diploma "
-#~ "framework."
+#~ "A self-directed research paper, conference paper, or article that is not "
+#~ "part of the IB Diploma framework."
 
 #~ msgid "Replace your existing abstract and keywords with AI-generated ones?"
 #~ msgstr ""
@@ -4843,3 +5022,50 @@ msgstr ""
 #~ msgstr[0] ""
 #~ msgstr[1] ""
 
+#~ msgid "Group ID and subject name are required."
+#~ msgstr ""
+
+#~ msgid "Subject already exists in this group."
+#~ msgstr ""
+
+#~ msgid "Group not found."
+#~ msgstr "Guide not found."
+
+#~ msgid "Subject not found in this group."
+#~ msgstr ""
+
+#~ msgid "A paper cannot be both an Extended Essay and a CP Paper."
+#~ msgstr ""
+
+#~ msgid "Manage Categories · Keydion"
+#~ msgstr "Manage Categories · Keydion"
+
+#~ msgid "Add, rename, or remove paper subject categories."
+#~ msgstr "Add, rename, or remove paper subject categories."
+
+#~ msgid "No categories yet. Add one below."
+#~ msgstr "No categories yet. Add one below."
+
+#~ msgid "New category name..."
+#~ msgstr "New category name..."
+
+#~ msgid "Group"
+#~ msgstr ""
+
+#~ msgid "No subjects in this group. Add one below."
+#~ msgstr "No categories yet. Add one below."
+
+#~ msgid "New subject name..."
+#~ msgstr "New category name..."
+
+#~ msgid "Submission Successful!"
+#~ msgstr "Submission Successful!"
+
+#~ msgid "Submitted at"
+#~ msgstr "Submitted at"
+
+#~ msgid "Done"
+#~ msgstr "Done"
+
+#~ msgid "View My Submissions"
+#~ msgstr "View My Submissions"

@@ -83,7 +83,7 @@ class UploadValidatorContractTest(unittest.TestCase):
             'required = ["title", "language"] if is_cp_paper else ["title", "category", "language"]',
             src,
         )
-        self.assertIn('if not (is_ib_ee or is_cp_paper):', src)
+        self.assertIn('if not (is_ib_ee or is_cp_paper or is_ia):', src)
         self.assertIn('required += ["keywords", "abstract"]', src)
         self.assertIn('if not (is_ib_sample or is_anonymous):', src)
         self.assertIn(

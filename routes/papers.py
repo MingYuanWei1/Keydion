@@ -31,23 +31,32 @@ from services.journals import get_journal_id_map, get_journal_names, get_journal
 from services.papers import (
     _build_safe_paper_filename,
     _get_ee_subjects_list,
+    _get_ia_subjects_list,
     _is_cp_paper,
     _is_ee_paper,
+    _is_ia_paper,
     _matches_cp_context,
     _matches_ee_subject,
+    _matches_ia_subject,
     build_cp_data_from_form,
+    build_ia_data_from_form,
     build_ib_ee_data_from_form,
     build_paper_record,
     build_preview_pdf,
     count_papers_using_ee_subject,
+    count_papers_using_ia_subject,
     gather_paper_records,
     load_ee_subjects,
+    load_ia_subjects,
     load_paper_categories,
     load_paper_metadata,
     reconcile_ee_subjects,
+    reconcile_ia_subjects,
     remove_paper_metadata,
     rename_ee_subject_in_papers,
+    rename_ia_subject_in_papers,
     save_ee_subjects,
+    save_ia_subjects,
     set_pdf_metadata,
     upsert_paper_metadata,
 )
@@ -64,7 +73,9 @@ def register_routes(app):
         is_guest = user is None
         journals = load_journals()
         return render_template("advanced_search.html", user=user, journals=journals,
-                               ee_subjects_list=_get_ee_subjects_list(), cp_contexts=CP_GLOBAL_CONTEXTS)
+                               ee_subjects_list=_get_ee_subjects_list(),
+                               ia_subjects_list=_get_ia_subjects_list(),
+                               cp_contexts=CP_GLOBAL_CONTEXTS)
 
     @app.route("/search", methods=["GET", "POST"])
     def search():
@@ -90,6 +101,7 @@ def register_routes(app):
         paper_type_filter = request.args.get("paper_type", "").strip()
         ee_subject_filter = request.args.get("ee_subject", "").strip()
         cp_context_filter = request.args.get("cp_context", "").strip()
+        ia_subject_filter = request.args.get("ia_subject", "").strip()
 
         try:
             page = int(request.args.get("page", "1"))
@@ -97,7 +109,7 @@ def register_routes(app):
             page = 1
 
         per_page = 20
-        filtered = bool(query) or bool(category_filter) or bool(language_filter) or bool(date_filter) or bool(author_filter) or bool(title_filter) or bool(start_year) or bool(end_year) or bool(journal_filter) or bool(paper_type_filter) or bool(ee_subject_filter) or bool(cp_context_filter)
+        filtered = bool(query) or bool(category_filter) or bool(language_filter) or bool(date_filter) or bool(author_filter) or bool(title_filter) or bool(start_year) or bool(end_year) or bool(journal_filter) or bool(paper_type_filter) or bool(ee_subject_filter) or bool(cp_context_filter) or bool(ia_subject_filter)
 
         # Only run full text search if 'q' is actually present
         record_pool = _hybrid_search_records(query) if bool(query) else gather_paper_records()
@@ -129,11 +141,17 @@ def register_routes(app):
                 record_pool = [r for r in record_pool if _is_ee_paper(r)]
             elif paper_type_filter == "cp":
                 record_pool = [r for r in record_pool if _is_cp_paper(r)]
+            elif paper_type_filter == "ia":
+                record_pool = [r for r in record_pool if _is_ia_paper(r)]
             elif paper_type_filter == "independent":
-                record_pool = [r for r in record_pool if not _is_ee_paper(r) and not _is_cp_paper(r)]
+                record_pool = [r for r in record_pool
+                               if not _is_ee_paper(r) and not _is_cp_paper(r) and not _is_ia_paper(r)]
 
         if ee_subject_filter:
             record_pool = [r for r in record_pool if _matches_ee_subject(r, ee_subject_filter)]
+
+        if ia_subject_filter:
+            record_pool = [r for r in record_pool if _matches_ia_subject(r, ia_subject_filter)]
 
         if cp_context_filter:
             record_pool = [r for r in record_pool if _matches_cp_context(r, cp_context_filter)]
@@ -174,6 +192,15 @@ def register_routes(app):
                         p["ee_interdisciplinary_subject"] = ib_info.get("interdisciplinary_subject", "")
                 except (json.JSONDecodeError, TypeError):
                     pass
+            raw_ia = p.get("ia_data", "")
+            if raw_ia and p["paper_type"] == "Independent Research":
+                try:
+                    ia_info = json.loads(raw_ia)
+                    if ia_info.get("is_ia"):
+                        p["paper_type"] = "Internal Assessment"
+                        p["ia_subject"] = ia_info.get("subject", "")
+                except (json.JSONDecodeError, TypeError):
+                    pass
 
         return render_template(
             "search.html",
@@ -185,6 +212,8 @@ def register_routes(app):
             paper_type_filter=paper_type_filter,
             ee_subject_filter=ee_subject_filter,
             ee_subjects_list=_get_ee_subjects_list(),
+            ia_subject_filter=ia_subject_filter,
+            ia_subjects_list=_get_ia_subjects_list(),
             cp_context_filter=cp_context_filter,
             cp_contexts=CP_GLOBAL_CONTEXTS,
             filtered=filtered,
@@ -217,6 +246,8 @@ def register_routes(app):
                 paper_type = "Community Project"
             elif _is_ee_paper(m):
                 paper_type = "Extended Essay"
+            elif _is_ia_paper(m):
+                paper_type = "Internal Assessment"
             else:
                 paper_type = "Independent Research"
             papers.append({
@@ -349,6 +380,7 @@ def register_routes(app):
                 categories=load_paper_categories(),
                 journals=get_journal_names(),
                 ee_subjects=load_ee_subjects(),
+                ia_subjects=load_ia_subjects(),
                 cp_global_contexts=CP_GLOBAL_CONTEXTS,
                 cp_action_types=CP_ACTION_TYPES,
                 ib_criteria_defs=IB_EE_CRITERIA_DEFS,
@@ -366,8 +398,10 @@ def register_routes(app):
             is_anonymous = not is_ib_sample and request.form.get("is_anonymous") == "1"
             is_ib_ee = request.form.get("is_ib_ee") == "1"
             is_cp_paper = request.form.get("is_cp_paper") == "1"
+            is_ia = request.form.get("is_ia") == "1"
             ib_ee_data = build_ib_ee_data_from_form(request.form) if is_ib_ee else ""
             cp_data = build_cp_data_from_form(request.form) if is_cp_paper else ""
+            ia_data = build_ia_data_from_form(request.form) if is_ia else ""
 
             if is_ib_sample:
                 author_names = ["IB SAMPLE"]
@@ -407,10 +441,11 @@ def register_routes(app):
                 "is_anonymous": "1" if is_anonymous else "",
                 "ib_ee_data": ib_ee_data,
                 "cp_data": cp_data,
+                "ia_data": ia_data,
             }
 
-            if is_ib_ee and is_cp_paper:
-                flash(_("A paper cannot be both an Extended Essay and a CP Paper."), "danger")
+            if sum([is_ib_ee, is_cp_paper, is_ia]) > 1:
+                flash(_("A paper can only be one of: Extended Essay, Community Project, or Internal Assessment."), "danger")
                 return render_modify_form(form_meta)
             if is_ib_ee and not request.form.get("ib_ee_core_subject", "").strip():
                 flash(_("Please select an EE core subject."), "danger")
@@ -421,6 +456,14 @@ def register_routes(app):
             if is_cp_paper and not request.form.getlist("cp_action_type"):
                 flash(_("Please select at least one Type of Action."), "danger")
                 return render_modify_form(form_meta)
+            if is_ia:
+                ia_parsed = json.loads(ia_data)
+                if not ia_parsed.get("subject"):
+                    flash(_("Please select an IA subject."), "danger")
+                    return render_modify_form(form_meta)
+                if not ia_parsed.get("criteria"):
+                    flash(_("The selected IA subject has no assessment criteria configured."), "danger")
+                    return render_modify_form(form_meta)
 
             # We use the raw first author for the filename
             primary_author = author_names[0] if author_names else ""
@@ -452,6 +495,7 @@ def register_routes(app):
                 "is_anonymous": "1" if is_anonymous else "",
                 "ib_ee_data": ib_ee_data,
                 "cp_data": cp_data,
+                "ia_data": ia_data,
             })
             flash(_("Paper information updated."), "success")
             return redirect(url_for("paper_manage"))
@@ -552,6 +596,15 @@ def register_routes(app):
             except (json.JSONDecodeError, TypeError):
                 pass
 
+        # Parse IA data if present
+        ia_info = None
+        raw_ia = paper.get("ia_data", "")
+        if raw_ia:
+            try:
+                ia_info = json.loads(raw_ia)
+            except (json.JSONDecodeError, TypeError):
+                pass
+
         return render_template(
             "preview.html",
             user=user,
@@ -567,6 +620,7 @@ def register_routes(app):
             journal_slug_map=get_journal_slug_map(),
             ib_ee_info=ib_ee_info,
             cp_info=cp_info,
+            ia_info=ia_info,
         )
 
     @app.route("/papers/preview/<path:filename>")
@@ -635,4 +689,37 @@ def register_routes(app):
         for old_name, new_name in result["renames"]:
             rename_ee_subject_in_papers(old_name, new_name)
         save_ee_subjects(result["tree"])
+        return jsonify(ok=True, **result["tree"])
+
+    # ---------- IA subjects management ----------
+    @app.route("/dashboard/admin/ia-subjects", endpoint="ia_subjects_manage")
+    def ia_subjects_manage():
+        user = require_login(level=3)
+        if not user:
+            target = url_for("login") if not session.get("user") else url_for("dashboard")
+            return redirect(target)
+        return render_template("ia_subjects_manage.html", user=user,
+                               ia_subjects=load_ia_subjects())
+
+    @app.route("/dashboard/admin/ia-subjects/save", methods=["POST"], endpoint="admin_ia_subjects_save")
+    def admin_ia_subjects_save():
+        user = require_login(level=3)
+        if not user:
+            return jsonify(error="Unauthorized"), 401
+        payload = request.json or {}
+        result = reconcile_ia_subjects(load_ia_subjects(), payload)
+        if result["errors"]:
+            return jsonify(error=str(_("Please fix the highlighted fields before saving.")),
+                           details=result["errors"]), 400
+        conflicts = []
+        for name in result["deletions"]:
+            n = count_papers_using_ia_subject(name)
+            if n > 0:
+                conflicts.append({"subject": name, "paper_count": n})
+        if conflicts:
+            return jsonify(error=str(_("Some subjects are still used by papers.")),
+                           conflicts=conflicts), 409
+        for old_name, new_name in result["renames"]:
+            rename_ia_subject_in_papers(old_name, new_name)
+        save_ia_subjects(result["tree"])
         return jsonify(ok=True, **result["tree"])

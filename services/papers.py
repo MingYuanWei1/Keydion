@@ -18,6 +18,8 @@ from config import (
     _DEFAULT_PAPER_CATEGORIES,
     _EE_SUBJECTS_DEFAULT,
     _EE_SUBJECTS_PATH,
+    _IA_SUBJECTS_DEFAULT,
+    _IA_SUBJECTS_PATH,
 )
 from db import db_session
 from models import PaperMetadataModel
@@ -241,6 +243,145 @@ def rename_ee_subject_in_papers(old: str, new: str) -> int:
     return changed
 
 
+def load_ia_subjects() -> dict:
+    """Load IB IA subject groups from JSON, seeding defaults if needed."""
+    if _IA_SUBJECTS_PATH.exists():
+        try:
+            return json.loads(_IA_SUBJECTS_PATH.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            pass
+    save_ia_subjects(_IA_SUBJECTS_DEFAULT)
+    return dict(_IA_SUBJECTS_DEFAULT)
+
+
+def save_ia_subjects(data: dict) -> None:
+    """Save IB IA subject groups to JSON."""
+    _IA_SUBJECTS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _IA_SUBJECTS_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _get_ia_subjects_list() -> list:
+    """Return a flat sorted list of all IA subject names across groups."""
+    data = load_ia_subjects()
+    subjects = set()
+    for group in data.get("groups", []):
+        for s in group.get("subjects", []):
+            name = (s.get("name") or "").strip()
+            if name:
+                subjects.add(name)
+    return sorted(subjects)
+
+
+def reconcile_ia_subjects(old_tree: dict, payload: dict) -> dict:
+    """Pure diff of a posted IA-subjects payload against the saved tree.
+
+    Returns ``{"tree", "renames", "deletions", "errors"}`` and touches no
+    DB or filesystem. ``tree`` is in the on-disk shape: groups carry object
+    subjects ``{"name", "criteria": [{"name", "max"}]}``. There is NO
+    interdisciplinary handling for IA. New groups get the next int id.
+    """
+    errors: List[str] = []
+    old_names = set()
+    for g in (old_tree or {}).get("groups", []):
+        for s in g.get("subjects", []):
+            nm = (s.get("name") or "").strip() if isinstance(s, dict) else (s or "").strip()
+            if nm:
+                old_names.add(nm)
+
+    existing_ids = [g.get("id") for g in (old_tree or {}).get("groups", [])
+                    if isinstance(g.get("id"), int)]
+    next_id = (max(existing_ids) + 1) if existing_ids else 1
+
+    groups_out = []
+    renames = []
+    seen_originals = set()
+
+    for g in payload.get("groups", []):
+        name = (g.get("name") or "").strip()
+        if not name:
+            errors.append("Group name cannot be empty.")
+        gid = g.get("id")
+        if not isinstance(gid, int):
+            gid = next_id
+            next_id += 1
+        subjects_out = []
+        seen_in_group = set()
+        for s in g.get("subjects", []):
+            sname = (s.get("name") or "").strip()
+            if not sname:
+                errors.append("Subject name cannot be empty.")
+                continue
+            if sname.lower() in seen_in_group:
+                errors.append("Duplicate subject '%s' in group '%s'." % (sname, name))
+                continue
+            seen_in_group.add(sname.lower())
+            criteria_out = []
+            for c in s.get("criteria", []):
+                cname = (c.get("name") or "").strip()
+                if not cname:
+                    errors.append("Criterion name cannot be empty in subject '%s'." % sname)
+                    continue
+                cmax = c.get("max")
+                if not isinstance(cmax, int) or isinstance(cmax, bool) or cmax < 1:
+                    errors.append("Criterion '%s' max must be an integer >= 1." % cname)
+                    continue
+                criteria_out.append({"name": cname, "max": cmax})
+            subjects_out.append({"name": sname, "criteria": criteria_out})
+            orig = s.get("original_name")
+            if orig:
+                seen_originals.add(orig)
+                if orig != sname:
+                    renames.append((orig, sname))
+        groups_out.append({"id": gid, "name": name, "subjects": subjects_out})
+
+    output_names = {s["name"] for g in groups_out for s in g["subjects"]}
+    deletions = sorted(old_names - seen_originals - output_names)
+    tree = {"groups": groups_out}
+    return {"tree": tree, "renames": renames, "deletions": deletions, "errors": errors}
+
+
+def count_papers_using_ia_subject(name: str) -> int:
+    """Number of papers whose ia_data subject equals name."""
+    count = 0
+    for row in load_paper_metadata():
+        raw = row.get("ia_data", "")
+        if not raw:
+            continue
+        try:
+            ia = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            continue
+        if ia.get("subject") == name:
+            count += 1
+    return count
+
+
+def rename_ia_subject_in_papers(old: str, new: str) -> int:
+    """Rewrite ia_data subject == old to new across papers.
+
+    Returns the number of papers changed; saves once if anything changed.
+    """
+    if old == new:
+        return 0
+    rows = load_paper_metadata()
+    changed = 0
+    for row in rows:
+        raw = row.get("ia_data", "")
+        if not raw:
+            continue
+        try:
+            ia = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            continue
+        if ia.get("subject") == old:
+            ia["subject"] = new
+            row["ia_data"] = json.dumps(ia, ensure_ascii=False)
+            changed += 1
+    if changed:
+        save_paper_metadata(rows)
+    return changed
+
+
 def _form_int(form, name: str) -> int:
     raw = form.get(name, "").strip()
     return int(raw) if raw.isdigit() else 0
@@ -355,6 +496,77 @@ def parse_cp_data_for_form(json_str) -> dict:
     return out
 
 
+def _ia_criteria_for_subject(subject: str, data: dict = None) -> list:
+    """Return the criteria list ([{name, max}, ...]) for an IA subject by name.
+
+    Walks the on-disk taxonomy (groups -> subjects), loading it via
+    ``load_ia_subjects()`` when ``data`` is not supplied. Returns [] when the
+    subject is unknown, so a stray form value yields an empty (zero-total) blob.
+    """
+    target = (subject or "").strip().lower()
+    if not target:
+        return []
+    if data is None:
+        data = load_ia_subjects()
+    for group in data.get("groups", []):
+        for s in group.get("subjects", []):
+            if (s.get("name") or "").strip().lower() == target:
+                return s.get("criteria") or []
+    return []
+
+
+def build_ia_data_from_form(form) -> str:
+    subject = form.get("ia_subject", "").strip()
+    # Criterion list (and thus each max) comes from the on-disk taxonomy;
+    # the form's numbers are never trusted.
+    defs = _ia_criteria_for_subject(subject, load_ia_subjects())
+    criteria = []
+    for i, cdef in enumerate(defs):
+        max_mark = int(cdef.get("max", 0))
+        score = min(_form_int(form, f"ia_crit_{i}_score"), max_mark)
+        criteria.append({
+            "name": cdef.get("name", ""),
+            "max": max_mark,
+            "score": score,
+            "comment": form.get(f"ia_crit_{i}_comment", "").strip(),
+        })
+    total_score = sum(c["score"] for c in criteria)
+    total_max = sum(c["max"] for c in criteria)
+    return json.dumps(
+        {
+            "is_ia": True,
+            "subject": subject,
+            "criteria": criteria,
+            "total_score": total_score,
+            "total_max": total_max,
+            "holistic_comment": form.get("ia_holistic_comment", "").strip(),
+        },
+        ensure_ascii=False,
+    )
+
+
+def parse_ia_data_for_form(json_str) -> dict:
+    """Flatten ia_data JSON back into form-style keys for draft hydration.
+
+    Returns {} for missing/invalid input so callers can safely .update() it.
+    """
+    if not json_str:
+        return {}
+    try:
+        data = json.loads(json_str)
+    except (json.JSONDecodeError, TypeError):
+        return {}
+    out = {
+        "is_ia": "1",
+        "ia_subject": data.get("subject", ""),
+        "ia_holistic_comment": data.get("holistic_comment", ""),
+    }
+    for i, criterion in enumerate(data.get("criteria") or []):
+        out[f"ia_crit_{i}_score"] = str(criterion.get("score", ""))
+        out[f"ia_crit_{i}_comment"] = criterion.get("comment", "")
+    return out
+
+
 def _is_ee_paper(record: dict) -> bool:
     raw = record.get("ib_ee_data", "")
     if not raw:
@@ -394,6 +606,27 @@ def _matches_cp_context(record: dict, context: str) -> bool:
     try:
         cp = json.loads(raw)
         return context.lower() in (cp.get("global_context", "")).lower()
+    except (json.JSONDecodeError, TypeError):
+        return False
+
+
+def _is_ia_paper(record: dict) -> bool:
+    raw = record.get("ia_data", "")
+    if not raw:
+        return False
+    try:
+        return bool(json.loads(raw).get("is_ia"))
+    except (json.JSONDecodeError, TypeError):
+        return False
+
+
+def _matches_ia_subject(record: dict, subject: str) -> bool:
+    raw = record.get("ia_data", "")
+    if not raw:
+        return False
+    try:
+        ia = json.loads(raw)
+        return subject.lower() in (ia.get("subject", "")).lower()
     except (json.JSONDecodeError, TypeError):
         return False
 

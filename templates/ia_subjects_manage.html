@@ -1,0 +1,164 @@
+{% extends "_bare.html" if partial else "_dashboard_shell.html" %}
+{% block title %}{{ _('Manage IA Subjects · Keydion') }}{% endblock %}
+{% block head_extra %}{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/manage.css') }}">
+{% endblock %}
+{% block panel %}
+{% if partial %}<link rel="stylesheet" href="{{ url_for('static', filename='css/manage.css') }}">{% endif %}
+
+<style>
+  .ia-savebar { display:flex; align-items:center; justify-content:space-between; gap:16px;
+    background: var(--accent-quiet); border:1px solid var(--accent-wash);
+    border-radius:10px; padding:10px 14px; margin-bottom:18px; }
+  .ia-savebar__msg { display:flex; align-items:center; gap:9px; font-size:13px; color: var(--accent); }
+  .ia-savebar__msg svg { width:16px; height:16px; }
+  .ia-card { background: var(--paper-warm); border:.5px solid var(--border); border-radius:12px; margin-bottom:12px; overflow:hidden; }
+  .ia-ghead { display:flex; align-items:center; gap:11px; padding:11px 14px; background: var(--paper-sand-soft); border-bottom:.5px solid var(--border); }
+  .ia-gname { flex:1; border:none; background:transparent; font-family:'Cormorant Garamond', Georgia, serif; font-size:19px; font-weight:600; color: var(--ink); padding:2px 4px; border-radius:6px; }
+  .ia-gname:hover, .ia-gname:focus { background:#fff; outline:1px solid var(--border); }
+  .ia-count { font-family:'JetBrains Mono', monospace; font-size:11px; color: var(--muted); }
+  .ia-subjects { display:flex; flex-direction:column; }
+  .ia-subj { display:flex; align-items:center; gap:11px; padding:8px 14px; border-bottom:.5px solid var(--border-soft); }
+  .ia-name { flex:1; border:none; background:transparent; font-family:'Source Serif 4', Georgia, serif; font-size:14.5px; color: var(--ink); padding:4px 6px; border-radius:6px; }
+  .ia-name:hover, .ia-name:focus { background: var(--cream); outline:1px solid var(--border-soft); }
+  .ia-grip { color:#c4baa6; cursor:grab; display:flex; }
+  .ia-grip svg, .ia-ic { width:17px; height:17px; }
+  .ia-iconbtn { border:none; background:transparent; color: var(--muted); cursor:pointer; padding:4px; border-radius:6px; display:flex; }
+  .ia-iconbtn:hover { background:#f1ebde; color: var(--accent); }
+  .ia-addrow { display:flex; align-items:center; gap:9px; padding:9px 14px; background: var(--cream); }
+  .ia-addrow .ia-ic { width:15px; height:15px; color:#c4baa6; }
+  .ia-addinput { flex:1; border:.5px solid var(--border); background:#fff; border-radius:8px; padding:7px 11px; font-family:'Source Serif 4', serif; font-size:13.5px; color: var(--ink); }
+  .ia-conflicts { background: var(--accent-quiet); border:1px solid var(--accent-wash); border-radius:10px; padding:12px 16px; margin-bottom:16px; color: var(--accent); font-size:13px; }
+  .ia-conflicts ul { margin:6px 0 0; padding-left:18px; }
+  /* Drag-reorder (SortableJS): ghost = landing slot, drag = lifted item */
+  .ia-ghost { opacity:.4; background: var(--accent-quiet); }
+  .ia-chosen { background: var(--accent-quiet); }
+  .ia-drag { box-shadow: 0 10px 28px rgba(40, 30, 14, .25); border-radius:10px; }
+  .ia-card.sortable-fallback, .ia-subj.sortable-fallback { box-shadow: 0 10px 28px rgba(40, 30, 14, .25); }
+
+  /* ── EXTRA: criteria sub-editor ───────────────────────── */
+  .ia-subjbody { display:flex; flex-direction:column; gap:9px; padding:8px 14px 12px 40px;
+    border-bottom:.5px solid var(--border-soft); background:#fefcf7; }
+  .ia-subjbody.is-collapsed { display:none; }
+  .ia-summary { font-family:'JetBrains Mono', monospace; font-size:10.5px; letter-spacing:.03em;
+    color: var(--muted-soft); display:inline-flex; align-items:center; gap:6px; cursor:pointer; }
+  .ia-summary .ia-ic { width:13px; height:13px; }
+  .ia-crit { display:flex; align-items:center; gap:9px; }
+  .ia-crit-name { flex:1; border:.5px solid var(--border); background:#fff; border-radius:7px;
+    padding:5px 9px; font-family:'Source Serif 4', serif; font-size:13px; color: var(--ink); }
+  .ia-crit-max { width:64px; border:.5px solid var(--border); background:#fff; border-radius:7px;
+    padding:5px 8px; font-family:'JetBrains Mono', monospace; font-size:12.5px; text-align:center; color: var(--ink); }
+  .ia-crit-maxlbl { font-family:'JetBrains Mono', monospace; font-size:10px; text-transform:uppercase;
+    letter-spacing:.05em; color: var(--muted); }
+  .ia-totalmax { display:inline-flex; align-items:center; gap:6px; align-self:flex-start;
+    background:#efe7d2; border:1px solid #d8c9a3; color: var(--status-gold);
+    border-radius:999px; padding:3px 11px; font-family:'JetBrains Mono', monospace; font-size:10.5px;
+    letter-spacing:.04em; text-transform:uppercase; }
+  .ia-critadd { display:flex; align-items:center; gap:9px; }
+  .ia-critadd .ia-ic { width:14px; height:14px; color:#c4baa6; }
+  .ia-critaddname { flex:1; border:.5px solid var(--border); background:#fff; border-radius:7px;
+    padding:5px 9px; font-family:'Source Serif 4', serif; font-size:13px; color: var(--ink); }
+  .ia-critaddmax { width:64px; border:.5px solid var(--border); background:#fff; border-radius:7px;
+    padding:5px 8px; font-family:'JetBrains Mono', monospace; font-size:12.5px; text-align:center; color: var(--ink); }
+  .ia-nocrit { font-style:italic; color: var(--muted); font-size:12.5px; font-family:'Source Serif 4', serif; }
+
+  /* ── EXTRA: bulk-add panel + selection / bulk-delete bar ─ */
+  .ia-bulkpanel { display:none; flex-direction:column; gap:8px; padding:10px 14px; background: var(--cream);
+    border-top:.5px dashed var(--border); }
+  .ia-bulkpanel.is-open { display:flex; }
+  .ia-bulkbox { width:100%; min-height:74px; resize:vertical; border:.5px solid var(--border); background:#fff;
+    border-radius:8px; padding:8px 11px; font-family:'Source Serif 4', serif; font-size:13px; color: var(--ink); }
+  .ia-bulkrow { display:flex; gap:8px; align-items:center; }
+  .ia-selbar { display:flex; align-items:center; gap:12px; padding:8px 16px 8px 14px; background: var(--accent);
+    color:#fff; border-radius:10px; margin-bottom:12px; flex-wrap:wrap; }
+  .ia-selbar__count { font-family:'Cormorant Garamond', Georgia, serif; font-size:18px; font-weight:600; }
+  .ia-selbar__spacer { flex:1; }
+  .ia-selbar button { background:transparent; border:1px solid rgba(255,255,255,.5); color:#fff;
+    padding:5px 12px; border-radius:999px; font-family:Georgia, serif; font-size:12px; font-weight:600; cursor:pointer; }
+  .ia-selbar button:hover { background: rgba(255,255,255,.14); }
+  .ia-selcheck { width:16px; height:16px; border:1.5px solid #c9beac; border-radius:4px; background: var(--paper-warm);
+    cursor:pointer; appearance:none; -webkit-appearance:none; flex:0 0 auto; }
+  .ia-selcheck:checked { background: var(--accent); border-color: var(--accent); }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="ia-grip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></symbol>
+  <symbol id="ia-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="ia-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="ia-chev-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></symbol>
+  <symbol id="ia-chev-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></symbol>
+</svg>
+
+<div class="kp-head">
+  <div class="kp-head__left">
+    <div class="kp-crumb">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18"/><path d="M3 12h18"/><path d="M3 17h12"/></svg>
+      <span>{{ _('Library') }} · {{ _('Curriculum') }}</span>
+    </div>
+    <h1 class="kp-title">{{ _('IA Subjects') }}</h1>
+    <p class="kp-sub">{{ _('The IB subjects and assessment criteria behind the Internal Assessment upload form and the public search filter.') }}</p>
+  </div>
+  <div class="kp-head__right">
+    <button type="button" class="kp-btn kp-btn--ghost" id="iaAddGroup">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      <span>{{ _('Add group') }}</span>
+    </button>
+  </div>
+</div>
+
+<div class="ia-conflicts" id="iaConflicts" style="display:none;"></div>
+
+<div class="ia-savebar" id="iaSaveBar" style="display:none;">
+  <span class="ia-savebar__msg">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+    <span id="iaSaveSummary">{{ _('Unsaved changes') }}</span>
+  </span>
+  <span style="display:flex; gap:8px;">
+    <button type="button" class="kp-btn kp-btn--ghost kp-btn--sm" id="iaDiscard">{{ _('Discard') }}</button>
+    <button type="button" class="kp-btn kp-btn--primary kp-btn--sm" id="iaSave">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+      <span>{{ _('Save changes') }}</span>
+    </button>
+  </span>
+</div>
+
+<div id="iaGroups"></div>
+
+<script type="application/json" id="iaData">{{ ia_subjects | tojson }}</script>
+<script type="application/json" id="iaI18n">{
+  "newGroup": {{ _('New group') | tojson }},
+  "groupName": {{ _('Group name') | tojson }},
+  "addSubject": {{ _('Add a subject to this group…') | tojson }},
+  "saved": {{ _('Subjects saved.') | tojson }},
+  "saveFailed": {{ _('Could not save. Please try again.') | tojson }},
+  "deleteSubject": {{ _('Delete subject') | tojson }},
+  "deleteGroup": {{ _('Delete group') | tojson }},
+  "collapse": {{ _('Collapse / expand') | tojson }},
+  "drag": {{ _('Drag to reorder') | tojson }},
+  "renamed": {{ _('renamed') | tojson }},
+  "added": {{ _('added') | tojson }},
+  "removed": {{ _('removed') | tojson }},
+  "unsaved": {{ _('Unsaved changes') | tojson }},
+  "conflictIntro": {{ _('These subjects are still used by papers and can\'t be deleted:') | tojson }},
+  "confirmDeleteGroup": {{ _('Delete this group and all its subjects?') | tojson }},
+  "criteria": {{ _('Criteria') | tojson }},
+  "criterionName": {{ _('Criterion name') | tojson }},
+  "addCriterion": {{ _('Add criterion') | tojson }},
+  "maxPoints": {{ _('Max') | tojson }},
+  "totalMax": {{ _('Total max') | tojson }},
+  "noCriteria": {{ _('no criteria yet') | tojson }},
+  "critSummary": {{ _('%(n)s criteria · max %(m)s') | tojson }},
+  "bulkAdd": {{ _('Bulk add') | tojson }},
+  "bulkPlaceholder": {{ _('Paste one subject per line…') | tojson }},
+  "addAll": {{ _('Add all') | tojson }},
+  "cancel": {{ _('Cancel') | tojson }},
+  "selected": {{ _('selected') | tojson }},
+  "deleteSelected": {{ _('Delete selected') | tojson }},
+  "clearSelection": {{ _('Clear') | tojson }}
+}</script>
+
+<div class="kp-toast" id="iaToast"></div>
+
+<script src="{{ url_for('static', filename='vendor/sortable.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/ia-subjects.js') }}"></script>
+{% endblock %}

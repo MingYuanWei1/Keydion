@@ -66,6 +66,7 @@ class PaperMetadataModel(BASE):
     is_ib_sample = Column(Unicode(10))
     is_anonymous = Column(Unicode(10))
     cp_data = Column(UnicodeText)
+    ia_data = Column(UnicodeText)
 
 
 class VectorType(UserDefinedType):
@@ -204,6 +205,7 @@ class SubmissionModel(BASE):
     is_ib_sample = Column(Unicode(10))
     is_anonymous = Column(Unicode(10))
     cp_data = Column(UnicodeText)
+    ia_data = Column(UnicodeText)
 
 
 class SessionModel(BASE):
@@ -330,6 +332,22 @@ def init_db() -> None:
             with db._ENGINE.connect() as conn:
                 from sqlalchemy import text
                 conn.execute(text("ALTER TABLE submissions ADD COLUMN cp_data TEXT"))
+                conn.commit()
+        except Exception:
+            pass
+        # Migrate: add ia_data column to papers_metadata if it doesn't exist
+        try:
+            with db._ENGINE.connect() as conn:
+                from sqlalchemy import text
+                conn.execute(text("ALTER TABLE papers_metadata ADD COLUMN ia_data TEXT"))
+                conn.commit()
+        except Exception:
+            pass
+        # Migrate: add ia_data column to submissions if it doesn't exist
+        try:
+            with db._ENGINE.connect() as conn:
+                from sqlalchemy import text
+                conn.execute(text("ALTER TABLE submissions ADD COLUMN ia_data TEXT"))
                 conn.commit()
         except Exception:
             pass

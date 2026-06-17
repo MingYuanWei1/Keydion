@@ -123,6 +123,101 @@ _EE_SUBJECTS_DEFAULT = {
     ]
 }
 
+# ---- IB IA (Internal Assessment) Subject helpers ----
+# Mirrors the EE group/subject NAMES, but each subject carries its own IA rubric.
+# Rubrics pre-filled ONLY where the IB internal-assessment criteria are well
+# established; every other subject ships with an empty criteria list for an
+# admin to fill via the manage page.  # verify against current IB subject guides
+_IA_SUBJECTS_PATH = DATA_DIR / "ia_subjects.json"
+
+# Group 4 Sciences individual-investigation rubric (24 marks).
+_IA_SCIENCE_CRITERIA = [
+    {"name": "Personal engagement", "max": 2},
+    {"name": "Exploration", "max": 6},
+    {"name": "Analysis", "max": 6},
+    {"name": "Evaluation", "max": 6},
+    {"name": "Communication", "max": 4},
+]
+# Mathematics exploration rubric (20 marks).
+_IA_MATH_CRITERIA = [
+    {"name": "Presentation", "max": 4},
+    {"name": "Mathematical communication", "max": 4},
+    {"name": "Personal engagement", "max": 3},
+    {"name": "Reflection", "max": 3},
+    {"name": "Use of mathematics", "max": 6},
+]
+
+_IA_SUBJECTS_DEFAULT = {
+    "groups": [
+        {
+            "id": 1,
+            "name": "Group 1: Studies in Language and Literature",
+            "subjects": [
+                {"name": "Language A: Literature", "criteria": []},
+                {"name": "Language A: Language and Literature", "criteria": []},
+                {"name": "Literature and Performance", "criteria": []},
+            ],
+        },
+        {
+            "id": 2,
+            "name": "Group 2: Language Acquisition",
+            "subjects": [
+                {"name": "Language B", "criteria": []},
+                {"name": "Language ab initio", "criteria": []},
+                {"name": "Classical Languages", "criteria": []},
+            ],
+        },
+        {
+            "id": 3,
+            "name": "Group 3: Individuals and Societies",
+            "subjects": [
+                {"name": "Business Management", "criteria": []},
+                {"name": "Economics", "criteria": []},
+                {"name": "Geography", "criteria": []},
+                {"name": "Global Politics", "criteria": []},
+                {"name": "History", "criteria": []},
+                {"name": "Information Technology in a Global Society", "criteria": []},
+                {"name": "Philosophy", "criteria": []},
+                {"name": "Psychology", "criteria": []},
+                {"name": "Social and Cultural Anthropology", "criteria": []},
+                {"name": "World Religions", "criteria": []},
+            ],
+        },
+        {
+            "id": 4,
+            "name": "Group 4: Sciences",
+            "subjects": [
+                {"name": "Biology", "criteria": list(_IA_SCIENCE_CRITERIA)},
+                {"name": "Chemistry", "criteria": list(_IA_SCIENCE_CRITERIA)},
+                {"name": "Computer Science", "criteria": list(_IA_SCIENCE_CRITERIA)},
+                {"name": "Design Technology", "criteria": list(_IA_SCIENCE_CRITERIA)},
+                {"name": "Environmental Systems and Societies", "criteria": list(_IA_SCIENCE_CRITERIA)},
+                {"name": "Physics", "criteria": list(_IA_SCIENCE_CRITERIA)},
+                {"name": "Sports, Exercise and Health Science", "criteria": list(_IA_SCIENCE_CRITERIA)},
+            ],
+        },
+        {
+            "id": 5,
+            "name": "Group 5: Mathematics",
+            "subjects": [
+                {"name": "Mathematics: Analysis and Approaches", "criteria": list(_IA_MATH_CRITERIA)},
+                {"name": "Mathematics: Applications and Interpretation", "criteria": list(_IA_MATH_CRITERIA)},
+            ],
+        },
+        {
+            "id": 6,
+            "name": "Group 6: The Arts",
+            "subjects": [
+                {"name": "Dance", "criteria": []},
+                {"name": "Film", "criteria": []},
+                {"name": "Music", "criteria": []},
+                {"name": "Theatre", "criteria": []},
+                {"name": "Visual Arts", "criteria": []},
+            ],
+        },
+    ],
+}
+
 JOURNAL_COVERS_DIR = BASE_DIR / "static" / "uploads" / "journal_covers"
 ALLOWED_EXTENSIONS = {"pdf"}
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
@@ -159,7 +254,7 @@ SUPPORTED_LOCALES = ("en", "zh")
 SESSION_TIMEOUT_SECONDS = int(os.environ.get("PAPERQUERY_SESSION_TIMEOUT", "3600"))
 OPEN_ACCESS = os.environ.get("PAPERQUERY_OPEN_ACCESS", "0").strip().lower() in ("1", "true", "yes", "on")
 SESSION_TIMEOUT = timedelta(seconds=SESSION_TIMEOUT_SECONDS)
-METADATA_FIELDS = ["filename", "title", "journal", "category", "language", "keywords", "abstract", "author_name", "author_email", "author_school", "published_at", "ib_ee_data", "is_ib_sample", "cp_data", "is_anonymous"]
+METADATA_FIELDS = ["filename", "title", "journal", "category", "language", "keywords", "abstract", "author_name", "author_email", "author_school", "published_at", "ib_ee_data", "is_ib_sample", "cp_data", "is_anonymous", "ia_data"]
 MS_USER_FIELDS = [
     "ms_id",
     "tenant_id",

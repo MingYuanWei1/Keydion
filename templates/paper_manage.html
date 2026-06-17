@@ -19,6 +19,7 @@
   .kp-pill--ee          { background: #f4ecd5; color: #7a5a14; }
   .kp-pill--cp          { background: #dfead2; color: #3d5723; }
   .kp-pill--independent { background: #e3e7ee; color: #34465f; }
+  .kp-pill--ia          { background: #e6def5; color: #4c2db5; }
   .kp-pill--untyped     { background: #ece4d3; color: var(--muted); }
 
   .kp-journal {
@@ -234,6 +235,7 @@
 {% set ee_count  = papers | selectattr('paper_type', 'equalto', 'Extended Essay')      | list | length %}
 {% set cp_count  = papers | selectattr('paper_type', 'equalto', 'Community Project')    | list | length %}
 {% set ind_count = papers | selectattr('paper_type', 'equalto', 'Independent Research') | list | length %}
+{% set ia_count  = papers | selectattr('paper_type', 'equalto', 'Internal Assessment')   | list | length %}
 
 {# ─── Filter toolbar ──────────────────────────────────────── #}
 <div class="kp-toolbar" id="paperToolbar">
@@ -248,6 +250,7 @@
     <option value="all">{{ _('Type: All') }} ({{ papers|length }})</option>
     <option value="ee">{{ _('Extended Essay') }} ({{ ee_count }})</option>
     <option value="cp">{{ _('Community Project') }} ({{ cp_count }})</option>
+    <option value="ia">{{ _('Internal Assessment') }} ({{ ia_count }})</option>
     <option value="independent">{{ _('Independent') }} ({{ ind_count }})</option>
   </select>
 
@@ -295,7 +298,7 @@
     <tbody id="paperTbody">
       {% for p in papers %}
         {% set ptype = p.paper_type %}
-        {% set tkey = 'ee' if ptype == 'Extended Essay' else 'cp' if ptype == 'Community Project' else 'independent' if ptype == 'Independent Research' else '' %}
+        {% set tkey = 'ee' if ptype == 'Extended Essay' else 'cp' if ptype == 'Community Project' else 'ia' if ptype == 'Internal Assessment' else 'independent' if ptype == 'Independent Research' else '' %}
         <tr data-row
             data-filename="{{ p.filename }}"
             data-title="{{ (p.title or '')|lower }}"
@@ -327,6 +330,8 @@
               <span class="kp-pill kp-pill--ee"><span class="kp-pill__dot"></span>{{ _('Extended Essay') }}</span>
             {% elif ptype == 'Community Project' %}
               <span class="kp-pill kp-pill--cp"><span class="kp-pill__dot"></span>{{ _('Community Project') }}</span>
+            {% elif ptype == 'Internal Assessment' %}
+              <span class="kp-pill kp-pill--ia"><span class="kp-pill__dot"></span>{{ _('Internal Assessment') }}</span>
             {% elif ptype == 'Independent Research' %}
               <span class="kp-pill kp-pill--independent"><span class="kp-pill__dot"></span>{{ _('Independent Research') }}</span>
             {% else %}

@@ -198,6 +198,7 @@ def register_routes(app):
                 "is_ib_sample": sub.get("is_ib_sample", ""),
                 "is_anonymous": sub.get("is_anonymous", ""),
                 "cp_data": sub.get("cp_data", ""),
+                "ia_data": sub.get("ia_data", ""),
             },
         )
 

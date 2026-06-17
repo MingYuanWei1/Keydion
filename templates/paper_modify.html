@@ -27,6 +27,8 @@
                     {% set ib_ee_info = (ib_ee_data | from_json) if ib_ee_data else None %}
                     {% set cp_data = meta.get('cp_data', '') %}
                     {% set cp_info = (cp_data | from_json) if cp_data else None %}
+                    {% set ia_data = meta.get('ia_data', '') %}
+                    {% set ia_info = (ia_data | from_json) if ia_data else None %}
                     {% set is_ib_sample_checked = meta.get('is_ib_sample') or meta.get('author_name', '') == 'IB SAMPLE' %}
                     {% set is_anonymous_checked = meta.get('is_anonymous') %}
 
@@ -227,6 +229,82 @@
                         </div>
                     </div>
 
+                    <!-- IB Internal Assessment Section -->
+                    <div class="mb-3 border rounded p-3">
+                        <div class="form-check mb-0">
+                            <input class="form-check-input" type="checkbox" id="iaCheckbox" name="is_ia" value="1"
+                                {% if ia_info and ia_info.is_ia %}checked{% endif %}>
+                            <label class="form-check-label fw-semibold" for="iaCheckbox">
+                                {{ _('This is an IB Internal Assessment (IA)') }}
+                            </label>
+                        </div>
+
+                        <div id="iaDetails" class="mt-3" style="display: none;">
+                            <div class="mb-3">
+                                <label for="iaSubject" class="form-label fw-semibold">{{ _('IA Subject') }}</label>
+                                <select class="form-select" id="iaSubject" name="ia_subject">
+                                    <option value="">{{ _('Select an IA subject...') }}</option>
+                                    {% for group in ia_subjects.groups %}
+                                    <optgroup label="{{ group.name }}">
+                                        {% for subject in group.subjects %}
+                                        <option value="{{ subject.name }}" {% if ia_info and ia_info.subject == subject.name %}selected{% endif %}>{{ subject.name }}</option>
+                                        {% endfor %}
+                                    </optgroup>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">{{ _('Changing the subject rebuilds the criteria after you save. Edit scores below for the saved subject.') }}</div>
+                            </div>
+
+                            {% if ia_info and ia_info.criteria %}
+                            <div class="table-responsive mb-3">
+                                <table class="table table-bordered align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>{{ _('Criterion Name') }}</th>
+                                            <th style="width: 120px;">{{ _('Score') }}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for crit in ia_info.criteria %}
+                                        <tr>
+                                            <td>{{ crit.get('name', '') }}</td>
+                                            <td>
+                                                <div class="input-group input-group-sm">
+                                                    <input type="number" class="form-control ia-crit-score" name="ia_crit_{{ loop.index0 }}_score"
+                                                        min="0" max="{{ crit.get('max', 0) }}" value="{{ crit.get('score', '') }}">
+                                                    <span class="input-group-text">/ {{ crit.get('max', 0) }}</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="2">
+                                                <textarea class="form-control form-control-sm" name="ia_crit_{{ loop.index0 }}_comment" rows="2"
+                                                    placeholder="{{ _('Commentary for this criterion...') }}">{{ crit.get('comment', '') }}</textarea>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="iaTotalScore" class="form-label fw-semibold">{{ _('Total Score') }}</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="iaTotalScore"
+                                        value="{{ ia_info.get('total_score', 0) }}" readonly>
+                                    <span class="input-group-text">/ {{ ia_info.get('total_max', 0) }}</span>
+                                </div>
+                                <div class="form-text">{{ _('Calculated server-side from the criteria above.') }}</div>
+                            </div>
+                            {% endif %}
+
+                            <div class="mb-0">
+                                <label for="iaHolisticComment" class="form-label fw-semibold">{{ _('Holistic Commentary') }}</label>
+                                <textarea class="form-control" id="iaHolisticComment" name="ia_holistic_comment" rows="3">{{ ia_info.get('holistic_comment', '') if ia_info else '' }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- CP Paper Section -->
                     <div class="mb-3">
                         <div class="border rounded p-3">
@@ -414,11 +492,13 @@
         });
         toggleAuthorBypass();
 
-        // ---- IB EE / CP toggles ----
+        // ---- IB EE / CP / IA toggles ----
         const ibCheckbox = document.getElementById("ibEeCheckbox");
         const ibDetails = document.getElementById("ibEeDetails");
         const cpCheckbox = document.getElementById("cpCheckbox");
         const cpDetails = document.getElementById("cpDetails");
+        const iaCheckbox = document.getElementById("iaCheckbox");
+        const iaDetails = document.getElementById("iaDetails");
 
         function setRequired(container, selector, required) {
             container.querySelectorAll(selector).forEach(el => {
@@ -442,14 +522,20 @@
             setRequired(cpDetails, "#cpGlobalContext, .cp-crit-score", enabled);
         }
 
+        function toggleIaSection() {
+            const enabled = iaCheckbox.checked;
+            iaDetails.style.display = enabled ? "block" : "none";
+            setRequired(iaDetails, "#iaSubject, .ia-crit-score", enabled);
+        }
+
         function updateMutualExclusion() {
-            if (ibCheckbox.checked) {
-                cpCheckbox.disabled = true;
-            } else if (cpCheckbox.checked) {
-                ibCheckbox.disabled = true;
+            const checked = [ibCheckbox, cpCheckbox, iaCheckbox].filter(c => c.checked);
+            if (checked.length) {
+                [ibCheckbox, cpCheckbox, iaCheckbox].forEach(c => {
+                    c.disabled = !c.checked;
+                });
             } else {
-                ibCheckbox.disabled = false;
-                cpCheckbox.disabled = false;
+                [ibCheckbox, cpCheckbox, iaCheckbox].forEach(c => { c.disabled = false; });
             }
         }
 
@@ -464,6 +550,19 @@
             document.getElementById("cpTotalScore").value = Math.round(sum / 4);
         }
 
+        function updateIaTotal() {
+            const totalEl = document.getElementById("iaTotalScore");
+            if (!totalEl) return;
+            let sum = 0;
+            document.querySelectorAll(".ia-crit-score").forEach(el => {
+                const value = parseInt(el.value, 10);
+                if (!isNaN(value)) {
+                    sum += value;
+                }
+            });
+            totalEl.value = sum;
+        }
+
         ibCheckbox.addEventListener("change", function () {
             toggleIbSection();
             updateMutualExclusion();
@@ -472,14 +571,23 @@
             toggleCpSection();
             updateMutualExclusion();
         });
+        iaCheckbox.addEventListener("change", function () {
+            toggleIaSection();
+            updateMutualExclusion();
+        });
         document.querySelectorAll(".cp-crit-score").forEach(el => {
             el.addEventListener("input", updateCpTotal);
+        });
+        document.querySelectorAll(".ia-crit-score").forEach(el => {
+            el.addEventListener("input", updateIaTotal);
         });
 
         toggleIbSection();
         toggleCpSection();
+        toggleIaSection();
         updateMutualExclusion();
         updateCpTotal();
+        updateIaTotal();
     })();
 </script>
 {% endblock %}
