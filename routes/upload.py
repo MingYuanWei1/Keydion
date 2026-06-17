@@ -31,6 +31,7 @@ from services.auth import require_login
 from services.journals import get_journal_names
 from services.papers import (
     _build_safe_paper_filename,
+    _ia_criteria_for_subject,
     allowed_file,
     build_cp_data_from_form,
     build_ia_data_from_form,
@@ -666,15 +667,6 @@ def register_routes(app):
 
         return jsonify(result), 200
 
-    def _criteria_for_ia_subject(subject_name):
-        """Find the criteria list for an IA subject by name across all groups."""
-        target = (subject_name or "").strip()
-        for group in (load_ia_subjects() or {}).get("groups", []):
-            for subj in group.get("subjects", []):
-                if subj.get("name", "").strip() == target:
-                    return subj.get("criteria", []) or []
-        return []
-
     @app.route("/api/upload/extract-ia-metadata", methods=["POST"])
     def api_extract_ia_metadata():
         user = require_login(level=2)
@@ -693,7 +685,7 @@ def register_routes(app):
 
         language = request.form.get("language", "en")
         subject = request.form.get("subject", "").strip()
-        criteria = _criteria_for_ia_subject(subject)
+        criteria = _ia_criteria_for_subject(subject)
         if not criteria:
             return jsonify({"error": str(_("Unknown or unconfigured IA subject"))}), 400
 
