@@ -12,6 +12,7 @@ from flask_babel import gettext as _
 import llm_client
 import pdf_text
 import rag_index
+import vision_read
 import web_search
 from config import PAPERS_DIR
 from db import db_session
@@ -48,10 +49,13 @@ def _rag_paper_text(filename):
     # declared language. (The live /search full-text fallback still uses the
     # pypdf-only extract_pdf_text(pdf_path) to avoid OCR per request.)
     record = build_paper_record(filename)
-    ocr_langs = _index_ocr_langs(record.get("language", ""))
+    lang = record.get("language", "")
+    ocr_langs = _index_ocr_langs(lang)
+    vf = (lambda b, mp: vision_read.transcribe_pdf(b, max_pages=mp, language=lang or "en")) \
+        if llm_client.vision_enabled() else None
     return pdf_text.extract_pdf_text(
         (PAPERS_DIR / filename).read_bytes(),
-        ocr_langs=ocr_langs, max_ocr_pages=50)
+        ocr_langs=ocr_langs, max_ocr_pages=50, vision_fallback=vf)
 
 
 def _rag_paper_meta(filename):
