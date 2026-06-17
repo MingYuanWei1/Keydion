@@ -66,6 +66,7 @@ class PaperMetadataModel(BASE):
     is_ib_sample = Column(Unicode(10))
     is_anonymous = Column(Unicode(10))
     cp_data = Column(UnicodeText)
+    ia_data = Column(UnicodeText)
 
 
 class VectorType(UserDefinedType):
@@ -204,6 +205,7 @@ class SubmissionModel(BASE):
     is_ib_sample = Column(Unicode(10))
     is_anonymous = Column(Unicode(10))
     cp_data = Column(UnicodeText)
+    ia_data = Column(UnicodeText)
 
 
 class SessionModel(BASE):
