@@ -290,8 +290,9 @@
             </div>
           </div>
 
+          ${!isCP ? `
           <div class="field field--6">
-            <label class="field__label" for="f-category">${t('subject_category', 'Subject Category')}${isCP ? '' : ' <span class="req">*</span>'}</label>
+            <label class="field__label" for="f-category">${t('subject_category', 'Subject Category')} <span class="req">*</span></label>
             <select class="select" id="f-category">
               <option value="">${t('choose_category', 'Choose a subject category…')}</option>
               ${(BOOT.paper_categories || []).map(c => {
@@ -301,6 +302,7 @@
               }).join('')}
             </select>
           </div>
+          ` : ''}
 
           <div class="field field--6">
             <label class="field__label" for="f-journal">${t('journal', 'Journal')}</label>
@@ -1062,7 +1064,7 @@
             <dt>${state.paperType === 'ee' ? t('research_q_short', 'Research Q.') : t('title_short', 'Title')}</dt>
             <dd${state.title ? '' : ' class="is-missing"'}>${state.title ? esc(state.title) : t('not_provided', 'Not provided')}</dd>
             <dt>${t('language', 'Language')}</dt><dd${langName ? '' : ' class="is-missing"'}>${langName || t('not_chosen', 'Not chosen')}</dd>
-            <dt>${t('subject', 'Subject')}</dt><dd${categoryName ? '' : ' class="is-missing"'}>${categoryName || t('not_chosen', 'Not chosen')}</dd>
+            ${state.paperType !== 'cp' ? `<dt>${t('subject', 'Subject')}</dt><dd${categoryName ? '' : ' class="is-missing"'}>${categoryName || t('not_chosen', 'Not chosen')}</dd>` : ''}
             ${state.paperType === 'standard' ? `
               <dt>${t('keywords', 'Keywords')}</dt><dd${state.keywords.length ? '' : ' class="is-missing"'}>${state.keywords.length ? state.keywords.map(esc).join(', ') : t('none', 'None')}</dd>
               <dt>${t('abstract', 'Abstract')}</dt><dd${state.abstract ? '' : ' class="is-missing"'}>${state.abstract ? esc(state.abstract.slice(0, 280)) + (state.abstract.length > 280 ? '…' : '') : t('not_written', 'Not written')}</dd>
