@@ -347,7 +347,8 @@
             </div>
             {% endif %}
 
-            <!-- Criterion Scores -->
+            <!-- Criterion Scores (hidden when the paper was graded holistic-only) -->
+            {% if not ia_info.holistic_only %}
             <div class="ib-criteria-list">
               {% for crit in ia_info.criteria %}
               <div class="ib-crit-item border-bottom py-2">
@@ -376,6 +377,7 @@
               </div>
               {% endfor %}
             </div>
+            {% endif %}
 
             <!-- Holistic Commentary -->
             {% if ia_info.holistic_comment %}

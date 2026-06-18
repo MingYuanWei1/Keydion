@@ -522,22 +522,31 @@ def build_ia_data_from_form(form) -> str:
     # Criterion list (and thus each max) comes from the on-disk taxonomy;
     # the form's numbers are never trusted.
     defs = _ia_criteria_for_subject(subject, load_ia_subjects())
+    # Holistic-only mode: the user enters the overall mark directly and skips
+    # per-criterion scoring, so per-criterion scores are left blank (None).
+    holistic_only = form.get("ia_holistic_only") == "1"
     criteria = []
     for i, cdef in enumerate(defs):
         max_mark = int(cdef.get("max", 0))
-        score = min(_form_int(form, f"ia_crit_{i}_score"), max_mark)
+        score = None if holistic_only else min(_form_int(form, f"ia_crit_{i}_score"), max_mark)
         criteria.append({
             "name": cdef.get("name", ""),
             "max": max_mark,
             "score": score,
             "comment": form.get(f"ia_crit_{i}_comment", "").strip(),
         })
-    total_score = sum(c["score"] for c in criteria)
     total_max = sum(c["max"] for c in criteria)
+    if holistic_only:
+        # Direct overall mark — clamped server-side to [0, total_max] (the only
+        # value trusted from the form, and still bounded by the subject config).
+        total_score = max(0, min(_form_int(form, "ia_total_score"), total_max))
+    else:
+        total_score = sum((c["score"] or 0) for c in criteria)
     return json.dumps(
         {
             "is_ia": True,
             "subject": subject,
+            "holistic_only": holistic_only,
             "criteria": criteria,
             "total_score": total_score,
             "total_max": total_max,
@@ -558,13 +567,17 @@ def parse_ia_data_for_form(json_str) -> dict:
         data = json.loads(json_str)
     except (json.JSONDecodeError, TypeError):
         return {}
+    holistic_only = bool(data.get("holistic_only"))
     out = {
         "is_ia": "1",
         "ia_subject": data.get("subject", ""),
         "ia_holistic_comment": data.get("holistic_comment", ""),
+        "ia_holistic_only": "1" if holistic_only else "",
+        "ia_total_score": str(data.get("total_score", "")) if holistic_only else "",
     }
     for i, criterion in enumerate(data.get("criteria") or []):
-        out[f"ia_crit_{i}_score"] = str(criterion.get("score", ""))
+        score = criterion.get("score")
+        out[f"ia_crit_{i}_score"] = "" if score is None else str(score)
         out[f"ia_crit_{i}_comment"] = criterion.get("comment", "")
     return out
 
