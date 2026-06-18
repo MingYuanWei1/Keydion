@@ -69,6 +69,8 @@
     iaComments: parseIndexed(fd, 'ia_crit_', '_comment'),
     iaHolistic: fd.ia_holistic_comment || '',
     iaIncludeComments: !!(Object.values(parseIndexed(fd, 'ia_crit_', '_comment')).some(Boolean) || fd.ia_holistic_comment),
+    iaHolisticOnly: !!fd.ia_holistic_only,
+    iaDirectTotal: fd.ia_total_score || '',
     // IA auto-fill UI
     iaAutofillStatus: '',
     iaAutofillMessage: '',
@@ -908,7 +910,7 @@
         <td class="crit-name">${esc(c.name)}</td>
         <td class="crit-score">
           <span class="crit-score__input">
-            <input type="number" min="0" max="${esc(c.max)}" value="${esc(state.iaScores[i] || '')}" data-ia-score="${i}" placeholder="0">
+            <input type="number" min="0" max="${esc(c.max)}" value="${esc(state.iaScores[i] || '')}" data-ia-score="${i}" placeholder="0" ${state.iaHolisticOnly ? 'disabled' : ''}>
             <span class="crit-score__max">/ ${esc(c.max)}</span>
           </span>
         </td>
@@ -916,7 +918,14 @@
 
     return `${autofill}${subjectBlock}
       ${criteria.length ? `
-      <div class="section-sub">${t('crit_scores', 'Criterion Scores')} <span class="req">*</span></div>
+      <label class="checkfield" style="margin-bottom:14px;">
+        <input type="checkbox" id="iaHolisticOnly" ${state.iaHolisticOnly ? 'checked' : ''}>
+        <span class="checkfield__body">
+          <span class="checkfield__title">${t('ia_holistic_only', 'Enter the overall score directly')}</span>
+          <span class="checkfield__hint">${t('ia_holistic_only_hint', 'Skip per-criterion scoring and enter just the total mark for the assessment.')}</span>
+        </span>
+      </label>
+      <div class="section-sub">${t('crit_scores', 'Criterion Scores')} ${state.iaHolisticOnly ? '' : '<span class="req">*</span>'}</div>
       <table class="crit-table" id="iaCriteria">
         <thead><tr><th>${t('criterion', 'Criterion')}</th><th style="width:140px;">${t('score', 'Score')}</th></tr></thead>
         <tbody>${rows}</tbody>
@@ -924,9 +933,11 @@
       <div class="total-readout">
         <div>
           <div class="total-readout__label">${t('overall_grade', 'Overall Grade')}</div>
-          <div class="total-readout__sub">${t('overall_ia_sub', 'Calculated server-side from the criteria above')}</div>
+          <div class="total-readout__sub">${state.iaHolisticOnly ? t('overall_ia_direct_sub', 'Enter the overall mark for the assessment') : t('overall_ia_sub', 'Calculated server-side from the criteria above')}</div>
         </div>
-        <div class="total-readout__value"><span id="iaTotal">${totalScore}</span><small>/ <span id="iaTotalMax">${totalMax}</span></small></div>
+        <div class="total-readout__value">${state.iaHolisticOnly
+          ? `<input type="number" id="iaDirectTotal" min="0" max="${totalMax}" value="${esc(state.iaDirectTotal || '')}" placeholder="0" style="width:84px;text-align:center;font-size:22px;font-weight:600;border:1px solid #d8cfbe;border-radius:8px;padding:2px 6px;"><small>/ ${totalMax}</small>`
+          : `<span id="iaTotal">${totalScore}</span><small>/ <span id="iaTotalMax">${totalMax}</span></small>`}</div>
       </div>
       <div class="section-sub" style="margin-top:28px;">${t('crit_comments', 'Criterion Commentaries')} <span class="opt">${t('optional', 'Optional')}</span></div>
       <label class="checkfield">
@@ -967,6 +978,20 @@
         recomputeTotal();
         touch();
       });
+    });
+    const iaHO = stepsContainer.querySelector('#iaHolisticOnly');
+    if (iaHO) iaHO.addEventListener('change', e => {
+      state.iaHolisticOnly = e.target.checked;
+      touch();
+      renderStep();   // re-render: disable/enable per-criterion inputs + swap the total readout
+    });
+    const iaDT = stepsContainer.querySelector('#iaDirectTotal');
+    if (iaDT) iaDT.addEventListener('input', e => {
+      const max = parseInt(iaDT.max, 10);
+      let v = parseInt(e.target.value, 10);
+      if (!isNaN(v)) { if (v < 0) v = 0; if (v > max) v = max; }
+      state.iaDirectTotal = isNaN(v) ? '' : String(v);
+      touch();
     });
     const iaInc = stepsContainer.querySelector('#iaIncComments');
     if (iaInc) iaInc.addEventListener('change', e => {
@@ -1227,11 +1252,16 @@
         const crit = iaCriteriaFor(state.iaSubject);
         if (crit.length === 0) {
           missing.push({ label: t('ia_no_criteria_short', 'IA subject has no criteria'), step: mIdx });
+        } else if (state.iaHolisticOnly) {
+          if (state.iaDirectTotal === '' || state.iaDirectTotal == null) {
+            missing.push({ label: t('ia_overall_score', 'IA overall score'), step: mIdx });
+          }
+        } else {
+          crit.forEach((c, i) => {
+            const v = state.iaScores[i];
+            if (v === '' || v == null) missing.push({ label: t('ia_score_x', 'IA criterion score %(k)s', { k: i + 1 }), step: mIdx });
+          });
         }
-        crit.forEach((c, i) => {
-          const v = state.iaScores[i];
-          if (v === '' || v == null) missing.push({ label: t('ia_score_x', 'IA criterion score %(k)s', { k: i + 1 }), step: mIdx });
-        });
       }
     }
     if (!state.file) missing.push({ label: t('pdf_file', 'PDF file'), step: stepIdx('file') });
@@ -1395,8 +1425,10 @@
         </div>
         <dl class="review-grid">
           <dt>${t('ia_subject', 'IA Subject')}</dt><dd${state.iaSubject ? '' : ' class="is-missing"'}>${esc(state.iaSubject) || t('not_chosen', 'Not chosen')}</dd>
-          ${criteria.map((c, i) => `<dt>${esc(c.name)}</dt><dd>${state.iaScores[i] || 0} / ${esc(c.max)}</dd>`).join('')}
-          <dt>${t('total', 'Total')}</dt><dd><strong>${totalScore} / ${totalMax}</strong></dd>
+          ${state.iaHolisticOnly
+            ? `<dt>${t('overall_score', 'Overall Score')}</dt><dd><strong>${state.iaDirectTotal || 0} / ${totalMax}</strong></dd>`
+            : `${criteria.map((c, i) => `<dt>${esc(c.name)}</dt><dd>${state.iaScores[i] || 0} / ${esc(c.max)}</dd>`).join('')}
+          <dt>${t('total', 'Total')}</dt><dd><strong>${totalScore} / ${totalMax}</strong></dd>`}
         </dl>
       </div>`;
   }
@@ -1464,6 +1496,10 @@
 
     if (state.paperType === 'ia') {
       add('ia_subject', state.iaSubject);
+      if (state.iaHolisticOnly) {
+        add('ia_holistic_only', '1');
+        add('ia_total_score', state.iaDirectTotal || '0');
+      }
       const crit = iaCriteriaFor(state.iaSubject);
       crit.forEach((c, i) => {
         add(`ia_crit_${i}_score`, state.iaScores[i] || '0');

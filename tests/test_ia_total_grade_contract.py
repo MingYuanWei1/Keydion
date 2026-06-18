@@ -11,12 +11,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class IaTotalGradeContractTest(unittest.TestCase):
-    """IA total + per-criterion max are computed server-side from the subject
+    """IA per-criterion max + total_max are computed server-side from the subject
     config, never trusted from the form.
 
-    The per-paper ia_data blob's total_score is the sum of criterion scores,
-    total_max is the sum of criterion maxes, and each criterion's max is pulled
-    from load_ia_subjects() — not from a client-submitted field.
+    Normal mode: total_score is the sum of criterion scores. Holistic-only mode:
+    the user enters the overall mark directly, but the builder still clamps it to
+    [0, total_max] from the config (bounded, not blindly trusted). Each criterion
+    max and total_max always come from load_ia_subjects(), never a client field.
     """
 
     @classmethod
@@ -45,15 +46,26 @@ class IaTotalGradeContractTest(unittest.TestCase):
         self.assertRegex(self.builder_src, r"total_score\s*=\s*sum\(")
         self.assertRegex(self.builder_src, r"total_max\s*=\s*sum\(")
 
-    def test_builder_does_not_trust_client_total(self):
-        self.assertNotIn('form.get("ia_total_score"', self.builder_src)
+    def test_builder_total_max_never_from_form(self):
+        # total_max is always summed from the config criteria, never client-sent.
         self.assertNotIn('form.get("ia_total_max"', self.builder_src)
         self.assertNotIn('form.get("total_score"', self.builder_src)
 
-    def test_wizard_does_not_serialize_ia_totals(self):
-        # serializeToForm must never wire a client-computed total/max.
-        self.assertNotIn("ia_total_score", self.wizard_js)
+    def test_builder_holistic_only_clamps_direct_total(self):
+        # Holistic-only mode lets the user enter the overall mark directly, but
+        # the builder clamps it to [0, total_max] from config — bounded, not
+        # blindly trusted.
+        self.assertIn("ia_holistic_only", self.builder_src)
+        self.assertRegex(self.builder_src, r"max\(0,\s*min\(")
+
+    def test_wizard_never_serializes_client_total_max(self):
+        # total_max is always derived server-side from the subject config.
         self.assertNotIn("ia_total_max", self.wizard_js)
+
+    def test_wizard_serializes_direct_total_only_in_holistic_mode(self):
+        # ia_total_score is wired ONLY under the holistic-only branch.
+        self.assertIn("state.iaHolisticOnly", self.wizard_js)
+        self.assertIn("ia_total_score", self.wizard_js)
 
 
 if __name__ == "__main__":
