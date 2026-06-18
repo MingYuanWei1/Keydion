@@ -52,9 +52,9 @@
         <select class="form-select form-select-sm shadow-none" id="paper_type" name="paper_type"
           onchange="this.form.submit()">
           <option value="">{{ _('Any Type') }}</option>
-          <option value="ee" {% if paper_type_filter=='ee' %}selected{% endif %}>{{ _('Extended Essay') }}</option>
-          <option value="cp" {% if paper_type_filter=='cp' %}selected{% endif %}>{{ _('Community Project') }}</option>
-          <option value="ia" {% if paper_type_filter=='ia' %}selected{% endif %}>{{ _('Internal Assessment') }}</option>
+          <option value="ee" {% if paper_type_filter=='ee' %}selected{% endif %}>Extended Essay</option>
+          <option value="cp" {% if paper_type_filter=='cp' %}selected{% endif %}>Community Project</option>
+          <option value="ia" {% if paper_type_filter=='ia' %}selected{% endif %}>Internal Assessment</option>
           <option value="independent" {% if paper_type_filter=='independent' %}selected{% endif %}>{{ _('Independent Research') }}</option>
         </select>
       </div>
