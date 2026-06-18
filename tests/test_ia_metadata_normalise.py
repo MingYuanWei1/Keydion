@@ -4,8 +4,8 @@
 `_normalise_criteria` and `_parse_json` are pure functions with no DB/LLM
 dependency, so they import and run standalone. These guard the load-bearing
 correctness of the IA extractor: server-side score clamping, missing-criterion
--> 0 + warning, invented-criterion drop, null/unreadable-score handling, and
-JSON-in-prose parsing.
+-> BLANK (None) + warning (never fabricated as 0), invented-criterion drop,
+null/unreadable-score -> blank, and JSON-in-prose parsing.
 """
 import sys
 import unittest
@@ -45,13 +45,13 @@ class NormaliseCriteriaTest(unittest.TestCase):
         self.assertEqual([c["name"] for c in out], ["Research", "Analysis"])
         self.assertEqual([c["max"] for c in out], [6, 4])
 
-    def test_missing_criterion_defaults_to_zero_with_warning(self):
+    def test_missing_criterion_left_blank_with_warning(self):
         out, warnings = ia_metadata._normalise_criteria(
             [{"name": "Research", "score": 5}], CRITERIA
         )
-        # Analysis was not returned by the model.
+        # Analysis was not returned by the model -> left blank, never fabricated 0.
         self.assertEqual(out[1]["name"], "Analysis")
-        self.assertEqual(out[1]["score"], 0)
+        self.assertIsNone(out[1]["score"])
         self.assertEqual(out[1]["comment"], "")
         self.assertTrue(any("Analysis" in w for w in warnings))
 
@@ -77,21 +77,21 @@ class NormaliseCriteriaTest(unittest.TestCase):
         self.assertEqual(out[1]["score"], 3)
         self.assertEqual(warnings, [])
 
-    def test_unreadable_score_defaults_to_zero_with_warning(self):
+    def test_unreadable_score_left_blank_with_warning(self):
         out, warnings = ia_metadata._normalise_criteria(
             [{"name": "Research", "score": "not a number"},
              {"name": "Analysis", "score": 2}],
             CRITERIA,
         )
-        self.assertEqual(out[0]["score"], 0)
+        self.assertIsNone(out[0]["score"])
         self.assertTrue(any("Research" in w and "Unreadable" in w for w in warnings))
 
-    def test_null_score_defaults_to_zero_with_warning(self):
+    def test_null_score_left_blank_with_warning(self):
         out, warnings = ia_metadata._normalise_criteria(
             [{"name": "Research", "score": None}], CRITERIA
         )
-        self.assertEqual(out[0]["score"], 0)
-        self.assertTrue(any("Research" in w and "Unreadable" in w for w in warnings))
+        self.assertIsNone(out[0]["score"])
+        self.assertTrue(any("Research" in w and "blank" in w for w in warnings))
 
     def test_float_score_is_rounded_to_int(self):
         out, _ = ia_metadata._normalise_criteria(
@@ -105,9 +105,9 @@ class NormaliseCriteriaTest(unittest.TestCase):
         )
         self.assertEqual(out[0]["comment"], "")
 
-    def test_returned_not_a_list_defaults_all_to_zero(self):
+    def test_returned_not_a_list_leaves_all_blank(self):
         out, warnings = ia_metadata._normalise_criteria(None, CRITERIA)
-        self.assertEqual([c["score"] for c in out], [0, 0])
+        self.assertEqual([c["score"] for c in out], [None, None])
         self.assertEqual(len(warnings), 2)
 
 
@@ -132,6 +132,27 @@ class ParseJsonTest(unittest.TestCase):
 
     def test_malformed_braces_return_none(self):
         self.assertIsNone(ia_metadata._parse_json("{not: valid, json"))
+
+
+class PromptFidelityTest(unittest.TestCase):
+    """The IA extractor must TRANSCRIBE the marker's existing scores/comments
+    verbatim and leave anything absent blank — it must not grade or fabricate."""
+
+    def test_vision_prompt_demands_verbatim_extraction(self):
+        p = ia_metadata._vision_prompt("Biology", CRITERIA)
+        self.assertIn("TRANSCRIBE", p)
+        self.assertIn("WORD-FOR-WORD", p)
+        self.assertIn("do NOT paraphrase", p)
+        self.assertIn("null", p)
+        self.assertNotIn("Score it against", p)  # old grade-it-yourself framing gone
+
+    def test_text_prompt_demands_verbatim_extraction(self):
+        import inspect
+        src = inspect.getsource(ia_metadata._complete)
+        self.assertIn("TRANSCRIBE", src)
+        self.assertIn("WORD-FOR-WORD", src)
+        self.assertIn("do NOT paraphrase", src)
+        self.assertNotIn("grading an Internal Assessment", src)  # old framing gone
 
 
 if __name__ == "__main__":
