@@ -87,9 +87,11 @@ def _normalise_criteria(returned, criteria: list) -> tuple[list, list]:
 
     `criteria` is the authoritative list [{"name", "max"}, ...] from the subject
     config. Returns (out, warnings) where `out` has exactly one entry per input
-    criterion, in input order, each {"name", "max", "score", "comment"} with
-    score clamped to [0, max]. Criteria the model omitted default to score 0 with
-    a warning; criteria the model invented are dropped.
+    criterion, in input order, each {"name", "max", "score", "comment"}. A score
+    the marker actually wrote is clamped to [0, max]; anything the model omitted,
+    returned null/empty for, or that is unreadable is left BLANK (score None,
+    comment "") with a warning — never fabricated as 0. Criteria the model
+    invented are dropped.
     """
     warnings: list = []
     by_name = {}
@@ -107,15 +109,19 @@ def _normalise_criteria(returned, criteria: list) -> tuple[list, list]:
             cmax = 0
         match = by_name.get(name.lower())
         if match is None:
-            warnings.append(f"No score returned for “{name}” — defaulted to 0.")
-            out.append({"name": name, "max": cmax, "score": 0, "comment": ""})
+            warnings.append(f"No entry for “{name}” in the document — left blank.")
+            out.append({"name": name, "max": cmax, "score": None, "comment": ""})
             continue
-        try:
-            score = int(round(float(match.get("score", 0))))
-        except (TypeError, ValueError):
-            score = 0
-            warnings.append(f"Unreadable score for “{name}” — defaulted to 0.")
-        score = max(0, min(score, cmax))
+        raw_score = match.get("score")
+        if raw_score is None or (isinstance(raw_score, str) and not raw_score.strip()):
+            score = None  # marker left it unscored / not found in the document
+            warnings.append(f"No score found for “{name}” — left blank.")
+        else:
+            try:
+                score = max(0, min(int(round(float(raw_score))), cmax))
+            except (TypeError, ValueError):
+                score = None
+                warnings.append(f"Unreadable score for “{name}” — left blank.")
         comment = match.get("comment")
         comment = comment.strip() if isinstance(comment, str) else ""
         out.append({"name": name, "max": cmax, "score": score, "comment": comment})
@@ -125,31 +131,38 @@ def _normalise_criteria(returned, criteria: list) -> tuple[list, list]:
 def _complete(client, text: str, subject: str, criteria: list, language: str) -> dict:
     """Call the chat endpoint and return {criteria, holistic_comment, warnings}."""
     model = llm_client.think_model()
-    lang_name = "Chinese" if language == "zh" else "English"
     crit_lines = "\n".join(
         f'- "{c.get("name", "")}" (max score {int(c.get("max", 0))})' for c in criteria
     )
     system = (
-        "You are an experienced IB examiner grading an Internal Assessment (IA). "
-        f'The subject is "{subject}". Read the paper text and assess it against '
-        "each of these official assessment criteria:\n"
+        "You are a careful data-entry assistant, NOT an examiner. The text is an "
+        f'Internal Assessment for "{subject}" that a teacher/examiner has ALREADY '
+        "marked — their scores and written comments are in the document. Your ONLY "
+        "job is to TRANSCRIBE what the marker wrote for each criterion. You must "
+        "never grade the work yourself, infer a score, or write any feedback of "
+        "your own.\n"
+        "Assessment criteria:\n"
         f"{crit_lines}\n\n"
         "Return a JSON object with these keys:\n"
         '- "criteria": an array of objects, one PER criterion above, each with '
-        '"name" (exactly as given above), "score" (an integer from 0 to that '
-        'criterion\'s max), and "comment" (a one-to-three sentence justification '
-        f"written in {lang_name}).\n"
-        f'- "holistic_comment": an overall paragraph of feedback written in '
-        f"{lang_name}.\n"
-        '- "warnings": an array of short strings noting anything that made grading '
-        "uncertain (e.g. missing sections); use [] if none.\n"
-        "Score conservatively and never exceed a criterion's max. "
-        "Return ONLY the JSON object, no prose."
+        '"name" (exactly as given above), "score" (the integer the marker awarded '
+        "for that criterion, or null if no score for it is written in the "
+        'document), and "comment" (the marker\'s comment for that criterion copied '
+        'WORD-FOR-WORD from the document, or "" if none is written).\n'
+        '- "holistic_comment": the marker\'s overall/summary comment copied '
+        'word-for-word, or "" if there is none.\n'
+        '- "warnings": an array of short strings naming any criterion whose score '
+        "or comment was not found; use [] if none.\n"
+        "STRICT RULES: Copy comments exactly as written — do NOT paraphrase, "
+        "summarise, translate, rephrase, complete, or add anything of your own. If "
+        "a score or comment is not clearly present in the document, leave it "
+        "null/empty — never guess, infer, or invent. Return ONLY the JSON object, "
+        "no prose."
     )
     try:
         resp = client.chat.completions.create(
             model=model,
-            temperature=0.2,
+            temperature=0,
             response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": system},
@@ -193,20 +206,30 @@ def _legacy_generate_ia_scores(file_bytes: bytes, subject: str, criteria: list,
     return _complete(client, text, subject, criteria, language)
 
 
-def _vision_prompt(subject: str, criteria: list, language: str) -> str:
-    lang_name = "Chinese" if language == "zh" else "English"
+def _vision_prompt(subject: str, criteria: list) -> str:
     lines = "\n".join(
-        f'- "{c.get("name", "")}" (maximum {int(c.get("max", 0))})' for c in criteria
+        f'- "{c.get("name", "")}" (max score {int(c.get("max", 0))})' for c in criteria
     )
     return (
-        "You are an IB examiner. The images are the rendered pages of a student "
-        f"Internal Assessment for {subject}. Score it against these criteria:\n"
+        "You are a careful data-entry assistant, NOT an examiner. The images are "
+        f"the rendered pages of an Internal Assessment for {subject} that a "
+        "teacher/examiner has ALREADY marked. Look for the scores and comments THEY "
+        "wrote on the pages — in the margins, on a criterion/marking grid, or in "
+        "end-of-paper feedback. Your ONLY job is to TRANSCRIBE what the marker "
+        "wrote; never grade the work yourself, infer a score, or write feedback of "
+        "your own.\n"
+        "Assessment criteria:\n"
         f"{lines}\n"
-        'Return a JSON object: "criteria" — an array of objects '
-        '{"name","score","comment"} (one per criterion above, score an integer not '
-        f'exceeding the maximum, comment in {lang_name}); "holistic_comment" — an '
-        f'overall comment in {lang_name}; "warnings" — an array of short strings. '
-        "Return ONLY the JSON object, no prose."
+        'Return a JSON object: "criteria" — an array, one object per criterion '
+        'above, each {"name" (exactly as given), "score" (the integer the marker '
+        'awarded, or null if no score for it is written), "comment" (the marker\'s '
+        'comment for that criterion copied WORD-FOR-WORD, or "" if none)}; '
+        '"holistic_comment" — the marker\'s overall comment copied word-for-word '
+        '(or ""); "warnings" — short strings naming anything not found.\n'
+        "STRICT RULES: Copy comments exactly as written — do NOT paraphrase, "
+        "summarise, translate, rephrase, complete, or add anything of your own. If "
+        "a score or comment is not clearly visible, leave it null/empty — never "
+        "guess or invent. Return ONLY the JSON object, no prose."
     )
 
 
@@ -238,7 +261,7 @@ def generate_ia_scores(file_bytes: bytes, subject: str, criteria: list,
     if not criteria:
         raise IAMetadataError("This subject has no assessment criteria configured.")
     if llm_client.vision_enabled():
-        prompt = _vision_prompt(subject, criteria, language)
+        prompt = _vision_prompt(subject, criteria)
         try:
             data = vision_read.extract_with_vision(file_bytes, prompt, language=language)
             return _result_from_vision(data, criteria)
