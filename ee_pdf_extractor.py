@@ -29,19 +29,30 @@ _DATA_DIR = Path(__file__).resolve().parent / "data"
 
 _EE_PROMPT_BODY = (
     "The images are the rendered pages of an IB Extended Essay examiner "
-    "commentary form. Return a JSON object with these keys: "
+    "commentary form that has ALREADY been marked. Your ONLY job is to TRANSCRIBE "
+    "what the examiner wrote — never grade the essay yourself or invent feedback. "
+    "Return a JSON object with these keys: "
     '"core_subject" — the DP subject of a subject-focused essay (empty string if '
     'the essay is interdisciplinary); "interdisciplinary_subject" — the second DP '
     'subject for an interdisciplinary essay (empty string otherwise); '
     '"research_question" — the stated research question; "criteria" — an object '
-    'with keys "A","B","C","D","E", each an object {"score": <integer or null>, '
-    '"comment": <string>} taken from the examiner marks and remarks; '
-    '"holistic_comment" — the holistic comment on the essay; and "warnings" — an '
-    "array of short strings for anything you could not read. Use the exact subject "
-    "names as printed. Return ONLY the JSON object, no prose."
+    'with keys "A","B","C","D","E", each an object {"score": <the integer the '
+    'examiner awarded, or null if no score for it is written>, "comment": <the '
+    "examiner's remark for that criterion copied WORD-FOR-WORD, or \"\" if none>}; "
+    '"holistic_comment" — the examiner\'s holistic comment copied word-for-word '
+    '(or ""); and "warnings" — an array of short strings naming anything not found '
+    "or unreadable. "
+    "STRICT RULES: copy every value (comments, research question, subject names) "
+    "EXACTLY as printed/written — do NOT paraphrase, summarise, translate, "
+    "rephrase, complete, or add anything of your own. If a score or comment is not "
+    "present on the form, use null / empty string — never guess, infer, or grade "
+    "the essay yourself. Return ONLY the JSON object, no prose."
 )
 
-EE_SYSTEM_PROMPT_EN = "You read IB assessment forms. " + _EE_PROMPT_BODY
+EE_SYSTEM_PROMPT_EN = (
+    "You transcribe IB assessment forms verbatim; you never grade essays "
+    "yourself. " + _EE_PROMPT_BODY
+)
 EE_SYSTEM_PROMPT_ZH = EE_SYSTEM_PROMPT_EN  # field values are copied verbatim; locale affects nothing structural here
 
 
