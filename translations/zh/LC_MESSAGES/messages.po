@@ -3,15 +3,15 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Keydion 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-17 23:44+0800\n"
+"POT-Creation-Date: 2026-06-18 10:51+0800\n"
 "PO-Revision-Date: 2025-10-11 00:00+0000\n"
 "Last-Translator: \n"
-"Language-Team: Chinese\n"
 "Language: zh\n"
+"Language-Team: Chinese\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
 "Generated-By: Babel 2.18.0\n"
 
 # ==================== AUTH FLASH MESSAGES ====================
@@ -284,8 +284,7 @@ msgid "Find papers about machine learning in healthcare."
 msgstr "查找医疗保健领域机器学习相关论文。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:87
-msgid ""
-"Ask a question and I'll answer from the published library, with citations."
+msgid "Ask a question and I'll answer from the published library, with citations."
 msgstr "提出问题，我会基于已发布的论文库作答并附引用。"
 
 # ==================== ADMIN USER MANAGEMENT ====================
@@ -386,14 +385,14 @@ msgstr "选择要作为引用附加的论文"
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:108
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:143
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:82
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:384
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:394
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/review_paper.html:33
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/submission_detail.html:30
 msgid "Abstract"
 msgstr "摘要"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/ai.py:109
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:389
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:399
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:274
 msgid "No abstract available."
 msgstr "暂无摘要。"
@@ -574,8 +573,8 @@ msgstr "未找到论文。"
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:448
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:468
 msgid ""
-"A paper can only be one of: Extended Essay, Community Project, or Internal "
-"Assessment."
+"A paper can only be one of: Extended Essay, Community Project, or "
+"Internal Assessment."
 msgstr "论文只能属于以下类型之一：延伸论文、社区项目或内部评估。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/papers.py:451
@@ -766,8 +765,8 @@ msgstr "您要提交的是哪一类论文？"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:90
 msgid ""
-"The fields you'll be asked for next depend on this. You can come back and "
-"change it before submitting."
+"The fields you'll be asked for next depend on this. You can come back and"
+" change it before submitting."
 msgstr "接下来需要填写的字段取决于您的选择。提交前您可以随时回到此步骤修改。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:91
@@ -839,7 +838,7 @@ msgid "Title · IA subject · per-criterion scores"
 msgstr "标题 · IA 科目 · 各项评分"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:107
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:290
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:300
 msgid "IB Internal Assessment"
 msgstr "IB 内部评估"
 
@@ -850,7 +849,7 @@ msgstr "请介绍您的评估作业"
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:109
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:60
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:244
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:314
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:324
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:81
 msgid "IA Subject"
 msgstr "IA 科目"
@@ -974,7 +973,7 @@ msgstr "请选择学科类别…"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:138
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:76
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:411
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:421
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/review_paper.html:30
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/submission_detail.html:27
 msgid "Keywords"
@@ -1055,7 +1054,7 @@ msgstr "反思"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:157
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:48
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:125
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:135
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:66
 msgid "EE Subject"
 msgstr "EE 学科"
@@ -1090,7 +1089,7 @@ msgstr "评分标准得分"
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:164
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:194
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:348
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:266
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:276
 msgid "Crit."
 msgstr "标准"
 
@@ -1119,8 +1118,8 @@ msgstr "为每项评分标准填写评语"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:171
 msgid ""
-"Provide short remarks on each criterion plus an optional overall holistic "
-"commentary."
+"Provide short remarks on each criterion plus an optional overall holistic"
+" commentary."
 msgstr "请为每项标准提供简短评语，并可选填一份整体性总评。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:172
@@ -1131,8 +1130,8 @@ msgstr "对评分标准 %(k)s 的评语…"
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:173
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:226
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:302
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:192
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:362
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:202
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:372
 msgid "Holistic Commentary"
 msgstr "整体性总评"
 
@@ -1159,7 +1158,7 @@ msgstr "反思"
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:179
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:72
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:321
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:239
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:249
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:96
 msgid "Global Context"
 msgstr "全球背景"
@@ -1174,7 +1173,7 @@ msgstr "全球背景"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:182
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:332
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:247
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:257
 msgid "Type of Action"
 msgstr "行动类型"
 
@@ -1191,8 +1190,7 @@ msgid "Who wrote this?"
 msgstr "本论文的作者是谁？"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:186
-msgid ""
-"The first author's contact details are required. Add co-authors as needed."
+msgid "The first author's contact details are required. Add co-authors as needed."
 msgstr "第一作者的联系信息为必填，可根据需要添加合作者。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:187
@@ -1230,8 +1228,7 @@ msgid "Upload your PDF"
 msgstr "上传 PDF 文件"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:194
-msgid ""
-"Submit a single PDF, up to 50 MB. You can change this before publishing."
+msgid "Submit a single PDF, up to 50 MB. You can change this before publishing."
 msgstr "请提交单个 PDF 文件，最大 50 MB。发布前仍可更换。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:195
@@ -1252,8 +1249,8 @@ msgstr "选择文件"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:199
 msgid ""
-"If you'd like to come back to this later, click Save Draft below — your form"
-" will be restored next time you visit."
+"If you'd like to come back to this later, click Save Draft below — your "
+"form will be restored next time you visit."
 msgstr "若想稍后继续，请点击下方的「保存草稿」，下次访问时表单将自动恢复。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:201
@@ -1291,7 +1288,7 @@ msgid "Independent Research Paper"
 msgstr "独立研究论文"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:209
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:113
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:123
 msgid "IB Extended Essay"
 msgstr ""
 
@@ -1309,8 +1306,8 @@ msgstr "即将完成 — 请复核您的提交内容"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:213
 msgid ""
-"Make sure everything looks right. You can jump back to any section to make "
-"changes."
+"Make sure everything looks right. You can jump back to any section to "
+"make changes."
 msgstr "请确认所有信息无误，可随时跳回任意步骤进行修改。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:214
@@ -1363,7 +1360,7 @@ msgstr "研究问题"
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_publish.html:116
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:986
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:36
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:407
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:417
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/review_paper.html:24
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/submission_detail.html:21
 msgid "Title"
@@ -1455,7 +1452,8 @@ msgstr "存在未保存的修改"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:245
 msgid ""
-"Your last session in this browser had changes you didn't save. Restore them?"
+"Your last session in this browser had changes you didn't save. Restore "
+"them?"
 msgstr "您上次在此浏览器中的更改尚未保存，是否恢复？"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/routes/upload.py:246
@@ -1612,36 +1610,36 @@ msgstr "文件不是有效的 PDF"
 msgid "Unknown or unconfigured IA subject"
 msgstr "未知或未配置的 IA 科目"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/services/ai.py:323
+#: /Users/mingyuanw/Desktop/Project/Keydion/services/ai.py:327
 msgid "Searching the library…"
 msgstr "正在检索文献库…"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/services/ai.py:343
+#: /Users/mingyuanw/Desktop/Project/Keydion/services/ai.py:347
 #, python-format
 msgid "Reading “%(title)s”…"
 msgstr "正在阅读《%(title)s》…"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/services/ai.py:344
+#: /Users/mingyuanw/Desktop/Project/Keydion/services/ai.py:348
 msgid "Reading a paper…"
 msgstr "正在阅读论文…"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/services/ai.py:346
+#: /Users/mingyuanw/Desktop/Project/Keydion/services/ai.py:350
 msgid "Searching the web…"
 msgstr "正在搜索网络…"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/services/ai.py:348
+#: /Users/mingyuanw/Desktop/Project/Keydion/services/ai.py:352
 msgid "Reading a web page…"
 msgstr "正在阅读网页…"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/services/ai.py:350
+#: /Users/mingyuanw/Desktop/Project/Keydion/services/ai.py:354
 msgid "Reading the attachment…"
 msgstr "正在阅读附件…"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/services/ai.py:351
+#: /Users/mingyuanw/Desktop/Project/Keydion/services/ai.py:355
 msgid "Working…"
 msgstr "处理中…"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/services/ai.py:515
+#: /Users/mingyuanw/Desktop/Project/Keydion/services/ai.py:519
 msgid "Attached document"
 msgstr "附加文档"
 
@@ -1660,8 +1658,8 @@ msgstr "您没有权限执行此操作。"
 #: /Users/mingyuanw/Desktop/Project/Keydion/services/auth.py:564
 #, python-format
 msgid ""
-"This account is already signed in. Please sign out from the other session or"
-" wait %(minutes)d minutes."
+"This account is already signed in. Please sign out from the other session"
+" or wait %(minutes)d minutes."
 msgstr "此账号已在其他地方登录。请先退出或等待 %(minutes)d 分钟。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/services/resources.py:158
@@ -2155,21 +2153,18 @@ msgstr "类型"
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:18
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:251
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:330
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:55
 msgid "Extended Essay"
 msgstr "拓展论文（EE）"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:19
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:252
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:332
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:56
 msgid "Community Project"
 msgstr "社区项目（CP）"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/advanced_search.html:20
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:253
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:334
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:57
 msgid "Internal Assessment"
 msgstr "内部评估"
 
@@ -2285,8 +2280,8 @@ msgstr "切换对话栏"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ai.html:62
 msgid ""
-"Chat or cite papers straight from your library. I'll reason over the sources"
-" and keep the references attached."
+"Chat or cite papers straight from your library. I'll reason over the "
+"sources and keep the references attached."
 msgstr "直接与资料库对话或引用其中的论文。我会基于这些来源进行推理，并保留所附引用。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ai.html:66
@@ -2360,7 +2355,8 @@ msgstr "修改密码 · Keydion"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/change_password.html:301
 msgid ""
-"Update the password used to sign in to Keydion with your email or username."
+"Update the password used to sign in to Keydion with your email or "
+"username."
 msgstr "更新用于使用邮箱或用户名登录 Keydion 的密码。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/change_password.html:303
@@ -2369,7 +2365,8 @@ msgstr "设置密码"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/change_password.html:304
 msgid ""
-"Create a password so you can sign in with email and password in the future."
+"Create a password so you can sign in with email and password in the "
+"future."
 msgstr "创建一个密码，以便日后可以使用邮箱和密码登录。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/change_password.html:334
@@ -2472,8 +2469,8 @@ msgstr "EE 学科"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:61
 msgid ""
-"The IB subject groups behind the Extended Essay upload form and the public "
-"search filter."
+"The IB subject groups behind the Extended Essay upload form and the "
+"public search filter."
 msgstr "支撑扩展论文（EE）上传表单与公开检索筛选的 IB 学科组。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ee_subjects_manage.html:66
@@ -2609,9 +2606,9 @@ msgstr "管理指南"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:33
 msgid ""
-"Long-form documentation served at /guides. Each guide supports English and "
-"Chinese, and appears in a sidebar grouped by category. Drag entries to "
-"reorder or recategorise."
+"Long-form documentation served at /guides. Each guide supports English "
+"and Chinese, and appears in a sidebar grouped by category. Drag entries "
+"to reorder or recategorise."
 msgstr "在 /guides 提供的长文档。每篇指南支持中英文，并按分类显示在侧边栏中。拖动条目以重新排序或更换分类。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:38
@@ -2624,9 +2621,9 @@ msgstr "还没有指南"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:67
 msgid ""
-"Guides appear in the public help center at /guides, grouped by category and "
-"sorted by the order you set here. Start with a “Getting Started” piece — "
-"that's where most readers begin."
+"Guides appear in the public help center at /guides, grouped by category "
+"and sorted by the order you set here. Start with a “Getting Started” "
+"piece — that's where most readers begin."
 msgstr "指南显示在 /help 的公开帮助中心，按分类分组并按你在此设置的顺序排列。从一篇“入门”开始 — 多数读者从这里出发。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/guide_manage.html:70
@@ -2796,7 +2793,7 @@ msgstr "发布双语指南,支持富文本格式。"
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:149
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_publish.html:991
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:54
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:409
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:419
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/review_paper.html:27
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/submission_detail.html:24
 msgid "Category"
@@ -2924,7 +2921,7 @@ msgid "no criteria yet"
 msgstr "尚无评分标准"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/ia_subjects_manage.html:150
-#, python-format
+#, python-brace-format
 msgid "{n} criteria · max {m}"
 msgstr "{n} 项评分 · 总分上限 {m}"
 
@@ -3084,8 +3081,8 @@ msgstr "管理期刊"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/journal_manage.html:28
 msgid ""
-"Journals group related papers and appear at /journals. Add a journal here, "
-"then edit it to set its introduction."
+"Journals group related papers and appear at /journals. Add a journal "
+"here, then edit it to set its introduction."
 msgstr "期刊用于归类相关论文，并展示在 /journals 页面。在此添加期刊，然后编辑以设置简介。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/journal_manage.html:35
@@ -3155,8 +3152,10 @@ msgstr "关于 Keydion"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/landing.html:661
 msgid ""
-"Keydion is an academic asset platform designed for high school research. We focus on student\n"
-"            scholarship — IA, EE, TOK, and independent projects — ensuring that excellent work is systematically\n"
+"Keydion is an academic asset platform designed for high school research. "
+"We focus on student\n"
+"            scholarship — IA, EE, TOK, and independent projects — "
+"ensuring that excellent work is systematically\n"
 "            preserved, searchable, and citable."
 msgstr ""
 "Keydion 是一个专为高中设计的学术资产平台。我们聚焦于学生的科研成果，包括 IA、EE、TOK "
@@ -3177,8 +3176,10 @@ msgstr "学术使命"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/landing.html:681
 msgid ""
-"By building a living archive of student research, we help schools maintain academic integrity,\n"
-"            prevent topic collisions, and let each cohort build on the discoveries of the last."
+"By building a living archive of student research, we help schools "
+"maintain academic integrity,\n"
+"            prevent topic collisions, and let each cohort build on the "
+"discoveries of the last."
 msgstr ""
 "Keydion "
 "同样致力于维护学术诚信，避免撞题以及学术不端误判。我们希望为每一所学校留存这些珍贵的学术成果，让优秀的学生研究经验得以传承，使学术探索不再只是一次性的作业，而成为可以持续积累与发展的知识资产。"
@@ -3197,7 +3198,8 @@ msgstr "搜索论文"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/landing.html:709
 msgid ""
-"Dedicated to cultivating academic research skills for young scholars — a platform for writing,\n"
+"Dedicated to cultivating academic research skills for young scholars — a "
+"platform for writing,\n"
 "            publishing, and discovery."
 msgstr "致力于培养青年学者的学术研究能力——一个写作、发表与发现的平台。"
 
@@ -3317,13 +3319,11 @@ msgid "A moderator or administrator will review your paper."
 msgstr "审核人员或管理员将审核您的论文。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/my_submissions.html:91
-msgid ""
-"If <strong>Accepted</strong>, your paper becomes available in the library."
+msgid "If <strong>Accepted</strong>, your paper becomes available in the library."
 msgstr "如果<strong>被接受</strong>，您的论文将发布到文库中。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/my_submissions.html:92
-msgid ""
-"If <strong>Rejected</strong>, you will see the reviewer's comments here."
+msgid "If <strong>Rejected</strong>, you will see the reviewer's comments here."
 msgstr "如果<strong>被拒绝</strong>，您可以在此处查看审核人员的意见。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news.html:448
@@ -3370,8 +3370,8 @@ msgstr "管理新闻"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:33
 msgid ""
-"Articles, announcements, and editorial pieces published on Keydion. Drafts "
-"stay private until you publish."
+"Articles, announcements, and editorial pieces published on Keydion. "
+"Drafts stay private until you publish."
 msgstr "在 Keydion 发布的文章、公告和编辑内容。草稿在发布前对外不可见。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:38
@@ -3390,8 +3390,8 @@ msgstr "还没有文章"
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:73
 msgid ""
 "Articles published here surface on the public News page, in the category "
-"landing pages, and in newsletter digests. Pick a category to start with — "
-"you can always add more later."
+"landing pages, and in newsletter digests. Pick a category to start with —"
+" you can always add more later."
 msgstr "在此发布的文章会显示在公开新闻页、分类页和邮件摘要中。先选择一个分类开始 — 你随时可以再添加更多。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:77
@@ -3527,8 +3527,7 @@ msgid "No articles match these filters"
 msgstr "没有文章匹配这些筛选条件"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:226
-msgid ""
-"Try a different status, category, or date range — or clear the search box."
+msgid "Try a different status, category, or date range — or clear the search box."
 msgstr "试试不同的状态、分类或日期范围 — 或清空搜索框。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/news_manage.html:245
@@ -3814,8 +3813,8 @@ msgstr "管理论文"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:186
 msgid ""
-"Every paper in the Keydion library. Search, filter by type, sort, and modify"
-" or remove entries."
+"Every paper in the Keydion library. Search, filter by type, sort, and "
+"modify or remove entries."
 msgstr "Keydion 文献库中的全部论文。可搜索、按类型筛选、排序，并修改或删除条目。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:191
@@ -3833,8 +3832,8 @@ msgstr "文献库中暂无论文"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:226
 msgid ""
-"Papers uploaded here become searchable across the public library, journal "
-"pages, and the research assistant. Upload your first PDF to get started."
+"Papers uploaded here become searchable across the public library, journal"
+" pages, and the research assistant. Upload your first PDF to get started."
 msgstr "在此上传的论文将可在公开文献库、期刊页面和研究助手中检索。上传第一份 PDF 即可开始。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:229
@@ -3896,8 +3895,7 @@ msgid "No papers match these filters"
 msgstr "没有符合这些筛选条件的论文"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:380
-msgid ""
-"Try a different type, category, or date range — or clear the search box."
+msgid "Try a different type, category, or date range — or clear the search box."
 msgstr "尝试其他类型、类别或日期范围 — 或清空搜索框。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_manage.html:393
@@ -4001,8 +3999,7 @@ msgid "Modify Paper Information"
 msgstr "修改论文信息"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:7
-msgid ""
-"Edit the metadata for this paper. Changes will take effect immediately."
+msgid "Edit the metadata for this paper. Changes will take effect immediately."
 msgstr "编辑此论文的元数据。更改将立即生效。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:12
@@ -4087,8 +4084,8 @@ msgstr "请选择 IA 科目…"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:255
 msgid ""
-"Changing the subject rebuilds the criteria after you save. Edit scores below"
-" for the saved subject."
+"Changing the subject rebuilds the criteria after you save. Edit scores "
+"below for the saved subject."
 msgstr "更改科目后保存，将重建评分项。请在下方编辑已保存科目的得分。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:282
@@ -4097,8 +4094,8 @@ msgstr "对此评分项的评语…"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:291
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/paper_modify.html:371
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:230
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:304
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:240
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:314
 msgid "Total Score"
 msgstr "总分"
 
@@ -4133,47 +4130,47 @@ msgstr "预览论文 · Keydion"
 msgid "Back to Search"
 msgstr "前往检索"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:21
-msgid "Back to"
-msgstr "返回"
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:32
+msgid "Go to Journal"
+msgstr "前往期刊"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:26
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:36
 msgid "Sign in to download"
 msgstr "登录以下载"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:37
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:47
 msgid "Open in new tab"
 msgstr "在新标签页打开"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:46
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:56
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/resources.html:53
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:298
 msgid "Download"
 msgstr "下载"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:65
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:75
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:212
 msgid "Uncategorized"
 msgstr "论文分类"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:68
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:437
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:472
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:78
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:447
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:482
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:217
 msgid "Untitled Paper"
 msgstr "无标题论文"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:78
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:88
 msgid "Search this author"
 msgstr "在结果中搜索"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:83
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:89
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:408
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:410
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:412
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:414
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:440
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:93
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:99
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:418
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:420
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:422
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:424
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:450
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:225
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:230
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/search.html:231
@@ -4181,39 +4178,39 @@ msgid "Not specified"
 msgstr "未指定"
 
 # ==================== PREVIEW / GUEST ====================
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:95
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:105
 msgid "Guest preview is limited to the first two pages of each paper."
 msgstr "访客预览仅限每篇论文的前两页。"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:96
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:106
 msgid "Sign in to view full papers"
 msgstr "登录以查看完整论文"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:175
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:185
 msgid "No commentary provided."
 msgstr "未填写"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:214
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:224
 msgid "MYP Community Project"
 msgstr ""
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:401
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:411
 msgid "About this issue"
 msgstr "文献信息"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:413
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:423
 msgid "Organization"
 msgstr "机构"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:426
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:436
 msgid "Related text"
 msgstr "相关文献"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:446
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:456
 msgid "No related texts found."
 msgstr "未找到相关文献。"
 
-#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:466
+#: /Users/mingyuanw/Desktop/Project/Keydion/templates/preview.html:476
 msgid "PDF Preview"
 msgstr "文稿预览"
 
@@ -4367,8 +4364,7 @@ msgid "Review Submissions"
 msgstr "审核投稿"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/review_list.html:6
-msgid ""
-"Review papers submitted by readers. Accept or reject pending submissions."
+msgid "Review papers submitted by readers. Accept or reject pending submissions."
 msgstr "审核读者提交的论文。接受或拒绝待审投稿。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/review_list.html:20
@@ -4622,8 +4618,7 @@ msgid "Open editor"
 msgstr "打开编辑器"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard/overview.html:105
-msgid ""
-"Review local and Microsoft-linked accounts, adjust roles, set passwords."
+msgid "Review local and Microsoft-linked accounts, adjust roles, set passwords."
 msgstr "查看本地和 Microsoft 关联账户，调整角色，设置密码。"
 
 #: /Users/mingyuanw/Desktop/Project/Keydion/templates/_dashboard/overview.html:106
@@ -4885,8 +4880,10 @@ msgstr "更新安全设置"
 #~ msgstr[0] ""
 
 #~ msgid ""
-#~ "Could not add papers to the journal. Add the bulk endpoint — see the notes "
-#~ "at the top of paper_manage.html."
+#~ "Could not add papers to the "
+#~ "journal. Add the bulk endpoint — "
+#~ "see the notes at the top of "
+#~ "paper_manage.html."
 #~ msgstr "无法将论文加入期刊。请添加批量接口——参见 paper_manage.html 顶部说明。"
 
 #~ msgid "Group ID and subject name are required."
@@ -4945,3 +4942,7 @@ msgstr "更新安全设置"
 
 #~ msgid "Changes apply immediately."
 #~ msgstr "更改将立即生效。"
+
+#~ msgid "Back to"
+#~ msgstr "返回"
+
