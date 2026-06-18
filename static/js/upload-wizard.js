@@ -1066,7 +1066,7 @@
   }
 
   function renderAuthors() {
-    const isIbType = state.paperType === 'ee' || state.paperType === 'cp';
+    const isIbType = state.paperType === 'ee' || state.paperType === 'cp' || state.paperType === 'ia';
     const mode = authorMode();
     return `
       <div class="wizard-card">

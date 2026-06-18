@@ -39,6 +39,14 @@ class WizardJsAnonymousContractTest(unittest.TestCase):
         self.assertIn("is_ib_sample", body)
         self.assertIn('name="f-author-mode"', self.js)
 
+    def test_authors_step_offers_ib_sample_for_all_ib_types(self):
+        # The IB Sample author option is gated on isIbType; it must cover EE, CP
+        # AND IA so IA uploads can be marked IB samples (server-side resolution
+        # is type-agnostic, keyed on paperType !== 'standard').
+        body = self._function_body("renderAuthors")
+        for t in ("'ee'", "'cp'", "'ia'"):
+            self.assertIn(f"state.paperType === {t}", body)
+
     def test_authors_step_binds_mode_choice(self):
         body = self._function_body("bindAuthors")
         self.assertIn("f-author-mode", body)
