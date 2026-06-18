@@ -1,12 +1,12 @@
 # Keydion - Academic Paper Management System
 
-Keydion is a robust, scholarly-focused web application for managing, searching, and previewing academic papers. Built with Flask and MySQL, it features multi-language support, a premium design aesthetic, and specialized support for IB Extended Essays (EE).
+Keydion is a robust, scholarly-focused web application for managing, searching, and previewing academic papers. Built with Flask and MySQL, it features multi-language support, a premium design aesthetic, and specialized support for IB Essays.
 
 ## Features
 
-- **Academic Search**: JSTOR-inspired search interface with filters for subjects, dates, and languages.
+- **Academic Search**: Advanced search interface with filters for subjects, dates, and languages.
 - **Paper Preview**: In-browser PDF preview with a custom sidebar for metadata.
-- **IB Extended Essay Support**: Specialized metadata fields for IB EE papers, including criteria-based scores and comments.
+- **IB Extended Essay Support**: Specialized metadata fields for IB EE, IA, CP and other academic papers.
 - **Multi-language Support**: Full internationalization (i18n) for English and Chinese.
 - **Microsoft Authentication**: Integrated MS Graph API support for user login and profile synchronization.
 - **News Management**: Built-in system for publishing and managing academic news and announcements.
@@ -15,11 +15,11 @@ Keydion is a robust, scholarly-focused web application for managing, searching, 
 
 - **Python 3.11+**
 - **MySQL 8.0+**
-- **Tesseract OCR** (optional) — enables text extraction from *scanned* PDFs (chat attachments, the abstract/keyword generator, and the papers index). Install the engine plus the Chinese language data:
+- **Tesseract OCR** (optional) — enables local text extraction from *scanned* PDFs (chat attachments, the abstract/keyword generator, and the papers index). Install the engine plus the Chinese language data:
   - Debian/Ubuntu: `apt-get install -y tesseract-ocr tesseract-ocr-chi-sim`
   - macOS: `brew install tesseract tesseract-lang`
+  When LLM Vision is Configured, the system will prefer the LLM first, then local Tesseract extraction method.
 
-  Without it, scanned PDFs simply yield no extracted text; text-based PDFs are unaffected.
 
 ## Database Setup
 
