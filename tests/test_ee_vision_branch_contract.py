@@ -64,5 +64,18 @@ class EeVisionBranchTest(unittest.TestCase):
         regex.assert_called_once()
 
 
+class EePromptFidelityTest(unittest.TestCase):
+    """The EE vision extractor must transcribe the examiner's marks/remarks
+    verbatim and leave absent fields blank — it must not grade or paraphrase."""
+
+    def test_prompt_demands_verbatim_extraction(self):
+        p = ee_pdf_extractor.EE_SYSTEM_PROMPT_EN
+        self.assertIn("TRANSCRIBE", p)
+        self.assertIn("WORD-FOR-WORD", p)
+        self.assertIn("do NOT paraphrase", p)
+        self.assertIn("null", p)
+        self.assertIn("never grade the essay yourself", p)
+
+
 if __name__ == "__main__":
     unittest.main()
