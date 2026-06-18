@@ -95,9 +95,11 @@
     {% endif %}
   </div>
   {% endif %}
+  {% if paper.published_at %}
   <div class="text-muted" style="font-size: 13px;">
-    {{ paper.published_at or _('Not specified') }}
+    {{ paper.published_at }}
   </div>
+  {% endif %}
 </div>
 
 {% if is_guest and not open_access %}
@@ -428,14 +430,22 @@
         <div id="collapseAbout" class="accordion-collapse collapse" aria-labelledby="headingAbout">
           <div class="accordion-body px-2 pt-1 pb-4 text-muted" style="font-size: 14px; line-height: 1.5;">
             <dl class="mb-0">
+              {% if paper.title %}
               <dt class="fw-semibold text-dark">{{ _('Title') }}</dt>
-              <dd class="mb-3">{{ paper.title or _('Not specified') }}</dd>
+              <dd class="mb-3">{{ paper.title }}</dd>
+              {% endif %}
+              {% if paper.category %}
               <dt class="fw-semibold text-dark">{{ _('Category') }}</dt>
-              <dd class="mb-3">{{ paper.category or _('Not specified') }}</dd>
+              <dd class="mb-3">{{ paper.category }}</dd>
+              {% endif %}
+              {% if paper.keywords %}
               <dt class="fw-semibold text-dark">{{ _('Keywords') }}</dt>
-              <dd class="mb-3">{{ paper.keywords or _('Not specified') }}</dd>
+              <dd class="mb-3">{{ paper.keywords }}</dd>
+              {% endif %}
+              {% if unique_schools_str %}
               <dt class="fw-semibold text-dark">{{ _('Organization') }}</dt>
-              <dd class="mb-0">{{ unique_schools_str or _('Not specified') }}</dd>
+              <dd class="mb-3">{{ unique_schools_str }}</dd>
+              {% endif %}
             </dl>
           </div>
         </div>
