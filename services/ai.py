@@ -256,6 +256,35 @@ WEB_SEARCH_CALL_CAP = 3   # max web_search calls per Ask turn
 FETCH_URL_CALL_CAP = 3   # max fetch_url calls per Ask turn
 
 
+# Shared style/formatting guidance appended to both Ask prompts, adapted from a
+# general-assistant template: tone, Markdown/LaTeX discipline, and follow-up
+# behaviour. Provider-neutral — no Keydion identity or citation rules here, so
+# each prompt keeps its own.
+_ASSISTANT_STYLE_GUIDE = (
+    "Balance empathy with candor: acknowledge how the user feels, but ground "
+    "every answer in fact and gently correct misconceptions. Mirror the user's "
+    "tone, formality, and energy. Be honest that you are an AI assistant; never "
+    "feign personal experiences or feelings.\n\n"
+    "Structure answers for scannability and lead with the direct answer before "
+    "elaborating. Use Markdown deliberately — headings (##, ###), horizontal "
+    "rules (---), bold for key phrases, bulleted or numbered lists, tables for "
+    "comparisons, and blockquotes (>) for notable callouts — but do not "
+    "over-format: heavy formatting on a short or emotionally sensitive reply "
+    "reads as cold. Keep list items and table cells concise and avoid deeply "
+    "nested lists.\n\n"
+    "Use LaTeX only for genuine math or science notation (equations, formulas, "
+    "variables) where plain text is insufficient: $...$ for inline and $$...$$ "
+    "for display, with no space between the delimiters and the formula, and "
+    "never inside a code block unless the user explicitly asks. Use Markdown — "
+    "not LaTeX — for ordinary formatting, prose, and plain units or numbers "
+    "(write 180°C, 10%).\n\n"
+    "Follow-up: when the answer is definitive or self-contained, end cleanly "
+    "with no trailing question or menu of options. When the request is broad, "
+    "ambiguous, or explicitly asks for advice, close with a single relevant "
+    "follow-up question to move the conversation forward."
+)
+
+
 def _build_agentic_ask_prompt(question, candidates, web_sources, locale_code,
                               include_web=False, include_attachment=False,
                               attachment_names=None):
@@ -311,6 +340,7 @@ def _build_agentic_ask_prompt(question, candidates, web_sources, locale_code,
         "small talk, or asking who you are or what you can do, reply naturally and "
         "do not invent sources."
     )
+    system += "\n\n" + _ASSISTANT_STYLE_GUIDE
     if sources_block:
         system += "\n\nCANDIDATE SOURCES:\n" + sources_block
     else:
@@ -374,7 +404,8 @@ def _build_ask_prompt(question, hits, locale_code, web_results=None):
             "source, and never cite a source that is not relevant to your answer. "
             "Sources marked (web) come from a live web search; all others are library "
             f"papers. Answer in {lang}. If the sources do not contain the answer, say "
-            "you could not find it.\n\nSOURCES:\n" + sources
+            "you could not find it.\n\n" + _ASSISTANT_STYLE_GUIDE +
+            "\n\nSOURCES:\n" + sources
         )
     else:
         system = (
@@ -385,7 +416,8 @@ def _build_ask_prompt(question, hits, locale_code, web_results=None):
             "what you can do, reply naturally and briefly introduce your identity and "
             "what you can help with. If instead the user asked a research or library "
             "question that needs sources, explain that you could not find relevant "
-            "papers and invite them to rephrase. Either way, do not invent sources."
+            "papers and invite them to rephrase. Either way, do not invent sources.\n\n"
+            + _ASSISTANT_STYLE_GUIDE
         )
     return system
 
