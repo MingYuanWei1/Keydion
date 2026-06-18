@@ -15,13 +15,23 @@
     <a class="text-decoration-none text-muted fw-medium" href="{{ url_for('search') }}">&larr; {{ _('Back to Search')
       }}</a>
     {% endif %}
-    {% set _jslug = (journal_slug_map|default({})).get(paper.journal) if paper.journal else None %}
-    {% if _jslug %}
-    <a class="text-decoration-none text-muted fw-medium ms-3"
-      href="{{ url_for('journal_detail', slug=_jslug) }}">&larr; {{ _('Back to') }} {{ paper.journal }}</a>
-    {% endif %}
   </div>
   <div class="d-flex gap-2">
+    {% set _jslug = (journal_slug_map|default({})).get(paper.journal) if paper.journal else None %}
+    {% if _jslug %}
+    <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('journal_detail', slug=_jslug) }}">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
+        class="bi bi-journal-text me-1" viewBox="0 0 16 16" style="vertical-align: -2px;">
+        <path
+          d="M5 10.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5" />
+        <path
+          d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2" />
+        <path
+          d="M1 5v-.5a.5.5 0 0 1 1 0V5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1zm0 3v-.5a.5.5 0 0 1 1 0V8h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1z" />
+      </svg>
+      {{ _('Go to Journal') }} &ldquo;{{ paper.journal }}&rdquo;
+    </a>
+    {% endif %}
     {% if is_guest and not open_access %}
     <a class="btn btn-outline-primary btn-sm" href="{{ url_for('index', login=1) }}">{{ _('Sign in to download') }}</a>
     {% else %}
