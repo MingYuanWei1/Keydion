@@ -242,7 +242,7 @@ def register_routes(app):
 
         # Rate-limit uploads: extraction (now including OCR for scanned PDFs) is
         # CPU-heavy, so cap per-IP to avoid a degradation-of-service via the route.
-        ip = request.headers.get("X-Forwarded-For", request.remote_addr or "?").split(",")[0].strip()
+        ip = request.remote_addr or "?"
         if not _ask_rate_ok(ip):
             return jsonify({"error": str(_("Too many requests — please slow down."))}), 429
 
@@ -288,7 +288,7 @@ def register_routes(app):
         if not llm_client.llm_enabled():
             return jsonify({"error": str(_("AI assistant is not configured."))}), 503
 
-        ip = request.headers.get("X-Forwarded-For", request.remote_addr or "?").split(",")[0].strip()
+        ip = request.remote_addr or "?"
         if not _ask_rate_ok(ip):
             return jsonify({"error": str(_("Too many requests — please slow down."))}), 429
 
