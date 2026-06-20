@@ -55,6 +55,7 @@
             onclick="openMove({{ child.id }})">{{ _('Move') }}</button>
           <form method="post" action="{{ url_for('admin_resources_delete', node_id=child.id) }}"
             style="display:inline" onsubmit="return confirm('{{ _('Delete this item?') }}')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-sm btn-link text-danger">{{ _('Delete') }}</button>
           </form>
         </td>
@@ -72,6 +73,7 @@
   <div class="login-modal">
     <h3>{{ _('New folder') }}</h3>
     <form method="post" action="{{ url_for('admin_resources_folder_new') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="parent_id" value="{{ parent_id or '' }}">
       <div class="field-group"><label>{{ pgettext('resource', 'Name') }}</label><input type="text" name="name" required></div>
       <div class="field-group"><label>{{ _('Description') }}</label><input type="text" name="description"></div>
@@ -94,6 +96,7 @@
   <div class="login-modal">
     <h3>{{ _('Upload file') }}</h3>
     <form method="post" action="{{ url_for('admin_resources_upload') }}" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="parent_id" value="{{ parent_id or '' }}">
       <div class="field-group"><label>{{ _('File') }}</label><input type="file" name="file" required></div>
       <div class="field-group"><label>{{ pgettext('resource', 'Name') }}</label><input type="text" name="name" placeholder="{{ _('Optional') }}"></div>
@@ -117,6 +120,7 @@
   <div class="login-modal">
     <h3>{{ _('Edit') }}</h3>
     <form id="editForm" method="post" action="">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="field-group"><label>{{ pgettext('resource', 'Name') }}</label><input type="text" id="editName" name="name" required></div>
       <div class="field-group"><label>{{ _('Description') }}</label><input type="text" id="editDescription" name="description"></div>
       <div class="field-group">
@@ -138,6 +142,7 @@
   <div class="login-modal">
     <h3>{{ _('Move') }}</h3>
     <form id="moveForm" method="post" action="">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="field-group">
         <label>{{ _('Destination') }}</label>
         <select name="new_parent_id">

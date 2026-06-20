@@ -64,6 +64,7 @@ class ResourcesRouteSourceTest(unittest.TestCase):
 class ResourcesTemplateRenderTest(unittest.TestCase):
     def _render(self, children):
         env = Environment(loader=FileSystemLoader(str(ROOT / "templates")))
+        env.globals["csrf_token"] = lambda: ""
         env.filters.setdefault("filesizeformat", lambda v, binary=False: f"{v}B")
         template = env.get_template("resources.html")
         return template.render(

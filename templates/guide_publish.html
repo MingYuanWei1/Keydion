@@ -29,6 +29,7 @@
   </div>
 
   <form method="post" id="guideForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="kd-form-meta">
       <div class="kd-field">
         <label class="kd-field-label">
@@ -155,7 +156,8 @@
 
   {% if editing %}
     <form method="post" action="{{ url_for('admin_guide_delete', guide_id=guide_id) }}"
-          id="deleteGuideForm" hidden></form>
+          id="deleteGuideForm" hidden>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"></form>
   {% endif %}
 </div>
 

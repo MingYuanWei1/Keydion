@@ -18,6 +18,7 @@
   if (!shell || !main) return;
 
   var PARTIAL_HEADER = 'X-Partial-Content';
+  var CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
   /* ── Sidebar state ─────────────────────────────────────────────────── */
   var STATES = ['full', 'icons', 'hidden'];
@@ -61,6 +62,7 @@
       redirect: 'follow'
     };
     init.headers[PARTIAL_HEADER] = '1';
+    init.headers['X-CSRFToken'] = CSRF;
     if (opts.body) init.body = opts.body;
 
     fetch(url, init)

@@ -1,5 +1,6 @@
 (function () {
   var SAVE_URL = "/dashboard/admin/ee-subjects/save";
+  var CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
   function readJSON(id, fallback) {
     var el = document.getElementById(id);
@@ -226,7 +227,7 @@
   function save() {
     if (conflictsEl) conflictsEl.style.display = 'none';
     saveBtn.disabled = true;
-    fetch(SAVE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(toPayload()) })
+    fetch(SAVE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF }, body: JSON.stringify(toPayload()) })
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, status: r.status, d: d }; }); })
       .then(function (res) {
         saveBtn.disabled = false;

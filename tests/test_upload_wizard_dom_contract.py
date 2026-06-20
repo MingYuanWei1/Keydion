@@ -26,6 +26,7 @@ class UploadWizardJinjaContractTest(unittest.TestCase):
         )
         env.globals["_"] = lambda s, **kw: s
         env.globals["role_label"] = lambda r: "Contributor"
+        env.globals["csrf_token"] = lambda: ""
         # Flask globals used by _bare.html
         env.globals["get_flashed_messages"] = lambda with_categories=False: []
         # Flask's tojson filter is not in vanilla Jinja2

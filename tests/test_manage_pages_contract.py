@@ -16,6 +16,7 @@ def _build_app():
     import app as app_module
     importlib.reload(app_module)
     app = app_module.create_app()
+    app.config["WTF_CSRF_ENABLED"] = False
     return app, app_module
 
 

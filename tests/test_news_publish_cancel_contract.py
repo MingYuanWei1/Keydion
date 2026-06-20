@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class NewsPublishCancelTest(unittest.TestCase):
     def render(self, editing):
         env = Environment(loader=FileSystemLoader(ROOT / "templates"))
+        env.globals["csrf_token"] = lambda: ""
         form_data = {
             "title": "", "author": "", "abstract": "", "body": "",
             "category": "", "image_url": "", "status": "published",

@@ -10,6 +10,7 @@
     return;
   }
   const BOOT = window.WIZARD_BOOT;
+  const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
   const I18N = BOOT.i18n || {};
 
   // ─── i18n helper ───────────────────────────────────────────
@@ -605,6 +606,7 @@
       form.append('file', file);
       const resp = await fetch('/api/upload/extract-ee-metadata', {
         method: 'POST',
+        headers: { 'X-CSRFToken': CSRF },
         body: form,
         credentials: 'same-origin',
       });
@@ -715,6 +717,7 @@
       form.append('language', state.language || 'en');
       const resp = await fetch('/api/upload/generate-abstract-keywords', {
         method: 'POST',
+        headers: { 'X-CSRFToken': CSRF },
         body: form,
         credentials: 'same-origin',
       });
@@ -1036,7 +1039,7 @@
       form.append('language', state.language || 'en');
       form.append('subject', state.iaSubject);
       const resp = await fetch('/api/upload/extract-ia-metadata', {
-        method: 'POST', body: form, credentials: 'same-origin',
+        method: 'POST', headers: { 'X-CSRFToken': CSRF }, body: form, credentials: 'same-origin',
       });
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) {

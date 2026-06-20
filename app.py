@@ -151,6 +151,14 @@ def create_app() -> Flask:
     configure_rag()
     babel.init_app(app, locale_selector=select_locale)
 
+    from flask_wtf import CSRFProtect
+    CSRFProtect(app)
+
+    @app.context_processor
+    def _inject_csrf():
+        from flask_wtf.csrf import generate_csrf
+        return {"csrf_token": generate_csrf}
+
     @app.context_processor
     def inject_helpers():
         def role_label(level: int) -> str:

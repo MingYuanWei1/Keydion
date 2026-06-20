@@ -59,6 +59,7 @@
                                 {% endif %}
                                 <form method="post" action="{{ url_for('my_submission_delete', sub_id=sub.id) }}"
                                     onsubmit="return confirm('{{ _('Are you sure you want to delete this submission?') }}')">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button type="submit" class="btn btn-sm btn-outline-danger">{{ _('Delete')
                                         }}</button>
                                 </form>

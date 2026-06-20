@@ -30,6 +30,7 @@
   <div class="wizard-footer" id="wizardFooter"></div>
 
   <form id="uploadForm" method="post" action="{{ wizard_boot.submit_url }}" enctype="multipart/form-data" style="display:none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="file" name="paper" id="uploadFormFile" accept="application/pdf,.pdf">
     {% if wizard_boot.draft_id %}
     <input type="hidden" name="draft_id" value="{{ wizard_boot.draft_id }}">

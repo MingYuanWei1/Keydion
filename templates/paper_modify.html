@@ -23,6 +23,7 @@
             </div>
             <div class="card-body">
                 <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     {% set ib_ee_data = meta.get('ib_ee_data', '') %}
                     {% set ib_ee_info = (ib_ee_data | from_json) if ib_ee_data else None %}
                     {% set cp_data = meta.get('cp_data', '') %}

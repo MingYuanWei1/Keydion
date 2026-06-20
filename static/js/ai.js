@@ -5,6 +5,7 @@
   if (!bootEl) return;
   var BOOT = JSON.parse(bootEl.textContent);
   var I18N = BOOT.i18n || {};
+  var CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
   var thread = document.getElementById("kd-thread");
   var empty = document.getElementById("kd-empty");
@@ -314,7 +315,7 @@
     }).then(function (cid) {
       return fetch(BOOT.api_url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
         body: JSON.stringify({ question: q, mode: mode, conversation_id: cid,
                                web: window.__webOn ? window.__webOn() : false,
                                message_attachments: sentAttachments,
@@ -468,7 +469,7 @@
 
   function ensureConversation() {
     if (activeConv != null) return Promise.resolve(activeConv);
-    return fetch("/api/conversations", { method: "POST" })
+    return fetch("/api/conversations", { method: "POST", headers: { "X-CSRFToken": CSRF } })
       .then(function (r) { return r.json(); })
       .then(function (j) { 
         activeConv = j.id; 
@@ -504,13 +505,13 @@
     var name = window.prompt(I18N.rename || "Rename", current);
     if (name == null) return;
     fetch("/api/conversations/" + id, {
-      method: "PATCH", headers: { "Content-Type": "application/json" },
+      method: "PATCH", headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
       body: JSON.stringify({ title: name })
     }).then(loadConversations);
   }
 
   function deleteConversation(id) {
-    fetch("/api/conversations/" + id, { method: "DELETE" }).then(function () {
+    fetch("/api/conversations/" + id, { method: "DELETE", headers: { "X-CSRFToken": CSRF } }).then(function () {
       if (id === activeConv) { activeConv = null; thread.innerHTML = ""; if (empty) { thread.appendChild(empty); empty.style.display = ""; } }
       loadConversations();
     });
@@ -558,7 +559,7 @@
         var fd = new FormData();
         fd.append("file", f);
         fd.append("conversation_id", cid);
-        var up = fetch("/api/ai/attach", { method: "POST", body: fd })
+        var up = fetch("/api/ai/attach", { method: "POST", headers: { "X-CSRFToken": CSRF }, body: fd })
           .then(function (r) { return r.json(); })
           .then(function (j) {
             if (j && j.error) { delete window.__attachedDocs[f.name]; renderChips(); alert(j.error); }
@@ -748,7 +749,7 @@
         renderChips();
         var cid = window.__activeConv && window.__activeConv();
         if (cid) fetch("/api/ai/attach?conversation_id=" + encodeURIComponent(cid) +
-                       "&filename=" + encodeURIComponent(fn), { method: "DELETE" });
+                       "&filename=" + encodeURIComponent(fn), { method: "DELETE", headers: { "X-CSRFToken": CSRF } });
       });
       chip.appendChild(x);
       attachRow.appendChild(chip);

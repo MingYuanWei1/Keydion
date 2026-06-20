@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class SearchTemplateTest(unittest.TestCase):
     def render_search(self, records):
         env = Environment(loader=FileSystemLoader(ROOT / "templates"))
+        env.globals["csrf_token"] = lambda: ""
         template = env.get_template("search.html")
         return template.render(
             _=lambda value, **kwargs: value % kwargs if kwargs else value,

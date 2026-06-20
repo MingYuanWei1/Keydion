@@ -10,6 +10,7 @@
                     {{ _('Fill in the details below to register a new Keydion account.') }}
                 </p>
                 <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-3">
                         <label for="email" class="form-label">{{ _('Email') }} <span
                                 class="text-danger">*</span></label>

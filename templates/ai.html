@@ -27,6 +27,7 @@
         <div class="kd-user-dropdown user-dropdown" id="userDropdown">
           <a href="{{ url_for('dashboard') }}">{{ _('Dashboard') }}</a>
           <form method="post" action="{{ url_for('logout') }}" class="logout-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit">{{ _('Sign out') }}</button>
           </form>
         </div>
@@ -131,6 +132,7 @@
       <div class="kd-login-divider"><span>{{ _('or sign in with email') }}</span></div>
       {% endif %}
       <form method="post" action="{{ url_for('login') }}" id="loginForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="next" value="" id="loginNext">
         <div class="kd-login-field">
           <label>{{ _('Email / Username') }}</label>

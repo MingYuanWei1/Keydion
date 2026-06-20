@@ -10,6 +10,7 @@
           {{ _('Add your basic information so we can personalize your experience.') }}
         </p>
         <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="row g-3">
             <div class="col-md-6">
               <label class="form-label" for="first_name">{{ _('First name') }}</label>

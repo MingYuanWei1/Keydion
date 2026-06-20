@@ -9,6 +9,7 @@
 </div>
 
 <form id="role-update-form" method="post" action="{{ url_for('admin_users_roles') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <div class="d-flex justify-content-end gap-2 mb-3">
     <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#addLocalUserModal">
       {{ _('Add Local User') }}
@@ -44,6 +45,7 @@
             <td>
               <div class="d-flex flex-wrap gap-2">
                 <form method="post" action="{{ url_for('admin_user_reset_password', username=entry.username) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <div class="input-group input-group-sm">
                     <input class="form-control" name="password" type="password" placeholder="{{ _('New password') }}"
                       required>
@@ -51,6 +53,7 @@
                   </div>
                 </form>
                 <form method="post" action="{{ url_for('admin_user_delete', username=entry.username) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button class="btn btn-outline-danger btn-sm" type="submit">{{ _('Delete') }}</button>
                 </form>
               </div>
@@ -96,6 +99,7 @@
             <td>
               <div class="d-flex flex-wrap gap-2">
                 <form method="post" action="{{ url_for('admin_ms_user_set_password', ms_id=entry.ms_id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <div class="input-group input-group-sm">
                     <input class="form-control" name="password" type="password" placeholder="{{ _('New password') }}"
                       required>
@@ -105,6 +109,7 @@
                   </div>
                 </form>
                 <form method="post" action="{{ url_for('admin_ms_user_delete', ms_id=entry.ms_id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button class="btn btn-outline-danger btn-sm" type="submit">{{ _('Delete') }}</button>
                 </form>
               </div>
@@ -129,6 +134,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
       </div>
       <form method="post" action="{{ url_for('admin_users_add') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="modal-body">
           <div class="mb-3">
             <label class="form-label" for="modal-username">{{ _('Username / Email') }}</label>

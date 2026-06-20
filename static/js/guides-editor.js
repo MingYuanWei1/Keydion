@@ -8,6 +8,7 @@
   if (!panel) return; /* not on the publish page */
 
   var uploadUrl = panel.dataset.uploadImageUrl;
+  var CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
   /* ─── Callout blot ─────────────────────────────────────────────── */
   var BlockEmbed = Quill.import('blots/block/embed');
@@ -135,7 +136,7 @@
         var file = input.files && input.files[0];
         if (!file) return;
         var fd = new FormData(); fd.append('file', file);
-        fetch(uploadUrl, { method: 'POST', body: fd })
+        fetch(uploadUrl, { method: 'POST', headers: { 'X-CSRFToken': CSRF }, body: fd })
           .then(function (r) { return r.json(); })
           .then(function (data) {
             if (data.url) {
@@ -162,7 +163,7 @@
         var file = input.files && input.files[0];
         if (!file) return;
         var fd = new FormData(); fd.append('file', file);
-        fetch(uploadUrl, { method: 'POST', body: fd })
+        fetch(uploadUrl, { method: 'POST', headers: { 'X-CSRFToken': CSRF }, body: fd })
           .then(function (r) { return r.json(); })
           .then(function (data) {
             if (!data.url) { alert(data.error || 'Upload failed'); return; }

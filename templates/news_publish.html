@@ -945,6 +945,7 @@
 </style>
 
 <form method="post" enctype="multipart/form-data" id="publishForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="editor-shell">
 
         <!-- ===================== TOP BAR ===================== -->

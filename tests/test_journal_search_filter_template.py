@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class JournalSearchFilterTest(unittest.TestCase):
     def render_search(self, journals, journal_filter):
         env = Environment(loader=FileSystemLoader(ROOT / "templates"))
+        env.globals["csrf_token"] = lambda: ""
         return env.get_template("search.html").render(
             _=lambda value, **kw: value % kw if kw else value,
             ngettext=lambda s, p, n, **kw: s % kw if n == 1 else p % kw,

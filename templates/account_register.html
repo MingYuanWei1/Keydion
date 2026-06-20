@@ -8,6 +8,7 @@
         <h1 class="h4">{{ _('Create a local account') }}</h1>
         <p class="text-muted">{{ _('Set a username and password to link with your Microsoft sign-in.') }}</p>
         <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="alert alert-info">
             {{ _('We will use your Microsoft email as the username.') }}
             <div class="fw-semibold mt-1">{{ email }}</div>

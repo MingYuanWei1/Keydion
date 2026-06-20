@@ -12,6 +12,7 @@ class ResourceManageDomContractTest(unittest.TestCase):
     def setUpClass(cls):
         cls.template_text = (ROOT / "templates" / "resource_manage.html").read_text(encoding="utf-8")
         env = Environment(loader=FileSystemLoader(str(ROOT / "templates")))
+        env.globals["csrf_token"] = lambda: ""
         env.filters.setdefault("filesizeformat", lambda v, binary=False: f"{v}B")
         template = env.get_template("resource_manage.html")
         cls.html = template.render(

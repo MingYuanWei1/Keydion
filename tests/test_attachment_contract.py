@@ -57,6 +57,7 @@ def _make_client():
             raise unittest.SkipTest("database unavailable: %s" % exc)
         raise
     app.config["TESTING"] = True
+    app.config["WTF_CSRF_ENABLED"] = False
     return app.test_client()
 
 

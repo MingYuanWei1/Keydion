@@ -9,6 +9,7 @@
 
    Include once near the top of <body>:  {% include "_header.html" %}
    ============================================================= #}
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <style>
   .site-header {
     position: fixed; top: 0; left: 0; right: 0; z-index: 100;
@@ -144,6 +145,7 @@
         <div class="user-dropdown" id="userDropdown">
           <a href="{{ url_for('dashboard') }}">{{ _('Dashboard') }}</a>
           <form method="post" action="{{ url_for('logout') }}" class="logout-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit">{{ _('Sign out') }}</button>
           </form>
         </div>
@@ -171,6 +173,7 @@
     <div class="login-modal-divider"><span>{{ _('or sign in with email') }}</span></div>
     {% endif %}
     <form method="post" action="{{ url_for('login') }}" id="loginForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="next" value="" id="loginNext">
       <div class="field-group">
         <label for="loginEmail">{{ _('Email / Username') }}</label>

@@ -28,6 +28,7 @@ SAMPLE = [
 
 def _render(papers, journals):
     env = Environment(loader=FileSystemLoader(ROOT / "templates"))
+    env.globals["csrf_token"] = lambda: ""
     return env.get_template("paper_manage.html").render(
         _=lambda value, **kw: value % kw if kw else value,
         url_for=lambda endpoint, **kw: "/" + endpoint,

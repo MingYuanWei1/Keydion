@@ -60,6 +60,7 @@ class OpenAccessContractTest(unittest.TestCase):
 
     def _render_search(self, is_guest, open_access):
         env = Environment(loader=FileSystemLoader(ROOT / "templates"))
+        env.globals["csrf_token"] = lambda: ""
         template = env.get_template("search.html")
         records = [{
             "filename": "p.pdf", "title": "T", "category": "History",

@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class NewsManageTemplateTest(unittest.TestCase):
     def render(self, categories=None, articles=None):
         env = Environment(loader=FileSystemLoader(ROOT / "templates"))
+        env.globals["csrf_token"] = lambda: ""
         return env.get_template("news_manage.html").render(
             _=lambda value, **kw: value % kw if kw else value,
             url_for=lambda endpoint, **kw: f"/{endpoint}",

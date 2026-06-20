@@ -124,6 +124,7 @@ class ChangePasswordContractTest(unittest.TestCase):
         env.install_null_translations(newstyle=True)
         env.globals["url_for"] = lambda name, **_: "/" + name.replace("_", "-")
         env.globals["get_flashed_messages"] = lambda **_: []
+        env.globals["csrf_token"] = lambda: ""
         return env.get_template("change_password.html").render(
             user={"username": "alice"},
             has_password=has_password,
