@@ -5,7 +5,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Dict
 from uuid import uuid4
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 from flask import (
     Flask,
@@ -127,12 +127,30 @@ def select_locale() -> str:
     return match or SUPPORTED_LOCALES[0]
 
 
+def _is_safe_redirect_target(target: str) -> bool:
+    """SEC-10: allow only same-host / relative redirect targets for login `next`."""
+    if not target:
+        return False
+    host_url = request.host_url
+    test = urlparse(urljoin(host_url, target))
+    return test.scheme in ("http", "https") and test.netloc == urlparse(host_url).netloc
+
+
 def create_app() -> Flask:
     app = Flask(__name__)
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+    # SEC-09: never silently run with the insecure default secret. Local dev opts
+    # in via PAPERQUERY_ALLOW_DEV_SECRET=1 (set by start_local.sh).
+    secret = os.environ.get("PAPERQUERY_SECRET", "")
+    allow_dev_secret = os.environ.get("PAPERQUERY_ALLOW_DEV_SECRET", "").strip().lower() in ("1", "true", "yes", "on")
+    if (not secret or secret == "dev-secret-key") and not allow_dev_secret:
+        raise RuntimeError(
+            "PAPERQUERY_SECRET is unset or the insecure 'dev-secret-key' default. "
+            "Set a strong PAPERQUERY_SECRET, or set PAPERQUERY_ALLOW_DEV_SECRET=1 for local development."
+        )
     app.config.update(
-        SECRET_KEY=os.environ.get("PAPERQUERY_SECRET", "dev-secret-key"),
-        PERMANENT_SESSION_LIFETIME=timedelta(days=365),
+        SECRET_KEY=secret or "dev-secret-key",
+        PERMANENT_SESSION_LIFETIME=timedelta(seconds=SESSION_TIMEOUT_SECONDS),
         UPLOAD_FOLDER=str(PAPERS_DIR),
         BABEL_DEFAULT_LOCALE="en",
         BABEL_DEFAULT_TIMEZONE="UTC",
@@ -142,6 +160,25 @@ def create_app() -> Flask:
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SECURE=os.environ.get("PAPERQUERY_COOKIE_SECURE", "1").strip().lower() in ("1", "true", "yes", "on"),
     )
+
+    @app.after_request
+    def _set_security_headers(resp):
+        # Defense-in-depth response headers. CSP is Report-Only so existing inline
+        # handlers/fonts keep working; tune via browser console reports before enforcing.
+        resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+        resp.headers.setdefault("X-Frame-Options", "DENY")
+        resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        resp.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+        resp.headers.setdefault(
+            "Content-Security-Policy-Report-Only",
+            "default-src 'self'; script-src 'self'; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; "
+            "connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+        )
+        if request.is_secure:
+            resp.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        return resp
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     PAPERS_DIR.mkdir(parents=True, exist_ok=True)
@@ -269,7 +306,7 @@ def create_app() -> Flask:
                         email=user_record.get("email", ""),
                     )
                     flash(_("Welcome back, %(username)s!", username=display), "success")
-                    return redirect(saved_next or url_for("index"))
+                    return redirect(saved_next if _is_safe_redirect_target(saved_next) else url_for("index"))
             else:
                 # 3. Try MS user by email (if they have set a password)
                 ms_record = get_ms_user_by_email(email)
@@ -283,7 +320,7 @@ def create_app() -> Flask:
                         start_ms_session(ms_record)
                         display = ms_record.get("display_name", "") or ms_record.get("email", "")
                         flash(_("Welcome back, %(username)s!", username=display), "success")
-                        return redirect(saved_next or url_for("index"))
+                        return redirect(saved_next if _is_safe_redirect_target(saved_next) else url_for("index"))
 
             flash(_("Invalid email or password"), "danger")
             return redirect(url_for("index", login=1))
@@ -320,7 +357,8 @@ def create_app() -> Flask:
         if not is_ms_configured():
             flash(_("Microsoft sign-in is not configured. Please contact the administrator."), "danger")
             return redirect(url_for("login"))
-        if request.args.get("state") != session.get("ms_state"):
+        expected_state = session.pop("ms_state", None)
+        if not expected_state or request.args.get("state") != expected_state:
             flash(_("Login session expired. Please try again."), "warning")
             return redirect(url_for("login"))
 

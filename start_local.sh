@@ -12,6 +12,10 @@ if [[ -f .env ]]; then
 fi
 
 export PAPERQUERY_SECRET="${PAPERQUERY_SECRET:-dev-secret-key}"
+# Local dev opts in to the insecure default secret; prod must set a strong one (SEC-09).
+export PAPERQUERY_ALLOW_DEV_SECRET="${PAPERQUERY_ALLOW_DEV_SECRET:-1}"
+# Cookies are not Secure over the plain-HTTP dev server (SEC-07/08).
+export PAPERQUERY_COOKIE_SECURE="${PAPERQUERY_COOKIE_SECURE:-0}"
 export FLASK_APP="app"
 
 # 激活虚拟环境（默认 .venv，可通过 VENV_PATH 覆盖）
