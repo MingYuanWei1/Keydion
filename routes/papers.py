@@ -1,5 +1,6 @@
 """Paper search, preview, serving, modify/delete, and manage routes."""
 import json
+from pathlib import Path
 
 from flask import (
     abort,
@@ -341,8 +342,9 @@ def register_routes(app):
             target = url_for("login") if not session.get("user") else url_for("dashboard")
             return redirect(target)
 
-        paper_path = PAPERS_DIR / filename
-        if not paper_path.exists():
+        papers_root = PAPERS_DIR.resolve()
+        paper_path = (PAPERS_DIR / filename).resolve()
+        if not paper_path.is_relative_to(papers_root) or not paper_path.exists():
             flash(_("Paper not found."), "warning")
             return redirect(url_for("paper_manage"))
 
@@ -512,8 +514,9 @@ def register_routes(app):
         if not user:
             return redirect(url_for("login"))
 
-        paper_path = PAPERS_DIR / filename
-        if not paper_path.exists():
+        papers_root = PAPERS_DIR.resolve()
+        paper_path = (PAPERS_DIR / filename).resolve()
+        if not paper_path.is_relative_to(papers_root) or not paper_path.exists():
             flash(_("Paper not found."), "warning")
             return redirect(url_for("paper_manage"))
 
@@ -530,8 +533,9 @@ def register_routes(app):
     def preview_paper(filename: str):
         user = get_active_user()
         is_guest = user is None
-        pdf_path = PAPERS_DIR / filename
-        if not pdf_path.exists():
+        papers_root = PAPERS_DIR.resolve()
+        pdf_path = (PAPERS_DIR / filename).resolve()
+        if not pdf_path.is_relative_to(papers_root) or not pdf_path.exists():
             flash(_("Paper not found."), "danger")
             return redirect(url_for("search"))
         paper = build_paper_record(filename)
@@ -625,11 +629,12 @@ def register_routes(app):
 
     @app.route("/papers/preview/<path:filename>")
     def paper_preview(filename: str):
-        pdf_path = PAPERS_DIR / filename
-        if not pdf_path.exists():
+        papers_root = PAPERS_DIR.resolve()
+        pdf_path = (PAPERS_DIR / filename).resolve()
+        if not pdf_path.is_relative_to(papers_root) or not pdf_path.exists():
             abort(404)
         preview_stream = build_preview_pdf(pdf_path, max_pages=2)
-        return send_file(preview_stream, mimetype="application/pdf", download_name=filename)
+        return send_file(preview_stream, mimetype="application/pdf", download_name=Path(filename).name)
 
     @app.route("/papers/raw/<path:filename>")
     def paper_file(filename: str):

@@ -3,6 +3,7 @@ import json
 import logging
 import re
 import types
+from pathlib import Path
 
 import numpy as np
 
@@ -53,8 +54,14 @@ def _rag_paper_text(filename):
     ocr_langs = _index_ocr_langs(lang)
     vf = (lambda b, mp: vision_read.transcribe_pdf(b, max_pages=mp, language=lang or "en")) \
         if llm_client.vision_enabled() else None
+    safe = Path(filename).name
+    p = (PAPERS_DIR / safe).resolve()
+    if not p.is_relative_to(PAPERS_DIR.resolve()) or not p.exists():
+        raise FileNotFoundError(filename)
+    if safe not in _rag_indexed_filenames():
+        raise FileNotFoundError(filename)
     return pdf_text.extract_pdf_text(
-        (PAPERS_DIR / filename).read_bytes(),
+        p.read_bytes(),
         ocr_langs=ocr_langs, max_ocr_pages=50, vision_fallback=vf)
 
 

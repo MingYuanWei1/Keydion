@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import uuid4
 
 from flask import (
+    abort,
     flash,
     jsonify,
     redirect,
@@ -557,6 +558,9 @@ def register_routes(app):
                     else:
                         # Reader: save to pending review queue
                         if draft_id:
+                            existing = _get_submission(draft_id)
+                            if not existing or existing.get("submitter") != user.get("username", ""):
+                                abort(404)
                             sub_id = draft_id
                         else:
                             sub_id = uuid4().hex[:12]
