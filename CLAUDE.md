@@ -76,7 +76,7 @@ pip3 install -r requirements.txt
 # Start dev container (Flask debug on :4000, MySQL expected on the host at 127.0.0.1:3306)
 docker-compose up -d
 
-# Run all tests (~594 contract tests, ~5s — requires a reachable MySQL 9.x, see Testing approach)
+# Run all tests (~820 contract tests, ~2min — requires a reachable MySQL 9.x, see Testing approach)
 python3 -m unittest discover -s tests -p "test_*.py" -v
 
 # Run a single test file
@@ -101,8 +101,10 @@ python3 tools/manage_passwords.py list
 
 **Dev container gotcha**: `docker-compose.yml` bind-mounts only `app.py`, `config.py`, `db.py`, `models.py`, `routes/`, `services/`, `library_tools.py`, `ee_pdf_extractor.py`, `templates/`, `static/`, `data/`, `translations/`, `papers/`. Changes to the other Python modules (`llm_client.py`, `rag_index.py`, `web_search.py`, `llm_metadata.py`, `pdf_text.py`) and to `tests/` need an image rebuild — don't trust test runs inside the container. Single-file bind mounts track the inode, so if a tool rewrites `app.py` the container may serve a stale copy — `docker restart keydion-web` fixes it.
 
-Environment variables: see `.env.example` for the full annotated list. The important ones:
-- `PAPERQUERY_SECRET` — Flask secret key
+Environment variables: see `.env.example` for the full annotated list. **Gotcha:** `config.py` loads `.env.prod` in preference to `.env` when both exist — so locally the *prod* file is usually the active one. The important ones:
+- `PAPERQUERY_SECRET` — Flask secret key; **`create_app()` refuses to boot if unset or `dev-secret-key`** unless `PAPERQUERY_ALLOW_DEV_SECRET=1` (SEC-09; `start_local.sh` sets the opt-in)
+- `PAPERQUERY_ALLOW_DEV_SECRET` — dev-only opt-in to the insecure default secret
+- `PAPERQUERY_COOKIE_SECURE` — `Secure` flag on the session cookie (default `1`; `start_local.sh` sets `0` for plain-HTTP dev)
 - `PAPERQUERY_DATABASE_URL` — SQLAlchemy connection string (MySQL)
 - `PAPERQUERY_MS_CLIENT_ID` / `PAPERQUERY_MS_CLIENT_SECRET` / `PAPERQUERY_MS_REDIRECT_URI` — MS OAuth
 - `LLM_API_KEY` / `LLM_BASE_URL` — OpenAI-compatible chat provider; **empty key disables all AI features**
@@ -157,7 +159,12 @@ Self-contained concerns remain factored into satellite modules:
 
 **i18n** — Flask-Babel with `en`/`zh` locales. Translation catalogs in `translations/<locale>/LC_MESSAGES/messages.po`. The `_()` gettext function and `_l()` lazy_gettext are used throughout `app.py`. All user-facing LLM output must be bilingual too.
 
-**Auth** — dual system: local PBKDF2-hashed passwords and MS Graph OAuth via the `msal` library. Session tokens are stored server-side in the `sessions` table with a configurable timeout.
+**Auth & web hardening** — dual system: local PBKDF2-hashed passwords and MS Graph OAuth via the `msal` library. Session tokens are stored server-side in the `sessions` table with a configurable timeout (cookie lifetime = `SESSION_TIMEOUT`, not 365d). Hardening added in the security pass:
+- **CSRF: Flask-WTF `CSRFProtect` is global.** Every `<form method="post">` must include `{{ csrf_token() }}`; JSON/`fetch` calls must send an `X-CSRFToken` header read from `<meta name="csrf-token">` (injected at the `dashboard.js` fetch chokepoint + per-page fetches in `ai.js`/`upload-wizard.js`/`ee-subjects.js`/`ia-subjects.js`/`guides-editor.js`). The standalone `ai.html` carries its own meta tag.
+- **`logout` is POST-only**; sign-out controls are forms.
+- Session cookies: `SameSite=Lax`, `HttpOnly`, `Secure` (gated by `PAPERQUERY_COOKIE_SECURE`).
+- `after_request` adds `nosniff` / `X-Frame-Options: DENY` / `Referrer-Policy` / `Permissions-Policy` / HSTS (HTTPS only) + a **CSP in Report-Only mode** (not enforcing — the app has many inline scripts/handlers).
+- Login `next` and OAuth `state` are validated: `_is_safe_redirect_target()` (same-host/relative only; rejects `\`, `//`, control chars) and `ms_callback` pops+requires `ms_state`.
 
 ## Key directories
 
@@ -187,7 +194,9 @@ Tests are **contract tests**, not integration tests. They locate source via `tes
 - Data round-trip contracts (fields are carried through load/write functions)
 - Server-side logic contracts (EE total grade is calculated server-side, not trusted from the form)
 
-20 of the 55 test files `import app` (directly or via `from app import ...`), which connects to MySQL at import time — **the full suite needs a reachable database**; without one those modules fail at import with `OperationalError`. This caveat applies to `import app` only — the extracted modules (`config`, `db`, `models`, `routes/*`, `services/*`) import without a DB. The remaining files are pure AST/template tests and run standalone.
+~15 of the ~93 test files `import app` (directly or via `from app import ...`), which connects to MySQL at import time — **the full suite needs a reachable database**; without one those modules fail at import with `OperationalError`. This caveat applies to `import app` only — the extracted modules (`config`, `db`, `models`, `routes/*`, `services/*`) import without a DB. The remaining files are pure AST/template tests and run standalone.
+
+**CSRF test gotcha:** global `CSRFProtect` breaks naive tests — Flask test-client tests that POST must set `app.config["WTF_CSRF_ENABLED"] = False`, and standalone Jinja-render tests must stub `env.globals["csrf_token"] = lambda: ""` (else templates calling `{{ csrf_token() }}` raise). Existing test files already do this; follow the pattern when adding tests.
 
 Conventional commits (`feat:`, `fix:`, with optional scope like `fix(i18n):`) are used.
 
@@ -195,7 +204,8 @@ Conventional commits (`feat:`, `fix:`, with optional scope like `fix(i18n):`) ar
 
 - **EE total grade** is computed server-side in `build_ib_ee_data_from_form()` — the form field `ibTotalGradeNumber` is `readonly` and its submitted value is ignored
 - **Legacy IB sample papers** (`author_name == "IB SAMPLE"`) hide the school field in search results and maintain backward-compat logic scattered across templates and routes
-- **News body** supports a JSON block format: `[{"type": "text", "content": "..."}, {"type": "image", "url": "...", "caption": "..."}]`, with a `parse_body_blocks` template filter for backward compat with plain-text bodies
+- **News body** supports a JSON block format: `[{"type": "text", "content": "..."}, {"type": "image", "url": "...", "caption": "..."}]`, with a `parse_body_blocks` template filter for backward compat with plain-text bodies. Each text block's `content` is sanitized server-side on publish/edit via `sanitize_news_body` (reuses the guides bleach allowlist `_sanitize_guide_html`); rendered `|safe` only after sanitization.
+- **Path containment** — every user-controlled `PAPERS_DIR / <filename>` sink must `resolve()` + `is_relative_to(PAPERS_DIR.resolve())` before any FS op (idiom from `papers_bulk_action`): `paper_preview`, `preview_paper`, `paper_delete`, `paper_modify`, and the upload draft `pending_filename`. The agentic `read_paper` guard lives in `_lib_full_text` (basename of the model-supplied filename), **not** `_rag_paper_text` — that function doubles as the RAG indexer's text extractor, so guarding it there breaks first-time indexing of new papers.
 - **RAG lifecycle**: papers are chunked + embedded on publish and purged on delete (`rag_index.py`); chunk vectors live in a binary `VECTOR(3072)` column (**requires MySQL 9.x**; dimension from `RAG_EMBED_DIM`). Every store write bumps `rag_index_meta.chunks_version` in the same transaction; each worker's in-memory numpy snapshot is stamp-checked per query, so re-embeds/purges propagate to all workers without restarts. One-time JSON→VECTOR backfill: `tools/migrate_chunk_vectors.py` (then `--drop-json`).
 - DB migrations are ad-hoc in `init_db()` — ALTER TABLE statements wrapped in try/except for idempotency
 - Paper metadata is both in the DB (`papers_metadata` table) and optionally in the filesystem (`data/paper_metadata.json`); routes read from DB via `_load_papers()` which queries `PaperMetadataModel`
