@@ -163,6 +163,14 @@ class PaperModifyContractTest(unittest.TestCase):
         # (empty author), not a literal "author" suffix.
         self.assertIn('primary_author = author_names[0] if author_names else ""', paper_modify_source)
 
+    def test_submission_round_trip_preserves_ia_data(self):
+        load_src = support.source_of("_load_submissions")
+        write_src = support.source_of("_write_submissions")
+        accept_src = support.source_of("review_accept")
+        self.assertIn('"ia_data"', load_src, "_load_submissions must read ia_data")
+        self.assertIn("ia_data=", write_src, "_write_submissions must persist ia_data")
+        self.assertIn('"ia_data"', accept_src, "review_accept must carry ia_data on publish")
+
     def _find_function(self, name):
         node, _text = support.find_function(name)
         return node
