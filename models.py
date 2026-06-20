@@ -229,14 +229,18 @@ def init_db() -> None:
         db._ENGINE = create_engine(db.DB_URL, pool_pre_ping=True, pool_recycle=3600)
         db._SESSION_LOCAL = sessionmaker(bind=db._ENGINE)
         BASE.metadata.create_all(db._ENGINE)
-        # Migrate: add password column to ms_users if it doesn't exist
+        # Migrate: add password column to ms_users if it doesn't exist.
+        # NOTE: these ALTERs are idempotent-by-exception — re-running them on an
+        # already-migrated DB raises "already exists"/duplicate-column errors that
+        # are EXPECTED, so the skip is logged at debug (hidden at the default log
+        # level) to keep startup logs clean. Enable debug logging to see them.
         try:
             with db._ENGINE.connect() as conn:
                 from sqlalchemy import text
                 conn.execute(text("ALTER TABLE ms_users ADD COLUMN password VARCHAR(255) NULL"))
                 conn.commit()
         except Exception:
-            _log.warning("migration skipped: add password column to ms_users", exc_info=True)  # Column already exists
+            _log.debug("migration skipped: add password column to ms_users")  # Column already exists
         # Migrate: add serial column to conversations if it doesn't exist
         try:
             with db._ENGINE.connect() as conn:
@@ -246,12 +250,12 @@ def init_db() -> None:
                     conn.execute(text("ALTER TABLE conversations ADD COLUMN serial VARCHAR(6)"))
                     conn.commit()
                 except Exception:
-                    _log.warning("migration skipped: add serial column to conversations", exc_info=True)
+                    _log.debug("migration skipped: add serial column to conversations")
                 try:
                     conn.execute(text("CREATE UNIQUE INDEX ix_conversations_serial ON conversations(serial)"))
                     conn.commit()
                 except Exception:
-                    _log.warning("migration skipped: create unique index ix_conversations_serial", exc_info=True)
+                    _log.debug("migration skipped: create unique index ix_conversations_serial")
 
                 rows = conn.execute(text("SELECT id FROM conversations WHERE serial IS NULL")).fetchall()
                 for row in rows:
@@ -259,7 +263,7 @@ def init_db() -> None:
                     conn.execute(text("UPDATE conversations SET serial = :s WHERE id = :id"), {"s": serial, "id": row[0]})
                 conn.commit()
         except Exception:
-            _log.warning("migration skipped: backfill conversations serial", exc_info=True)
+            _log.debug("migration skipped: backfill conversations serial")
         # Migrate: add is_ib_sample column to papers_metadata if it doesn't exist
         try:
             with db._ENGINE.connect() as conn:
@@ -267,7 +271,7 @@ def init_db() -> None:
                 conn.execute(text("ALTER TABLE papers_metadata ADD COLUMN is_ib_sample VARCHAR(10) DEFAULT ''"))
                 conn.commit()
         except Exception:
-            _log.warning("migration skipped: add is_ib_sample column to papers_metadata", exc_info=True)
+            _log.debug("migration skipped: add is_ib_sample column to papers_metadata")
         # Migrate: widen embedding columns — Gemini vectors (gemini-embedding-001,
         # 3072-dim) serialize to ~68KB JSON, over MySQL TEXT's 64KB cap.
         for _emb_tbl in ("papers_chunks", "attachment_chunks"):
@@ -277,7 +281,7 @@ def init_db() -> None:
                     conn.execute(text(f"ALTER TABLE {_emb_tbl} MODIFY embedding MEDIUMTEXT"))
                     conn.commit()
             except Exception:
-                _log.warning("migration skipped: widen %s.embedding to MEDIUMTEXT", _emb_tbl, exc_info=True)
+                _log.debug("migration skipped: widen %s.embedding to MEDIUMTEXT", _emb_tbl)
         # Migrate: convert chunk tables to utf8mb4 — PDF-extracted text contains
         # 4-byte chars (e.g. math-italic 𝑅/𝐵 from equations) that 3-byte utf8mb3
         # columns reject with "Incorrect string value". Guarded on the current
@@ -298,7 +302,7 @@ def init_db() -> None:
                         ))
                         conn.commit()
             except Exception:
-                _log.warning("migration skipped: convert %s to utf8mb4", _u8_tbl, exc_info=True)
+                _log.debug("migration skipped: convert %s to utf8mb4", _u8_tbl)
         # Migrate: add the binary vector column. Requires MySQL 9.x — the
         # VECTOR type does not exist on 8.x, where this ALTER fails and is
         # swallowed (the app then needs MySQL 9 before RAG features work).
@@ -310,7 +314,7 @@ def init_db() -> None:
                 ))
                 conn.commit()
         except Exception:
-            _log.warning("migration skipped: add embedding_vec column to papers_chunks", exc_info=True)  # column already exists (or pre-9.x MySQL)
+            _log.debug("migration skipped: add embedding_vec column to papers_chunks")  # column already exists (or pre-9.x MySQL)
         # Migrate: add is_ib_sample column to submissions if it doesn't exist
         try:
             with db._ENGINE.connect() as conn:
@@ -318,7 +322,7 @@ def init_db() -> None:
                 conn.execute(text("ALTER TABLE submissions ADD COLUMN is_ib_sample VARCHAR(10) DEFAULT ''"))
                 conn.commit()
         except Exception:
-            _log.warning("migration skipped: add is_ib_sample column to submissions", exc_info=True)
+            _log.debug("migration skipped: add is_ib_sample column to submissions")
         # Migrate: add is_anonymous column to papers_metadata / submissions
         for _anon_tbl in ("papers_metadata", "submissions"):
             try:
@@ -327,7 +331,7 @@ def init_db() -> None:
                     conn.execute(text(f"ALTER TABLE {_anon_tbl} ADD COLUMN is_anonymous VARCHAR(10) DEFAULT ''"))
                     conn.commit()
             except Exception:
-                _log.warning("migration skipped: add is_anonymous column to %s", _anon_tbl, exc_info=True)
+                _log.debug("migration skipped: add is_anonymous column to %s", _anon_tbl)
         # Migrate: add cp_data column to papers_metadata if it doesn't exist
         try:
             with db._ENGINE.connect() as conn:
@@ -335,7 +339,7 @@ def init_db() -> None:
                 conn.execute(text("ALTER TABLE papers_metadata ADD COLUMN cp_data TEXT"))
                 conn.commit()
         except Exception:
-            _log.warning("migration skipped: add cp_data column to papers_metadata", exc_info=True)
+            _log.debug("migration skipped: add cp_data column to papers_metadata")
         # Migrate: add cp_data column to submissions if it doesn't exist
         try:
             with db._ENGINE.connect() as conn:
@@ -343,7 +347,7 @@ def init_db() -> None:
                 conn.execute(text("ALTER TABLE submissions ADD COLUMN cp_data TEXT"))
                 conn.commit()
         except Exception:
-            _log.warning("migration skipped: add cp_data column to submissions", exc_info=True)
+            _log.debug("migration skipped: add cp_data column to submissions")
         # Migrate: add ia_data column to papers_metadata if it doesn't exist
         try:
             with db._ENGINE.connect() as conn:
@@ -351,7 +355,7 @@ def init_db() -> None:
                 conn.execute(text("ALTER TABLE papers_metadata ADD COLUMN ia_data TEXT"))
                 conn.commit()
         except Exception:
-            _log.warning("migration skipped: add ia_data column to papers_metadata", exc_info=True)
+            _log.debug("migration skipped: add ia_data column to papers_metadata")
         # Migrate: add ia_data column to submissions if it doesn't exist
         try:
             with db._ENGINE.connect() as conn:
@@ -359,7 +363,7 @@ def init_db() -> None:
                 conn.execute(text("ALTER TABLE submissions ADD COLUMN ia_data TEXT"))
                 conn.commit()
         except Exception:
-            _log.warning("migration skipped: add ia_data column to submissions", exc_info=True)
+            _log.debug("migration skipped: add ia_data column to submissions")
         # Migrate: add status column to news_articles if it doesn't exist
         try:
             with db._ENGINE.connect() as conn:
@@ -368,7 +372,7 @@ def init_db() -> None:
                 conn.execute(text("UPDATE news_articles SET status = 'published' WHERE status IS NULL OR status = ''"))
                 conn.commit()
         except Exception:
-            _log.warning("migration skipped: add status column to news_articles", exc_info=True)
+            _log.debug("migration skipped: add status column to news_articles")
         # Migrate: add attachments column to chat_messages if it doesn't exist
         try:
             with db._ENGINE.connect() as conn:
@@ -376,7 +380,7 @@ def init_db() -> None:
                 conn.execute(text("ALTER TABLE chat_messages ADD COLUMN attachments TEXT"))
                 conn.commit()
         except Exception:
-            _log.warning("migration skipped: add attachments column to chat_messages", exc_info=True)
+            _log.debug("migration skipped: add attachments column to chat_messages")
         # Migrate: add cited_papers column to chat_messages if it doesn't exist
         try:
             with db._ENGINE.connect() as conn:
@@ -384,7 +388,7 @@ def init_db() -> None:
                 conn.execute(text("ALTER TABLE chat_messages ADD COLUMN cited_papers TEXT"))
                 conn.commit()
         except Exception:
-            _log.warning("migration skipped: add cited_papers column to chat_messages", exc_info=True)
+            _log.debug("migration skipped: add cited_papers column to chat_messages")
         # Migrate: add slug column to journals + backfill name-based slugs
         try:
             with db._ENGINE.connect() as conn:
@@ -392,9 +396,9 @@ def init_db() -> None:
                 conn.execute(text("ALTER TABLE journals ADD COLUMN slug VARCHAR(255)"))
                 conn.commit()
         except Exception:
-            _log.warning("migration skipped: add slug column to journals", exc_info=True)
+            _log.debug("migration skipped: add slug column to journals")
         try:
             from services.journals import ensure_journal_slugs
             ensure_journal_slugs()
         except Exception:
-            _log.warning("migration skipped: backfill journal slugs", exc_info=True)
+            _log.debug("migration skipped: backfill journal slugs")
