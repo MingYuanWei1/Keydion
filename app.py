@@ -138,6 +138,9 @@ def create_app() -> Flask:
         BABEL_DEFAULT_TIMEZONE="UTC",
         BABEL_SUPPORTED_LOCALES=",".join(SUPPORTED_LOCALES),
         MAX_CONTENT_LENGTH=int(os.environ.get("PAPERQUERY_MAX_UPLOAD_MB", "50")) * 1024 * 1024,
+        SESSION_COOKIE_SAMESITE="Lax",
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SECURE=os.environ.get("PAPERQUERY_COOKIE_SECURE", "1").strip().lower() in ("1", "true", "yes", "on"),
     )
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -355,8 +358,7 @@ def create_app() -> Flask:
         next_url = session.pop("next", None)
         return redirect(next_url or url_for("index"))
 
-    @app.route("/logout")
-    def logout():
+    def _do_logout():
         language = session.get("language")
         username = session.get("user", {}).get("username", "")
         # 强制释放会话，不检查 token 匹配
@@ -365,6 +367,10 @@ def create_app() -> Flask:
         session.clear()
         if language:
             session["language"] = language
+
+    @app.route("/logout", methods=["POST"])
+    def logout():
+        _do_logout()
         flash(_("Signed out successfully."), "info")
         return redirect(url_for("index"))
 
@@ -377,7 +383,8 @@ def create_app() -> Flask:
         record = get_ms_user(ms_id)
         if not record:
             flash(_("Unable to load your profile. Please sign in again."), "warning")
-            return redirect(url_for("logout"))
+            _do_logout()
+            return redirect(url_for("login"))
 
         if request.method == "POST":
             first_name = request.form.get("first_name", "").strip()

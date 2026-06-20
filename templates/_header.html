@@ -143,7 +143,9 @@
         <button class="btn-user-circle" onclick="toggleUserMenu()" title="{{ nav_name }}" aria-expanded="false"><img src="{{ url_for('static', filename='usricon.png') }}" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover;"></button>
         <div class="user-dropdown" id="userDropdown">
           <a href="{{ url_for('dashboard') }}">{{ _('Dashboard') }}</a>
-          <a href="{{ url_for('logout') }}">{{ _('Sign out') }}</a>
+          <form method="post" action="{{ url_for('logout') }}" class="logout-form">
+            <button type="submit">{{ _('Sign out') }}</button>
+          </form>
         </div>
       </div>
       {% else %}
