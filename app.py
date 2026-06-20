@@ -778,4 +778,9 @@ app = create_app()
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    import os as _os
+    app.run(
+        host=_os.environ.get("HOST", "127.0.0.1"),
+        port=int(_os.environ.get("PORT", "5000")),
+        debug=_os.environ.get("FLASK_DEBUG", "").strip().lower() in ("1", "true", "yes", "on"),
+    )

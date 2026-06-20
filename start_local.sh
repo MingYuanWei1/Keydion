@@ -49,4 +49,4 @@ if [[ -z "${PY_BIN}" ]]; then
 fi
 
 # exec "${PY_BIN}" -m flask --app app run --debug
-exec "${PY_BIN}" -m flask --app app run --debug --host="${HOST:-0.0.0.0}" --port="${PORT:-4000}"
+exec "${PY_BIN}" -m flask --app app run --debug --host="${HOST:-127.0.0.1}" --port="${PORT:-4000}"
