@@ -80,13 +80,36 @@ def _sanitize_guide_html(html: str) -> str:
     stripper.feed(html)
     pre_cleaned = stripper.get_result()
     # Phase 2: use bleach to enforce tag/attribute/protocol allowlists
-    return bleach.clean(
+    cleaned = bleach.clean(
         pre_cleaned,
         tags=GUIDE_ALLOWED_TAGS,
         attributes=GUIDE_ALLOWED_ATTRS,
         protocols=GUIDE_ALLOWED_PROTOCOLS,
         strip=True,
     )
+    # Phase 3: force rel="noopener noreferrer" on anchors that open a new
+    # target (prevents reverse tabnabbing); preserve any existing rel tokens.
+    return _harden_anchor_rels(cleaned)
+
+
+def _harden_anchor_rels(html: str) -> str:
+    """Add noopener/noreferrer to any <a target=...> while keeping existing rel tokens."""
+    if "<a" not in html:
+        return html
+    from bs4 import BeautifulSoup
+
+    soup = BeautifulSoup(html, "html.parser")
+    changed = False
+    for anchor in soup.find_all("a"):
+        if not anchor.get("target"):
+            continue
+        tokens = anchor.get("rel") or []
+        for required in ("noopener", "noreferrer"):
+            if required not in tokens:
+                tokens.append(required)
+                changed = True
+        anchor["rel"] = tokens
+    return str(soup) if changed else html
 
 
 def _read_guide_form(form) -> dict:

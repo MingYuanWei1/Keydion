@@ -26,6 +26,13 @@ DEFAULT_OCR_LANGS = "eng+chi_sim"   # chi_tra dropped: fewer langs = faster Tess
 DEFAULT_MAX_OCR_PAGES = 10
 OCR_PAGE_TIMEOUT = 30   # seconds per page — bounds a hung/slow Tesseract subprocess
 
+# Conservative DoS guard: a crafted PDF with pathological page dimensions could make
+# get_pixmap allocate a huge bitmap. These caps only ever scale a page DOWN; ordinary
+# documents at the normal 200/300 DPI stay well under both limits, so this is a no-op
+# for real papers (a US-Letter page at 300 DPI is ~2550x3300 ≈ 8.4MP).
+MAX_RENDER_PIXELS = 5000        # max width or height in pixels
+MAX_RENDER_AREA = 25_000_000    # max width*height (~25 megapixels)
+
 # Each tesseract subprocess uses OpenMP internally; without this limit N parallel
 # processes would all grab all cores and contend. setdefault respects any operator
 # override already present in the environment.
@@ -78,6 +85,31 @@ def _ocr_pool_size() -> int:
     return max(1, (os.cpu_count() or 1) - 1)
 
 
+def _render_page_pixmap(page, dpi: int):
+    """get_pixmap(dpi=...) with a conservative downward clamp on output size.
+
+    Mirrors PyMuPDF's dpi scaling (zoom = dpi/72) but, for a page whose rendered
+    bitmap would exceed MAX_RENDER_PIXELS in either dimension or MAX_RENDER_AREA in
+    total, scales the zoom down so the output stays under the caps. A no-op for
+    ordinary pages, which never approach the limits at normal DPI.
+    """
+    import fitz                            # PyMuPDF (caller already imported it)
+
+    zoom = dpi / 72.0
+    try:
+        w = page.rect.width * zoom
+        h = page.rect.height * zoom
+    except Exception:
+        return page.get_pixmap(dpi=dpi)     # can't measure → render as before
+    if w <= 0 or h <= 0:
+        return page.get_pixmap(dpi=dpi)
+    scale = min(1.0, MAX_RENDER_PIXELS / max(w, h), (MAX_RENDER_AREA / (w * h)) ** 0.5)
+    if scale >= 1.0:
+        return page.get_pixmap(dpi=dpi)
+    _log.warning("clamping pathological page render (%.0fx%.0f px scaled by %.3f)", w, h, scale)
+    return page.get_pixmap(matrix=fitz.Matrix(zoom * scale, zoom * scale))
+
+
 def _ocr_pdf(file_bytes: bytes, langs: str, max_pages: int) -> str:
     """Rasterise pages with PyMuPDF and OCR them with Tesseract.
 
@@ -114,7 +146,7 @@ def _ocr_pdf(file_bytes: bytes, langs: str, max_pages: int) -> str:
                     _log.info("OCR truncated at %d pages (document has more)", max_pages)
                     break
                 try:
-                    pngs.append(page.get_pixmap(dpi=300).tobytes("png"))
+                    pngs.append(_render_page_pixmap(page, 300).tobytes("png"))
                 except Exception:
                     _log.warning("OCR render failed on page %d", i, exc_info=True)
                     pngs.append(_SENTINEL)
@@ -176,7 +208,7 @@ def render_pdf_pages(file_bytes: bytes, *, max_pages: int = 10, dpi: int = 200) 
                     _log.info("render truncated at %d pages (document has more)", max_pages)
                     break
                 try:
-                    pngs.append(page.get_pixmap(dpi=dpi).tobytes("png"))
+                    pngs.append(_render_page_pixmap(page, dpi).tobytes("png"))
                 except Exception:
                     _log.warning("render failed on page %d", i, exc_info=True)
         except Exception:

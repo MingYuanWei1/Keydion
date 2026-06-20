@@ -414,7 +414,7 @@ def build_ib_ee_data_from_form(form) -> str:
         criteria[letter] = {
             "label": label,
             "max": max_mark,
-            "score": _form_int(form, f"ib_crit_{letter}_score"),
+            "score": min(_form_int(form, f"ib_crit_{letter}_score"), max_mark),
             "comment": form.get(f"ib_crit_{letter}_comment", "").strip(),
         }
     total_score = sum(criterion["score"] for criterion in criteria.values())
@@ -438,7 +438,7 @@ def build_cp_data_from_form(form) -> str:
         criteria[letter] = {
             "label": label,
             "max": max_mark,
-            "score": _form_int(form, f"cp_crit_{letter}_score"),
+            "score": min(_form_int(form, f"cp_crit_{letter}_score"), max_mark),
             "comment": form.get(f"cp_crit_{letter}_comment", "").strip(),
         }
     total_score = int(round(sum(criteria[c]["score"] for c in ["A", "B", "C", "D"]) / 4.0))

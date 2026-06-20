@@ -5,7 +5,6 @@ from uuid import uuid4
 
 from flask import (
     flash,
-    get_flashed_messages,
     jsonify,
     redirect,
     render_template,
@@ -392,6 +391,9 @@ def register_routes(app):
             form_data["ia_data"] = ""
 
         if request.method == "POST":
+            # Snapshot pre-existing flashes so an AJAX error response reports only
+            # this request's validation flashes, not unrelated stale session ones.
+            flash_baseline = len(session.get("_flashes", []))
             # Handle "Save as Draft"
             draft_id = request.form.get("draft_id", "").strip()
             if "save_draft" in request.form:
@@ -507,8 +509,12 @@ def register_routes(app):
                 original_filename = secure_filename(file.filename)
                 if not original_filename:
                     original_filename = f"{uuid4().hex[:8]}.pdf"
+                magic = file.stream.read(5)
+                file.stream.seek(0)
                 if not allowed_file(original_filename):
                     flash(_("Only PDF files are supported"), "danger")
+                elif not magic.startswith(b"%PDF-"):
+                    flash(_("File is not a valid PDF"), "danger")
                 else:
                     # Build a safe filename: try title+author first, fall back to UUID
                     filename = _build_safe_paper_filename(
@@ -614,7 +620,7 @@ def register_routes(app):
                         return redirect(url_for("upload"))
 
         if is_ajax and request.method == "POST":
-            errors = [m for _cat, m in get_flashed_messages(with_categories=True)]
+            errors = [m for _cat, m in session.get("_flashes", [])[flash_baseline:]]
             return jsonify(
                 ok=False,
                 error="；".join(errors) if errors else _("Upload failed. Please try again."),

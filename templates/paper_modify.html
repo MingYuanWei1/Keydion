@@ -182,7 +182,7 @@
                                 <label for="ibTotalGradeNumber" class="form-label fw-semibold">{{ _('Numeric Grade') }}</label>
                                 <div class="input-group">
                                     <input type="number" class="form-control" id="ibTotalGradeNumber" name="ib_total_grade_number"
-                                        min="0" max="30" value="{{ ib_ee_info.total_grade_number if ib_ee_info else '' }}">
+                                        min="0" max="30" value="{{ ib_ee_info.total_grade_number if ib_ee_info else '' }}" readonly>
                                     <span class="input-group-text">/ 30</span>
                                 </div>
                             </div>
