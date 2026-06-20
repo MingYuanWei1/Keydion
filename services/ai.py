@@ -54,14 +54,8 @@ def _rag_paper_text(filename):
     ocr_langs = _index_ocr_langs(lang)
     vf = (lambda b, mp: vision_read.transcribe_pdf(b, max_pages=mp, language=lang or "en")) \
         if llm_client.vision_enabled() else None
-    safe = Path(filename).name
-    p = (PAPERS_DIR / safe).resolve()
-    if not p.is_relative_to(PAPERS_DIR.resolve()) or not p.exists():
-        raise FileNotFoundError(filename)
-    if safe not in _rag_indexed_filenames():
-        raise FileNotFoundError(filename)
     return pdf_text.extract_pdf_text(
-        p.read_bytes(),
+        (PAPERS_DIR / filename).read_bytes(),
         ocr_langs=ocr_langs, max_ocr_pages=50, vision_fallback=vf)
 
 
@@ -173,10 +167,15 @@ def _lib_full_text(filename: str) -> str:
     paper); that path can be slow and may fail — errors are logged and "" is
     returned so the caller is never disrupted.
     """
+    # Security (H5): filename is model/request-supplied (read_paper tool). Collapse
+    # to a basename so it cannot traverse out of PAPERS_DIR via the disk fallback.
+    safe = Path(filename).name
+    if not safe:
+        return ""
     try:
         with db_session() as db:
             rows = (db.query(PaperChunkModel)
-                      .filter(PaperChunkModel.filename == filename)
+                      .filter(PaperChunkModel.filename == safe)
                       .order_by(PaperChunkModel.chunk_index)
                       .all())
             contents = [r.content or "" for r in rows]
@@ -184,7 +183,7 @@ def _lib_full_text(filename: str) -> str:
             return rag_index.reassemble(contents)
         # No stored chunks — try live extraction as a last resort.
         try:
-            return _rag_paper_text(filename)
+            return _rag_paper_text(safe)
         except Exception:
             logger.exception("_lib_full_text fallback failed for %s", filename)
             return ""
