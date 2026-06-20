@@ -151,7 +151,7 @@ Self-contained concerns remain factored into satellite modules:
 - `ResourceNode` — Academic Resources folder/file tree (slug-based public URLs)
 - `SessionModel` — server-side session tokens
 
-**Roles** (stored as int in `role` column): 1 = Reader, 2 = Contributor (can upload), 3 = Curator/Admin. Enforced via `require_login(level)`.
+**Roles** (stored as int in `role` column): 1 = Reader, 2 = Contributor (publishes directly; Readers may submit for review), 3 = Curator/Admin. Enforced via `require_login(level)`.
 
 **Paper types** — four mutually exclusive categories: independent papers, IB Extended Essay (EE, `is_ib_ee` flag + `ib_ee_data` JSON), IB Community Project (CP, `is_cp_paper` flag + `cp_data` JSON), and IB Internal Assessment (IA, `is_ia` flag + `ia_data` JSON). Like EE/CP, the `is_ia` discriminator lives **inside** the JSON blob (no `is_ia` DB column). IA differs from EE in that **marking criteria vary by subject**: each IA subject in `data/ia_subjects.json` owns its own `criteria` list (`{name, max}`), the total max is the sum of those maxes, and the grade is numeric-only (no A–E letter). Criteria are snapshotted into each paper's `ia_data` at submit time; per-criterion `max` + total are computed server-side in `build_ia_data_from_form` (form values ignored — same server-trust rule as EE). Legacy IB sample papers identified by `author_name == "IB SAMPLE"`. Two mutually exclusive author-bypass flags: `is_ib_sample` (non-`standard` types only — EE/CP/IA — displays an "IB SAMPLE" placeholder) and `is_anonymous` (any type, stores empty author fields and hides the author row everywhere); IB Sample wins server-side if both arrive.
 
