@@ -75,7 +75,7 @@ requestAnimationFrame(function(){requestAnimationFrame(function(){e.removeAttrib
         {% endif %}
       </div>
 
-      {% if role >= 2 %}
+      {% if role >= 3 %}
       <div class="nav-group">
         <div class="nav-group__label">{{ _('Review') }}</div>
         <a href="{{ url_for('review_list') }}" class="nav-item" data-partial-href="{{ url_for('review_list') }}">

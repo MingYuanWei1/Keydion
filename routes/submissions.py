@@ -125,7 +125,7 @@ def register_routes(app):
 
     @app.route("/dashboard/review")
     def review_list():
-        user = require_login(level=2)
+        user = require_login(level=3)
         if not user:
             target = url_for("login") if not session.get("user") else url_for("dashboard")
             return redirect(target)
@@ -142,7 +142,7 @@ def register_routes(app):
 
     @app.route("/dashboard/review/<sub_id>", endpoint="review_paper")
     def review_detail(sub_id):
-        user = require_login(level=2)
+        user = require_login(level=3)
         if not user:
             target = url_for("login") if not session.get("user") else url_for("dashboard")
             return redirect(target)
@@ -155,7 +155,7 @@ def register_routes(app):
 
     @app.route("/dashboard/review/<sub_id>/accept", methods=["POST"])
     def review_accept(sub_id):
-        user = require_login(level=2)
+        user = require_login(level=3)
         if not user:
             return redirect(url_for("login"))
         sub = _get_submission(sub_id)
@@ -218,7 +218,7 @@ def register_routes(app):
 
     @app.route("/dashboard/review/<sub_id>/reject", methods=["POST"])
     def review_reject(sub_id):
-        user = require_login(level=2)
+        user = require_login(level=3)
         if not user:
             return redirect(url_for("login"))
         sub = _get_submission(sub_id)
@@ -253,7 +253,7 @@ def register_routes(app):
 
     @app.route("/pending-papers/<path:filename>")
     def pending_paper_file(filename):
-        user = require_login(level=2)
+        user = require_login(level=3)
         if not user:
             return redirect(url_for("login"))
         return send_from_directory(str(PENDING_PAPERS_DIR), filename)
