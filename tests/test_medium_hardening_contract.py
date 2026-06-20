@@ -46,10 +46,24 @@ class MediumHardeningContractTest(unittest.TestCase):
 
     def test_is_safe_redirect_target_rejects_external(self):
         with app_module.app.test_request_context("/", base_url="http://localhost/"):
+            # legitimate same-origin targets
             self.assertTrue(app_module._is_safe_redirect_target("/dashboard"))
-            self.assertFalse(app_module._is_safe_redirect_target("https://evil.example/phish"))
-            self.assertFalse(app_module._is_safe_redirect_target("//evil.example/phish"))
-            self.assertFalse(app_module._is_safe_redirect_target(""))
+            self.assertTrue(app_module._is_safe_redirect_target("/search?q=x"))
+            self.assertTrue(app_module._is_safe_redirect_target("http://localhost/dashboard"))
+            # external / bypass vectors must all be rejected
+            for bad in (
+                "",
+                "https://evil.example/phish",
+                "//evil.example/phish",
+                "////evil.example",          # network-path the browser collapses to a host
+                "/\\evil.example",            # backslash that browsers normalize to '//'
+                "/\tevil",                    # control char
+                "http://localhost\\@evil.example",
+            ):
+                self.assertFalse(
+                    app_module._is_safe_redirect_target(bad),
+                    f"should reject redirect target {bad!r}",
+                )
 
     # --- SEC-11: OAuth callback rejects a missing/mismatched state ---
     def test_oauth_callback_requires_state(self):

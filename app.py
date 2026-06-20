@@ -128,8 +128,18 @@ def select_locale() -> str:
 
 
 def _is_safe_redirect_target(target: str) -> bool:
-    """SEC-10: allow only same-host / relative redirect targets for login `next`."""
+    """SEC-10: allow only same-host / relative redirect targets for login `next`.
+
+    Reject backslashes and network-path references ('//host', '////host', '/\\host')
+    that browsers normalize to a foreign origin, plus control characters — these
+    pass a naive netloc check but escape the origin when emitted as a raw Location.
+    """
     if not target:
+        return False
+    target = target.strip()
+    if not target or "\\" in target or target.startswith("//"):
+        return False
+    if any(ord(c) < 0x20 for c in target):
         return False
     host_url = request.host_url
     test = urlparse(urljoin(host_url, target))
@@ -173,7 +183,7 @@ def create_app() -> Flask:
             "Content-Security-Policy-Report-Only",
             "default-src 'self'; script-src 'self'; "
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-            "font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; "
+            "font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com; "
             "connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
         )
         if request.is_secure:
@@ -402,7 +412,7 @@ def create_app() -> Flask:
         if not is_profile_complete(user_record):
             return redirect(url_for("profile_setup"))
         next_url = session.pop("next", None)
-        return redirect(next_url or url_for("index"))
+        return redirect(next_url if _is_safe_redirect_target(next_url) else url_for("index"))
 
     def _do_logout():
         language = session.get("language")
@@ -454,7 +464,7 @@ def create_app() -> Flask:
                     session["user"]["display_name"] = entered_name or session["user"].get("display_name", "")
                 flash(_("Profile saved successfully."), "success")
                 next_url = session.pop("next", None)
-                return redirect(next_url or url_for("index"))
+                return redirect(next_url if _is_safe_redirect_target(next_url) else url_for("index"))
 
         return render_template(
             "profile_setup.html",
