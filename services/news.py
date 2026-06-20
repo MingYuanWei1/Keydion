@@ -10,9 +10,30 @@ from config import (
 )
 from db import db_session
 from models import NewsArticleModel
+from services.guides import _sanitize_guide_html
 
 
 # ==================== NEWS HELPERS ====================
+
+def sanitize_news_body(raw: str) -> str:
+    """Sanitize the HTML inside each text block of a JSON news body.
+
+    News body is a JSON array of blocks; only text blocks carry rich HTML
+    (caption/url are auto-escaped at render). Falls back to sanitizing the
+    whole string for legacy plain-text/HTML bodies.
+    """
+    if not raw:
+        return ""
+    try:
+        blocks = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return _sanitize_guide_html(raw)
+    if not isinstance(blocks, list):
+        return _sanitize_guide_html(raw)
+    for block in blocks:
+        if isinstance(block, dict) and block.get("type") == "text":
+            block["content"] = _sanitize_guide_html(block.get("content", ""))
+    return json.dumps(blocks, ensure_ascii=False)
 
 def load_categories() -> list:
     """Load categories from JSON file, seeding from defaults if needed."""
