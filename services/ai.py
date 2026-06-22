@@ -3,7 +3,6 @@ import json
 import logging
 import re
 import types
-from pathlib import Path
 
 import numpy as np
 
@@ -18,7 +17,7 @@ import web_search
 from config import PAPERS_DIR
 from db import db_session
 from models import AttachmentChunkModel, PaperChunkModel, RagIndexMetaModel
-from services.papers import build_paper_record, load_paper_metadata
+from services.papers import build_paper_record, load_paper_metadata, resolve_contained
 
 logger = logging.getLogger(__name__)
 
@@ -167,11 +166,13 @@ def _lib_full_text(filename: str) -> str:
     paper); that path can be slow and may fail — errors are logged and "" is
     returned so the caller is never disrupted.
     """
-    # Security (H5): filename is model/request-supplied (read_paper tool). Collapse
-    # to a basename so it cannot traverse out of PAPERS_DIR via the disk fallback.
-    safe = Path(filename).name
-    if not safe:
+    # Security (H5): filename is model/request-supplied (read_paper tool). Route it
+    # through the shared containment resolver so it cannot traverse out of PAPERS_DIR
+    # via the disk fallback; the DB-key lookup uses the resolved basename.
+    resolved = resolve_contained(PAPERS_DIR, filename, must_exist=False)
+    if resolved is None:
         return ""
+    safe = resolved.name
     try:
         with db_session() as db:
             rows = (db.query(PaperChunkModel)

@@ -32,12 +32,11 @@ class PathTraversalContractTest(unittest.TestCase):
         self.assertTrue(src.index("resolve_contained(") < src.index("set_pdf_metadata("))
 
     def test_lib_full_text_neutralizes_traversal_before_read(self):
-        # H5: the read_paper boundary (_lib_full_text) collapses the
-        # model-supplied filename to a basename before the DB query / disk
-        # fallback, so the dual-purpose indexer (_rag_paper_text) stays clean.
+        # The read_paper boundary routes the model-supplied filename through the
+        # shared resolver before the DB query / disk fallback.
         src = support.source_of("_lib_full_text")
-        self.assertIn("Path(filename).name", src)
-        self.assertTrue(_before(src, "Path(filename).name", "_rag_paper_text("))
+        self.assertIn("resolve_contained(", src)
+        self.assertTrue(_before(src, "resolve_contained(", "_rag_paper_text("))
 
     def test_upload_validates_draft_id_ownership(self):
         src = support.source_of("upload")
