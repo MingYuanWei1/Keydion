@@ -176,7 +176,7 @@ def create_app() -> Flask:
         # Defense-in-depth response headers. CSP is Report-Only so existing inline
         # handlers/fonts keep working; tune via browser console reports before enforcing.
         resp.headers.setdefault("X-Content-Type-Options", "nosniff")
-        resp.headers.setdefault("X-Frame-Options", "SAMEORIGIIN")
+        resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
         resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         resp.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
         resp.headers.setdefault(
