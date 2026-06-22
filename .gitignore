@@ -62,7 +62,8 @@ data/news_categories.json
 data/guide_categories.json
 
 # Superpowers plans/specs (local only)
-docs/
+docs/review
+docs/superpowers
 LLM_DEPLOYMENT_IDEAS.md
 
 # Utility / migration scripts
