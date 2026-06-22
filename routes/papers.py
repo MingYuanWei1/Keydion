@@ -54,6 +54,7 @@ from services.papers import (
     reconcile_ee_subjects,
     reconcile_ia_subjects,
     remove_paper_metadata,
+    resolve_contained,
     rename_ee_subject_in_papers,
     rename_ia_subject_in_papers,
     save_ee_subjects,
@@ -281,30 +282,28 @@ def register_routes(app):
         data = request.get_json(silent=True) or {}
         filenames = data.get("filenames", [])
         op = data.get("op", "")
-        papers_root = PAPERS_DIR.resolve()
         if op == "delete":
             deleted = []
             for fname in filenames:
-                p = (PAPERS_DIR / fname).resolve()
-                if not p.is_relative_to(papers_root):
+                p = resolve_contained(PAPERS_DIR, fname, must_exist=True)
+                if p is None:
                     continue
-                if p.exists():
-                    remove_paper_metadata(fname)
-                    p.unlink(missing_ok=True)
-                    try:
-                        rag_index.purge(fname)
-                    except Exception:
-                        app.logger.exception("purge failed")
-                    deleted.append(fname)
+                remove_paper_metadata(fname)
+                p.unlink(missing_ok=True)
+                try:
+                    rag_index.purge(fname)
+                except Exception:
+                    app.logger.exception("purge failed")
+                deleted.append(fname)
             return jsonify({"deleted": deleted, "count": len(deleted)})
         if op == "set_journal":
             journal = (data.get("journal") or "").strip()
             updated = []
             for fname in filenames:
-                p = (PAPERS_DIR / fname).resolve()
-                if p.is_relative_to(papers_root) and p.exists():
-                    upsert_paper_metadata(fname, {"journal": journal})
-                    updated.append(fname)
+                if resolve_contained(PAPERS_DIR, fname, must_exist=True) is None:
+                    continue
+                upsert_paper_metadata(fname, {"journal": journal})
+                updated.append(fname)
             return jsonify({"updated": updated, "count": len(updated)})
         return jsonify({"error": "Unsupported operation"}), 400
 
@@ -342,9 +341,8 @@ def register_routes(app):
             target = url_for("login") if not session.get("user") else url_for("dashboard")
             return redirect(target)
 
-        papers_root = PAPERS_DIR.resolve()
-        paper_path = (PAPERS_DIR / filename).resolve()
-        if not paper_path.is_relative_to(papers_root) or not paper_path.exists():
+        paper_path = resolve_contained(PAPERS_DIR, filename, must_exist=True)
+        if paper_path is None:
             flash(_("Paper not found."), "warning")
             return redirect(url_for("paper_manage"))
 
@@ -514,9 +512,8 @@ def register_routes(app):
         if not user:
             return redirect(url_for("login"))
 
-        papers_root = PAPERS_DIR.resolve()
-        paper_path = (PAPERS_DIR / filename).resolve()
-        if not paper_path.is_relative_to(papers_root) or not paper_path.exists():
+        paper_path = resolve_contained(PAPERS_DIR, filename, must_exist=True)
+        if paper_path is None:
             flash(_("Paper not found."), "warning")
             return redirect(url_for("paper_manage"))
 
@@ -533,9 +530,8 @@ def register_routes(app):
     def preview_paper(filename: str):
         user = get_active_user()
         is_guest = user is None
-        papers_root = PAPERS_DIR.resolve()
-        pdf_path = (PAPERS_DIR / filename).resolve()
-        if not pdf_path.is_relative_to(papers_root) or not pdf_path.exists():
+        pdf_path = resolve_contained(PAPERS_DIR, filename, must_exist=True)
+        if pdf_path is None:
             flash(_("Paper not found."), "danger")
             return redirect(url_for("search"))
         paper = build_paper_record(filename)
@@ -629,9 +625,8 @@ def register_routes(app):
 
     @app.route("/papers/preview/<path:filename>")
     def paper_preview(filename: str):
-        papers_root = PAPERS_DIR.resolve()
-        pdf_path = (PAPERS_DIR / filename).resolve()
-        if not pdf_path.is_relative_to(papers_root) or not pdf_path.exists():
+        pdf_path = resolve_contained(PAPERS_DIR, filename, must_exist=True)
+        if pdf_path is None:
             abort(404)
         preview_stream = build_preview_pdf(pdf_path, max_pages=2)
         return send_file(preview_stream, mimetype="application/pdf", download_name=Path(filename).name)
@@ -642,8 +637,7 @@ def register_routes(app):
             user = require_login()
             if not user:
                 return redirect(url_for("login"))
-        pdf_path = PAPERS_DIR / filename
-        if not pdf_path.exists():
+        if resolve_contained(PAPERS_DIR, filename, must_exist=True) is None:
             abort(404)
         return send_from_directory(PAPERS_DIR, filename, as_attachment=False)
 
@@ -653,6 +647,8 @@ def register_routes(app):
             user = require_login()
             if not user:
                 return redirect(url_for("login"))
+        if resolve_contained(PAPERS_DIR, filename, must_exist=True) is None:
+            abort(404)
         return send_from_directory(PAPERS_DIR, filename, as_attachment=True)
 
     # ---------- EE subjects management ----------

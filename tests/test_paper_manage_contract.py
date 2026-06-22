@@ -88,7 +88,7 @@ class PaperBulkEndpointContract(unittest.TestCase):
         self.assertIn("rag_index.purge", src)
         self.assertIn("upsert_paper_metadata", src)
         self.assertIn("remove_paper_metadata", src)
-        self.assertIn("is_relative_to", src)
+        self.assertIn("resolve_contained(", src)
 
     def test_bulk_route_registered_at_expected_url(self):
         self.assertIn('"/dashboard/admin/papers/bulk"', all_sources())

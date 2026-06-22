@@ -14,23 +14,22 @@ def _before(src, guard, op):
 class PathTraversalContractTest(unittest.TestCase):
     def test_paper_preview_contained_but_still_guest_reachable(self):
         src = support.source_of("paper_preview")
-        self.assertIn("is_relative_to", src)
-        self.assertIn(".resolve()", src)
+        self.assertIn("resolve_contained(", src)
         self.assertNotIn("require_login", src, "paper_preview must stay guest-reachable")
 
     def test_preview_paper_contained(self):
         src = support.source_of("preview_paper")
-        self.assertIn("is_relative_to", src)
+        self.assertIn("resolve_contained(", src)
 
     def test_paper_delete_guard_precedes_unlink(self):
         src = support.source_of("paper_delete")
-        self.assertTrue(_before(src, "is_relative_to", ".unlink"))
+        self.assertTrue(_before(src, "resolve_contained(", ".unlink"))
 
     def test_paper_modify_guard_precedes_fs_ops(self):
         src = support.source_of("paper_modify")
-        self.assertIn("is_relative_to", src)
-        self.assertTrue(src.index("is_relative_to") < src.index(".rename("))
-        self.assertTrue(src.index("is_relative_to") < src.index("set_pdf_metadata("))
+        self.assertIn("resolve_contained(", src)
+        self.assertTrue(src.index("resolve_contained(") < src.index(".rename("))
+        self.assertTrue(src.index("resolve_contained(") < src.index("set_pdf_metadata("))
 
     def test_lib_full_text_neutralizes_traversal_before_read(self):
         # H5: the read_paper boundary (_lib_full_text) collapses the
