@@ -148,38 +148,43 @@ curl -sI https://www.keydion.com/ | head -5   # 200/302, Server: nginx
 If the journal shows a traceback instead of fresh worker boots, the new
 code failed to import — fix on disk and reload again.
 
-## Local Development
+## Docker Deployment
 
-> **Warning:** the Flask dev server (Werkzeug) is for local testing only. Never expose it publicly.
+An alternative to the host gunicorn/systemd setup above: `docker-compose.prod.yml`
+runs the app as two containers — `web` (gunicorn) and `nginx` (reverse proxy on
+port 80). Both build the bundled [`Dockerfile`](Dockerfile) (Python 3.11 +
+Tesseract), so the OCR engine and Chinese language data come baked in.
 
-### 1. Environment
+> **MySQL is not bundled.** The prod compose expects an **external MySQL 9.x**
+> (see the `VECTOR` note under [Database Setup](#database-setup)). Point
+> `PAPERQUERY_DATABASE_URL` in `.env.prod` at a host reachable *from the
+> container* — inside the container `127.0.0.1` is the container itself, so use
+> the Docker host's LAN IP or `host.docker.internal` for a MySQL on the host.
 
-Clone the repository and create a `.env` file in the root directory by copying
-[`.env.example`](.env.example) and filling in the values. For local use, set
-`PAPERQUERY_MS_REDIRECT_URI=http://localhost:5000/auth/callback`.
+1. Create a `.env.prod` exactly as in the **Production Deployment** section
+   above (strong `PAPERQUERY_SECRET`, a public `PAPERQUERY_MS_REDIRECT_URI`, and
+   a container-reachable `PAPERQUERY_DATABASE_URL`).
 
-> The abstract/keyword button only appears for Contributors (role ≥ 2) when
-> `LLM_API_KEY` is set. It drafts the abstract and keywords from the uploaded
-> PDF; the uploader reviews and edits before submitting. The library assistant
-> uses `LLM_EMBED_*` for retrieval embeddings when set, falling back to
-> `LLM_API_KEY` / `LLM_BASE_URL` and `gemini-embedding-001` otherwise. See
-> [`LLM_DEPLOYMENT_IDEAS.md`](LLM_DEPLOYMENT_IDEAS.md) for other planned LLM uses.
->
-> `WEB_SEARCH_API_KEY` unset = web access toggle hidden on the Ask page.
+2. Build and start the stack:
 
-### 2. Running the dev server
-
-1. **Install dependencies**:
    ```bash
-   pip install -r requirements.txt
+   docker compose -f docker-compose.prod.yml up -d --build
    ```
 
-2. **Database**: ensure MySQL is running and that you've created the database (see [Database Setup](#database-setup)). Tables are created automatically on first start.
+nginx listens on port 80; `web` and `nginx` communicate over a shared unix
+socket (the `keydion-socket` volume), and nginx serves `/static/*` straight from
+the mounted `./static`. TLS is out of scope — terminate HTTPS at a certbot /
+load balancer in front, or add a `443` server block to
+[`docker/nginx.conf`](docker/nginx.conf).
 
-3. **Start the dev server**:
-   ```bash
-   ./start_local.sh
-   ```
+The `./papers`, `./data`, and `./static/uploads` directories are bind-mounted,
+so uploaded PDFs and runtime data persist on the host across rebuilds. After a
+`git pull`, rebuild and recreate:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml logs -f web   # watch for "Booting worker"
+```
 
 ## User Management
 
