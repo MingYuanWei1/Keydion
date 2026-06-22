@@ -76,7 +76,7 @@ class MediumHardeningContractTest(unittest.TestCase):
         client = app_module.app.test_client()
         resp = client.get("/__no_such_route__")  # 404 still passes through after_request
         self.assertEqual(resp.headers.get("X-Content-Type-Options"), "nosniff")
-        self.assertEqual(resp.headers.get("X-Frame-Options"), "DENY")
+        self.assertEqual(resp.headers.get("X-Frame-Options"), "SAMEORIGIN")
         self.assertIn("Referrer-Policy", resp.headers)
         self.assertIn("Permissions-Policy", resp.headers)
         self.assertIn("Content-Security-Policy-Report-Only", resp.headers)

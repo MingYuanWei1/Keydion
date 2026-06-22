@@ -176,7 +176,7 @@ def create_app() -> Flask:
         # Defense-in-depth response headers. CSP is Report-Only so existing inline
         # handlers/fonts keep working; tune via browser console reports before enforcing.
         resp.headers.setdefault("X-Content-Type-Options", "nosniff")
-        resp.headers.setdefault("X-Frame-Options", "DENY")
+        resp.headers.setdefault("X-Frame-Options", "SAMEORIGIIN")
         resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         resp.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
         resp.headers.setdefault(
@@ -184,7 +184,7 @@ def create_app() -> Flask:
             "default-src 'self'; script-src 'self'; "
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             "font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://images.unsplash.com; "
-            "connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+            "connect-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
         )
         if request.is_secure:
             resp.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
