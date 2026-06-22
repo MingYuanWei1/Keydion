@@ -23,6 +23,7 @@ from config import (
 from services.auth import require_login
 from services.papers import (
     _build_safe_paper_filename,
+    resolve_contained,
     upsert_paper_metadata,
 )
 from services.submissions import (
@@ -60,8 +61,8 @@ def register_routes(app):
         # Remove pending PDF file if it exists
         pending_file = sub.get("pending_filename", "")
         if pending_file:
-            pending_path = PENDING_PAPERS_DIR / pending_file
-            if pending_path.exists():
+            pending_path = resolve_contained(PENDING_PAPERS_DIR, pending_file, must_exist=True)
+            if pending_path is not None:
                 pending_path.unlink()
         # Remove submission record
         subs = _load_submissions()
@@ -109,6 +110,8 @@ def register_routes(app):
         if not sub or sub.get("submitter") != user.get("username", ""):
             abort(403)
         pending_filename = sub.get("pending_filename", "")
+        if resolve_contained(PENDING_PAPERS_DIR, pending_filename, must_exist=True) is None:
+            abort(404)
         return send_from_directory(str(PENDING_PAPERS_DIR), pending_filename)
 
     @app.route("/my-submissions", endpoint="my_submissions_legacy")
@@ -229,8 +232,8 @@ def register_routes(app):
         comment = request.form.get("comment", "").strip()
 
         # Remove the pending file
-        pending_path = PENDING_PAPERS_DIR / sub.get("pending_filename", "")
-        if pending_path.exists():
+        pending_path = resolve_contained(PENDING_PAPERS_DIR, sub.get("pending_filename", ""), must_exist=True)
+        if pending_path is not None:
             pending_path.unlink()
 
         reviewer_name = user.get("display_name", "") or user.get("first_name", "") or user.get("username", "")
@@ -256,4 +259,6 @@ def register_routes(app):
         user = require_login(level=3)
         if not user:
             return redirect(url_for("login"))
+        if resolve_contained(PENDING_PAPERS_DIR, filename, must_exist=True) is None:
+            abort(404)
         return send_from_directory(str(PENDING_PAPERS_DIR), filename)
