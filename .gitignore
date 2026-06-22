@@ -33,13 +33,6 @@ __pycache__/
 .AppleDouble
 .LSOverride
 
-# Docker
-Dockerfile*
-docker-compose*.yml
-.dockerignore
-update_db.py
-docker-compose.yml
-
 # TLS / SSL keys (DO NOT COMMIT)
 *.key
 *.pem

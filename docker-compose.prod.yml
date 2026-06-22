@@ -1,0 +1,33 @@
+services:
+  web:
+    build: .
+    container_name: keydion-web-prod
+    restart: unless-stopped
+    env_file:
+      - .env.prod
+    environment:
+      GUNICORN_BIND: "unix:/var/run/keydion/keydion.sock"
+    command: ["gunicorn", "-c", "gunicorn.conf.py", "app:create_app()"]
+    volumes:
+      - keydion-socket:/var/run/keydion
+      - ./papers:/app/papers
+      - ./data:/app/data
+      - ./static/uploads:/app/static/uploads
+    expose:
+      - "8000"
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: keydion-nginx-prod
+    restart: unless-stopped
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - keydion-socket:/var/run/keydion
+      - ./static:/app/static:ro
+
+volumes:
+  keydion-socket:
