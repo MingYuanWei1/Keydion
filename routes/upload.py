@@ -42,6 +42,7 @@ from services.papers import (
     parse_cp_data_for_form,
     parse_ia_data_for_form,
     parse_ib_ee_data_for_form,
+    resolve_contained,
     set_pdf_metadata,
     upsert_paper_metadata,
 )
@@ -524,8 +525,8 @@ def register_routes(app):
                     role = int(user.get("role", "1"))
                     if role >= 2:
                         # Moderator / Admin: publish directly
-                        save_path = PAPERS_DIR / filename
-                        if save_path.exists():
+                        save_path = resolve_contained(PAPERS_DIR, filename, must_exist=False)
+                        if save_path is None or save_path.exists():
                             flash(_("A file with this name already exists"), "warning")
                         else:
                             file.save(save_path)
@@ -565,7 +566,9 @@ def register_routes(app):
                         else:
                             sub_id = uuid4().hex[:12]
                         pending_filename = f"{sub_id}_{filename}"
-                        pending_path = PENDING_PAPERS_DIR / pending_filename
+                        pending_path = resolve_contained(PENDING_PAPERS_DIR, pending_filename, must_exist=False)
+                        if pending_path is None:
+                            abort(400)  # unreachable for server-minted names; defense-in-depth
                         file.save(pending_path)
                         set_pdf_metadata(pending_path, form_data["title"], form_data["author_name"])
                         if draft_id:
