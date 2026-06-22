@@ -70,10 +70,11 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 # Install dependencies (use python3/pip3 on macOS — there is no `python` binary)
 pip3 install -r requirements.txt
 
-# Start dev server (macOS/Linux)
-./start_local.sh
+# Start dev server (macOS/Linux). start_local.sh is gitignored (local-only); raw equivalent:
+PAPERQUERY_ALLOW_DEV_SECRET=1 PAPERQUERY_COOKIE_SECURE=0 python3 -m flask --app app run --debug --port 4000
 
-# Start dev container (Flask debug on :4000, MySQL expected on the host at 127.0.0.1:3306)
+# Start dev container (Flask debug on :4000, MySQL expected on the host at 127.0.0.1:3306).
+# docker-compose.yml is gitignored (local-only); the tracked prod stack is docker-compose.prod.yml.
 docker-compose up -d
 
 # Run all tests (~820 contract tests, ~2min — requires a reachable MySQL 9.x, see Testing approach)
@@ -99,12 +100,12 @@ python3 tools/manage_passwords.py set --username <name> --password <pw> --role 3
 python3 tools/manage_passwords.py list
 ```
 
-**Dev container gotcha**: `docker-compose.yml` bind-mounts only `app.py`, `config.py`, `db.py`, `models.py`, `routes/`, `services/`, `library_tools.py`, `ee_pdf_extractor.py`, `templates/`, `static/`, `data/`, `translations/`, `papers/`. Changes to the other Python modules (`llm_client.py`, `rag_index.py`, `web_search.py`, `llm_metadata.py`, `pdf_text.py`) and to `tests/` need an image rebuild — don't trust test runs inside the container. Single-file bind mounts track the inode, so if a tool rewrites `app.py` the container may serve a stale copy — `docker restart keydion-web` fixes it.
+**Dev container gotcha** (the dev `docker-compose.yml` is gitignored / local-only): `docker-compose.yml` bind-mounts only `app.py`, `config.py`, `db.py`, `models.py`, `routes/`, `services/`, `library_tools.py`, `ee_pdf_extractor.py`, `templates/`, `static/`, `data/`, `translations/`, `papers/`. Changes to the other Python modules (`llm_client.py`, `rag_index.py`, `web_search.py`, `llm_metadata.py`, `pdf_text.py`) and to `tests/` need an image rebuild — don't trust test runs inside the container. Single-file bind mounts track the inode, so if a tool rewrites `app.py` the container may serve a stale copy — `docker restart keydion-web` fixes it.
 
 Environment variables: see `.env.example` for the full annotated list. **Gotcha:** `config.py` loads `.env.prod` in preference to `.env` when both exist — so locally the *prod* file is usually the active one. The important ones:
-- `PAPERQUERY_SECRET` — Flask secret key; **`create_app()` refuses to boot if unset or `dev-secret-key`** unless `PAPERQUERY_ALLOW_DEV_SECRET=1` (SEC-09; `start_local.sh` sets the opt-in)
+- `PAPERQUERY_SECRET` — Flask secret key; **`create_app()` refuses to boot if unset or `dev-secret-key`** unless `PAPERQUERY_ALLOW_DEV_SECRET=1` (SEC-09)
 - `PAPERQUERY_ALLOW_DEV_SECRET` — dev-only opt-in to the insecure default secret
-- `PAPERQUERY_COOKIE_SECURE` — `Secure` flag on the session cookie (default `1`; `start_local.sh` sets `0` for plain-HTTP dev)
+- `PAPERQUERY_COOKIE_SECURE` — `Secure` flag on the session cookie (default `1`; set `0` for plain-HTTP dev)
 - `PAPERQUERY_DATABASE_URL` — SQLAlchemy connection string (MySQL)
 - `PAPERQUERY_MS_CLIENT_ID` / `PAPERQUERY_MS_CLIENT_SECRET` / `PAPERQUERY_MS_REDIRECT_URI` — MS OAuth
 - `LLM_API_KEY` / `LLM_BASE_URL` — OpenAI-compatible chat provider; **empty key disables all AI features**
