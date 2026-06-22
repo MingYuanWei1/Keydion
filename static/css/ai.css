@@ -131,7 +131,8 @@ button { font-family: inherit; cursor: pointer; }
   z-index: 90;
 }
 .kd-user-dropdown.open { display: block; }
-.kd-user-dropdown a {
+.kd-user-dropdown a,
+.kd-user-dropdown .logout-form button {
   display: block;
   padding: 10px 16px;
   color: var(--ink);
@@ -140,7 +141,13 @@ button { font-family: inherit; cursor: pointer; }
   text-decoration: none;
   transition: background 100ms ease, color 100ms ease;
 }
-.kd-user-dropdown a:hover { background: var(--wash); color: var(--accent); }
+/* logout is a POST form+button (CSRF); strip native button chrome to match the links */
+.kd-user-dropdown .logout-form { margin: 0; }
+.kd-user-dropdown .logout-form button {
+  width: 100%; text-align: left; background: none; border: 0; cursor: pointer;
+}
+.kd-user-dropdown a:hover,
+.kd-user-dropdown .logout-form button:hover { background: var(--wash); color: var(--accent); }
 .kd-lang-switch {
   margin-left: 14px;
   font-size: 12.5px;

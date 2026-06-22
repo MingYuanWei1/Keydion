@@ -221,6 +221,9 @@
 
 .nav-item--signout { color: var(--muted); }
 .nav-item--signout:hover { color: var(--accent); }
+/* logout is a POST form+button (CSRF); strip native button chrome so it matches .nav-item links */
+.logout-form { margin: 0; }
+.logout-form button.nav-item { width: 100%; background: none; border: 0; cursor: pointer; }
 
 /* ── Sidebar collapsed (icon-only) ─────────────────────────── */
 .dashboard-shell[data-sidebar-state="icons"] .dashboard-sidebar { width: 64px; }
