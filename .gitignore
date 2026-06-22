@@ -67,3 +67,7 @@ update_db.py
 # Academic resources file blobs
 resource_files/
 AI_Prompts/
+
+# Local development files (kept on disk locally, not shared on remote)
+start_local.sh
+docker-compose.yml
