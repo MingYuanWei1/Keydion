@@ -408,6 +408,24 @@ def _build_safe_paper_filename(title: str, author: str = "") -> str:
     return f"{uuid4().hex[:12]}.pdf"
 
 
+def resolve_contained(base_dir: Path, filename: str, *, must_exist: bool = False) -> Optional[Path]:
+    """Resolve a user-supplied filename against a store root, rejecting escapes.
+
+    Returns the canonical absolute Path of ``base_dir / filename`` when it stays
+    inside ``base_dir`` after symlink resolution, else ``None``. With
+    ``must_exist=True`` a contained-but-absent path also returns ``None`` (read /
+    serve / delete callers); pre-write callers leave it False. Never raises — each
+    caller decides its own response to ``None`` (abort, flash, continue, or "").
+    """
+    root = base_dir.resolve()
+    candidate = (base_dir / filename).resolve()
+    if not candidate.is_relative_to(root):
+        return None
+    if must_exist and not candidate.exists():
+        return None
+    return candidate
+
+
 def build_ib_ee_data_from_form(form) -> str:
     criteria = {}
     for letter, label, max_mark in IB_EE_CRITERIA_DEFS:
