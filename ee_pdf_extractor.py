@@ -22,8 +22,7 @@ import pdfplumber
 from PyPDF2 import PdfReader
 from PyPDF2.errors import PdfReadError
 
-import llm_client
-import vision_read
+from vision_extractor import VisionFirstExtractor
 
 _DATA_DIR = Path(__file__).resolve().parent / "data"
 
@@ -398,52 +397,53 @@ def _result_from_vision(data: dict) -> dict:
     return result
 
 
+class EeExtractor(VisionFirstExtractor):
+    """Vision-first IB EE commentary parser; pdfplumber+regex merge fallback."""
+
+    def build_prompt(self) -> str:
+        return EE_SYSTEM_PROMPT_EN
+
+    def shape_vision(self, data: dict) -> dict:
+        return _result_from_vision(data)
+
+    def fallback(self, file_bytes: bytes) -> dict:
+        # Always read the text first — also covers encrypted / scanned detection
+        # before the more expensive pdfplumber pass.
+        text = _read_pdf_text(file_bytes)
+        plumber = _extract_via_pdfplumber(file_bytes)
+        regex_result = _extract_via_regex(text)
+        if plumber is None:
+            return regex_result
+        # Merge: pdfplumber wins where it has a value; regex fills gaps.
+        result = _empty_result()
+        for key in ("core_subject", "interdisciplinary_subject", "framework",
+                    "research_question", "holistic_comment"):
+            result[key] = plumber.get(key) or regex_result.get(key) or ""
+        for letter in "ABCDE":
+            p_crit = plumber["criteria"].get(letter, {})
+            r_crit = regex_result["criteria"].get(letter, {})
+            result["criteria"][letter] = {
+                "score": p_crit.get("score") if p_crit.get("score") is not None else r_crit.get("score"),
+                "comment": p_crit.get("comment") or r_crit.get("comment") or "",
+            }
+        return result
+
+    def post(self, result: dict) -> dict:
+        # Subject normalisation runs on whichever branch produced the result.
+        core, core_warn = _normalise_subject(result["core_subject"])
+        inter, inter_warn = _normalise_subject(result["interdisciplinary_subject"])
+        result["core_subject"] = core
+        result["interdisciplinary_subject"] = inter
+        if core_warn:
+            result["warnings"].append(core_warn)
+        if inter_warn:
+            result["warnings"].append(inter_warn)
+        _finalise_warnings(result)
+        return result
+
+
 def extract_ee_metadata(file_bytes: bytes) -> dict:
     """Parse an IB EE commentary PDF. See module docstring for contract."""
     if not file_bytes:
         raise EePdfExtractionError("Empty file")
-
-    result = None
-    if llm_client.vision_enabled():
-        try:
-            data = vision_read.extract_with_vision(file_bytes, EE_SYSTEM_PROMPT_EN)
-            result = _result_from_vision(data)
-        except vision_read.VisionError:
-            result = None  # fall through to the local regex/pdfplumber path
-
-    if result is None:
-        # Always read the text first — also covers encrypted / scanned detection
-        # before we attempt the more expensive pdfplumber pass.
-        text = _read_pdf_text(file_bytes)
-
-        plumber = _extract_via_pdfplumber(file_bytes)
-        regex_result = _extract_via_regex(text)
-
-        if plumber is None:
-            result = regex_result
-        else:
-            # Merge: pdfplumber wins where it has a value; regex fills gaps.
-            result = _empty_result()
-            for key in ("core_subject", "interdisciplinary_subject", "framework",
-                        "research_question", "holistic_comment"):
-                result[key] = plumber.get(key) or regex_result.get(key) or ""
-            for letter in "ABCDE":
-                p_crit = plumber["criteria"].get(letter, {})
-                r_crit = regex_result["criteria"].get(letter, {})
-                result["criteria"][letter] = {
-                    "score": p_crit.get("score") if p_crit.get("score") is not None else r_crit.get("score"),
-                    "comment": p_crit.get("comment") or r_crit.get("comment") or "",
-                }
-
-    # Subject normalisation (shared by both branches).
-    core, core_warn = _normalise_subject(result["core_subject"])
-    inter, inter_warn = _normalise_subject(result["interdisciplinary_subject"])
-    result["core_subject"] = core
-    result["interdisciplinary_subject"] = inter
-    if core_warn:
-        result["warnings"].append(core_warn)
-    if inter_warn:
-        result["warnings"].append(inter_warn)
-
-    _finalise_warnings(result)
-    return result
+    return EeExtractor().extract(file_bytes)
