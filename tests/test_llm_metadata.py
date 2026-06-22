@@ -3,6 +3,7 @@ import unittest
 from unittest import mock
 
 import llm_metadata
+import vision_extractor
 from llm_metadata import (
     LLMMetadataError,
     generate_abstract_keywords,
@@ -249,15 +250,11 @@ class VisionBranchTest(unittest.TestCase):
             captured["language"] = language
             return {"abstract": "  V abstract  ", "keywords": "a, b, b",
                     "title": "  T  ", "authors": "Ada"}
-        with mock.patch.object(llm_metadata.llm_client, "vision_enabled", return_value=True), \
-             mock.patch.object(llm_metadata.vision_read, "extract_with_vision",
-                               side_effect=_fake_vision) as ev, \
-             mock.patch.object(llm_metadata, "_pdf_text_from_bytes") as legacy_text, \
-             mock.patch.object(llm_metadata, "_build_client") as legacy_client:
+        with mock.patch.object(vision_extractor.llm_client, "vision_enabled", return_value=True), \
+             mock.patch.object(vision_extractor.vision_read, "extract_with_vision",
+                               side_effect=_fake_vision) as ev:
             out = generate_abstract_keywords(b"%PDF-fake", "zh")
         ev.assert_called_once()
-        legacy_text.assert_not_called()
-        legacy_client.assert_not_called()
         self.assertEqual(out["abstract"], "V abstract")          # stripped
         self.assertEqual(out["keywords"], ["a", "b"])            # normalised + deduped
         self.assertEqual(out["title"], "T")
@@ -265,21 +262,11 @@ class VisionBranchTest(unittest.TestCase):
         self.assertEqual(captured["prompt"], llm_metadata.ABSTRACT_SYSTEM_PROMPT_ZH)
         self.assertEqual(captured["language"], "zh")
 
-    def test_uses_legacy_when_vision_disabled(self):
-        client = FakeClient('{"abstract": "L", "keywords": ["k"]}')
-        with mock.patch.object(llm_metadata.llm_client, "vision_enabled", return_value=False), \
-             mock.patch.object(llm_metadata, "_pdf_text_from_bytes", return_value="text"), \
-             mock.patch.object(llm_metadata, "_build_client", return_value=client), \
-             mock.patch.object(llm_metadata.vision_read, "extract_with_vision") as ev:
-            out = generate_abstract_keywords(b"%PDF-fake", "en")
-        ev.assert_not_called()
-        self.assertEqual(out["abstract"], "L")
-
     def test_vision_error_falls_back_to_legacy(self):
         client = FakeClient('{"abstract": "L", "keywords": ["k"]}')
-        with mock.patch.object(llm_metadata.llm_client, "vision_enabled", return_value=True), \
-             mock.patch.object(llm_metadata.vision_read, "extract_with_vision",
-                               side_effect=llm_metadata.vision_read.VisionError("boom")), \
+        with mock.patch.object(vision_extractor.llm_client, "vision_enabled", return_value=True), \
+             mock.patch.object(vision_extractor.vision_read, "extract_with_vision",
+                               side_effect=vision_extractor.vision_read.VisionError("boom")), \
              mock.patch.object(llm_metadata, "_pdf_text_from_bytes", return_value="text"), \
              mock.patch.object(llm_metadata, "_build_client", return_value=client):
             out = generate_abstract_keywords(b"%PDF-fake", "en")

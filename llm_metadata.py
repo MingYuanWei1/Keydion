@@ -18,7 +18,7 @@ import re
 from pdf_text import extract_pdf_text, PdfTextError
 
 import llm_client
-import vision_read
+from vision_extractor import VisionFirstExtractor
 
 MAX_PDF_CHARS = 12_000          # bound the prompt size / token cost
 MAX_KEYWORDS = 6
@@ -195,6 +195,24 @@ def _result_from_vision(data: dict) -> dict:
             "title": title, "authors": authors, "warnings": warnings}
 
 
+class AbstractExtractor(VisionFirstExtractor):
+    """Vision-first abstract + keywords drafting; OCR+text-LLM fallback."""
+
+    def __init__(self, language: str = "en"):
+        self.language = language
+
+    def build_prompt(self) -> str:
+        return ABSTRACT_SYSTEM_PROMPT_ZH if self.language == "zh" else ABSTRACT_SYSTEM_PROMPT_EN
+
+    def shape_vision(self, data: dict) -> dict:
+        return _result_from_vision(data)
+
+    def fallback(self, file_bytes: bytes) -> dict:
+        text = _pdf_text_from_bytes(file_bytes, self.language)
+        client = _build_client()
+        return _complete(client, text, self.language)
+
+
 def generate_abstract_keywords(file_bytes: bytes, language: str = "en") -> dict:
     """Public entry point: PDF bytes -> {abstract, keywords, title, authors, warnings}.
 
@@ -203,14 +221,4 @@ def generate_abstract_keywords(file_bytes: bytes, language: str = "en") -> dict:
     """
     if not file_bytes:
         raise LLMMetadataError("Empty file")
-    if llm_client.vision_enabled():
-        prompt = ABSTRACT_SYSTEM_PROMPT_ZH if language == "zh" else ABSTRACT_SYSTEM_PROMPT_EN
-        try:
-            data = vision_read.extract_with_vision(file_bytes, prompt, language=language)
-            return _result_from_vision(data)
-        except vision_read.VisionError:
-            _log.warning("vision abstract extraction failed; falling back to OCR path",
-                         exc_info=True)
-    text = _pdf_text_from_bytes(file_bytes, language)
-    client = _build_client()
-    return _complete(client, text, language)
+    return AbstractExtractor(language).extract(file_bytes)
