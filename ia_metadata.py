@@ -23,7 +23,7 @@ import re
 from pdf_text import extract_pdf_text, PdfTextError
 
 import llm_client
-import vision_read
+from vision_extractor import VisionFirstExtractor
 
 MAX_PDF_CHARS = 12_000          # bound the prompt size / token cost
 
@@ -250,6 +250,24 @@ def _result_from_vision(data: dict, criteria: list) -> dict:
     return {"criteria": out_criteria, "holistic_comment": holistic, "warnings": warnings}
 
 
+class IaExtractor(VisionFirstExtractor):
+    """Vision-first IA criterion scoring; OCR+text-LLM fallback."""
+
+    def __init__(self, subject: str, criteria: list, language: str = "en"):
+        self.subject = subject
+        self.criteria = criteria
+        self.language = language
+
+    def build_prompt(self) -> str:
+        return _vision_prompt(self.subject, self.criteria)
+
+    def shape_vision(self, data: dict) -> dict:
+        return _result_from_vision(data, self.criteria)
+
+    def fallback(self, file_bytes: bytes) -> dict:
+        return _legacy_generate_ia_scores(file_bytes, self.subject, self.criteria, self.language)
+
+
 def generate_ia_scores(file_bytes: bytes, subject: str, criteria: list,
                        language: str = "en") -> dict:
     """Public entry point: vision-first IA scoring; OCR+text-LLM fallback.
@@ -260,12 +278,4 @@ def generate_ia_scores(file_bytes: bytes, subject: str, criteria: list,
     """
     if not criteria:
         raise IAMetadataError("This subject has no assessment criteria configured.")
-    if llm_client.vision_enabled():
-        prompt = _vision_prompt(subject, criteria)
-        try:
-            data = vision_read.extract_with_vision(file_bytes, prompt, language=language)
-            return _result_from_vision(data, criteria)
-        except vision_read.VisionError:
-            _log.warning("vision IA scoring failed; falling back to OCR path",
-                         exc_info=True)
-    return _legacy_generate_ia_scores(file_bytes, subject, criteria, language)
+    return IaExtractor(subject, criteria, language).extract(file_bytes)
