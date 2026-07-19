@@ -4,6 +4,27 @@ Keydion (also PaperQuery) is an academic paper library: contributors publish pap
 
 This is a glossary of terms whose meaning is specific to Keydion and easy to get wrong. It says what each term *is*, never how it is built — no module names, no implementation.
 
+## Paper publishing
+
+**Publishing lifecycle**:
+The decisions and state changes through which a work is published directly or from an accepted Submission, revised over time, and eventually deleted. It includes Submission review when a Submission exists.
+_Avoid_: Upload flow (upload is only one entry point), Submission lifecycle (directly published Papers have no Submission).
+
+**Paper**:
+A work available in Keydion's library, either published directly by a Contributor or created when a Curator accepts a Submission. Its lifecycle is distinct from any Submission that produced it, and changes to its title or authors do not create a new Paper.
+
+**Paper revision**:
+A replacement of an existing Paper's PDF that preserves the Paper's identity, links, and relationship to any originating Submission. Only the current revision is available in the library; earlier revisions remain private for audit and restoration. Restoring earlier content creates another revision rather than rewinding history. Publishing a different work creates a new Paper instead.
+_Avoid_: New Paper (the work remains the same), metadata edit (the Paper's content is unchanged).
+
+**Paper deletion**:
+Permanent removal of a Paper and all data owned by it, including its PDF, revisions, and search data. Any originating Submission remains as an independent review record but is no longer linked to a Paper.
+_Avoid_: Withdrawal or archive (the Paper cannot be restored).
+
+**Submission**:
+A Reader's proposed Paper together with its review history. Acceptance creates a linked Paper; the Submission remains as the permanent record of who submitted and reviewed it, when it was reviewed, and what decision was made.
+_Avoid_: Pending paper (a Submission can also be accepted or rejected), Paper (the published library item is distinct).
+
 ## PDF metadata extraction
 
 When a contributor uploads a paper, Keydion can draft its metadata from the PDF for the contributor to review before publishing.
