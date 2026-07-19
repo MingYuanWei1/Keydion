@@ -4,7 +4,7 @@ status: accepted
 
 # Papers use stable identity and one deep publishing lifecycle
 
-A Paper has an immutable opaque UUID independent of its title, authors, filename, and revisions. Historical filename aliases redirect to the canonical Paper-ID URL while the Paper exists and are removed on Paper deletion; PDF content is stored by Paper ID and revision. A Submission remains a permanent, independent review record: acceptance links it to exactly one Paper, rejection links none, and Paper deletion removes that link without deleting the Submission.
+A Paper has an immutable opaque UUID independent of its title, authors, filename, and revisions. Historical filename aliases redirect to the canonical Paper-ID URL while the Paper exists and are removed on Paper deletion; PDF content is stored by Paper ID and revision. A Reader may cancel a pending Submission before a Curator decides it. Once accepted or rejected, a Submission is a permanent, independent review record: acceptance links it to exactly one Paper, rejection links none, and Paper deletion removes that link without deleting the Submission.
 
 A deep `PublishingLifecycle` module owns direct publication, Submission acceptance and rejection, revision, restoration, Paper deletion, and index recovery. It presents one structured, intent-based interface to HTTP and worker adapters; database, PDF storage, RAG, and durable-job adapters sit at internal seams in its implementation. Metadata auto-fill stays outside this seam because it is advisory input reviewed before publication, preserving ADR-0001.
 

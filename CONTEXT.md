@@ -22,7 +22,7 @@ Permanent removal of a Paper and all data owned by it, including its PDF, revisi
 _Avoid_: Withdrawal or archive (the Paper cannot be restored).
 
 **Submission**:
-A Reader's proposed Paper together with its review history. Acceptance creates a linked Paper; the Submission remains as the permanent record of who submitted and reviewed it, when it was reviewed, and what decision was made.
+A Reader's proposed Paper together with its review history. The Reader may cancel it before a Curator decides it. Acceptance creates a linked Paper; once accepted or rejected, the Submission remains as the permanent record of who submitted and reviewed it, when it was reviewed, and what decision was made.
 _Avoid_: Pending paper (a Submission can also be accepted or rejected), Paper (the published library item is distinct).
 
 ## PDF metadata extraction
