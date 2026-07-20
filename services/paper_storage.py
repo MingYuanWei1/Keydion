@@ -489,6 +489,28 @@ class PaperStorage:
         )
         if parts[0] == ".trash":
             raise StorageError("pending ingress cannot address reserved trash storage")
+        first_fd: int | None = None
+        try:
+            before = os.stat(
+                parts[0],
+                dir_fd=self._pending_fd,
+                follow_symlinks=False,
+            )
+            if not stat.S_ISDIR(before.st_mode):
+                return
+            first_fd = os.open(parts[0], _DIRECTORY_FLAGS, dir_fd=self._pending_fd)
+            opened = os.fstat(first_fd)
+            if not _same_inode(before, opened):
+                raise StorageError("pending ingress first component changed")
+            if _same_inode(opened, self._trash_stat):
+                raise StorageError("pending ingress cannot address reserved trash storage")
+        except StorageError:
+            raise
+        except OSError as exc:
+            raise StorageError("pending ingress first component is unsafe") from exc
+        finally:
+            if first_fd is not None:
+                os.close(first_fd)
 
     @contextmanager
     def _opened_regular(

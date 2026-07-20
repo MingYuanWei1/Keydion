@@ -806,6 +806,31 @@ class PaperStorageTests(unittest.TestCase):
         self.assertEqual(source.read_bytes(), source_bytes)
         self.assertFalse((self.storage.trash_dir / "op-reserved-trash.pdf").exists())
 
+    def test_pending_ingress_rejects_case_alias_of_reserved_trash_identity(self):
+        case_alias = self.storage.pending_dir / ".TRASH"
+        try:
+            aliases_reserved = case_alias.exists() and os.path.samefile(
+                case_alias,
+                self.storage.trash_dir,
+            )
+        except OSError:
+            aliases_reserved = False
+        if not aliases_reserved:
+            self.skipTest("filesystem is case-sensitive")
+
+        source = self.write_pending_pdf("case-alias-trash.pdf")
+        source_bytes = source.read_bytes()
+        token = self.storage.trash_pending(source.name, "op-case-alias-trash")
+        aliased_spelling = ".TRASH/op-case-alias-trash.pdf"
+
+        with self.assertRaises(StorageError):
+            self.storage.stage_pending(aliased_spelling, "op-case-alias-stage")
+        with self.assertRaises(StorageError):
+            self.storage.trash_pending(aliased_spelling, "op-case-alias-retrash")
+
+        self.storage.restore_pending(token)
+        self.assertEqual(source.read_bytes(), source_bytes)
+
     def test_trash_pending_race_preserves_incumbent_and_source_bytes(self):
         source = self.write_pending_pdf()
         source_bytes = source.read_bytes()
