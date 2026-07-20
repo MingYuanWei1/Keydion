@@ -97,9 +97,11 @@ def main(argv: list[str] | None = None) -> int:
         )
 
         primary_error = None
+        child_return_code = None
         try:
             _create_database(admin_url, database_name)
-            return _run_child(list(argv or ()), child_env)
+            child_return_code = _run_child(list(argv or ()), child_env)
+            return child_return_code
         except BaseException as exc:
             primary_error = exc
             raise
@@ -107,9 +109,16 @@ def main(argv: list[str] | None = None) -> int:
             try:
                 _drop_database(admin_url, database_name)
             except BaseException:
-                if primary_error is None:
+                if primary_error is not None:
+                    primary_error.add_note("isolated database cleanup also failed")
+                elif child_return_code is not None and child_return_code != 0:
+                    print(
+                        "warning: isolated database cleanup failed; "
+                        "preserving child exit code",
+                        file=sys.stderr,
+                    )
+                else:
                     raise
-                primary_error.add_note("isolated database cleanup also failed")
 
 
 if __name__ == "__main__":

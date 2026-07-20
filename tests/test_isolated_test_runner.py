@@ -1,4 +1,5 @@
 import importlib.util
+import io
 import os
 import unittest
 from pathlib import Path
@@ -103,6 +104,41 @@ class IsolatedTestRunnerTests(unittest.TestCase):
                 runner.main([])
 
         drop_database.assert_called_once_with(ADMIN_URL, generated_name)
+
+    def test_cleanup_failure_does_not_mask_nonzero_child_result(self):
+        runner = self._load_runner()
+        generated_name = "keydion_test_0123456789abcdef0123456789abcdef"
+        stderr = io.StringIO()
+
+        with mock.patch.dict(
+            os.environ,
+            {"PAPERQUERY_TEST_MYSQL_ADMIN_URL": ADMIN_URL},
+            clear=True,
+        ), mock.patch.object(runner, "_create_database"), mock.patch.object(
+            runner,
+            "_run_child",
+            return_value=7,
+        ), mock.patch.object(
+            runner,
+            "_drop_database",
+            side_effect=RuntimeError("sensitive cleanup detail"),
+        ) as drop_database, mock.patch.object(
+            runner.uuid,
+            "uuid4",
+        ) as uuid4, mock.patch.object(runner.sys, "stderr", stderr):
+            uuid4.return_value.hex = "0123456789abcdef0123456789abcdef"
+            try:
+                result = runner.main([])
+            except RuntimeError as exc:
+                self.fail(f"cleanup failure masked nonzero child result: {exc}")
+
+        self.assertEqual(result, 7)
+        drop_database.assert_called_once_with(ADMIN_URL, generated_name)
+        self.assertEqual(
+            stderr.getvalue(),
+            "warning: isolated database cleanup failed; preserving child exit code\n",
+        )
+        self.assertNotIn("sensitive cleanup detail", stderr.getvalue())
 
     def test_drop_database_is_idempotent_for_validated_generated_name(self):
         runner = self._load_runner()
