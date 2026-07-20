@@ -136,9 +136,10 @@ class PaperModifyContractTest(unittest.TestCase):
     def test_metadata_fields_and_models_carry_anonymous_flag(self):
         from config import METADATA_FIELDS
         self.assertIn("is_anonymous", METADATA_FIELDS)
-        from models import PaperMetadataModel, SubmissionModel
+        from models import PaperMetadataModel, SubmissionModel, ensure_schema_current
         self.assertTrue(hasattr(PaperMetadataModel, "is_anonymous"))
         self.assertTrue(hasattr(SubmissionModel, "is_anonymous"))
+        self.assertTrue(callable(ensure_schema_current))
 
     def test_modify_template_supports_anonymous_papers(self):
         self.assertIn('name="is_anonymous"', self.template)

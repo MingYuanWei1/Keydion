@@ -6,6 +6,7 @@ pdfplumber>=0.11
 msal>=1.28
 requests>=2.31
 SQLAlchemy>=2.0
+Alembic>=1.18.5,<2
 PyMySQL>=1.1
 python-dotenv>=1.0.0
 bleach>=6.0

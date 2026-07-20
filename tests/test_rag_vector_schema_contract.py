@@ -43,9 +43,9 @@ class RagIndexMetaContract(unittest.TestCase):
         src = ast.get_source_segment(text, node)
         self.assertIn("rag_index_meta", src)
 
-    def test_init_db_adds_vector_column(self):
-        src = support.source_of("init_db")
-        self.assertIn("ADD COLUMN embedding_vec VECTOR(", src)
+    def test_schema_verifier_replaces_startup_vector_alter(self):
+        src = support.source_of("ensure_schema_current")
+        self.assertIn("BASE.metadata.create_all", src)
 
 
 class StoreLayerContract(unittest.TestCase):

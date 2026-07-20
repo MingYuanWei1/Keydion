@@ -1,10 +1,15 @@
-"""ORM models + init_db() schema setup/migrations."""
-import logging
+"""ORM models and startup schema-version verification."""
 import uuid
+from pathlib import Path
 
+from alembic import command
+from alembic.config import Config
+from alembic.runtime.migration import MigrationContext
+from alembic.script import ScriptDirectory
 from sqlalchemy import (
     Boolean, Column, Date, DateTime, ForeignKey, ForeignKeyConstraint, Integer,
-    String, Unicode, UnicodeText, UniqueConstraint, create_engine, func,
+    String, Unicode, UnicodeText, UniqueConstraint, create_engine, func, inspect,
+    select,
 )
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.orm import sessionmaker
@@ -13,9 +18,6 @@ from sqlalchemy.types import UserDefinedType
 import db
 from db import BASE
 from config import RAG_EMBED_DIM
-
-_log = logging.getLogger(__name__)
-
 
 class LocalUser(BASE):
     __tablename__ = "local_users"
@@ -346,6 +348,62 @@ class SessionModel(BASE):
     last_seen = Column(Unicode(255))
 
 
+def _alembic_config() -> Config:
+    return Config(str(Path(__file__).resolve().parent / "alembic.ini"))
+
+
+def _alembic_head() -> str:
+    head = ScriptDirectory.from_config(_alembic_config()).get_current_head()
+    if head is None:
+        raise RuntimeError("Alembic has no configured head revision")
+    return head
+
+
+def _ensure_rag_version_row(engine, initial_value: int) -> None:
+    table = RagIndexMetaModel.__table__
+    with engine.begin() as conn:
+        current = conn.execute(
+            select(table.c.value).where(table.c.name == "chunks_version")
+        ).scalar_one_or_none()
+        if current is None:
+            conn.execute(
+                table.insert().values(
+                    name="chunks_version",
+                    value=initial_value,
+                )
+            )
+
+
+def ensure_schema_current(engine) -> None:
+    """Create a new schema or refuse any non-current existing schema."""
+    user_tables = set(inspect(engine).get_table_names()) - {"alembic_version"}
+    head = _alembic_head()
+    if not user_tables:
+        BASE.metadata.create_all(engine)
+        _ensure_rag_version_row(engine, initial_value=0)
+        alembic_config = _alembic_config()
+        with engine.begin() as conn:
+            alembic_config.attributes["connection"] = conn
+            try:
+                command.stamp(alembic_config, head)
+            finally:
+                alembic_config.attributes.pop("connection", None)
+        return
+
+    with engine.connect() as conn:
+        current = MigrationContext.configure(conn).get_current_revision()
+    if current is None:
+        raise RuntimeError(
+            "database schema is unversioned; run the documented Alembic "
+            "adoption procedure"
+        )
+    if current != head:
+        raise RuntimeError(
+            f"database schema revision {current!r} does not match code head "
+            f"{head!r}"
+        )
+
+
 def init_db() -> None:
     if db._ENGINE is None:
         if not db.DB_URL:
@@ -353,179 +411,13 @@ def init_db() -> None:
                 "PAPERQUERY_DATABASE_URL is not set; set it to a SQLAlchemy "
                 "database URL (see .env.example)."
             )
-        db._ENGINE = create_engine(db.DB_URL, pool_pre_ping=True, pool_recycle=3600)
-        db._SESSION_LOCAL = sessionmaker(bind=db._ENGINE)
-        BASE.metadata.create_all(db._ENGINE)
-        # Migrate: add password column to ms_users if it doesn't exist.
-        # NOTE: these ALTERs are idempotent-by-exception — re-running them on an
-        # already-migrated DB raises "already exists"/duplicate-column errors that
-        # are EXPECTED, so the skip is logged at debug (hidden at the default log
-        # level) to keep startup logs clean. Enable debug logging to see them.
+        engine = create_engine(db.DB_URL, pool_pre_ping=True, pool_recycle=3600)
         try:
-            with db._ENGINE.connect() as conn:
-                from sqlalchemy import text
-                conn.execute(text("ALTER TABLE ms_users ADD COLUMN password VARCHAR(255) NULL"))
-                conn.commit()
+            ensure_schema_current(engine)
         except Exception:
-            _log.debug("migration skipped: add password column to ms_users")  # Column already exists
-        # Migrate: add serial column to conversations if it doesn't exist
-        try:
-            with db._ENGINE.connect() as conn:
-                from sqlalchemy import text
-                import secrets
-                try:
-                    conn.execute(text("ALTER TABLE conversations ADD COLUMN serial VARCHAR(6)"))
-                    conn.commit()
-                except Exception:
-                    _log.debug("migration skipped: add serial column to conversations")
-                try:
-                    conn.execute(text("CREATE UNIQUE INDEX ix_conversations_serial ON conversations(serial)"))
-                    conn.commit()
-                except Exception:
-                    _log.debug("migration skipped: create unique index ix_conversations_serial")
+            engine.dispose()
+            raise
 
-                rows = conn.execute(text("SELECT id FROM conversations WHERE serial IS NULL")).fetchall()
-                for row in rows:
-                    serial = secrets.token_urlsafe(5)[:6]
-                    conn.execute(text("UPDATE conversations SET serial = :s WHERE id = :id"), {"s": serial, "id": row[0]})
-                conn.commit()
-        except Exception:
-            _log.debug("migration skipped: backfill conversations serial")
-        # Migrate: add is_ib_sample column to papers_metadata if it doesn't exist
-        try:
-            with db._ENGINE.connect() as conn:
-                from sqlalchemy import text
-                conn.execute(text("ALTER TABLE papers_metadata ADD COLUMN is_ib_sample VARCHAR(10) DEFAULT ''"))
-                conn.commit()
-        except Exception:
-            _log.debug("migration skipped: add is_ib_sample column to papers_metadata")
-        # Migrate: widen embedding columns — Gemini vectors (gemini-embedding-001,
-        # 3072-dim) serialize to ~68KB JSON, over MySQL TEXT's 64KB cap.
-        for _emb_tbl in ("papers_chunks", "attachment_chunks"):
-            try:
-                with db._ENGINE.connect() as conn:
-                    from sqlalchemy import text
-                    conn.execute(text(f"ALTER TABLE {_emb_tbl} MODIFY embedding MEDIUMTEXT"))
-                    conn.commit()
-            except Exception:
-                _log.debug("migration skipped: widen %s.embedding to MEDIUMTEXT", _emb_tbl)
-        # Migrate: convert chunk tables to utf8mb4 — PDF-extracted text contains
-        # 4-byte chars (e.g. math-italic 𝑅/𝐵 from equations) that 3-byte utf8mb3
-        # columns reject with "Incorrect string value". Guarded on the current
-        # charset so the (table-rebuilding) CONVERT runs only when needed.
-        for _u8_tbl in ("papers_chunks", "attachment_chunks"):
-            try:
-                with db._ENGINE.connect() as conn:
-                    from sqlalchemy import text
-                    charset = conn.execute(text(
-                        "SELECT character_set_name FROM information_schema.columns "
-                        "WHERE table_schema = DATABASE() AND table_name = :t "
-                        "AND column_name = 'content'"
-                    ), {"t": _u8_tbl}).scalar()
-                    if charset and charset != "utf8mb4":
-                        conn.execute(text(
-                            f"ALTER TABLE {_u8_tbl} CONVERT TO CHARACTER SET utf8mb4 "
-                            "COLLATE utf8mb4_unicode_ci"
-                        ))
-                        conn.commit()
-            except Exception:
-                _log.debug("migration skipped: convert %s to utf8mb4", _u8_tbl)
-        # Migrate: add the binary vector column. Requires MySQL 9.x — the
-        # VECTOR type does not exist on 8.x, where this ALTER fails and is
-        # swallowed (the app then needs MySQL 9 before RAG features work).
-        try:
-            with db._ENGINE.connect() as conn:
-                from sqlalchemy import text
-                conn.execute(text(
-                    f"ALTER TABLE papers_chunks ADD COLUMN embedding_vec VECTOR({RAG_EMBED_DIM}) NULL"
-                ))
-                conn.commit()
-        except Exception:
-            _log.debug("migration skipped: add embedding_vec column to papers_chunks")  # column already exists (or pre-9.x MySQL)
-        # Migrate: add is_ib_sample column to submissions if it doesn't exist
-        try:
-            with db._ENGINE.connect() as conn:
-                from sqlalchemy import text
-                conn.execute(text("ALTER TABLE submissions ADD COLUMN is_ib_sample VARCHAR(10) DEFAULT ''"))
-                conn.commit()
-        except Exception:
-            _log.debug("migration skipped: add is_ib_sample column to submissions")
-        # Migrate: add is_anonymous column to papers_metadata / submissions
-        for _anon_tbl in ("papers_metadata", "submissions"):
-            try:
-                with db._ENGINE.connect() as conn:
-                    from sqlalchemy import text
-                    conn.execute(text(f"ALTER TABLE {_anon_tbl} ADD COLUMN is_anonymous VARCHAR(10) DEFAULT ''"))
-                    conn.commit()
-            except Exception:
-                _log.debug("migration skipped: add is_anonymous column to %s", _anon_tbl)
-        # Migrate: add cp_data column to papers_metadata if it doesn't exist
-        try:
-            with db._ENGINE.connect() as conn:
-                from sqlalchemy import text
-                conn.execute(text("ALTER TABLE papers_metadata ADD COLUMN cp_data TEXT"))
-                conn.commit()
-        except Exception:
-            _log.debug("migration skipped: add cp_data column to papers_metadata")
-        # Migrate: add cp_data column to submissions if it doesn't exist
-        try:
-            with db._ENGINE.connect() as conn:
-                from sqlalchemy import text
-                conn.execute(text("ALTER TABLE submissions ADD COLUMN cp_data TEXT"))
-                conn.commit()
-        except Exception:
-            _log.debug("migration skipped: add cp_data column to submissions")
-        # Migrate: add ia_data column to papers_metadata if it doesn't exist
-        try:
-            with db._ENGINE.connect() as conn:
-                from sqlalchemy import text
-                conn.execute(text("ALTER TABLE papers_metadata ADD COLUMN ia_data TEXT"))
-                conn.commit()
-        except Exception:
-            _log.debug("migration skipped: add ia_data column to papers_metadata")
-        # Migrate: add ia_data column to submissions if it doesn't exist
-        try:
-            with db._ENGINE.connect() as conn:
-                from sqlalchemy import text
-                conn.execute(text("ALTER TABLE submissions ADD COLUMN ia_data TEXT"))
-                conn.commit()
-        except Exception:
-            _log.debug("migration skipped: add ia_data column to submissions")
-        # Migrate: add status column to news_articles if it doesn't exist
-        try:
-            with db._ENGINE.connect() as conn:
-                from sqlalchemy import text
-                conn.execute(text("ALTER TABLE news_articles ADD COLUMN status VARCHAR(20) DEFAULT 'published'"))
-                conn.execute(text("UPDATE news_articles SET status = 'published' WHERE status IS NULL OR status = ''"))
-                conn.commit()
-        except Exception:
-            _log.debug("migration skipped: add status column to news_articles")
-        # Migrate: add attachments column to chat_messages if it doesn't exist
-        try:
-            with db._ENGINE.connect() as conn:
-                from sqlalchemy import text
-                conn.execute(text("ALTER TABLE chat_messages ADD COLUMN attachments TEXT"))
-                conn.commit()
-        except Exception:
-            _log.debug("migration skipped: add attachments column to chat_messages")
-        # Migrate: add cited_papers column to chat_messages if it doesn't exist
-        try:
-            with db._ENGINE.connect() as conn:
-                from sqlalchemy import text
-                conn.execute(text("ALTER TABLE chat_messages ADD COLUMN cited_papers TEXT"))
-                conn.commit()
-        except Exception:
-            _log.debug("migration skipped: add cited_papers column to chat_messages")
-        # Migrate: add slug column to journals + backfill name-based slugs
-        try:
-            with db._ENGINE.connect() as conn:
-                from sqlalchemy import text
-                conn.execute(text("ALTER TABLE journals ADD COLUMN slug VARCHAR(255)"))
-                conn.commit()
-        except Exception:
-            _log.debug("migration skipped: add slug column to journals")
-        try:
-            from services.journals import ensure_journal_slugs
-            ensure_journal_slugs()
-        except Exception:
-            _log.debug("migration skipped: backfill journal slugs")
+        session_factory = sessionmaker(bind=engine)
+        db._ENGINE = engine
+        db._SESSION_LOCAL = session_factory
