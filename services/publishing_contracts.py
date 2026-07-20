@@ -174,8 +174,10 @@ class BulkEditMetadata:
     patches: tuple[MetadataPatch, ...]
 
     def __post_init__(self) -> None:
-        if not isinstance(self.patches, tuple) or not self.patches:
-            raise InvalidInput({"patches": "must be a nonempty immutable tuple"})
+        if not isinstance(self.patches, tuple) or not self.patches or not all(
+            isinstance(patch, MetadataPatch) for patch in self.patches
+        ):
+            raise InvalidInput({"patches": "must be a nonempty immutable tuple of MetadataPatch records"})
 
 
 @dataclass(frozen=True)

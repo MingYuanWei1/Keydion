@@ -6,7 +6,7 @@ from datetime import datetime
 from services.paper_identity import normalize_alias_key
 from services.publishing_time import utc_iso_z
 from services.publishing_contracts import (
-    Actor, DirectPublish, IndexingOutcome, IndexingState,
+    Actor, BulkEditMetadata, DirectPublish, IndexingOutcome, IndexingState,
     InvalidInput, MetadataPatch, NormalizedPaperMetadata, PdfUpload, PreparedChunk,
     PreparedRevisionIndex, Published,
 )
@@ -84,3 +84,7 @@ class PublishingContractTests(unittest.TestCase):
             PreparedRevisionIndex("22222222-2222-4222-8222-222222222222", 1, [chunk])
         with self.assertRaises(InvalidInput):
             PreparedRevisionIndex("22222222-2222-4222-8222-222222222222", 1, ("not a chunk",))
+
+    def test_bulk_edit_metadata_rejects_non_patch_members(self):
+        with self.assertRaises(InvalidInput):
+            BulkEditMetadata(Actor("curator", 3), ("not a patch",))
