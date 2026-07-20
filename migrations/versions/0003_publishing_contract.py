@@ -309,6 +309,22 @@ def _mysql_schema_phase(engine):
     }
     paper_required = ("id", "lifecycle_state", "row_version", "index_status")
     paper_indexes = _index_signatures(inspector, "papers_metadata")
+    with engine.connect() as connection:
+        paper_collations = dict(connection.execute(sa.text("""
+            SELECT COLUMN_NAME, COLLATION_NAME
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA=DATABASE()
+              AND TABLE_NAME='papers_metadata'
+              AND COLUMN_NAME IN ('filename', 'direct_idempotency_key')
+        """)).all())
+    if {
+        name: str(paper_collations.get(name, "")).casefold()
+        for name in ("filename", "direct_idempotency_key")
+    } != {
+        "filename": "utf8mb4_bin",
+        "direct_idempotency_key": "utf8mb4_bin",
+    }:
+        _snapshot_restore_required("Paper opaque-key collations are not binary")
     checks_by_name = {
         constraint.get("name"): constraint.get("sqltext")
         for constraint in inspector.get_check_constraints("papers_metadata")
@@ -415,6 +431,10 @@ def _reconcile_ddl_phase(engine):
 def _mysql_paper_contract_group():
     op.execute(sa.text(f"""
         ALTER TABLE papers_metadata
+            MODIFY COLUMN filename VARCHAR(255)
+                CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+            MODIFY COLUMN direct_idempotency_key VARCHAR(255)
+                CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL,
             MODIFY COLUMN id VARCHAR(36) NOT NULL,
             MODIFY COLUMN lifecycle_state VARCHAR(16) NOT NULL,
             MODIFY COLUMN row_version INTEGER NOT NULL,

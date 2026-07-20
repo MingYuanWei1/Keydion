@@ -50,6 +50,14 @@ def _validate_legacy_before_expand():
 def _upgrade_unfenced():
     if _validate_legacy_before_expand():
         return
+    if op.get_bind().dialect.name == "mysql":
+        op.alter_column(
+            "papers_metadata",
+            "filename",
+            existing_type=sa.String(255),
+            type_=sa.String(255, collation="utf8mb4_bin"),
+            existing_nullable=False,
+        )
     # Keep filename as the legacy primary key throughout expand/backfill.  Every
     # added column is nullable until the contract validator proves it populated.
     for column in (
@@ -60,7 +68,13 @@ def _upgrade_unfenced():
         sa.Column("index_status", sa.String(16), nullable=True),
         sa.Column("indexed_revision", sa.Integer(), nullable=True),
         sa.Column("index_error", sa.Text(), nullable=True),
-        sa.Column("direct_idempotency_key", sa.String(255), nullable=True),
+        sa.Column(
+            "direct_idempotency_key",
+            sa.String(255).with_variant(
+                sa.String(255, collation="utf8mb4_bin"), "mysql",
+            ),
+            nullable=True,
+        ),
         sa.Column("direct_payload_hash", sa.String(64), nullable=True),
         sa.Column("origin_submission_id", sa.String(255), nullable=True),
         sa.Column("reservation_expires_at", sa.DateTime(), nullable=True),

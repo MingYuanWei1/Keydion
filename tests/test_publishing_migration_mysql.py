@@ -251,6 +251,82 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
             tuple((issue.code, issue.legacy_key) for issue in report.blockers),
         )
 
+    def test_raw_filename_and_direct_key_are_binary_in_expand_and_final_schema(self):
+        config = self._config()
+        command.stamp(config, "0000_legacy_baseline")
+        command.upgrade(config, "0001_publishing_expand")
+
+        def paper_collations():
+            with self.engine.connect() as conn:
+                return dict(conn.execute(text("""
+                    SELECT COLUMN_NAME, COLLATION_NAME
+                    FROM information_schema.COLUMNS
+                    WHERE TABLE_SCHEMA=DATABASE()
+                      AND TABLE_NAME='papers_metadata'
+                      AND COLUMN_NAME IN ('filename', 'direct_idempotency_key')
+                """)).all())
+
+        self.assertEqual(
+            paper_collations(),
+            {
+                "filename": "utf8mb4_bin",
+                "direct_idempotency_key": "utf8mb4_bin",
+            },
+        )
+        command.upgrade(config, "head")
+        self.assertEqual(
+            paper_collations(),
+            {
+                "filename": "utf8mb4_bin",
+                "direct_idempotency_key": "utf8mb4_bin",
+            },
+        )
+        with self.engine.begin() as conn:
+            conn.execute(text("""
+                INSERT INTO papers_metadata (
+                    id, filename, lifecycle_state, current_revision,
+                    row_version, index_status, direct_idempotency_key
+                ) VALUES
+                    ('00000000-0000-4000-8000-000000000001', 'Case.pdf',
+                     'publishing', NULL, 0, 'pending', 'Opaque-Key'),
+                    ('00000000-0000-4000-8000-000000000002', 'case.pdf',
+                     'publishing', NULL, 0, 'pending', 'opaque-key')
+            """))
+        with self.engine.connect() as conn:
+            self.assertEqual(
+                conn.execute(text("""
+                    SELECT COUNT(*) FROM papers_metadata
+                    WHERE filename IN ('Case.pdf', 'case.pdf')
+                """)).scalar_one(),
+                2,
+            )
+
+    def test_expanded_preflight_rejects_nonbinary_raw_identity_collations(self):
+        config = self._config()
+        command.stamp(config, "0000_legacy_baseline")
+        command.upgrade(config, "0001_publishing_expand")
+        with self.engine.begin() as conn:
+            conn.execute(text("""
+                ALTER TABLE papers_metadata
+                    MODIFY COLUMN filename VARCHAR(255)
+                        CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+                    MODIFY COLUMN direct_idempotency_key VARCHAR(255)
+                        CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL
+            """))
+
+        report = run_preflight(self.engine, self.papers)
+        blocker_keys = {
+            (issue.code, issue.legacy_key) for issue in report.blockers
+        }
+        self.assertIn(
+            ("unexpected_legacy_schema", "papers_metadata.filename"),
+            blocker_keys,
+        )
+        self.assertIn(
+            ("unexpected_legacy_schema", "papers_metadata.direct_idempotency_key"),
+            blocker_keys,
+        )
+
     def test_partial_expand_shape_is_refused_before_more_ddl(self):
         with self.engine.begin() as conn:
             conn.execute(text(

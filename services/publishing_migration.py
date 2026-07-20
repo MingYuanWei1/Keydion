@@ -888,6 +888,20 @@ def _mysql_preflight_issues(
                 "unexpected_legacy_schema", "paper_filename_aliases.lookup_key",
                 f"expanded alias lookup collation must be utf8mb4_bin, found {alias_lookup_collation!r}",
             ))
+        for column_name in ("filename", "direct_idempotency_key"):
+            collation = str(_scalar(engine, """
+                SELECT COLLATION_NAME FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'papers_metadata'
+                  AND COLUMN_NAME = :column_name
+            """, {"column_name": column_name}, default="")).casefold()
+            if collation != "utf8mb4_bin":
+                issues.append(_issue(
+                    "unexpected_legacy_schema",
+                    f"papers_metadata.{column_name}",
+                    "expanded opaque identity collation must be utf8mb4_bin, "
+                    f"found {collation!r}",
+                ))
 
     expected_primary_keys = {
         "papers_metadata": ["filename"],

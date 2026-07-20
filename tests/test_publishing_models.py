@@ -1,5 +1,7 @@
 import unittest
 
+from sqlalchemy.dialects import mysql
+
 from models import (
     PaperChunkModel, PaperFilenameAliasModel, PaperMetadataModel,
     PaperRevisionModel, PublishingJobModel, PublishingMigrationJournalModel,
@@ -31,6 +33,15 @@ class PublishingModelTests(unittest.TestCase):
     def test_alias_and_job_dedupe_keys_are_unique(self):
         self.assertTrue(PaperFilenameAliasModel.lookup_key.primary_key)
         self.assertTrue(PublishingJobModel.dedupe_key.unique)
+
+    def test_raw_filename_and_direct_idempotency_key_are_binary_on_mysql(self):
+        dialect = mysql.dialect()
+        for column_name in ("filename", "direct_idempotency_key"):
+            column_type = PaperMetadataModel.__table__.c[column_name].type
+            self.assertEqual(
+                column_type.dialect_impl(dialect).collation,
+                "utf8mb4_bin",
+            )
 
     def test_migration_journal_has_stable_identity_and_checkpoint(self):
         self.assertTrue(PublishingMigrationJournalModel.legacy_key.primary_key)

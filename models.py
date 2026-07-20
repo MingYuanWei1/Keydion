@@ -66,7 +66,13 @@ class PaperMetadataModel(BASE):
         ),
     )
     id = Column(Unicode(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    filename = Column(Unicode(255), nullable=False, unique=True)
+    filename = Column(
+        Unicode(255).with_variant(
+            String(255, collation="utf8mb4_bin"), "mysql",
+        ),
+        nullable=False,
+        unique=True,
+    )
     title = Column(Unicode(255))
     journal = Column(Unicode(255))
     category = Column(Unicode(255))
@@ -88,7 +94,12 @@ class PaperMetadataModel(BASE):
     index_status = Column(Unicode(16), nullable=False, default="pending")
     indexed_revision = Column(Integer)
     index_error = Column(UnicodeText)
-    direct_idempotency_key = Column(Unicode(255), unique=True)
+    direct_idempotency_key = Column(
+        Unicode(255).with_variant(
+            String(255, collation="utf8mb4_bin"), "mysql",
+        ),
+        unique=True,
+    )
     direct_payload_hash = Column(Unicode(64))
     origin_submission_id = Column(Unicode(255), unique=True)
     reservation_expires_at = Column(DateTime(timezone=False))
