@@ -75,12 +75,11 @@ class StoredPdf:
 
 @dataclass(frozen=True)
 class PendingTrash:
-    """Process-local one-use authority for one committed pending-file trash.
+    """Process-local one-use authority for one audited pending-file trash.
 
-    Tokens are intentionally not restart-persistent. Failed or restarted
-    operations leave only private managed entries for ``reconcile_expired``;
-    automatic cross-process restore requires a later persisted-recovery
-    contract.
+    Tokens are intentionally not restart-persistent. Recovery reopens and
+    verifies the deterministic private trash entry before issuing a new token;
+    database text is never treated as filesystem authority.
     """
 
     original_name: str
@@ -497,6 +496,51 @@ class PaperStorage:
                 follow_symlinks=False,
             )
             if not stat.S_ISDIR(before.st_mode):
+                return
+            first_fd = os.open(parts[0], _DIRECTORY_FLAGS, dir_fd=self._pending_fd)
+            opened = os.fstat(first_fd)
+            if not _same_inode(before, opened):
+                raise StorageError("pending ingress first component changed")
+            if _same_inode(opened, self._trash_stat):
+                raise StorageError("pending ingress cannot address reserved trash storage")
+        except StorageError:
+            raise
+        except OSError as exc:
+            raise StorageError("pending ingress first component is unsafe") from exc
+        finally:
+            if first_fd is not None:
+                os.close(first_fd)
+
+    def _validate_pending_recovery_name(self, filename: str) -> None:
+        """Validate a persisted original name even when its leaf is absent."""
+        _resolved, parts = self._relative_policy(
+            self.pending_dir,
+            filename,
+            must_exist=False,
+        )
+        if parts[0] == ".trash":
+            raise StorageError("pending ingress cannot address reserved trash storage")
+        if len(parts) == 1:
+            # Containment/symlink resolution above is sufficient for a leaf.
+            # The descriptor-relative open/move remains the authority check.
+            return
+        first_fd: int | None = None
+        try:
+            before = os.stat(
+                parts[0],
+                dir_fd=self._pending_fd,
+                follow_symlinks=False,
+            )
+        except FileNotFoundError:
+            if len(parts) != 1:
+                raise StorageError("pending destination parent is missing")
+            return
+        except OSError as exc:
+            raise StorageError("pending ingress first component is unsafe") from exc
+        try:
+            if not stat.S_ISDIR(before.st_mode):
+                if len(parts) != 1:
+                    raise StorageError("pending destination parent is unsafe")
                 return
             first_fd = os.open(parts[0], _DIRECTORY_FLAGS, dir_fd=self._pending_fd)
             opened = os.fstat(first_fd)
@@ -1373,22 +1417,102 @@ class PaperStorage:
                     self._trash_fd,
                     trash_name,
                 )
-            capability = secrets.token_urlsafe(32)
-            token = PendingTrash(
+            return self._issue_pending_trash_token(
                 original_name=filename,
                 operation_id=operation_id,
                 source_sha256=source_hash,
                 size_bytes=source_size,
                 device=final.st_dev,
                 inode=final.st_ino,
-                _capability=capability,
             )
-            self._trash_tokens[capability] = token
-            return token
         except StorageError:
             raise
         except OSError as exc:
             raise StorageError("pending PDF could not be trashed") from exc
+
+    def _issue_pending_trash_token(
+        self,
+        *,
+        original_name: str,
+        operation_id: str,
+        source_sha256: str,
+        size_bytes: int,
+        device: int,
+        inode: int,
+    ) -> PendingTrash:
+        capability = secrets.token_urlsafe(32)
+        token = PendingTrash(
+            original_name=original_name,
+            operation_id=operation_id,
+            source_sha256=source_sha256,
+            size_bytes=size_bytes,
+            device=device,
+            inode=inode,
+            _capability=capability,
+        )
+        self._trash_tokens[capability] = token
+        return token
+
+    @_serialized
+    def pending_exists(self, filename: str) -> bool:
+        """Audit whether a contained, single-link pending PDF exists."""
+        self._validate_pending_recovery_name(filename)
+        destination_fds: list[int] = []
+        try:
+            destination_fds, parent_fd, name = self._open_destination_parent(filename)
+            try:
+                os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+            except FileNotFoundError:
+                return False
+            with self._opened_regular(
+                self.pending_dir,
+                filename,
+                require_single_link=True,
+            ):
+                return True
+        except StorageError:
+            raise
+        except OSError as exc:
+            raise StorageError("pending PDF presence could not be audited") from exc
+        finally:
+            for directory_fd in reversed(destination_fds):
+                os.close(directory_fd)
+
+    @_serialized
+    def rehydrate_pending_trash(
+        self,
+        original_name: str | None,
+        operation_id: str,
+    ) -> PendingTrash | None:
+        """Re-audit deterministic trash and issue fresh process-local authority."""
+        if original_name is not None:
+            self._validate_pending_recovery_name(original_name)
+        trash_name = f"{_valid_operation_id(operation_id)}.pdf"
+        try:
+            try:
+                os.stat(trash_name, dir_fd=self._trash_fd, follow_symlinks=False)
+            except FileNotFoundError:
+                return None
+            with self._opened_regular(
+                self.trash_dir,
+                trash_name,
+                require_single_link=True,
+                require_private=True,
+            ) as (source_fd, _, _, _, source_stat):
+                with os.fdopen(os.dup(source_fd), "rb") as source:
+                    source_hash, source_size = _hash_reader(source)
+                return self._issue_pending_trash_token(
+                    original_name=original_name or "",
+                    operation_id=operation_id,
+                    source_sha256=source_hash,
+                    size_bytes=source_size,
+                    device=source_stat.st_dev,
+                    inode=source_stat.st_ino,
+                )
+        except StorageError:
+            raise
+        except OSError as exc:
+            raise StorageError("pending trash could not be rehydrated") from exc
 
     def _open_destination_parent(self, relative_name: str) -> tuple[list[int], int, str]:
         parts = Path(relative_name).parts
@@ -1409,11 +1533,7 @@ class PaperStorage:
         stored = self._trash_tokens.get(token._capability)
         if stored != token:
             raise StorageError("pending trash token is invalid or already consumed")
-        self._relative_policy(
-            self.pending_dir,
-            token.original_name,
-            must_exist=False,
-        )
+        self._validate_pending_recovery_name(token.original_name)
         original_relative = token.original_name
         trash_name = f"{token.operation_id}.pdf"
         destination_fds: list[int] = []
@@ -1449,7 +1569,13 @@ class PaperStorage:
                     destination_parent_fd,
                     destination_name,
                 )
-            del self._trash_tokens[token._capability]
+            for capability, issued in tuple(self._trash_tokens.items()):
+                if (
+                    issued.operation_id == token.operation_id
+                    and issued.device == token.device
+                    and issued.inode == token.inode
+                ):
+                    del self._trash_tokens[capability]
         except StorageError:
             raise
         except OSError as exc:
@@ -1457,6 +1583,77 @@ class PaperStorage:
         finally:
             for directory_fd in reversed(destination_fds):
                 os.close(directory_fd)
+
+    @_serialized
+    def discard_pending_trash(self, token: PendingTrash) -> None:
+        """Consume one audited capability and durably remove its exact inode."""
+        if not isinstance(token, PendingTrash):
+            raise StorageError("pending discard requires a trash token")
+        stored = self._trash_tokens.get(token._capability)
+        if stored != token:
+            raise StorageError("pending trash token is invalid or already consumed")
+        trash_name = f"{_valid_operation_id(token.operation_id)}.pdf"
+        try:
+            with self._opened_regular(
+                self.trash_dir,
+                trash_name,
+                require_single_link=True,
+                require_private=True,
+            ) as (source_fd, _, source_name, _, source_stat):
+                with os.fdopen(os.dup(source_fd), "rb") as source:
+                    source_hash, source_size = _hash_reader(source)
+                if (
+                    (source_stat.st_dev, source_stat.st_ino)
+                    != (token.device, token.inode)
+                    or (source_hash, source_size)
+                    != (token.source_sha256, token.size_bytes)
+                ):
+                    raise StorageError("trashed pending PDF does not match its token")
+                if not self._unlink_if_matching(self._trash_fd, source_name, source_stat):
+                    raise StorageError("pending trash changed before removal")
+            _fsync_directory_fd(self._trash_fd)
+            for capability, issued in tuple(self._trash_tokens.items()):
+                if (
+                    issued.operation_id == token.operation_id
+                    and issued.device == token.device
+                    and issued.inode == token.inode
+                ):
+                    del self._trash_tokens[capability]
+        except StorageError:
+            raise
+        except OSError as exc:
+            raise StorageError("pending trash could not be discarded") from exc
+
+    @_serialized
+    def stale_pending_trash(self, cutoff: datetime | float | int) -> tuple[str, ...]:
+        """List only descriptor-audited deterministic trash older than cutoff."""
+        cutoff_timestamp = self._cutoff_timestamp(cutoff)
+        operation_ids: list[str] = []
+        try:
+            directory = os.fstat(self._trash_fd)
+            for name in os.listdir(self._trash_fd):
+                if not name.endswith(".pdf"):
+                    raise StorageError("reserved trash contains an unknown entry")
+                operation_id = name[:-4]
+                _valid_operation_id(operation_id)
+                entry = os.stat(name, dir_fd=self._trash_fd, follow_symlinks=False)
+                if (
+                    not stat.S_ISREG(entry.st_mode)
+                    or not _private_mode(entry, 0o600)
+                    or entry.st_nlink != 1
+                    or entry.st_dev != directory.st_dev
+                ):
+                    raise StorageError("reserved trash contains an unsafe entry")
+                resolved = resolve_contained(self.trash_dir, name, must_exist=True)
+                if resolved is None:
+                    raise StorageError("reserved trash entry is not contained")
+                if entry.st_mtime < cutoff_timestamp:
+                    operation_ids.append(operation_id)
+            return tuple(sorted(operation_ids))
+        except StorageError:
+            raise
+        except (OSError, RuntimeError, ValueError) as exc:
+            raise StorageError("pending trash could not be audited") from exc
 
     @staticmethod
     def _cutoff_timestamp(cutoff: datetime | float | int) -> float:
@@ -1660,32 +1857,17 @@ class PaperStorage:
             cutoff_timestamp,
             publication_links,
         )
-        trash_stale = self._stale_entries(
-            self.trash_dir,
-            self._trash_fd,
-            cutoff_timestamp,
-            publication_links,
-        )
         namespace = self._revision_namespace(publication_links)
         removed = 0
         try:
-            for directory_fd, entries in (
-                (self._staging_fd, staging_stale),
-                (self._trash_fd, trash_stale),
-            ):
-                directory_removed = 0
-                for name, expected in entries.items():
-                    if not self._unlink_if_matching(directory_fd, name, expected):
-                        raise StorageError("stale storage entry changed before removal")
-                    removed += 1
-                    directory_removed += 1
-                    if directory_fd == self._trash_fd:
-                        operation_id = name[:-4] if name.endswith(".pdf") else None
-                        for capability, token in tuple(self._trash_tokens.items()):
-                            if token.operation_id == operation_id:
-                                del self._trash_tokens[capability]
-                if directory_removed:
-                    _fsync_directory_fd(directory_fd)
+            staging_removed = 0
+            for name, expected in staging_stale.items():
+                if not self._unlink_if_matching(self._staging_fd, name, expected):
+                    raise StorageError("stale storage entry changed before removal")
+                removed += 1
+                staging_removed += 1
+            if staging_removed:
+                _fsync_directory_fd(self._staging_fd)
 
             for paper_id, (expected_directory, revisions) in namespace.items():
                 paper_fd = os.open(paper_id, _DIRECTORY_FLAGS, dir_fd=self._papers_fd)

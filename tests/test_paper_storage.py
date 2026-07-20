@@ -1232,7 +1232,7 @@ class PaperStorageTests(unittest.TestCase):
         with self.assertRaises(StorageError):
             self.storage.open_revision(PAPER_ID, 3)
 
-    def test_reconcile_expired_removes_only_stale_unreferenced_storage(self):
+    def test_reconcile_expired_leaves_pending_trash_for_submission_reconciliation(self):
         referenced = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-ref")
         self.storage.promote(referenced, PAPER_ID, 1)
         unreferenced = self.storage.stage(self.valid_pdf_upload("b.pdf"), "op-unref")
@@ -1249,10 +1249,10 @@ class PaperStorageTests(unittest.TestCase):
 
         removed = self.storage.reconcile_expired(cutoff, {(PAPER_ID, 1)})
 
-        self.assertEqual(removed, 3)
+        self.assertEqual(removed, 2)
         self.assertFalse(old_stage.path.exists())
         self.assertTrue(new_stage.path.exists())
-        self.assertFalse(old_trash.exists())
+        self.assertTrue(old_trash.exists())
         self.assertTrue(self.storage.revision_path(PAPER_ID, 1).exists())
         self.assertFalse(self.storage.revision_path(PAPER_ID, 2).exists())
 
