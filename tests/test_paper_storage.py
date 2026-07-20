@@ -1,7 +1,9 @@
 import hashlib
 import io
 import os
+import stat
 import tempfile
+import threading
 import time
 import unittest
 from pathlib import Path
@@ -39,6 +41,114 @@ class PaperStorageTests(unittest.TestCase):
         upload = self.valid_pdf_upload(filename, width=width)
         path.write_bytes(upload.stream.read())
         return path
+
+    def test_constructor_rejects_symlinked_roots_and_reserved_directories(self):
+        root = Path(self.tmp.name) / "unsafe-constructor"
+        root.mkdir(mode=0o700)
+        outside = root / "outside"
+        outside.mkdir(mode=0o700)
+
+        papers_link = root / "papers-link"
+        papers_link.symlink_to(outside, target_is_directory=True)
+        with self.assertRaises(StorageError):
+            PaperStorage(papers_link, root / "pending-a")
+
+        papers = root / "papers"
+        pending = root / "pending-b"
+        papers.mkdir(mode=0o700)
+        pending.mkdir(mode=0o700)
+        (papers / ".staging").symlink_to(outside, target_is_directory=True)
+        with self.assertRaises(StorageError):
+            PaperStorage(papers, pending)
+        self.assertEqual(list(outside.iterdir()), [])
+
+    def test_private_storage_modes_are_explicit(self):
+        staged = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-mode")
+        stored = self.storage.promote(staged, PAPER_ID, 1)
+        for directory in (
+            self.storage.papers_dir,
+            self.storage.pending_dir,
+            self.storage.staging_dir,
+            self.storage.trash_dir,
+            stored.path.parent,
+        ):
+            self.assertEqual(stat.S_IMODE(directory.stat().st_mode), 0o700)
+        for private_file in (
+            stored.path,
+            self.storage.papers_dir / ".paper-storage.lock",
+        ):
+            self.assertEqual(stat.S_IMODE(private_file.stat().st_mode), 0o600)
+
+    def test_stage_fails_closed_if_reserved_directory_is_replaced(self):
+        original_staging = self.storage.staging_dir.with_name("detached-staging")
+        self.storage.staging_dir.rename(original_staging)
+        outside = Path(self.tmp.name) / "outside-stage"
+        outside.mkdir(mode=0o700)
+        self.storage.staging_dir.symlink_to(outside, target_is_directory=True)
+
+        with self.assertRaises(StorageError):
+            self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-escape")
+
+        self.assertEqual(list(outside.iterdir()), [])
+
+    def test_stage_pending_rejects_hard_link_before_copying_bytes(self):
+        outside = Path(self.tmp.name) / "outside-hardlink.pdf"
+        outside.write_bytes(self.valid_pdf_upload("outside.pdf").stream.read())
+        ingress = self.storage.pending_dir / "hardlink.pdf"
+        os.link(outside, ingress)
+
+        with mock.patch("services.paper_storage.os.fdopen", wraps=os.fdopen) as fdopen:
+            with self.assertRaises(StorageError):
+                self.storage.stage_pending(ingress.name, "op-hardlink")
+        fdopen.assert_not_called()
+        self.assertFalse((self.storage.staging_dir / "op-hardlink.pdf").exists())
+        self.assertTrue(outside.exists())
+
+    def test_storage_mutations_are_serialized_across_instances(self):
+        second = PaperStorage(self.storage.papers_dir, self.storage.pending_dir)
+        pdf_bytes = self.valid_pdf_upload("blocking.pdf").stream.read()
+        entered = threading.Event()
+        release = threading.Event()
+        reconciled = threading.Event()
+        errors = []
+
+        class BlockingStream(io.BytesIO):
+            def read(self, size=-1):
+                if not entered.is_set():
+                    entered.set()
+                    if not release.wait(2):
+                        raise RuntimeError("test release timed out")
+                return super().read(size)
+
+        def stage_pdf():
+            try:
+                self.storage.stage(
+                    PdfUpload("blocking.pdf", BlockingStream(pdf_bytes)),
+                    "op-blocking",
+                )
+            except Exception as exc:
+                errors.append(exc)
+
+        def reconcile():
+            try:
+                second.reconcile_expired(time.time() + 60, set())
+            except Exception as exc:
+                errors.append(exc)
+            finally:
+                reconciled.set()
+
+        stage_thread = threading.Thread(target=stage_pdf)
+        reconcile_thread = threading.Thread(target=reconcile)
+        stage_thread.start()
+        self.assertTrue(entered.wait(1))
+        reconcile_thread.start()
+        self.assertFalse(reconciled.wait(0.1))
+        release.set()
+        stage_thread.join(2)
+        reconcile_thread.join(2)
+        self.assertFalse(stage_thread.is_alive())
+        self.assertFalse(reconcile_thread.is_alive())
+        self.assertEqual(errors, [])
 
     def test_promote_uses_only_paper_id_and_revision(self):
         staged = self.storage.stage(

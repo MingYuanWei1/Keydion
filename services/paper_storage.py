@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import hashlib
+import fcntl
+import functools
 import os
 import re
 import stat
 import tempfile
+import threading
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -36,6 +39,9 @@ _CREATE_FLAGS = (
     | getattr(os, "O_CLOEXEC", 0)
     | getattr(os, "O_NOFOLLOW", 0)
 )
+_CREATE_RW_FLAGS = (_CREATE_FLAGS & ~os.O_WRONLY) | os.O_RDWR
+_PROCESS_LOCKS: dict[tuple[int, int], threading.RLock] = {}
+_PROCESS_LOCKS_GUARD = threading.Lock()
 
 
 class StorageError(Exception):
@@ -118,20 +124,212 @@ def _same_inode(left: os.stat_result, right: os.stat_result) -> bool:
     return (left.st_dev, left.st_ino) == (right.st_dev, right.st_ino)
 
 
+def _private_mode(info: os.stat_result, expected: int) -> bool:
+    return stat.S_IMODE(info.st_mode) == expected and info.st_uid == os.getuid()
+
+
+def _root_process_lock(info: os.stat_result) -> threading.RLock:
+    key = (info.st_dev, info.st_ino)
+    with _PROCESS_LOCKS_GUARD:
+        return _PROCESS_LOCKS.setdefault(key, threading.RLock())
+
+
+def _serialized(method):
+    @functools.wraps(method)
+    def wrapped(self, *args, **kwargs):
+        with self._storage_lock():
+            return method(self, *args, **kwargs)
+
+    return wrapped
+
+
 class PaperStorage:
     """Store staged uploads and immutable revisions behind one filesystem seam."""
 
     def __init__(self, papers_dir: Path, pending_dir: Path):
-        raw_papers = Path(papers_dir)
-        raw_pending = Path(pending_dir)
-        raw_papers.mkdir(parents=True, exist_ok=True)
-        raw_pending.mkdir(parents=True, exist_ok=True)
-        self.papers_dir = raw_papers.resolve()
-        self.pending_dir = raw_pending.resolve()
+        self._closed = False
+        self._lock_state = threading.local()
+        self.papers_dir, self._papers_fd, self._papers_stat = self._open_private_root(
+            Path(papers_dir), "Paper"
+        )
+        try:
+            self.pending_dir, self._pending_fd, self._pending_stat = self._open_private_root(
+                Path(pending_dir), "pending"
+            )
+        except Exception:
+            os.close(self._papers_fd)
+            raise
+        self._process_lock = _root_process_lock(self._papers_stat)
         self.staging_dir = self.papers_dir / ".staging"
         self.trash_dir = self.pending_dir / ".trash"
-        self.staging_dir.mkdir(exist_ok=True)
-        self.trash_dir.mkdir(exist_ok=True)
+        self._lock_fd = self._open_lock_file()
+        try:
+            with self._process_lock:
+                fcntl.flock(self._lock_fd, fcntl.LOCK_EX)
+                try:
+                    self._staging_fd, self._staging_stat = self._open_private_directory(
+                        self._papers_fd, ".staging"
+                    )
+                    try:
+                        self._trash_fd, self._trash_stat = self._open_private_directory(
+                            self._pending_fd, ".trash"
+                        )
+                    except Exception:
+                        os.close(self._staging_fd)
+                        raise
+                finally:
+                    fcntl.flock(self._lock_fd, fcntl.LOCK_UN)
+        except Exception:
+            os.close(self._lock_fd)
+            os.close(self._pending_fd)
+            os.close(self._papers_fd)
+            raise
+
+    @staticmethod
+    def _open_private_root(path: Path, label: str) -> tuple[Path, int, os.stat_result]:
+        absolute = Path(os.path.abspath(os.fspath(path)))
+        try:
+            absolute.mkdir(parents=True, mode=0o700)
+        except FileExistsError:
+            pass
+        try:
+            before = absolute.lstat()
+            if not stat.S_ISDIR(before.st_mode) or not _private_mode(before, 0o700):
+                raise StorageError(f"{label} storage root is not a private owned directory")
+            root_fd = os.open(os.fspath(absolute), _DIRECTORY_FLAGS)
+        except StorageError:
+            raise
+        except OSError as exc:
+            raise StorageError(f"{label} storage root is unsafe") from exc
+        try:
+            opened = os.fstat(root_fd)
+            if not _same_inode(before, opened) or opened.st_dev != before.st_dev:
+                raise StorageError(f"{label} storage root changed while opening")
+            return absolute.resolve(), root_fd, opened
+        except Exception:
+            os.close(root_fd)
+            raise
+
+    @staticmethod
+    def _open_private_directory(
+        parent_fd: int,
+        name: str,
+    ) -> tuple[int, os.stat_result]:
+        created = False
+        try:
+            os.mkdir(name, mode=0o700, dir_fd=parent_fd)
+            created = True
+        except FileExistsError:
+            pass
+        try:
+            before = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+            if not stat.S_ISDIR(before.st_mode) or not _private_mode(before, 0o700):
+                raise StorageError(f"reserved directory {name!r} is unsafe")
+            directory_fd = os.open(name, _DIRECTORY_FLAGS, dir_fd=parent_fd)
+        except StorageError:
+            raise
+        except OSError as exc:
+            raise StorageError(f"reserved directory {name!r} is unsafe") from exc
+        try:
+            opened = os.fstat(directory_fd)
+            if not _same_inode(before, opened):
+                raise StorageError(f"reserved directory {name!r} changed while opening")
+            if created:
+                os.fsync(parent_fd)
+            return directory_fd, opened
+        except Exception:
+            os.close(directory_fd)
+            raise
+
+    def _open_lock_file(self) -> int:
+        flags = os.O_RDWR | os.O_CREAT | getattr(os, "O_CLOEXEC", 0) | getattr(
+            os, "O_NOFOLLOW", 0
+        )
+        try:
+            lock_fd = os.open(".paper-storage.lock", flags, 0o600, dir_fd=self._papers_fd)
+        except OSError as exc:
+            raise StorageError("storage lock file is unsafe") from exc
+        try:
+            info = os.fstat(lock_fd)
+            if (
+                not stat.S_ISREG(info.st_mode)
+                or not _private_mode(info, 0o600)
+                or info.st_nlink != 1
+                or info.st_dev != self._papers_stat.st_dev
+            ):
+                raise StorageError("storage lock file is unsafe")
+            os.fsync(self._papers_fd)
+            return lock_fd
+        except Exception:
+            os.close(lock_fd)
+            raise
+
+    def _verify_root_path(self, path: Path, expected: os.stat_result, label: str) -> None:
+        try:
+            current = path.lstat()
+        except OSError as exc:
+            raise StorageError(f"{label} storage root disappeared") from exc
+        if not stat.S_ISDIR(current.st_mode) or not _same_inode(current, expected):
+            raise StorageError(f"{label} storage root changed")
+
+    def _verify_reserved_directory(
+        self,
+        parent_fd: int,
+        name: str,
+        expected: os.stat_result,
+    ) -> None:
+        try:
+            current = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+        except OSError as exc:
+            raise StorageError(f"reserved directory {name!r} disappeared") from exc
+        if (
+            not stat.S_ISDIR(current.st_mode)
+            or not _private_mode(current, 0o700)
+            or not _same_inode(current, expected)
+        ):
+            raise StorageError(f"reserved directory {name!r} changed")
+
+    @contextmanager
+    def _storage_lock(self):
+        with self._process_lock:
+            depth = getattr(self._lock_state, "depth", 0)
+            if depth == 0:
+                fcntl.flock(self._lock_fd, fcntl.LOCK_EX)
+            self._lock_state.depth = depth + 1
+            try:
+                self._verify_root_path(self.papers_dir, self._papers_stat, "Paper")
+                self._verify_root_path(self.pending_dir, self._pending_stat, "pending")
+                self._verify_reserved_directory(
+                    self._papers_fd, ".staging", self._staging_stat
+                )
+                self._verify_reserved_directory(self._pending_fd, ".trash", self._trash_stat)
+                yield
+            finally:
+                self._lock_state.depth -= 1
+                if depth == 0:
+                    fcntl.flock(self._lock_fd, fcntl.LOCK_UN)
+
+    def close(self) -> None:
+        if getattr(self, "_closed", True):
+            return
+        self._closed = True
+        for name in (
+            "_trash_fd",
+            "_staging_fd",
+            "_lock_fd",
+            "_pending_fd",
+            "_papers_fd",
+        ):
+            descriptor = getattr(self, name, None)
+            if descriptor is not None:
+                os.close(descriptor)
+
+    def __del__(self):
+        if hasattr(self, "_closed"):
+            try:
+                self.close()
+            except OSError:
+                pass
 
     def _stage_path(self, operation_id: str) -> Path:
         return self.staging_dir / f"{_valid_operation_id(operation_id)}.pdf"
@@ -167,12 +365,24 @@ class PaperStorage:
         self,
         root: Path,
         value: str,
+        *,
+        require_single_link: bool = False,
     ) -> Iterator[tuple[int, int, str, Path, os.stat_result]]:
         resolved, parts = self._relative_policy(root, value, must_exist=True)
         directory_fds: list[int] = []
         file_fd: int | None = None
         try:
-            directory_fds.append(os.open(os.fspath(root), _DIRECTORY_FLAGS))
+            if root == self.papers_dir:
+                base_fd = self._papers_fd
+            elif root == self.pending_dir:
+                base_fd = self._pending_fd
+            elif root == self.staging_dir:
+                base_fd = self._staging_fd
+            elif root == self.trash_dir:
+                base_fd = self._trash_fd
+            else:
+                raise StorageError("unknown storage root")
+            directory_fds.append(os.dup(base_fd))
             for component in parts[:-1]:
                 directory_fds.append(
                     os.open(component, _DIRECTORY_FLAGS, dir_fd=directory_fds[-1])
@@ -184,7 +394,11 @@ class PaperStorage:
                 raise StorageError("stored PDF is not a regular file")
             file_fd = os.open(leaf, _READ_FLAGS, dir_fd=parent_fd)
             opened = os.fstat(file_fd)
-            if not stat.S_ISREG(opened.st_mode) or not _same_inode(before, opened):
+            if (
+                not stat.S_ISREG(opened.st_mode)
+                or not _same_inode(before, opened)
+                or (require_single_link and opened.st_nlink != 1)
+            ):
                 raise StorageError("stored PDF changed while opening")
             yield file_fd, parent_fd, leaf, resolved, opened
         except StorageError:
@@ -199,10 +413,16 @@ class PaperStorage:
 
     def _stage_stream(self, stream: BinaryIO, operation_id: str) -> StagedPdf:
         path = self._stage_path(operation_id)
-        created = False
+        name = path.name
+        created: os.stat_result | None = None
+        stage_fd: int | None = None
         try:
-            with path.open("x+b") as target:
-                created = True
+            stage_fd = os.open(name, _CREATE_RW_FLAGS, 0o600, dir_fd=self._staging_fd)
+            created = os.fstat(stage_fd)
+            if not stat.S_ISREG(created.st_mode) or not _private_mode(created, 0o600):
+                raise StorageError("new stage is not a private regular file")
+            with os.fdopen(stage_fd, "w+b") as target:
+                stage_fd = None
                 stream.seek(0)
                 digest = hashlib.sha256()
                 size = 0
@@ -218,26 +438,60 @@ class PaperStorage:
                 target.flush()
                 os.fsync(target.fileno())
                 _strict_pdf(target)
+            os.fsync(self._staging_fd)
             source_hash = digest.hexdigest()
             return StagedPdf(path, source_hash, source_hash, size)
         except StorageError:
-            if created:
-                path.unlink(missing_ok=True)
+            if created is not None:
+                self._unlink_if_matching(self._staging_fd, name, created)
             raise
         except (OSError, RuntimeError, TypeError, ValueError) as exc:
-            if created:
-                path.unlink(missing_ok=True)
+            if created is not None:
+                self._unlink_if_matching(self._staging_fd, name, created)
             raise StorageError("PDF could not be staged") from exc
+        finally:
+            if stage_fd is not None:
+                os.close(stage_fd)
 
+    @staticmethod
+    def _unlink_if_matching(
+        directory_fd: int,
+        name: str,
+        expected: os.stat_result,
+    ) -> bool:
+        try:
+            current = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
+        except FileNotFoundError:
+            return False
+        if not _same_inode(current, expected):
+            return False
+        os.unlink(name, dir_fd=directory_fd)
+        return True
+
+    @_serialized
     def stage(self, upload: PdfUpload, operation_id: str) -> StagedPdf:
         if not isinstance(upload, PdfUpload):
             raise StorageError("upload must be a PdfUpload")
         return self._stage_stream(upload.stream, operation_id)
 
+    @_serialized
     def stage_pending(self, filename: str, operation_id: str) -> StagedPdf:
-        with self._opened_regular(self.pending_dir, filename) as (source_fd, _, _, _, _):
+        with self._opened_regular(
+            self.pending_dir,
+            filename,
+            require_single_link=True,
+        ) as (source_fd, _, _, _, opened):
             with os.fdopen(os.dup(source_fd), "rb") as source:
-                return self._stage_stream(source, operation_id)
+                staged = self._stage_stream(source, operation_id)
+            final = os.fstat(source_fd)
+            if final.st_nlink != 1 or not _same_inode(opened, final):
+                self._unlink_if_matching(
+                    self._staging_fd,
+                    staged.path.name,
+                    os.stat(staged.path.name, dir_fd=self._staging_fd, follow_symlinks=False),
+                )
+                raise StorageError("pending PDF changed while copying")
+            return staged
 
     def _validated_stage(self, staged: StagedPdf) -> tuple[Path, str, int]:
         if not isinstance(staged, StagedPdf):
@@ -260,6 +514,7 @@ class PaperStorage:
             raise StorageError("staged PDF bytes changed")
         return resolved, current_hash, current_size
 
+    @_serialized
     def apply_metadata(self, staged: StagedPdf, *, title: str, author: str) -> StagedPdf:
         source_path, _source_hash, _source_size = self._validated_stage(staged)
         temporary: Path | None = None
@@ -338,6 +593,7 @@ class PaperStorage:
                 os.close(root_fd)
             raise StorageError("Paper revision directory is unsafe") from exc
 
+    @_serialized
     def promote(self, staged: StagedPdf, paper_id: str, revision: int) -> StoredPdf:
         source_path, source_hash, source_size = self._validated_stage(staged)
         number = _valid_revision(revision)
@@ -466,6 +722,7 @@ class PaperStorage:
             os.close(paper_fd)
             os.close(root_fd)
 
+    @_serialized
     def open_revision(self, paper_id: str, revision: int) -> Path:
         path = self.revision_path(paper_id, revision)
         relative = f"{path.parent.name}/{path.name}"
@@ -475,6 +732,7 @@ class PaperStorage:
         except StorageError as exc:
             raise StorageError("Paper revision does not exist") from exc
 
+    @_serialized
     def copy_revision(
         self,
         paper_id: str,
@@ -544,6 +802,7 @@ class PaperStorage:
                 except FileNotFoundError:
                     pass
 
+    @_serialized
     def delete_paper(self, paper_id: str, retained_legacy_filenames: Iterable[str]) -> None:
         canonical = _canonical_paper_id(paper_id)
         legacy_names = self._legacy_names(retained_legacy_filenames)
@@ -630,6 +889,7 @@ class PaperStorage:
                     pass
             raise
 
+    @_serialized
     def trash_pending(self, filename: str, operation_id: str) -> tuple[Path, Path]:
         trash_name = f"{_valid_operation_id(operation_id)}.pdf"
         trash_fd = os.open(os.fspath(self.trash_dir), _DIRECTORY_FLAGS)
@@ -682,6 +942,7 @@ class PaperStorage:
                 os.close(directory_fd)
             raise
 
+    @_serialized
     def restore_pending(self, original: Path, trashed: Path) -> None:
         _original_path, original_relative = self._pending_relative_path(
             original,
@@ -762,6 +1023,7 @@ class PaperStorage:
         finally:
             os.close(directory_fd)
 
+    @_serialized
     def reconcile_expired(
         self,
         cutoff: datetime | float | int,
