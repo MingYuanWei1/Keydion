@@ -57,6 +57,7 @@ data/guide_categories.json
 # Superpowers plans/specs (local only)
 docs/review
 docs/superpowers
+.superpowers/
 LLM_DEPLOYMENT_IDEAS.md
 
 # Utility / migration scripts
