@@ -128,7 +128,8 @@ class PublishingMigrationTests(unittest.TestCase):
                 CREATE TABLE publishing_migration_state (
                     name VARCHAR(32) PRIMARY KEY, paper_count INTEGER NOT NULL,
                     submission_count INTEGER NOT NULL, chunk_count INTEGER NOT NULL,
-                    vector_count INTEGER NOT NULL, captured_at DATETIME NOT NULL
+                    vector_count INTEGER NOT NULL, ddl_phase VARCHAR(32) NOT NULL,
+                    captured_at DATETIME NOT NULL
                 )
             """))
             conn.execute(text("""
@@ -759,6 +760,70 @@ class PublishingMigrationTests(unittest.TestCase):
         self.assertIn("duplicate_chunk", tuple(issue.code for issue in report.blockers))
         with self.assertRaises(MigrationBlocked):
             validate_contract_ready(self.engine, self.papers)
+
+    def test_duplicate_final_chunk_key_blocks_even_when_filenames_differ(self):
+        self.write_legacy("one.pdf")
+        self.write_legacy("two.pdf")
+        with self.engine.begin() as conn:
+            conn.execute(text("""
+                INSERT INTO papers_chunks (filename, chunk_index, content)
+                VALUES ('one.pdf', 0, 'one'), ('two.pdf', 0, 'two')
+            """))
+        backfill_all(self.engine, self.papers)
+        first_paper = self.scalar(
+            "SELECT id FROM papers_metadata WHERE filename='one.pdf'"
+        )
+        with self.engine.begin() as conn:
+            conn.execute(text("""
+                UPDATE papers_chunks SET paper_id=:paper_id, revision_number=1
+                WHERE filename='two.pdf'
+            """), {"paper_id": first_paper})
+
+        with self.assertRaisesRegex(MigrationBlocked, "duplicate chunk"):
+            validate_contract_ready(self.engine, self.papers)
+
+    def test_null_chunk_index_blocks_exact_prospective_contract_key(self):
+        self.write_legacy("paper.pdf")
+        with self.engine.begin() as conn:
+            conn.execute(text("""
+                INSERT INTO papers_chunks (filename, chunk_index, content)
+                VALUES ('paper.pdf', NULL, 'chunk')
+            """))
+        backfill_all(self.engine, self.papers)
+
+        with self.assertRaisesRegex(MigrationBlocked, "prospective chunk key"):
+            validate_contract_ready(self.engine, self.papers)
+
+    def test_contract_rejection_leaves_precontract_primary_key_unchanged(self):
+        engine = self._legacy_engine("invalid-contract.sqlite")
+        (self.papers / "paper.pdf").write_bytes(b"%PDF-1.4\n")
+        with engine.begin() as conn:
+            conn.execute(text(
+                "INSERT INTO papers_metadata (filename) VALUES ('paper.pdf')"
+            ))
+            conn.execute(text("""
+                INSERT INTO papers_chunks (filename, chunk_index, content)
+                VALUES ('paper.pdf', NULL, 'chunk')
+            """))
+        config = self._alembic_config(engine)
+        command.stamp(config, "0000_legacy_baseline")
+        command.upgrade(config, "0002_publishing_backfill")
+
+        with self.assertRaisesRegex(MigrationBlocked, "prospective chunk key"):
+            command.upgrade(config, "0003_publishing_contract")
+
+        self.assertEqual(
+            inspect(engine).get_pk_constraint("papers_metadata")["constrained_columns"],
+            ["filename"],
+        )
+
+    def test_migration_state_has_persisted_ddl_phase(self):
+        columns = {
+            column["name"]: column
+            for column in inspect(self.engine).get_columns("publishing_migration_state")
+        }
+        self.assertIn("ddl_phase", columns)
+        self.assertFalse(columns["ddl_phase"]["nullable"])
 
     def test_contract_refuses_persisted_issue_except_two_submission_kinds(self):
         self.write_legacy("paper.pdf")

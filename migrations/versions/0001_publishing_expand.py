@@ -161,6 +161,7 @@ def _upgrade_unfenced():
         sa.Column("submission_count", sa.Integer(), nullable=False),
         sa.Column("chunk_count", sa.Integer(), nullable=False),
         sa.Column("vector_count", sa.Integer(), nullable=False),
+        sa.Column("ddl_phase", sa.String(32), nullable=False),
         sa.Column("captured_at", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("name"),
     )

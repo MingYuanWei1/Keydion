@@ -168,6 +168,7 @@ class PublishingMigrationStateModel(BASE):
     submission_count = Column(Integer, nullable=False)
     chunk_count = Column(Integer, nullable=False)
     vector_count = Column(Integer, nullable=False)
+    ddl_phase = Column(Unicode(32), nullable=False)
     captured_at = Column(DateTime(timezone=False), nullable=False)
 
 

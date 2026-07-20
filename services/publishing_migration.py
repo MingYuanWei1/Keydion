@@ -96,7 +96,7 @@ _EXPANDED_TABLE_COLUMNS = {
     }),
     "publishing_migration_state": frozenset({
         "name", "paper_count", "submission_count", "chunk_count", "vector_count",
-        "captured_at",
+        "ddl_phase", "captured_at",
     }),
     "publishing_migration_issues": frozenset({
         "id", "kind", "legacy_key", "paper_id", "details", "blocking",
@@ -392,20 +392,32 @@ def _legacy_metadata_keys(engine: Engine) -> tuple[str, ...]:
     )
 
 
-def _duplicate_chunk_issues(engine: Engine) -> tuple[MigrationIssue, ...]:
+def _duplicate_chunk_issues(
+    engine: Engine, *, final_key: bool = False,
+) -> tuple[MigrationIssue, ...]:
     columns = _columns(engine, "papers_chunks")
     if not {"filename", "chunk_index"}.issubset(columns):
         return ()
-    revision_expression = "COALESCE(revision_number, 1)" if "revision_number" in columns else "1"
-    paper_expression = "COALESCE(paper_id, filename)" if "paper_id" in columns else "filename"
+    if final_key:
+        if not {"paper_id", "revision_number"}.issubset(columns):
+            return ()
+        paper_expression = "paper_id"
+        revision_expression = "revision_number"
+        legacy_expression = "MIN(filename)"
+        group_expression = "paper_id, revision_number, chunk_index"
+    else:
+        paper_expression = "filename"
+        revision_expression = "1"
+        legacy_expression = "filename"
+        group_expression = "filename, chunk_index"
     duplicates = _rows(engine, f"""
         SELECT {paper_expression} AS owner_key,
-               filename AS legacy_key,
+               {legacy_expression} AS legacy_key,
                {revision_expression} AS revision_number,
                chunk_index,
                COUNT(*) AS duplicate_count
         FROM papers_chunks
-        GROUP BY {paper_expression}, filename, {revision_expression}, chunk_index
+        GROUP BY {group_expression}
         HAVING COUNT(*) > 1
         ORDER BY legacy_key, revision_number, chunk_index
     """)
@@ -467,7 +479,9 @@ def _submission_summary(engine: Engine, known_filenames: set[str]):
     )
 
 
-def _mysql_preflight_issues(engine: Engine) -> tuple[MigrationIssue, ...]:
+def _mysql_preflight_issues(
+    engine: Engine, *, allow_contract_recovery: bool = False,
+) -> tuple[MigrationIssue, ...]:
     if engine.dialect.name != "mysql":
         return ()
     issues: list[MigrationIssue] = []
@@ -515,10 +529,20 @@ def _mysql_preflight_issues(engine: Engine) -> tuple[MigrationIssue, ...]:
     is_baseline = actual_core_columns == baseline_shapes
     is_expanded = actual_core_columns == expanded_shapes
     migration_tables = table_names & set(_EXPANDED_TABLES)
+    paper_primary_key = (
+        inspector.get_pk_constraint("papers_metadata").get("constrained_columns")
+        if "papers_metadata" in table_names else []
+    )
+    recoverable_contract_shape = (
+        allow_contract_recovery
+        and is_expanded
+        and paper_primary_key in (["filename"], ["id"])
+    )
     if (
         not (is_baseline or is_expanded)
         or (is_baseline and migration_tables)
         or (is_expanded and migration_tables != set(_EXPANDED_TABLES))
+        or (allow_contract_recovery and is_expanded and not recoverable_contract_shape)
     ):
         issues.append(_issue(
             "unexpected_legacy_schema", "publishing_schema_phase",
@@ -536,6 +560,221 @@ def _mysql_preflight_issues(engine: Engine) -> tuple[MigrationIssue, ...]:
                     "expanded table columns do not match the migration contract",
                 ))
 
+    rag_columns = (
+        {column["name"]: column for column in inspector.get_columns("rag_index_meta")}
+        if "rag_index_meta" in table_names else {}
+    )
+    if set(rag_columns) != {"name", "value"}:
+        issues.append(_issue(
+            "unexpected_legacy_schema", "rag_index_meta",
+            "rag_index_meta must have exactly the singleton name/value shape",
+        ))
+    else:
+        if (
+            inspector.get_pk_constraint("rag_index_meta").get("constrained_columns") != ["name"]
+            or rag_columns["name"]["nullable"]
+            or rag_columns["value"]["nullable"]
+        ):
+            issues.append(_issue(
+                "unexpected_legacy_schema", "rag_index_meta",
+                "rag_index_meta requires primary key name and non-null integer value",
+            ))
+        unexpected_rag_rows = int(_scalar(engine, """
+            SELECT COUNT(*) FROM rag_index_meta WHERE name <> 'chunks_version'
+        """))
+        if unexpected_rag_rows:
+            issues.append(_issue(
+                "unexpected_legacy_schema", "rag_index_meta",
+                "rag_index_meta contains keys other than the chunks_version singleton",
+            ))
+
+    if is_expanded:
+        infrastructure_primary_keys = {
+            "paper_revisions": ["paper_id", "revision_number"],
+            "paper_filename_aliases": ["lookup_key"],
+            "publishing_jobs": ["id"],
+            "publishing_migration_journal": ["legacy_key"],
+            "publishing_migration_state": ["name"],
+            "publishing_migration_issues": ["id"],
+        }
+        for table_name, expected_key in infrastructure_primary_keys.items():
+            actual_key = inspector.get_pk_constraint(table_name).get("constrained_columns")
+            if actual_key != expected_key:
+                issues.append(_issue(
+                    "unexpected_legacy_schema", table_name,
+                    f"expanded primary key must be {expected_key!r}, found {actual_key!r}",
+                ))
+
+        required_indexes = {
+            "papers_metadata": {
+                (("direct_idempotency_key",), True),
+                (("origin_submission_id",), True),
+            },
+            "papers_chunks": {(('paper_id',), False)},
+            "submissions": {
+                (("paper_id",), False),
+                (("decision_idempotency_key",), True),
+            },
+            "paper_filename_aliases": {(('paper_id',), False)},
+            "publishing_jobs": {
+                (("paper_id",), False),
+                (("dedupe_key",), True),
+            },
+            "publishing_migration_journal": {(('paper_id',), True)},
+            "publishing_migration_issues": {(('paper_id',), False)},
+        }
+        if paper_primary_key == ["filename"]:
+            required_indexes["papers_metadata"].add((("id",), True))
+        else:
+            required_indexes["papers_metadata"].add((("filename",), True))
+        for table_name, expected_indexes in required_indexes.items():
+            actual_indexes = {
+                (tuple(index.get("column_names") or ()), bool(index.get("unique")))
+                for index in inspector.get_indexes(table_name)
+            }
+            actual_indexes.update({
+                (tuple(unique.get("column_names") or ()), True)
+                for unique in inspector.get_unique_constraints(table_name)
+            })
+            missing_indexes = expected_indexes - actual_indexes
+            if missing_indexes:
+                issues.append(_issue(
+                    "unexpected_legacy_schema", table_name,
+                    "expanded indexes/uniques are missing: " + repr(sorted(missing_indexes)),
+                ))
+
+        required_nonnull = {
+            "paper_revisions": {
+                "paper_id", "revision_number", "sha256", "size_bytes",
+                "created_at", "created_by",
+            },
+            "paper_filename_aliases": {"lookup_key", "filename", "paper_id", "created_at"},
+            "publishing_jobs": {
+                "id", "kind", "paper_id", "revision_number", "dedupe_key",
+                "state", "attempts", "available_at", "created_at", "updated_at",
+            },
+            "publishing_migration_journal": {
+                "legacy_key", "paper_id", "revision_number", "legacy_chunk_count",
+                "checkpoint", "created_at", "updated_at",
+            },
+            "publishing_migration_state": {
+                "name", "paper_count", "submission_count", "chunk_count",
+                "vector_count", "ddl_phase", "captured_at",
+            },
+            "publishing_migration_issues": {
+                "id", "kind", "details", "blocking", "created_at", "updated_at",
+            },
+        }
+        for table_name, nonnull_columns in required_nonnull.items():
+            definitions_by_name = {
+                column["name"]: column for column in inspector.get_columns(table_name)
+            }
+            nullable_drift = sorted(
+                name for name in nonnull_columns
+                if definitions_by_name.get(name, {}).get("nullable", True)
+            )
+            if nullable_drift:
+                issues.append(_issue(
+                    "unexpected_legacy_schema", table_name,
+                    "expanded non-null contract drift: " + ", ".join(nullable_drift),
+                ))
+
+        expanded_type_contracts = {
+            "paper_revisions": {
+                "paper_id": ("string", 36), "revision_number": ("integer", None),
+                "sha256": ("string", 64), "size_bytes": ("integer", None),
+                "created_at": ("datetime", None), "created_by": ("string", 255),
+                "restored_from_revision": ("integer", None),
+            },
+            "paper_filename_aliases": {
+                "lookup_key": ("string", 255), "filename": ("string", 255),
+                "paper_id": ("string", 36), "created_at": ("datetime", None),
+            },
+            "publishing_jobs": {
+                "id": ("string", 36), "kind": ("string", 32),
+                "paper_id": ("string", 36), "revision_number": ("integer", None),
+                "dedupe_key": ("string", 255), "state": ("string", 16),
+                "attempts": ("integer", None), "available_at": ("datetime", None),
+                "lease_token": ("string", 36), "lease_expires_at": ("datetime", None),
+                "last_error": ("text", None), "created_at": ("datetime", None),
+                "updated_at": ("datetime", None),
+            },
+            "publishing_migration_journal": {
+                "legacy_key": ("string", 255), "paper_id": ("string", 36),
+                "revision_number": ("integer", None), "source_sha256": ("string", 64),
+                "source_size_bytes": ("integer", None),
+                "legacy_chunk_count": ("integer", None),
+                "legacy_chunk_fingerprint": ("string", 64),
+                "checkpoint": ("string", 32), "created_at": ("datetime", None),
+                "updated_at": ("datetime", None),
+            },
+            "publishing_migration_state": {
+                "name": ("string", 32), "paper_count": ("integer", None),
+                "submission_count": ("integer", None), "chunk_count": ("integer", None),
+                "vector_count": ("integer", None), "ddl_phase": ("string", 32),
+                "captured_at": ("datetime", None),
+            },
+            "publishing_migration_issues": {
+                "id": ("string", 36), "kind": ("string", 32),
+                "legacy_key": ("string", 255), "paper_id": ("string", 36),
+                "details": ("text", None), "blocking": ("boolean", None),
+                "resolved_at": ("datetime", None), "created_at": ("datetime", None),
+                "updated_at": ("datetime", None),
+            },
+        }
+        expanded_nullable = {
+            "paper_revisions": {"restored_from_revision"},
+            "paper_filename_aliases": set(),
+            "publishing_jobs": {"lease_token", "lease_expires_at", "last_error"},
+            "publishing_migration_journal": {
+                "source_sha256", "source_size_bytes", "legacy_chunk_fingerprint",
+            },
+            "publishing_migration_state": set(),
+            "publishing_migration_issues": {"legacy_key", "paper_id", "resolved_at"},
+        }
+
+        def reflected_kind(column):
+            rendered = str(column["type"]).casefold().replace(" ", "")
+            if rendered.startswith("varchar("):
+                return "string", getattr(column["type"], "length", None)
+            if rendered in {"text", "mediumtext", "longtext"}:
+                return "text", None
+            if rendered.startswith(("int", "integer", "bigint")):
+                return "integer", None
+            if rendered.startswith(("datetime", "timestamp")):
+                return "datetime", None
+            if (
+                rendered in {"bool", "boolean", "tinyint(1)"}
+                or (
+                    rendered.startswith("tinyint")
+                    and getattr(column["type"], "display_width", None) == 1
+                )
+            ):
+                return "boolean", None
+            return rendered, getattr(column["type"], "length", None)
+
+        for table_name, expected_types in expanded_type_contracts.items():
+            definitions_by_name = {
+                column["name"]: column for column in inspector.get_columns(table_name)
+            }
+            drift: list[str] = []
+            for column_name, expected_type in expected_types.items():
+                actual_column = definitions_by_name[column_name]
+                if reflected_kind(actual_column) != expected_type:
+                    drift.append(
+                        f"{column_name} type {reflected_kind(actual_column)!r} != {expected_type!r}"
+                    )
+                expected_is_nullable = column_name in expanded_nullable[table_name]
+                if bool(actual_column["nullable"]) != expected_is_nullable:
+                    drift.append(
+                        f"{column_name} nullable={actual_column['nullable']!r}"
+                    )
+            if drift:
+                issues.append(_issue(
+                    "unexpected_legacy_schema", table_name,
+                    "expanded type/nullability contract drift: " + "; ".join(drift),
+                ))
+
     expected_primary_keys = {
         "papers_metadata": ["filename"],
         "papers_chunks": ["id"],
@@ -544,7 +783,13 @@ def _mysql_preflight_issues(engine: Engine) -> tuple[MigrationIssue, ...]:
     for table_name, expected_key in expected_primary_keys.items():
         if table_name in table_names:
             primary_key = inspector.get_pk_constraint(table_name)
-            if primary_key.get("constrained_columns") != expected_key:
+            actual_key = primary_key.get("constrained_columns")
+            valid_keys = (
+                (["filename"], ["id"])
+                if allow_contract_recovery and table_name == "papers_metadata" and is_expanded
+                else (expected_key,)
+            )
+            if actual_key not in valid_keys:
                 issues.append(_issue(
                     "unexpected_legacy_schema", table_name,
                     f"expected primary key {expected_key!r} before contraction",
@@ -594,16 +839,22 @@ def _mysql_preflight_issues(engine: Engine) -> tuple[MigrationIssue, ...]:
         },
     }
     if is_expanded:
+        paper_contract = paper_primary_key == ["id"]
         column_contracts.update({
-            ("papers_metadata", "id"): ("varchar(36)", "YES"),
-            ("papers_metadata", "lifecycle_state"): ("varchar(16)", "YES"),
+            ("papers_metadata", "id"): ("varchar(36)", "NO" if paper_contract else "YES"),
+            ("papers_metadata", "lifecycle_state"): ("varchar(16)", "NO" if paper_contract else "YES"),
             ("papers_metadata", "current_revision"): ("int", "YES"),
-            ("papers_metadata", "row_version"): ("int", "YES"),
-            ("papers_metadata", "index_status"): ("varchar(16)", "YES"),
-            ("papers_chunks", "paper_id"): ("varchar(36)", "YES"),
-            ("papers_chunks", "revision_number"): ("int", "YES"),
+            ("papers_metadata", "row_version"): ("int", "NO" if paper_contract else "YES"),
+            ("papers_metadata", "index_status"): ("varchar(16)", "NO" if paper_contract else "YES"),
             ("submissions", "paper_id"): ("varchar(36)", "YES"),
         })
+        if not allow_contract_recovery:
+            column_contracts.update({
+                ("papers_chunks", "paper_id"): ("varchar(36)", "YES"),
+                ("papers_chunks", "revision_number"): ("int", "YES"),
+            })
+        else:
+            column_contracts.pop(("papers_chunks", "chunk_index"), None)
     definition_rows = _rows(engine, """
         SELECT TABLE_NAME AS table_name, COLUMN_NAME AS column_name,
                COLUMN_TYPE AS column_type, IS_NULLABLE AS is_nullable
@@ -752,6 +1003,7 @@ def run_preflight(
     papers_dir: Path,
     *,
     capacity_phase: str = "initial",
+    allow_contract_recovery: bool = False,
 ) -> PreflightReport:
     """Inventory legacy SQL/files without modifying either storage system."""
     papers_dir = Path(papers_dir)
@@ -765,7 +1017,9 @@ def run_preflight(
 
     metadata_keys = _legacy_metadata_keys(engine)
     flat_pdfs, unsafe_flat_pdfs = _flat_pdf_inventory(papers_dir)
-    issues: list[MigrationIssue] = list(_mysql_preflight_issues(engine))
+    issues: list[MigrationIssue] = list(_mysql_preflight_issues(
+        engine, allow_contract_recovery=allow_contract_recovery,
+    ))
     issue_keys: set[tuple[str, str | None]] = {
         (issue.code, issue.legacy_key) for issue in issues
     }
@@ -1525,10 +1779,10 @@ def _capture_pre_backfill_state(engine: Engine, expected_paper_count: int) -> No
             connection.execute(text("""
                 INSERT INTO publishing_migration_state (
                     name, paper_count, submission_count, chunk_count,
-                    vector_count, captured_at
+                    vector_count, ddl_phase, captured_at
                 ) VALUES (
                     'pre_backfill', :paper_count, :submission_count,
-                    :chunk_count, :vector_count, :captured_at
+                    :chunk_count, :vector_count, 'expanded', :captured_at
                 )
             """), {
                 "paper_count": expected_paper_count,
@@ -1976,7 +2230,12 @@ def validate_contract_ready(
             return validate_contract_ready(
                 engine, papers_dir, _fenced=True,
             )
-    report = run_preflight(engine, papers_dir, capacity_phase="contract")
+    report = run_preflight(
+        engine,
+        papers_dir,
+        capacity_phase="contract",
+        allow_contract_recovery=True,
+    )
     if report.blockers:
         details = ", ".join(
             f"{issue.code}:{issue.legacy_key}" for issue in report.blockers
@@ -2159,20 +2418,28 @@ def validate_contract_ready(
 
     unmapped_chunks = int(_scalar(engine, """
         SELECT COUNT(*) FROM papers_chunks
-        WHERE paper_id IS NULL OR revision_number IS NULL
+        WHERE paper_id IS NULL OR revision_number IS NULL OR chunk_index IS NULL
     """))
     if unmapped_chunks:
-        raise MigrationBlocked(f"{unmapped_chunks} legacy chunks remain unmapped")
-    if _duplicate_chunk_issues(engine):
-        raise MigrationBlocked("duplicate chunk keys remain")
+        raise MigrationBlocked(
+            f"{unmapped_chunks} prospective chunk key(s) contain NULL"
+        )
+    if _duplicate_chunk_issues(engine, final_key=True):
+        raise MigrationBlocked("duplicate chunk keys remain in the exact prospective key")
 
     state = _rows(engine, """
-        SELECT paper_count, submission_count, chunk_count, vector_count
+        SELECT paper_count, submission_count, chunk_count, vector_count, ddl_phase
         FROM publishing_migration_state WHERE name = 'pre_backfill'
     """)
     if len(state) != 1:
         raise MigrationBlocked("pre-backfill count snapshot is missing")
     expected = state[0]
+    if expected["ddl_phase"] not in {
+        "expanded", "paper_contract", "relationships_contract", "complete",
+    }:
+        raise MigrationBlocked(
+            f"unknown persisted DDL phase: {expected['ddl_phase']!r}"
+        )
     _assert_count(engine, "SELECT COUNT(*) FROM papers_metadata",
                   expected["paper_count"], "Paper")
     _assert_count(engine, "SELECT COUNT(*) FROM submissions",

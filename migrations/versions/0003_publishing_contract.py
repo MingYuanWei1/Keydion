@@ -166,63 +166,251 @@ def _sqlite_paper_foreign_keys():
             )
 
 
-def _mysql_contract():
-    op.alter_column("papers_metadata", "id", existing_type=sa.String(36), nullable=False)
-    op.alter_column(
-        "papers_metadata", "lifecycle_state", existing_type=sa.String(16), nullable=False,
-    )
-    op.alter_column("papers_metadata", "row_version", existing_type=sa.Integer(), nullable=False)
-    op.alter_column(
-        "papers_metadata", "index_status", existing_type=sa.String(16), nullable=False,
-    )
-    op.drop_constraint("PRIMARY", "papers_metadata", type_="primary")
-    op.create_primary_key("pk_papers_metadata", "papers_metadata", ["id"])
-    op.create_unique_constraint(
-        "uq_papers_metadata_filename", "papers_metadata", ["filename"],
-    )
-    op.drop_index("ux_papers_metadata_migration_id", table_name="papers_metadata")
-    op.create_check_constraint(
-        "ck_papers_metadata_lifecycle_revision", "papers_metadata", _LIFECYCLE_CHECK,
+_DDL_PHASES = (
+    "expanded", "paper_contract", "relationships_contract", "complete",
+)
+_SIMPLE_FOREIGN_KEYS = (
+    ("fk_paper_revisions_paper", "paper_revisions", "papers_metadata", ["paper_id"], ["id"], "CASCADE"),
+    ("fk_paper_filename_aliases_paper", "paper_filename_aliases", "papers_metadata", ["paper_id"], ["id"], "CASCADE"),
+    ("fk_publishing_jobs_paper", "publishing_jobs", "papers_metadata", ["paper_id"], ["id"], "CASCADE"),
+    ("fk_publishing_migration_journal_paper", "publishing_migration_journal", "papers_metadata", ["paper_id"], ["id"], "CASCADE"),
+    ("fk_publishing_migration_issues_paper", "publishing_migration_issues", "papers_metadata", ["paper_id"], ["id"], "CASCADE"),
+    ("fk_submissions_paper", "submissions", "papers_metadata", ["paper_id"], ["id"], "SET NULL"),
+)
+
+
+def _snapshot_restore_required(details):
+    raise RuntimeError(
+        "unsafe partial publishing contract shape; restore coordinated database "
+        f"and file snapshots before retrying ({details})"
     )
 
-    op.create_foreign_key(
-        "fk_paper_revisions_paper", "paper_revisions", "papers_metadata",
-        ["paper_id"], ["id"], ondelete="CASCADE",
-    )
-    op.create_foreign_key(
-        "fk_paper_filename_aliases_paper", "paper_filename_aliases", "papers_metadata",
-        ["paper_id"], ["id"], ondelete="CASCADE",
-    )
-    op.create_foreign_key(
-        "fk_publishing_jobs_paper", "publishing_jobs", "papers_metadata",
-        ["paper_id"], ["id"], ondelete="CASCADE",
-    )
-    op.create_foreign_key(
-        "fk_publishing_migration_journal_paper", "publishing_migration_journal",
-        "papers_metadata", ["paper_id"], ["id"], ondelete="CASCADE",
-    )
-    op.create_foreign_key(
-        "fk_publishing_migration_issues_paper", "publishing_migration_issues",
-        "papers_metadata", ["paper_id"], ["id"], ondelete="CASCADE",
-    )
-    op.create_foreign_key(
-        "fk_submissions_paper", "submissions", "papers_metadata",
-        ["paper_id"], ["id"], ondelete="SET NULL",
+
+def _index_signatures(inspector, table_name):
+    signatures = {
+        (tuple(index.get("column_names") or ()), bool(index.get("unique")))
+        for index in inspector.get_indexes(table_name)
+    }
+    signatures.update({
+        (tuple(unique.get("column_names") or ()), True)
+        for unique in inspector.get_unique_constraints(table_name)
+    })
+    return signatures
+
+
+def _foreign_keys_by_name(inspector, table_name):
+    return {
+        foreign_key.get("name"): foreign_key
+        for foreign_key in inspector.get_foreign_keys(table_name)
+    }
+
+
+def _foreign_key_matches(foreign_key, referred_table, local, remote, ondelete):
+    return (
+        foreign_key is not None
+        and foreign_key.get("referred_table") == referred_table
+        and foreign_key.get("constrained_columns") == local
+        and foreign_key.get("referred_columns") == remote
+        and str((foreign_key.get("options") or {}).get("ondelete", "")).upper() == ondelete
     )
 
-    op.alter_column("papers_chunks", "paper_id", existing_type=sa.String(36), nullable=False)
-    op.alter_column("papers_chunks", "revision_number", existing_type=sa.Integer(), nullable=False)
-    op.alter_column("papers_chunks", "chunk_index", existing_type=sa.Integer(), nullable=False)
-    op.create_unique_constraint(
-        "uq_papers_chunks_paper_revision_chunk",
-        "papers_chunks",
-        ["paper_id", "revision_number", "chunk_index"],
+
+def _mysql_schema_phase(engine):
+    inspector = sa.inspect(engine)
+    paper_pk = inspector.get_pk_constraint("papers_metadata").get("constrained_columns")
+    paper_columns = {
+        column["name"]: column for column in inspector.get_columns("papers_metadata")
+    }
+    paper_required = ("id", "lifecycle_state", "row_version", "index_status")
+    paper_indexes = _index_signatures(inspector, "papers_metadata")
+    check_names = {
+        constraint.get("name")
+        for constraint in inspector.get_check_constraints("papers_metadata")
+    }
+    if paper_pk == ["filename"]:
+        if (
+            any(not paper_columns[name]["nullable"] for name in paper_required)
+            or (("id",), True) not in paper_indexes
+        ):
+            _snapshot_restore_required("malformed expanded Paper shape")
+        return "expanded"
+    if paper_pk != ["id"]:
+        _snapshot_restore_required(f"unexpected papers_metadata primary key {paper_pk!r}")
+    if (
+        any(paper_columns[name]["nullable"] for name in paper_required)
+        or (("filename",), True) not in paper_indexes
+        or (("id",), True) in paper_indexes
+        or "ck_papers_metadata_lifecycle_revision" not in check_names
+    ):
+        _snapshot_restore_required("incomplete atomic Paper contract group")
+
+    all_simple_present = True
+    for name, table_name, referred_table, local, remote, ondelete in _SIMPLE_FOREIGN_KEYS:
+        foreign_key = _foreign_keys_by_name(inspector, table_name).get(name)
+        if foreign_key is None:
+            all_simple_present = False
+        elif not _foreign_key_matches(
+            foreign_key, referred_table, local, remote, ondelete,
+        ):
+            _snapshot_restore_required(f"foreign key {name} has an unexpected definition")
+
+    chunk_columns = {
+        column["name"]: column for column in inspector.get_columns("papers_chunks")
+    }
+    chunk_nullable = tuple(
+        chunk_columns[name]["nullable"]
+        for name in ("paper_id", "revision_number", "chunk_index")
     )
-    op.create_foreign_key(
-        "fk_papers_chunks_revision", "papers_chunks", "paper_revisions",
-        ["paper_id", "revision_number"], ["paper_id", "revision_number"],
-        ondelete="CASCADE",
+    chunk_unique = (
+        (("paper_id", "revision_number", "chunk_index"), True)
+        in _index_signatures(inspector, "papers_chunks")
     )
+    chunk_fk = _foreign_keys_by_name(inspector, "papers_chunks").get(
+        "fk_papers_chunks_revision"
+    )
+    chunk_fk_complete = _foreign_key_matches(
+        chunk_fk,
+        "paper_revisions",
+        ["paper_id", "revision_number"],
+        ["paper_id", "revision_number"],
+        "CASCADE",
+    )
+    if chunk_nullable == (True, True, True) and not chunk_unique and chunk_fk is None:
+        chunk_complete = False
+    elif chunk_nullable == (False, False, False) and chunk_unique and chunk_fk_complete:
+        chunk_complete = True
+    else:
+        _snapshot_restore_required("incomplete atomic chunk contract group")
+    return "relationships_contract" if all_simple_present and chunk_complete else "paper_contract"
+
+
+def _persisted_ddl_phase(engine):
+    with engine.connect() as connection:
+        phase = connection.execute(sa.text("""
+            SELECT ddl_phase FROM publishing_migration_state
+            WHERE name = 'pre_backfill'
+        """)).scalar()
+    if phase not in _DDL_PHASES:
+        _snapshot_restore_required(f"unknown persisted DDL phase {phase!r}")
+    return phase
+
+
+def _set_ddl_phase(engine, phase):
+    if phase not in _DDL_PHASES:
+        raise ValueError(f"unknown publishing DDL phase: {phase}")
+    with engine.begin() as connection:
+        result = connection.execute(sa.text("""
+            UPDATE publishing_migration_state
+            SET ddl_phase = :ddl_phase
+            WHERE name = 'pre_backfill'
+        """), {"ddl_phase": phase})
+        if result.rowcount != 1:
+            _snapshot_restore_required("pre_backfill DDL phase row is missing")
+
+
+def _reconcile_ddl_phase(engine):
+    actual = _mysql_schema_phase(engine)
+    persisted = _persisted_ddl_phase(engine)
+    actual_rank = _DDL_PHASES.index(actual)
+    persisted_rank = _DDL_PHASES.index(persisted)
+    if persisted == "complete" and actual == "relationships_contract":
+        return "complete"
+    if persisted_rank > actual_rank:
+        _snapshot_restore_required(
+            f"persisted phase {persisted!r} is ahead of actual shape {actual!r}"
+        )
+    if actual_rank > persisted_rank:
+        _set_ddl_phase(engine, actual)
+    return actual
+
+
+def _mysql_paper_contract_group():
+    op.execute(sa.text(f"""
+        ALTER TABLE papers_metadata
+            MODIFY COLUMN id VARCHAR(36) NOT NULL,
+            MODIFY COLUMN lifecycle_state VARCHAR(16) NOT NULL,
+            MODIFY COLUMN row_version INTEGER NOT NULL,
+            MODIFY COLUMN index_status VARCHAR(16) NOT NULL,
+            DROP PRIMARY KEY,
+            ADD CONSTRAINT pk_papers_metadata PRIMARY KEY (id),
+            ADD CONSTRAINT uq_papers_metadata_filename UNIQUE (filename),
+            DROP INDEX ux_papers_metadata_migration_id,
+            ADD CONSTRAINT ck_papers_metadata_lifecycle_revision CHECK ({_LIFECYCLE_CHECK})
+    """))
+
+
+def _mysql_relationship_contract_group(engine):
+    for name, table_name, referred_table, local, remote, ondelete in _SIMPLE_FOREIGN_KEYS:
+        inspector = sa.inspect(engine)
+        existing = _foreign_keys_by_name(inspector, table_name).get(name)
+        if existing is not None:
+            if not _foreign_key_matches(existing, referred_table, local, remote, ondelete):
+                _snapshot_restore_required(f"foreign key {name} has an unexpected definition")
+            continue
+        op.create_foreign_key(
+            name, table_name, referred_table, local, remote, ondelete=ondelete,
+        )
+
+    inspector = sa.inspect(engine)
+    chunk_columns = {
+        column["name"]: column for column in inspector.get_columns("papers_chunks")
+    }
+    chunk_notnull = all(
+        not chunk_columns[name]["nullable"]
+        for name in ("paper_id", "revision_number", "chunk_index")
+    )
+    chunk_unique = (
+        (("paper_id", "revision_number", "chunk_index"), True)
+        in _index_signatures(inspector, "papers_chunks")
+    )
+    chunk_fk = _foreign_keys_by_name(inspector, "papers_chunks").get(
+        "fk_papers_chunks_revision"
+    )
+    if not chunk_notnull and not chunk_unique and chunk_fk is None:
+        op.execute(sa.text("""
+            ALTER TABLE papers_chunks
+                MODIFY COLUMN paper_id VARCHAR(36) NOT NULL,
+                MODIFY COLUMN revision_number INTEGER NOT NULL,
+                MODIFY COLUMN chunk_index INTEGER NOT NULL,
+                ADD CONSTRAINT uq_papers_chunks_paper_revision_chunk
+                    UNIQUE (paper_id, revision_number, chunk_index),
+                ADD CONSTRAINT fk_papers_chunks_revision
+                    FOREIGN KEY (paper_id, revision_number)
+                    REFERENCES paper_revisions (paper_id, revision_number)
+                    ON DELETE CASCADE
+        """))
+    elif not (
+        chunk_notnull
+        and chunk_unique
+        and _foreign_key_matches(
+            chunk_fk,
+            "paper_revisions",
+            ["paper_id", "revision_number"],
+            ["paper_id", "revision_number"],
+            "CASCADE",
+        )
+    ):
+        _snapshot_restore_required("incomplete atomic chunk contract group")
+
+
+def _mysql_contract(engine, papers_dir):
+    phase = _reconcile_ddl_phase(engine)
+    if phase == "expanded":
+        validate_contract_ready(engine, papers_dir, _fenced=True)
+        _mysql_paper_contract_group()
+        phase = _mysql_schema_phase(engine)
+        if phase != "paper_contract":
+            _snapshot_restore_required("Paper contract group did not reach its exact shape")
+        _set_ddl_phase(engine, phase)
+    if phase == "paper_contract":
+        validate_contract_ready(engine, papers_dir, _fenced=True)
+        _mysql_relationship_contract_group(engine)
+        phase = _mysql_schema_phase(engine)
+        if phase != "relationships_contract":
+            _snapshot_restore_required("relationship contract group did not reach its exact shape")
+        _set_ddl_phase(engine, phase)
+    if phase == "relationships_contract":
+        _set_ddl_phase(engine, "complete")
 
 
 def upgrade():
@@ -240,8 +428,13 @@ def upgrade():
             )
             if bind.dialect.name == "sqlite":
                 _sqlite_contract()
+                op.execute("""
+                    UPDATE publishing_migration_state
+                    SET ddl_phase = 'complete'
+                    WHERE name = 'pre_backfill'
+                """)
             else:
-                _mysql_contract()
+                _mysql_contract(validation_engine, papers_dir)
     finally:
         validation_engine.dispose()
 

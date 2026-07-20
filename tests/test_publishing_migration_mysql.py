@@ -16,7 +16,7 @@ from alembic import command
 from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine import make_url
 
 from config import RAG_EMBED_DIM
@@ -272,6 +272,85 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
                   AND TABLE_NAME='papers_metadata' AND COLUMN_NAME='id'
             """)).scalar_one()
         self.assertEqual(paper_id_column, 0)
+
+    def test_missing_rag_index_meta_blocks_before_expand(self):
+        with self.engine.begin() as conn:
+            conn.execute(text("DROP TABLE rag_index_meta"))
+
+        report = run_preflight(self.engine, self.papers)
+
+        self.assertIn(
+            ("unexpected_legacy_schema", "rag_index_meta"),
+            tuple((issue.code, issue.legacy_key) for issue in report.blockers),
+        )
+
+    def test_malformed_expanded_index_contract_blocks_backfill(self):
+        config = self._config()
+        command.stamp(config, "0000_legacy_baseline")
+        command.upgrade(config, "0001_publishing_expand")
+        with self.engine.begin() as conn:
+            conn.execute(text("""
+                ALTER TABLE papers_metadata
+                DROP INDEX ux_papers_metadata_migration_id
+            """))
+
+        report = run_preflight(self.engine, self.papers)
+
+        self.assertIn(
+            ("unexpected_legacy_schema", "papers_metadata"),
+            tuple((issue.code, issue.legacy_key) for issue in report.blockers),
+        )
+
+    def test_partial_mysql_contract_shape_repairs_forward(self):
+        (self.papers / "paper.pdf").write_bytes(b"%PDF-1.4\n")
+        with self.engine.begin() as conn:
+            conn.execute(text(
+                "INSERT INTO papers_metadata (filename) VALUES ('paper.pdf')"
+            ))
+        config = self._config()
+        command.stamp(config, "0000_legacy_baseline")
+        command.upgrade(config, "0002_publishing_backfill")
+
+        # Simulate MySQL committing the first atomic contract group while
+        # Alembic remains stamped at 0002 and the checkpoint remains expanded.
+        with self.engine.begin() as conn:
+            conn.execute(text("""
+                ALTER TABLE papers_metadata
+                    MODIFY COLUMN id VARCHAR(36) NOT NULL,
+                    MODIFY COLUMN lifecycle_state VARCHAR(16) NOT NULL,
+                    MODIFY COLUMN row_version INTEGER NOT NULL,
+                    MODIFY COLUMN index_status VARCHAR(16) NOT NULL,
+                    DROP PRIMARY KEY,
+                    ADD CONSTRAINT pk_papers_metadata PRIMARY KEY (id),
+                    ADD CONSTRAINT uq_papers_metadata_filename UNIQUE (filename),
+                    DROP INDEX ux_papers_metadata_migration_id,
+                    ADD CONSTRAINT ck_papers_metadata_lifecycle_revision CHECK (
+                        (lifecycle_state = 'publishing' AND current_revision IS NULL) OR
+                        (lifecycle_state IN ('published', 'deleting') AND current_revision IS NOT NULL)
+                    )
+            """))
+            conn.execute(text("""
+                ALTER TABLE paper_revisions
+                    ADD CONSTRAINT fk_paper_revisions_paper
+                    FOREIGN KEY (paper_id) REFERENCES papers_metadata (id)
+                    ON DELETE CASCADE
+            """))
+        self.assertEqual(
+            inspect(self.engine).get_pk_constraint("papers_metadata")["constrained_columns"],
+            ["id"],
+        )
+
+        command.upgrade(config, "0003_publishing_contract")
+
+        self.assertEqual(
+            inspect(self.engine).get_pk_constraint("papers_metadata")["constrained_columns"],
+            ["id"],
+        )
+        with self.engine.connect() as conn:
+            self.assertEqual(conn.execute(text("""
+                SELECT ddl_phase FROM publishing_migration_state
+                WHERE name='pre_backfill'
+            """)).scalar_one(), "complete")
 
 
 if __name__ == "__main__":
