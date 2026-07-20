@@ -271,11 +271,12 @@ class PublishingLifecycle:
         """Reserve by insertion; unique constraints serialize key/filename races."""
         while True:
             reservation = self._new_reservation(intent, payload_hash)
+            reservation_id = str(reservation.id)
             try:
                 with self._session() as session:
                     session.add(reservation)
                     session.commit()
-                return "reserved", reservation.id, None
+                return "reserved", reservation_id, None
             except IntegrityError:
                 state, paper_id, outcome = self._reservation_conflict(intent, payload_hash)
                 if state == "expired":

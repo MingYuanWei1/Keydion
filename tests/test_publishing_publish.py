@@ -14,6 +14,7 @@ from models import (
     RagIndexMetaModel,
 )
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import sessionmaker
 from services.paper_storage import StorageError
 from services.publishing_contracts import (
     Actor,
@@ -260,6 +261,22 @@ class PublishingPublishTests(PublishingLifecycleTestCase, unittest.TestCase):
         with self.session_factory() as session:
             revision = session.get(PaperRevisionModel, (outcome.paper_id, 1))
             self.assertGreater(revision.size_bytes, 100)
+
+    def test_default_expiring_session_keeps_reservation_id_across_commit(self):
+        default_factory = sessionmaker(bind=self.engine)
+        self.assertTrue(default_factory.kw["expire_on_commit"])
+        lifecycle = self.new_lifecycle(
+            FakeRevisionIndexer(enabled=False),
+            session_factory=default_factory,
+        )
+
+        outcome = lifecycle.publish_direct(self.direct_intent())
+
+        self.assertEqual(
+            outcome.paper_id,
+            "00000000-0000-4000-8000-000000000002",
+        )
+        self.assertEqual(self.paper(outcome.paper_id).lifecycle_state, "published")
 
     def test_initial_index_attempt_has_exact_request_lease_and_deadline(self):
         observed = {}

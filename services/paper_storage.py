@@ -663,7 +663,6 @@ class PaperStorage:
             return
         except OSError as exc:
             raise StorageError("staged PDF could not be inspected") from exc
-        publication_links = self._publication_link_identities()
         try:
             with self._opened_regular(
                 self.staging_dir,
@@ -672,10 +671,11 @@ class PaperStorage:
             ) as (stage_fd, _, _, _, opened):
                 if not _same_inode(expected, opened):
                     raise StorageError("staged PDF changed before discard")
-                if opened.st_nlink != 1 and (
-                    opened.st_nlink != 2
-                    or (opened.st_dev, opened.st_ino) not in publication_links
-                ):
+                if opened.st_nlink == 2:
+                    publication_links = self._publication_link_identities()
+                    if (opened.st_dev, opened.st_ino) not in publication_links:
+                        raise StorageError("staged PDF has an unknown hard link")
+                elif opened.st_nlink != 1:
                     raise StorageError("staged PDF has an unknown hard link")
                 with os.fdopen(os.dup(stage_fd), "rb") as source:
                     digest, size = _hash_reader(source)

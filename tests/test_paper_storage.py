@@ -271,6 +271,35 @@ class PaperStorageTests(unittest.TestCase):
 
         self.assertFalse(prepared.path.exists())
 
+    def test_discard_stage_does_not_scan_publications_for_single_link(self):
+        staged = self.storage.stage(self.valid_pdf_upload("discard.pdf"), "op-discard")
+        with mock.patch.object(
+            self.storage,
+            "_publication_link_identities",
+            wraps=self.storage._publication_link_identities,
+        ) as publication_links:
+            self.storage.discard_stage(staged)
+
+        publication_links.assert_not_called()
+
+    def test_discard_stage_normalizes_publication_scan_oserror(self):
+        staged = self.storage.stage(self.valid_pdf_upload("discard.pdf"), "op-discard")
+        unexpected_link = self.storage.staging_dir / "unexpected-hardlink.tmp"
+        os.link(staged.path, unexpected_link)
+
+        with mock.patch.object(
+            self.storage,
+            "_publication_link_identities",
+            side_effect=OSError("publication scan failed"),
+        ):
+            with self.assertRaises(StorageError) as raised:
+                self.storage.discard_stage(staged)
+
+        self.assertIsInstance(raised.exception.__cause__, OSError)
+        self.assertTrue(staged.path.exists())
+        unexpected_link.unlink()
+        self.storage.discard_stage(staged)
+
     def test_verify_revision_rehashes_exact_final_without_mutating_it(self):
         staged = self.storage.stage(self.valid_pdf_upload("verify.pdf"), "op-verify")
         stored = self.storage.promote(
