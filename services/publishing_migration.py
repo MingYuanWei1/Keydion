@@ -572,14 +572,18 @@ def _mysql_preflight_issues(
             "rag_index_meta must have exactly the singleton name/value shape",
         ))
     else:
+        rag_name_type = str(rag_columns["name"]["type"]).casefold().replace(" ", "")
+        rag_value_type = str(rag_columns["value"]["type"]).casefold().replace(" ", "")
         if (
             inspector.get_pk_constraint("rag_index_meta").get("constrained_columns") != ["name"]
             or rag_columns["name"]["nullable"]
             or rag_columns["value"]["nullable"]
+            or rag_name_type != "varchar(32)"
+            or not rag_value_type.startswith(("int", "integer"))
         ):
             issues.append(_issue(
                 "unexpected_legacy_schema", "rag_index_meta",
-                "rag_index_meta requires primary key name and non-null integer value",
+                "rag_index_meta requires VARCHAR(32) primary key name and non-null INTEGER value",
             ))
         unexpected_rag_rows = int(_scalar(engine, """
             SELECT COUNT(*) FROM rag_index_meta WHERE name <> 'chunks_version'
@@ -643,6 +647,71 @@ def _mysql_preflight_issues(
                 issues.append(_issue(
                     "unexpected_legacy_schema", table_name,
                     "expanded indexes/uniques are missing: " + repr(sorted(missing_indexes)),
+                ))
+
+        required_named_indexes = {
+            "papers_metadata": {
+                "uq_papers_metadata_direct_idempotency_key": (
+                    ("direct_idempotency_key",), True,
+                ),
+                "uq_papers_metadata_origin_submission_id": (
+                    ("origin_submission_id",), True,
+                ),
+            },
+            "papers_chunks": {
+                "ix_papers_chunks_paper_id": (("paper_id",), False),
+            },
+            "submissions": {
+                "ix_submissions_paper_id": (("paper_id",), False),
+                "uq_submissions_decision_idempotency_key": (
+                    ("decision_idempotency_key",), True,
+                ),
+            },
+            "paper_filename_aliases": {
+                "ix_paper_filename_aliases_paper_id": (("paper_id",), False),
+            },
+            "publishing_jobs": {
+                "ix_publishing_jobs_paper_id": (("paper_id",), False),
+                "uq_publishing_jobs_dedupe_key": (("dedupe_key",), True),
+            },
+            "publishing_migration_journal": {
+                "uq_publishing_migration_journal_paper_id": (("paper_id",), True),
+            },
+            "publishing_migration_issues": {
+                "ix_publishing_migration_issues_paper_id": (("paper_id",), False),
+            },
+        }
+        if paper_primary_key == ["filename"]:
+            required_named_indexes["papers_metadata"][
+                "ux_papers_metadata_migration_id"
+            ] = (("id",), True)
+        else:
+            required_named_indexes["papers_metadata"][
+                "uq_papers_metadata_filename"
+            ] = (("filename",), True)
+        for table_name, expected_by_name in required_named_indexes.items():
+            actual_by_name = {
+                index.get("name"): (
+                    tuple(index.get("column_names") or ()),
+                    bool(index.get("unique")),
+                )
+                for index in inspector.get_indexes(table_name)
+            }
+            actual_by_name.update({
+                unique.get("name"): (
+                    tuple(unique.get("column_names") or ()), True,
+                )
+                for unique in inspector.get_unique_constraints(table_name)
+            })
+            named_drift = {
+                name: (expected, actual_by_name.get(name))
+                for name, expected in expected_by_name.items()
+                if actual_by_name.get(name) != expected
+            }
+            if named_drift:
+                issues.append(_issue(
+                    "unexpected_legacy_schema", table_name,
+                    "expanded named index contract drift: " + repr(named_drift),
                 ))
 
         required_nonnull = {
@@ -776,6 +845,17 @@ def _mysql_preflight_issues(
                     "unexpected_legacy_schema", table_name,
                     "expanded type/nullability contract drift: " + "; ".join(drift),
                 ))
+        alias_lookup_collation = str(_scalar(engine, """
+            SELECT COLLATION_NAME FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'paper_filename_aliases'
+              AND COLUMN_NAME = 'lookup_key'
+        """, default="")).casefold()
+        if alias_lookup_collation != "utf8mb4_bin":
+            issues.append(_issue(
+                "unexpected_legacy_schema", "paper_filename_aliases.lookup_key",
+                f"expanded alias lookup collation must be utf8mb4_bin, found {alias_lookup_collation!r}",
+            ))
 
     expected_primary_keys = {
         "papers_metadata": ["filename"],
@@ -848,7 +928,19 @@ def _mysql_preflight_issues(
             ("papers_metadata", "current_revision"): ("int", "YES"),
             ("papers_metadata", "row_version"): ("int", "NO" if paper_contract else "YES"),
             ("papers_metadata", "index_status"): ("varchar(16)", "NO" if paper_contract else "YES"),
+            ("papers_metadata", "indexed_revision"): ("int", "YES"),
+            ("papers_metadata", "index_error"): ("text", "YES"),
+            ("papers_metadata", "direct_idempotency_key"): ("varchar(255)", "YES"),
+            ("papers_metadata", "direct_payload_hash"): ("varchar(64)", "YES"),
+            ("papers_metadata", "origin_submission_id"): ("varchar(255)", "YES"),
+            ("papers_metadata", "reservation_expires_at"): ("datetime", "YES"),
             ("submissions", "paper_id"): ("varchar(36)", "YES"),
+            ("submissions", "submitter_name"): ("varchar(255)", "YES"),
+            ("submissions", "reviewed_at"): ("datetime", "YES"),
+            ("submissions", "reviewer"): ("varchar(255)", "YES"),
+            ("submissions", "comment"): ("text", "YES"),
+            ("submissions", "decision_idempotency_key"): ("varchar(255)", "YES"),
+            ("submissions", "decision_payload_hash"): ("varchar(64)", "YES"),
         })
         if not allow_contract_recovery:
             column_contracts.update({

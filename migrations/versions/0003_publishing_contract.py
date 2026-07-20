@@ -1,4 +1,5 @@
 """Contract the backfilled schema around stable Paper identity."""
+import re
 from pathlib import Path
 
 from alembic import op
@@ -215,6 +216,83 @@ def _foreign_key_matches(foreign_key, referred_table, local, remote, ondelete):
     )
 
 
+_CHECK_TOKEN = re.compile(
+    r"'(?:''|[^'])*'|<>|!=|<=|>=|=|\(|\)|,|[a-z_][a-z0-9_]*",
+    re.IGNORECASE,
+)
+
+
+def _normalized_check_expression(expression):
+    source = re.sub(
+        r"_[a-z0-9]+(?=')", "", str(expression).replace("`", "").casefold(),
+    )
+    tokens = _CHECK_TOKEN.findall(source)
+    position = 0
+
+    def consume(expected=None):
+        nonlocal position
+        if position >= len(tokens):
+            raise ValueError("unexpected end of lifecycle check")
+        token = tokens[position]
+        if expected is not None and token != expected:
+            raise ValueError(f"expected {expected!r}, found {token!r}")
+        position += 1
+        return token
+
+    def predicate():
+        identifier = consume()
+        operator = consume()
+        if operator == "=":
+            return ("eq", identifier, consume())
+        if operator == "is":
+            negate = position < len(tokens) and tokens[position] == "not"
+            if negate:
+                consume("not")
+            consume("null")
+            return ("is_null", identifier, negate)
+        if operator == "in":
+            consume("(")
+            values = []
+            while True:
+                values.append(consume())
+                if tokens[position] == ")":
+                    consume(")")
+                    break
+                consume(",")
+            return ("in", identifier, tuple(values))
+        raise ValueError(f"unsupported lifecycle check operator {operator!r}")
+
+    def factor():
+        if tokens[position] == "(":
+            consume("(")
+            result = or_expression()
+            consume(")")
+            return result
+        return predicate()
+
+    def and_expression():
+        parts = [factor()]
+        while position < len(tokens) and tokens[position] == "and":
+            consume("and")
+            parts.append(factor())
+        return parts[0] if len(parts) == 1 else ("and", tuple(parts))
+
+    def or_expression():
+        parts = [and_expression()]
+        while position < len(tokens) and tokens[position] == "or":
+            consume("or")
+            parts.append(and_expression())
+        return parts[0] if len(parts) == 1 else ("or", tuple(parts))
+
+    try:
+        normalized = or_expression()
+        if position != len(tokens):
+            raise ValueError("trailing lifecycle check tokens")
+        return normalized
+    except (IndexError, ValueError):
+        return None
+
+
 def _mysql_schema_phase(engine):
     inspector = sa.inspect(engine)
     paper_pk = inspector.get_pk_constraint("papers_metadata").get("constrained_columns")
@@ -223,8 +301,8 @@ def _mysql_schema_phase(engine):
     }
     paper_required = ("id", "lifecycle_state", "row_version", "index_status")
     paper_indexes = _index_signatures(inspector, "papers_metadata")
-    check_names = {
-        constraint.get("name")
+    checks_by_name = {
+        constraint.get("name"): constraint.get("sqltext")
         for constraint in inspector.get_check_constraints("papers_metadata")
     }
     if paper_pk == ["filename"]:
@@ -240,7 +318,9 @@ def _mysql_schema_phase(engine):
         any(paper_columns[name]["nullable"] for name in paper_required)
         or (("filename",), True) not in paper_indexes
         or (("id",), True) in paper_indexes
-        or "ck_papers_metadata_lifecycle_revision" not in check_names
+        or _normalized_check_expression(checks_by_name.get(
+            "ck_papers_metadata_lifecycle_revision", "",
+        )) != _normalized_check_expression(_LIFECYCLE_CHECK)
     ):
         _snapshot_restore_required("incomplete atomic Paper contract group")
 

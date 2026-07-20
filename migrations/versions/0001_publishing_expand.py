@@ -28,6 +28,15 @@ def _validate_legacy_before_expand():
         details = ", ".join(
             f"{issue.code}:{issue.legacy_key}" for issue in report.blockers
         )
+        if any(
+            issue.code == "unexpected_legacy_schema"
+            and issue.legacy_key == "publishing_schema_phase"
+            for issue in report.blockers
+        ):
+            raise RuntimeError(
+                "unsafe partial publishing expand shape; restore coordinated database "
+                f"and file snapshots before retrying ({details})"
+            )
         raise MigrationBlocked(f"publishing expand preflight blocked: {details}")
 
 

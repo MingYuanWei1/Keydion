@@ -263,7 +263,10 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
         )
         config = self._config()
         command.stamp(config, "0000_legacy_baseline")
-        with self.assertRaisesRegex(RuntimeError, "publishing expand preflight blocked"):
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "unsafe partial publishing expand shape.*restore coordinated database and file snapshots",
+        ):
             command.upgrade(config, "0001_publishing_expand")
         with self.engine.connect() as conn:
             paper_id_column = conn.execute(text("""
@@ -291,7 +294,8 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
         with self.engine.begin() as conn:
             conn.execute(text("""
                 ALTER TABLE papers_metadata
-                DROP INDEX ux_papers_metadata_migration_id
+                RENAME INDEX ux_papers_metadata_migration_id
+                TO renamed_migration_uuid_index
             """))
 
         report = run_preflight(self.engine, self.papers)
@@ -300,6 +304,72 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
             ("unexpected_legacy_schema", "papers_metadata"),
             tuple((issue.code, issue.legacy_key) for issue in report.blockers),
         )
+
+    def test_expanded_core_and_rag_types_are_exactly_validated(self):
+        config = self._config()
+        command.stamp(config, "0000_legacy_baseline")
+        command.upgrade(config, "0001_publishing_expand")
+        with self.engine.begin() as conn:
+            conn.execute(text("""
+                ALTER TABLE papers_metadata
+                MODIFY COLUMN reservation_expires_at VARCHAR(255) NULL
+            """))
+            conn.execute(text("""
+                ALTER TABLE submissions
+                MODIFY COLUMN reviewer VARCHAR(36) NULL
+            """))
+            conn.execute(text("""
+                ALTER TABLE rag_index_meta
+                MODIFY COLUMN value BIGINT NOT NULL
+            """))
+
+        report = run_preflight(self.engine, self.papers)
+        blocker_keys = {
+            (issue.code, issue.legacy_key) for issue in report.blockers
+        }
+        self.assertIn(
+            ("unexpected_legacy_schema", "papers_metadata.reservation_expires_at"),
+            blocker_keys,
+        )
+        self.assertIn(
+            ("unexpected_legacy_schema", "submissions.reviewer"),
+            blocker_keys,
+        )
+        self.assertIn(
+            ("unexpected_legacy_schema", "rag_index_meta"),
+            blocker_keys,
+        )
+
+    def test_same_named_malformed_lifecycle_check_requires_snapshot_restore(self):
+        (self.papers / "paper.pdf").write_bytes(b"%PDF-1.4\n")
+        with self.engine.begin() as conn:
+            conn.execute(text(
+                "INSERT INTO papers_metadata (filename) VALUES ('paper.pdf')"
+            ))
+        config = self._config()
+        command.stamp(config, "0000_legacy_baseline")
+        command.upgrade(config, "0002_publishing_backfill")
+        with self.engine.begin() as conn:
+            conn.execute(text("""
+                ALTER TABLE papers_metadata
+                    MODIFY COLUMN id VARCHAR(36) NOT NULL,
+                    MODIFY COLUMN lifecycle_state VARCHAR(16) NOT NULL,
+                    MODIFY COLUMN row_version INTEGER NOT NULL,
+                    MODIFY COLUMN index_status VARCHAR(16) NOT NULL,
+                    DROP PRIMARY KEY,
+                    ADD CONSTRAINT pk_papers_metadata PRIMARY KEY (id),
+                    ADD CONSTRAINT uq_papers_metadata_filename UNIQUE (filename),
+                    DROP INDEX ux_papers_metadata_migration_id,
+                    ADD CONSTRAINT ck_papers_metadata_lifecycle_revision CHECK (
+                        lifecycle_state IN ('publishing', 'published', 'deleting')
+                    )
+            """))
+
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "unsafe partial publishing contract shape.*restore coordinated database and file snapshots",
+        ):
+            command.upgrade(config, "0003_publishing_contract")
 
     def test_partial_mysql_contract_shape_repairs_forward(self):
         (self.papers / "paper.pdf").write_bytes(b"%PDF-1.4\n")
