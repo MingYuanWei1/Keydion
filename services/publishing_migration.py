@@ -370,7 +370,9 @@ def _flat_pdf_inventory(
     with _trusted_root(papers_dir) as root_fd:
         names = sorted(entry.name for entry in os.scandir(root_fd))
         for name in names:
-            if name.startswith(".") or Path(name).suffix.casefold() != ".pdf":
+            if name in {
+                ".publishing-migration-stage", ".publishing-migration-locks",
+            } or Path(name).suffix.casefold() != ".pdf":
                 continue
             details = _source_details_at(papers_dir, root_fd, name)
             if details is None:
@@ -1092,10 +1094,7 @@ def run_preflight(
     ) = _submission_summary(engine, known_filenames)
     issues.extend(submission_issues)
 
-    unique_sizes: dict[tuple[int, int], int] = {}
-    for _filename, (_digest, size, identity) in safe_details.items():
-        unique_sizes[identity] = size
-    total_pdf_bytes = sum(unique_sizes.values())
+    total_pdf_bytes = sum(size for _digest, size, _identity in safe_details.values())
 
     with _trusted_root(papers_dir) as root_fd:
         root_stat = os.fstat(root_fd)
@@ -1517,8 +1516,6 @@ def _verified_file_at(
     name: str,
     expected_hash: str,
     expected_size: int,
-    *,
-    discard_mismatch: bool = False,
 ) -> os.stat_result | None:
     file_fd, opened, classification = _open_regular_at(directory_fd, name)
     if classification == "missing":
@@ -1536,10 +1533,6 @@ def _verified_file_at(
     ):
         raise MigrationBlocked(f"migration file {name!r} changed while hashing")
     if (actual_hash, actual_size) != (expected_hash, expected_size):
-        if discard_mismatch:
-            os.unlink(name, dir_fd=directory_fd)
-            os.fsync(directory_fd)
-            return None
         raise MigrationBlocked(f"migration file {name!r} exists with different bytes")
     return final
 
@@ -1549,8 +1542,6 @@ def _verified_existing_file(
     relative: str,
     expected_hash: str,
     expected_size: int,
-    *,
-    discard_mismatch: bool = False,
 ) -> Path | None:
     if not _policy_relative(papers_dir, relative):
         raise MigrationBlocked(f"unsafe migration destination {relative!r}")
@@ -1569,7 +1560,6 @@ def _verified_existing_file(
                 components[-1],
                 expected_hash,
                 expected_size,
-                discard_mismatch=discard_mismatch,
             )
             return papers_dir / relative if verified is not None else None
         finally:
@@ -1578,6 +1568,77 @@ def _verified_existing_file(
 
 def _after_copy_verified() -> None:
     """Test seam for simulating interruption after a durable verified copy."""
+
+
+def _before_atomic_publication(_stage_name: str) -> None:
+    """Test seam immediately before the no-replace hard-link publication."""
+
+
+def _after_atomic_publication(_stage_name: str) -> None:
+    """Test seam after the durable destination link exists."""
+
+
+def _after_stage_candidate_hashed(_stage_name: str, _matched: bool) -> None:
+    """Test seam proving a hashed stage pathname is never later unlinked."""
+
+
+def _matching_stage_candidate(
+    stage_fd: int,
+    expected_hash: str,
+    expected_size: int,
+) -> str | None:
+    names = sorted(entry.name for entry in os.scandir(stage_fd))
+    for name in names:
+        if not (
+            name == "1.pdf.part"
+            or (name.startswith("1.") and name.endswith(".pdf.part"))
+        ):
+            continue
+        file_fd, opened, classification = _open_regular_at(stage_fd, name)
+        if classification == "missing":
+            continue
+        if file_fd is None or opened is None:
+            raise MigrationBlocked(f"migration stage candidate {name!r} is unsafe")
+        try:
+            actual_hash, actual_size = _hash_fd(file_fd)
+            final = os.fstat(file_fd)
+        finally:
+            os.close(file_fd)
+        if (
+            opened.st_dev, opened.st_ino, opened.st_size, opened.st_mtime_ns,
+        ) != (
+            final.st_dev, final.st_ino, final.st_size, final.st_mtime_ns,
+        ):
+            raise MigrationBlocked(f"migration stage candidate {name!r} changed")
+        matched = (actual_hash, actual_size) == (expected_hash, expected_size)
+        _after_stage_candidate_hashed(name, matched)
+        if not matched:
+            # Never unlink a pathname based on a descriptor hashed earlier.
+            # A later attempt uses a new unpredictable stage name.
+            continue
+        try:
+            current = os.stat(name, dir_fd=stage_fd, follow_symlinks=False)
+        except OSError as exc:
+            raise MigrationBlocked(f"migration stage candidate {name!r} changed") from exc
+        if (current.st_dev, current.st_ino) != (final.st_dev, final.st_ino):
+            raise MigrationBlocked(f"migration stage candidate {name!r} changed")
+        return name
+    return None
+
+
+def _create_stage_file(stage_fd: int) -> tuple[str, int]:
+    flags = (
+        os.O_WRONLY | os.O_CREAT | os.O_EXCL
+        | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+    )
+    candidates = ["1.pdf.part"]
+    candidates.extend(f"1.{uuid.uuid4().hex}.pdf.part" for _ in range(4))
+    for name in candidates:
+        try:
+            return name, os.open(name, flags, 0o640, dir_fd=stage_fd)
+        except FileExistsError:
+            continue
+    raise MigrationBlocked("could not reserve a unique migration stage file")
 
 
 def _copy_and_publish_revision(
@@ -1624,13 +1685,6 @@ def _copy_and_publish_revision(
                 target_fd, "1.pdf", expected_hash, expected_size,
             )
             if destination is not None:
-                staged = _verified_file_at(
-                    stage_fd, "1.pdf.part", expected_hash, expected_size,
-                    discard_mismatch=True,
-                )
-                if staged is not None:
-                    os.unlink("1.pdf.part", dir_fd=stage_fd)
-                    os.fsync(stage_fd)
                 reopened = _open_existing_directory_at(root_fd, paper_id)
                 if reopened is None:
                     raise MigrationBlocked("published Paper directory disappeared")
@@ -1646,20 +1700,13 @@ def _copy_and_publish_revision(
                 _set_checkpoint(engine, legacy_filename, "destination_verified")
                 return papers_dir / destination_relative
 
-            part = _verified_file_at(
-                stage_fd, "1.pdf.part", expected_hash, expected_size,
-                discard_mismatch=True,
+            stage_name = _matching_stage_candidate(
+                stage_fd, expected_hash, expected_size,
             )
             copied = False
-            if part is None:
+            if stage_name is None:
                 os.lseek(source_fd, 0, os.SEEK_SET)
-                part_fd = os.open(
-                    "1.pdf.part",
-                    os.O_WRONLY | os.O_CREAT | os.O_EXCL
-                    | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0),
-                    0o640,
-                    dir_fd=stage_fd,
-                )
+                stage_name, part_fd = _create_stage_file(stage_fd)
                 try:
                     with os.fdopen(os.dup(source_fd), "rb") as source_stream, os.fdopen(
                         os.dup(part_fd), "wb"
@@ -1671,7 +1718,7 @@ def _copy_and_publish_revision(
                     os.close(part_fd)
                 os.fsync(stage_fd)
                 part = _verified_file_at(
-                    stage_fd, "1.pdf.part", expected_hash, expected_size,
+                    stage_fd, stage_name, expected_hash, expected_size,
                 )
                 if part is None:
                     raise MigrationBlocked("verified staging copy disappeared")
@@ -1682,8 +1729,26 @@ def _copy_and_publish_revision(
                 _after_copy_verified()
 
             try:
+                stage_before_publication = os.stat(
+                    stage_name, dir_fd=stage_fd, follow_symlinks=False,
+                )
+            except OSError as exc:
+                raise MigrationBlocked("verified migration stage file disappeared") from exc
+            _before_atomic_publication(stage_name)
+            try:
+                stage_at_publication = os.stat(
+                    stage_name, dir_fd=stage_fd, follow_symlinks=False,
+                )
+            except OSError as exc:
+                raise MigrationBlocked("verified migration stage file changed") from exc
+            if (
+                stage_before_publication.st_dev,
+                stage_before_publication.st_ino,
+            ) != (stage_at_publication.st_dev, stage_at_publication.st_ino):
+                raise MigrationBlocked("verified migration stage file changed")
+            try:
                 os.link(
-                    "1.pdf.part",
+                    stage_name,
                     "1.pdf",
                     src_dir_fd=stage_fd,
                     dst_dir_fd=target_fd,
@@ -1695,41 +1760,15 @@ def _copy_and_publish_revision(
                 )
                 if raced is None:
                     raise MigrationBlocked("racing migration destination disappeared")
-                os.unlink("1.pdf.part", dir_fd=stage_fd)
-                os.fsync(stage_fd)
             except OSError as exc:
                 raise MigrationBlocked("could not atomically reserve migration destination") from exc
             else:
+                _after_atomic_publication(stage_name)
                 linked_destination = _verified_file_at(
                     target_fd, "1.pdf", expected_hash, expected_size,
                 )
-                linked_part = _verified_file_at(
-                    stage_fd, "1.pdf.part", expected_hash, expected_size,
-                )
-                if (
-                    linked_destination is None
-                    or linked_part is None
-                    or (linked_destination.st_dev, linked_destination.st_ino)
-                    != (linked_part.st_dev, linked_part.st_ino)
-                ):
+                if linked_destination is None:
                     raise MigrationBlocked("migration destination reservation changed")
-                os.replace(
-                    "1.pdf.part", "1.pdf", src_dir_fd=stage_fd, dst_dir_fd=target_fd,
-                )
-                try:
-                    remaining_part = os.stat(
-                        "1.pdf.part", dir_fd=stage_fd, follow_symlinks=False,
-                    )
-                except FileNotFoundError:
-                    remaining_part = None
-                if remaining_part is not None:
-                    if (
-                        remaining_part.st_dev,
-                        remaining_part.st_ino,
-                    ) != (linked_destination.st_dev, linked_destination.st_ino):
-                        raise MigrationBlocked("staged part changed after publication")
-                    os.unlink("1.pdf.part", dir_fd=stage_fd)
-                os.fsync(stage_fd)
 
             os.fsync(target_fd)
             reopened = _open_existing_directory_at(root_fd, paper_id)

@@ -361,6 +361,30 @@ class PublishingMigrationTests(unittest.TestCase):
             },
         )
 
+    def test_hidden_flat_pdfs_are_inventoried_and_unsafe_hidden_entries_block(self):
+        (self.papers / ".hidden.pdf").write_bytes(b"hidden-safe")
+        outside = Path(self.temp_dir.name) / "outside-hidden.pdf"
+        outside.write_bytes(b"outside")
+        (self.papers / ".unsafe.pdf").symlink_to(outside)
+
+        report = run_preflight(self.engine, self.papers)
+
+        self.assertEqual(report.importable_file_only, (".hidden.pdf",))
+        self.assertIn(
+            ("unresolved_filename", ".unsafe.pdf"),
+            {(issue.code, issue.legacy_key) for issue in report.blockers},
+        )
+
+    def test_capacity_counts_each_hardlinked_import_filename(self):
+        payload = b"hardlinked-source"
+        (self.papers / "one.pdf").write_bytes(payload)
+        os.link(self.papers / "one.pdf", self.papers / "two.pdf")
+
+        report = run_preflight(self.engine, self.papers)
+
+        self.assertEqual(report.importable_file_only, ("one.pdf", "two.pdf"))
+        self.assertEqual(report.total_pdf_bytes, len(payload) * 2)
+
     def test_source_replacement_after_lstat_never_reads_symlink_target(self):
         self.write_legacy("paper.pdf", b"trusted")
         outside = Path(self.temp_dir.name) / "outside.pdf"
@@ -532,9 +556,10 @@ class PublishingMigrationTests(unittest.TestCase):
         self.assertEqual(self.scalar("SELECT COUNT(*) FROM publishing_migration_journal"), 1)
         self.assertEqual(self.scalar("SELECT COUNT(*) FROM papers_metadata"), 1)
         self.assertEqual(self.scalar("SELECT COUNT(*) FROM paper_revisions"), 1)
-        self.assertFalse((self.papers / ".publishing-migration-stage" / paper_id / "1.pdf.part").exists())
+        retained_stage = self.papers / ".publishing-migration-stage" / paper_id / "1.pdf.part"
+        self.assertEqual(retained_stage.read_bytes(), b"%PDF-1.4\n")
 
-    def test_interruption_during_copy_discards_only_partial_stage_and_resumes(self):
+    def test_interruption_during_copy_retains_partial_stage_and_resumes_safely(self):
         self.write_legacy("paper.pdf", b"complete-source")
 
         def interrupted_copy(_source, target, length):
@@ -555,7 +580,7 @@ class PublishingMigrationTests(unittest.TestCase):
         result = backfill_one_paper(self.engine, self.papers, "paper.pdf")
         self.assertEqual(result.paper_id, paper_id)
         self.assertEqual((self.papers / paper_id / "1.pdf").read_bytes(), b"complete-source")
-        self.assertFalse(partial.exists())
+        self.assertEqual(partial.read_bytes(), b"partial")
 
     def test_mismatched_existing_destination_is_never_overwritten(self):
         self.write_legacy("paper.pdf", b"source")
@@ -620,10 +645,61 @@ class PublishingMigrationTests(unittest.TestCase):
         self.assertEqual(destination.read_bytes(), b"racer")
         self.assertEqual(self.scalar("SELECT COUNT(*) FROM paper_revisions"), 0)
 
-    def test_interruption_after_destination_reservation_resumes_and_cleans_stage(self):
+    def test_destination_replaced_immediately_before_atomic_publication_survives(self):
+        self.write_legacy("paper.pdf", b"source")
+
+        def publish_racer(_stage_name):
+            paper_id = self.scalar("SELECT paper_id FROM publishing_migration_journal")
+            destination = self.papers / paper_id / "1.pdf"
+            destination.write_bytes(b"late-racer")
+
+        with mock.patch(
+            "services.publishing_migration._before_atomic_publication",
+            side_effect=publish_racer,
+        ):
+            with self.assertRaises(MigrationBlocked):
+                backfill_one_paper(self.engine, self.papers, "paper.pdf")
+
+        paper_id = self.scalar("SELECT paper_id FROM publishing_migration_journal")
+        destination = self.papers / paper_id / "1.pdf"
+        self.assertEqual(destination.read_bytes(), b"late-racer")
+        self.assertEqual(self.scalar("SELECT COUNT(*) FROM paper_revisions"), 0)
+
+    def test_stage_replacement_after_mismatch_hash_is_never_unlinked(self):
+        self.write_legacy("paper.pdf", b"complete-source")
+
+        def interrupted_copy(_source, target, length):
+            target.write(b"partial")
+            raise RuntimeError("stop with partial")
+
+        with mock.patch(
+            "services.publishing_migration.shutil.copyfileobj",
+            side_effect=interrupted_copy,
+        ):
+            with self.assertRaises(RuntimeError):
+                backfill_one_paper(self.engine, self.papers, "paper.pdf")
+        paper_id = self.scalar("SELECT paper_id FROM publishing_migration_journal")
+        partial = self.papers / ".publishing-migration-stage" / paper_id / "1.pdf.part"
+
+        def replace_stage(stage_name, matched):
+            self.assertEqual(stage_name, "1.pdf.part")
+            self.assertFalse(matched)
+            partial.unlink()
+            partial.write_bytes(b"replacement-owned-by-racer")
+
+        with mock.patch(
+            "services.publishing_migration._after_stage_candidate_hashed",
+            side_effect=replace_stage,
+        ):
+            result = backfill_one_paper(self.engine, self.papers, "paper.pdf")
+
+        self.assertEqual(partial.read_bytes(), b"replacement-owned-by-racer")
+        self.assertEqual(Path(result.destination).read_bytes(), b"complete-source")
+
+    def test_interruption_after_atomic_publication_resumes_with_retained_stage(self):
         self.write_legacy("paper.pdf", b"source")
         with mock.patch(
-            "services.publishing_migration.os.replace",
+            "services.publishing_migration._after_atomic_publication",
             side_effect=RuntimeError("injected after reservation"),
         ):
             with self.assertRaisesRegex(RuntimeError, "injected after reservation"):
@@ -636,7 +712,7 @@ class PublishingMigrationTests(unittest.TestCase):
 
         result = backfill_one_paper(self.engine, self.papers, "paper.pdf")
         self.assertEqual(result.paper_id, paper_id)
-        self.assertFalse(part.exists())
+        self.assertEqual(part.read_bytes(), b"source")
         self.assertEqual(self.scalar("SELECT COUNT(*) FROM paper_revisions"), 1)
 
     def test_exact_submission_linking_persists_nonblocking_issues(self):
