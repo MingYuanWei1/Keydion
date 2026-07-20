@@ -1,6 +1,7 @@
 import hashlib
 import io
 import os
+import shutil
 import tempfile
 import unittest
 from dataclasses import FrozenInstanceError
@@ -326,6 +327,72 @@ class PublishingMigrationTests(unittest.TestCase):
         self.assertEqual(os.readlink(stage_link), before)
         self.assertEqual(self.scalar("SELECT COUNT(*) FROM publishing_migration_journal"), 0)
 
+    def test_every_unsafe_flat_pdf_entry_blocks_preflight(self):
+        (self.papers / "safe.pdf").write_bytes(b"safe")
+        outside = Path(self.temp_dir.name) / "outside.pdf"
+        outside.write_bytes(b"outside-secret")
+        (self.papers / "inside-link.pdf").symlink_to(self.papers / "safe.pdf")
+        (self.papers / "outside-link.pdf").symlink_to(outside)
+        (self.papers / "broken.pdf").symlink_to(self.papers / "absent.pdf")
+        (self.papers / "directory.pdf").mkdir()
+        os.mkfifo(self.papers / "fifo.pdf")
+
+        report = run_preflight(self.engine, self.papers)
+
+        self.assertEqual(report.importable_file_only, ("safe.pdf",))
+        self.assertEqual(
+            {(issue.code, issue.legacy_key) for issue in report.blockers},
+            {
+                ("unresolved_filename", "inside-link.pdf"),
+                ("unresolved_filename", "outside-link.pdf"),
+                ("unresolved_filename", "broken.pdf"),
+                ("unresolved_filename", "directory.pdf"),
+                ("unresolved_filename", "fifo.pdf"),
+            },
+        )
+
+    def test_source_replacement_after_lstat_never_reads_symlink_target(self):
+        self.write_legacy("paper.pdf", b"trusted")
+        outside = Path(self.temp_dir.name) / "outside.pdf"
+        outside.write_bytes(b"outside-secret")
+
+        def replace_source(_name):
+            source = self.papers / "paper.pdf"
+            source.unlink()
+            source.symlink_to(outside)
+
+        with mock.patch(
+            "services.publishing_migration._after_source_lstat",
+            side_effect=replace_source,
+        ):
+            with self.assertRaises(MigrationBlocked):
+                backfill_one_paper(self.engine, self.papers, "paper.pdf")
+
+        self.assertEqual(outside.read_bytes(), b"outside-secret")
+        self.assertEqual(self.scalar("SELECT COUNT(*) FROM publishing_migration_journal"), 0)
+
+    def test_target_directory_replacement_after_open_never_writes_outside(self):
+        self.write_legacy("paper.pdf", b"trusted")
+        outside = Path(self.temp_dir.name) / "outside-target"
+        outside.mkdir()
+
+        def replace_target(_paper_id):
+            paper_id = self.scalar("SELECT paper_id FROM publishing_migration_journal")
+            target = self.papers / paper_id
+            moved = self.papers / f"{paper_id}.detached"
+            target.rename(moved)
+            target.symlink_to(outside, target_is_directory=True)
+
+        with mock.patch(
+            "services.publishing_migration._after_target_directory_opened",
+            side_effect=replace_target,
+        ):
+            with self.assertRaises(MigrationBlocked):
+                backfill_one_paper(self.engine, self.papers, "paper.pdf")
+
+        self.assertEqual(tuple(outside.iterdir()), ())
+        self.assertEqual(self.scalar("SELECT COUNT(*) FROM paper_revisions"), 0)
+
     def test_backfill_creates_verified_revision_and_preserves_flat_pdf(self):
         contents = b"%PDF-1.4\nlegacy"
         self.write_legacy("paper.pdf", contents)
@@ -449,9 +516,18 @@ class PublishingMigrationTests(unittest.TestCase):
         self.write_legacy("paper.pdf", b"source")
         real_link = os.link
 
-        def racing_link(source, destination):
-            Path(destination).write_bytes(b"racer")
-            return real_link(source, destination)
+        def racing_link(source, destination, **kwargs):
+            racer_fd = os.open(
+                destination,
+                os.O_WRONLY | os.O_CREAT | os.O_EXCL,
+                0o640,
+                dir_fd=kwargs["dst_dir_fd"],
+            )
+            try:
+                os.write(racer_fd, b"racer")
+            finally:
+                os.close(racer_fd)
+            return real_link(source, destination, **kwargs)
 
         with mock.patch(
             "services.publishing_migration.os.link",
@@ -591,6 +667,16 @@ class PublishingMigrationTests(unittest.TestCase):
         backfill_all(self.engine, self.papers)
         (self.papers / "paper.pdf").write_bytes(b"changed")
         with self.assertRaisesRegex(MigrationBlocked, "journaled source hash"):
+            validate_contract_ready(self.engine, self.papers)
+
+    def test_contract_capacity_does_not_charge_verified_copy_twice(self):
+        self.write_legacy("paper.pdf", b"source bytes")
+        backfill_all(self.engine, self.papers)
+
+        with mock.patch(
+            "services.publishing_migration.shutil.disk_usage",
+            return_value=shutil._ntuple_diskusage(100, 100, 0),
+        ):
             validate_contract_ready(self.engine, self.papers)
 
     def test_contract_refuses_chunk_bytes_changed_after_fingerprint(self):

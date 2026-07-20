@@ -9,7 +9,9 @@ from __future__ import annotations
 import hashlib
 import os
 import shutil
+import stat
 import uuid
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -192,6 +194,7 @@ def _scalar(engine: Engine, statement: str, parameters: dict | None = None,
 
 
 def _hash_file(path: Path) -> tuple[str, int]:
+    """Compatibility helper for non-migration callers; migration I/O uses FDs."""
     digest = hashlib.sha256()
     size = 0
     with path.open("rb") as source:
@@ -204,8 +207,17 @@ def _hash_file(path: Path) -> tuple[str, int]:
     return digest.hexdigest(), size
 
 
-def _resolved_regular_pdf(papers_dir: Path, legacy_filename: str) -> tuple[Path | None, str]:
-    """Return a safe regular PDF and classification, without unsafe dereference."""
+_DIRECTORY_FLAGS = (
+    os.O_RDONLY
+    | getattr(os, "O_DIRECTORY", 0)
+    | getattr(os, "O_CLOEXEC", 0)
+    | getattr(os, "O_NOFOLLOW", 0)
+)
+_READ_FLAGS = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+
+
+def _policy_legacy_name(papers_dir: Path, legacy_filename: str) -> bool:
+    """Apply the shared containment policy before descriptor-level validation."""
     if (
         not isinstance(legacy_filename, str)
         or not legacy_filename
@@ -215,61 +227,147 @@ def _resolved_regular_pdf(papers_dir: Path, legacy_filename: str) -> tuple[Path 
         or Path(legacy_filename).is_absolute()
         or Path(legacy_filename).suffix.casefold() != ".pdf"
     ):
-        return None, "unresolved"
-
+        return False
     try:
-        resolved = resolve_contained(papers_dir, legacy_filename, must_exist=True)
+        return resolve_contained(papers_dir, legacy_filename, must_exist=False) is not None
     except (OSError, RuntimeError, ValueError):
-        return None, "unresolved"
-    if resolved is None:
-        # The non-existing resolution performs no read/stat.  It distinguishes a
-        # simple missing filename from a symlink/traversal escape.
-        try:
-            unresolved_candidate = resolve_contained(
-                papers_dir, legacy_filename, must_exist=False,
-            )
-        except (OSError, RuntimeError, ValueError):
-            return None, "unresolved"
-        return (None, "missing") if unresolved_candidate is not None else (None, "unresolved")
+        return False
+
+
+@contextmanager
+def _trusted_root(papers_dir: Path):
     try:
-        regular = resolved.is_file()
+        root_fd = os.open(os.fspath(papers_dir), _DIRECTORY_FLAGS)
+    except OSError as exc:
+        raise MigrationBlocked(f"Paper storage root is unsafe: {papers_dir}") from exc
+    try:
+        yield root_fd
+    finally:
+        os.close(root_fd)
+
+
+def _after_source_lstat(_legacy_filename: str) -> None:
+    """Test seam immediately before the no-follow source open."""
+
+
+def _after_target_directory_opened(_paper_id: str) -> None:
+    """Test seam after target directory FD acquisition."""
+
+
+def _hash_fd(file_fd: int) -> tuple[str, int]:
+    os.lseek(file_fd, 0, os.SEEK_SET)
+    digest = hashlib.sha256()
+    size = 0
+    while True:
+        chunk = os.read(file_fd, 1024 * 1024)
+        if not chunk:
+            break
+        digest.update(chunk)
+        size += len(chunk)
+    return digest.hexdigest(), size
+
+
+def _open_regular_at(
+    directory_fd: int,
+    name: str,
+    *,
+    source_hook: bool = False,
+) -> tuple[int | None, os.stat_result | None, str]:
+    """Open one direct regular entry without following or trusting pathnames."""
+    try:
+        before = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
+    except FileNotFoundError:
+        return None, None, "missing"
     except OSError:
+        return None, None, "unresolved"
+    if not stat.S_ISREG(before.st_mode):
+        return None, None, "unresolved"
+    if source_hook:
+        _after_source_lstat(name)
+    try:
+        file_fd = os.open(name, _READ_FLAGS, dir_fd=directory_fd)
+    except OSError:
+        return None, None, "unresolved"
+    after = os.fstat(file_fd)
+    if (
+        not stat.S_ISREG(after.st_mode)
+        or (before.st_dev, before.st_ino) != (after.st_dev, after.st_ino)
+    ):
+        os.close(file_fd)
+        return None, None, "unresolved"
+    return file_fd, after, "ok"
+
+
+def _source_details_at(
+    papers_dir: Path,
+    root_fd: int,
+    legacy_filename: str,
+    *,
+    source_hook: bool = False,
+) -> tuple[str, int, tuple[int, int]] | None:
+    if not _policy_legacy_name(papers_dir, legacy_filename):
+        return None
+    file_fd, opened, classification = _open_regular_at(
+        root_fd, legacy_filename, source_hook=source_hook,
+    )
+    if file_fd is None or opened is None or classification != "ok":
+        return None
+    try:
+        source_hash, source_size = _hash_fd(file_fd)
+        final = os.fstat(file_fd)
+    finally:
+        os.close(file_fd)
+    if (
+        (opened.st_dev, opened.st_ino, opened.st_size, opened.st_mtime_ns)
+        != (final.st_dev, final.st_ino, final.st_size, final.st_mtime_ns)
+        or final.st_size != source_size
+    ):
+        return None
+    return source_hash, source_size, (final.st_dev, final.st_ino)
+
+
+def _resolved_regular_pdf(papers_dir: Path, legacy_filename: str) -> tuple[Path | None, str]:
+    """Classify a direct source through a trusted root FD."""
+    if not _policy_legacy_name(papers_dir, legacy_filename):
         return None, "unresolved"
-    if not regular:
-        return None, "unresolved"
-    return resolved, "ok"
+    with _trusted_root(papers_dir) as root_fd:
+        file_fd, _opened, classification = _open_regular_at(root_fd, legacy_filename)
+        if file_fd is not None:
+            os.close(file_fd)
+    if classification != "ok":
+        return None, classification
+    return papers_dir / legacy_filename, "ok"
 
 
 def _safe_source_details(papers_dir: Path, legacy_filename: str) -> tuple[Path, str, int]:
-    source, classification = _resolved_regular_pdf(papers_dir, legacy_filename)
-    if source is None:
-        reason = "does not exist" if classification == "missing" else "is unsafe or not a regular PDF"
-        raise MigrationBlocked(f"legacy PDF {legacy_filename!r} {reason}")
-
-    # Re-resolve immediately before hashing and verify that the source remains a
-    # contained regular file.  A later size check detects replacement mid-read.
-    source, classification = _resolved_regular_pdf(papers_dir, legacy_filename)
-    if source is None or classification != "ok":
-        raise MigrationBlocked(f"legacy PDF {legacy_filename!r} changed during verification")
-    source_hash, source_size = _hash_file(source)
-    source_after, classification = _resolved_regular_pdf(papers_dir, legacy_filename)
-    if source_after != source or classification != "ok" or source_after.stat().st_size != source_size:
-        raise MigrationBlocked(f"legacy PDF {legacy_filename!r} changed during verification")
-    return source, source_hash, source_size
+    with _trusted_root(papers_dir) as root_fd:
+        details = _source_details_at(
+            papers_dir, root_fd, legacy_filename, source_hook=True,
+        )
+    if details is None:
+        raise MigrationBlocked(
+            f"legacy PDF {legacy_filename!r} is missing, unsafe, changed, or not a regular PDF"
+        )
+    source_hash, source_size, _identity = details
+    return papers_dir / legacy_filename, source_hash, source_size
 
 
-def _flat_pdfs(papers_dir: Path) -> dict[str, Path]:
-    entries: dict[str, Path] = {}
-    for entry in sorted(papers_dir.iterdir(), key=lambda item: item.name):
-        if entry.name == ".publishing-migration-stage" or entry.name.startswith("."):
-            continue
-        if entry.suffix.casefold() != ".pdf" or entry.name != Path(entry.name).name:
-            continue
-        resolved = resolve_contained(papers_dir, entry.name, must_exist=True)
-        if resolved is None or entry.is_symlink() or not resolved.is_file():
-            continue
-        entries[entry.name] = resolved
-    return entries
+def _flat_pdf_inventory(
+    papers_dir: Path,
+) -> tuple[dict[str, tuple[str, int, tuple[int, int]]], tuple[str, ...]]:
+    safe: dict[str, tuple[str, int, tuple[int, int]]] = {}
+    unsafe: list[str] = []
+    with _trusted_root(papers_dir) as root_fd:
+        names = sorted(entry.name for entry in os.scandir(root_fd))
+        for name in names:
+            if name.startswith(".") or Path(name).suffix.casefold() != ".pdf":
+                continue
+            details = _source_details_at(papers_dir, root_fd, name)
+            if details is None:
+                unsafe.append(name)
+            else:
+                safe[name] = details
+    return safe, tuple(unsafe)
 
 
 def _legacy_metadata_keys(engine: Engine) -> tuple[str, ...]:
@@ -641,62 +739,66 @@ def _mysql_preflight_issues(engine: Engine) -> tuple[MigrationIssue, ...]:
     return tuple(issues)
 
 
-def run_preflight(engine: Engine, papers_dir: Path) -> PreflightReport:
+def run_preflight(
+    engine: Engine,
+    papers_dir: Path,
+    *,
+    capacity_phase: str = "initial",
+) -> PreflightReport:
     """Inventory legacy SQL/files without modifying either storage system."""
     papers_dir = Path(papers_dir)
-    if not papers_dir.is_dir():
-        raise ValueError(f"papers directory does not exist: {papers_dir}")
+    if capacity_phase not in {"initial", "contract"}:
+        raise ValueError(f"unknown publishing migration capacity phase: {capacity_phase}")
+    try:
+        with _trusted_root(papers_dir):
+            pass
+    except MigrationBlocked as exc:
+        raise ValueError(f"papers directory does not exist or is unsafe: {papers_dir}") from exc
 
     metadata_keys = _legacy_metadata_keys(engine)
-    flat_pdfs = _flat_pdfs(papers_dir)
+    flat_pdfs, unsafe_flat_pdfs = _flat_pdf_inventory(papers_dir)
     issues: list[MigrationIssue] = list(_mysql_preflight_issues(engine))
+    issue_keys: set[tuple[str, str | None]] = {
+        (issue.code, issue.legacy_key) for issue in issues
+    }
     missing: list[str] = []
     safe_metadata: set[str] = set()
-    safe_paths: dict[str, Path] = dict(flat_pdfs)
+    safe_details = dict(flat_pdfs)
 
     for legacy_key in metadata_keys:
-        resolved, classification = _resolved_regular_pdf(papers_dir, legacy_key)
-        if resolved is None:
+        if legacy_key in flat_pdfs:
+            safe_metadata.add(legacy_key)
+            continue
+        _resolved, classification = _resolved_regular_pdf(papers_dir, legacy_key)
+        if classification != "ok":
             if classification == "missing":
                 missing.append(legacy_key)
-                issues.append(_issue(
-                    "missing_pdf", legacy_key,
-                    "metadata row has no contained regular legacy PDF",
-                ))
+                if ("missing_pdf", legacy_key) not in issue_keys:
+                    issues.append(_issue(
+                        "missing_pdf", legacy_key,
+                        "metadata row has no contained regular legacy PDF",
+                    ))
+                    issue_keys.add(("missing_pdf", legacy_key))
             else:
-                issues.append(_issue(
-                    "unresolved_filename", legacy_key,
-                    "legacy filename is absolute, nested, escaping, symlinked outside, or non-regular",
-                ))
+                if ("unresolved_filename", legacy_key) not in issue_keys:
+                    issues.append(_issue(
+                        "unresolved_filename", legacy_key,
+                        "legacy filename is nested, escaping, symlinked, changed, or non-regular",
+                    ))
+                    issue_keys.add(("unresolved_filename", legacy_key))
             continue
-        # Hash only after a second must-exist containment resolution.
-        resolved, classification = _resolved_regular_pdf(papers_dir, legacy_key)
-        if resolved is None or classification != "ok":
-            issues.append(_issue(
-                "unresolved_filename", legacy_key,
-                "legacy PDF changed while preflight was resolving it",
-            ))
-            continue
-        _hash_file(resolved)
-        safe_metadata.add(legacy_key)
-        safe_paths[legacy_key] = resolved
 
-    for filename in sorted(set(flat_pdfs) - safe_metadata):
-        resolved, classification = _resolved_regular_pdf(papers_dir, filename)
-        if resolved is None or classification != "ok":
-            # A direct file that changes during inventory is excluded rather
-            # than dereferenced through its stale directory entry.
-            safe_paths.pop(filename, None)
-            flat_pdfs.pop(filename, None)
-            issues.append(_issue(
-                "unresolved_filename", filename,
-                "flat PDF changed while preflight was resolving it",
-            ))
+    for filename in unsafe_flat_pdfs:
+        if ("unresolved_filename", filename) in issue_keys:
             continue
-        _hash_file(resolved)
+        issues.append(_issue(
+            "unresolved_filename", filename,
+            "direct flat PDF entry is symlinked, missing, changed, or non-regular",
+        ))
+        issue_keys.add(("unresolved_filename", filename))
 
     alias_groups: dict[str, list[str]] = {}
-    for filename in sorted(set(safe_paths)):
+    for filename in sorted(set(safe_details)):
         lookup_key = normalize_alias_key(filename)
         alias_groups.setdefault(lookup_key, []).append(filename)
         if len(lookup_key) > 255:
@@ -728,36 +830,57 @@ def run_preflight(engine: Engine, papers_dir: Path) -> PreflightReport:
     ) = _submission_summary(engine, known_filenames)
     issues.extend(submission_issues)
 
-    unique_sizes: dict[Path, int] = {}
-    for filename, resolved in safe_paths.items():
-        checked = resolve_contained(papers_dir, filename, must_exist=True)
-        if checked == resolved and checked.is_file():
-            unique_sizes[checked] = checked.stat().st_size
+    unique_sizes: dict[tuple[int, int], int] = {}
+    for _filename, (_digest, size, identity) in safe_details.items():
+        unique_sizes[identity] = size
     total_pdf_bytes = sum(unique_sizes.values())
 
-    staging_dir = papers_dir / ".publishing-migration-stage"
-    if staging_dir.is_symlink():
-        issues.append(_issue(
-            "cross_device_staging", ".publishing-migration-stage",
-            "staging path must not be a symlink",
-        ))
-    elif staging_dir.exists():
-        resolved_stage = resolve_contained(
-            papers_dir, ".publishing-migration-stage", must_exist=True,
-        )
-        if resolved_stage is None or not resolved_stage.is_dir():
+    with _trusted_root(papers_dir) as root_fd:
+        root_stat = os.fstat(root_fd)
+        try:
+            stage_lstat = os.stat(
+                ".publishing-migration-stage",
+                dir_fd=root_fd,
+                follow_symlinks=False,
+            )
+        except FileNotFoundError:
+            stage_lstat = None
+        except OSError:
+            stage_lstat = False
+        if stage_lstat is False or (
+            stage_lstat is not None and not stat.S_ISDIR(stage_lstat.st_mode)
+        ):
             issues.append(_issue(
                 "cross_device_staging", ".publishing-migration-stage",
-                "staging path is not a contained directory",
+                "staging path must be a no-follow directory",
             ))
-        elif os.stat(papers_dir).st_dev != os.stat(resolved_stage).st_dev:
-            issues.append(_issue(
-                "cross_device_staging", ".publishing-migration-stage",
-                "staging and Paper storage are on different devices",
-            ))
+        elif stage_lstat is not None:
+            try:
+                stage_fd = os.open(
+                    ".publishing-migration-stage", _DIRECTORY_FLAGS, dir_fd=root_fd,
+                )
+            except OSError:
+                issues.append(_issue(
+                    "cross_device_staging", ".publishing-migration-stage",
+                    "staging path changed or could not be opened without following links",
+                ))
+            else:
+                try:
+                    opened_stage = os.fstat(stage_fd)
+                    if (
+                        (stage_lstat.st_dev, stage_lstat.st_ino)
+                        != (opened_stage.st_dev, opened_stage.st_ino)
+                        or root_stat.st_dev != opened_stage.st_dev
+                    ):
+                        issues.append(_issue(
+                            "cross_device_staging", ".publishing-migration-stage",
+                            "staging directory changed or is on a different device",
+                        ))
+                finally:
+                    os.close(stage_fd)
 
     free_bytes = shutil.disk_usage(papers_dir).free
-    required_bytes = total_pdf_bytes * 2
+    required_bytes = total_pdf_bytes * 2 if capacity_phase == "initial" else 0
     if free_bytes < required_bytes:
         issues.append(_issue(
             "insufficient_disk", None,
@@ -910,21 +1033,96 @@ def _insert_or_verify_journal(
     return _journal(engine, legacy_filename), False
 
 
-def _contained_directory(papers_dir: Path, relative: str) -> Path:
-    candidate = resolve_contained(papers_dir, relative, must_exist=False)
-    if candidate is None:
-        raise MigrationBlocked(f"unsafe migration directory {relative!r}")
-    raw_candidate = papers_dir / relative
-    if raw_candidate.exists():
-        existing = resolve_contained(papers_dir, relative, must_exist=True)
-        if existing is None or raw_candidate.is_symlink() or not existing.is_dir():
-            raise MigrationBlocked(f"migration directory {relative!r} is unsafe")
-        return existing
-    raw_candidate.mkdir(parents=True, exist_ok=False)
-    created = resolve_contained(papers_dir, relative, must_exist=True)
-    if created is None or raw_candidate.is_symlink() or not created.is_dir():
-        raise MigrationBlocked(f"could not create safe migration directory {relative!r}")
-    return created
+def _policy_relative(papers_dir: Path, relative: str) -> bool:
+    if (
+        not relative
+        or "\\" in relative
+        or any(ord(character) < 32 for character in relative)
+        or Path(relative).is_absolute()
+        or any(component in {"", ".", ".."} for component in relative.split("/"))
+    ):
+        return False
+    try:
+        return resolve_contained(papers_dir, relative, must_exist=False) is not None
+    except (OSError, RuntimeError, ValueError):
+        return False
+
+
+def _open_or_create_directory_at(parent_fd: int, name: str) -> int:
+    try:
+        before = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+    except FileNotFoundError:
+        try:
+            os.mkdir(name, mode=0o750, dir_fd=parent_fd)
+            os.fsync(parent_fd)
+        except FileExistsError:
+            pass
+        before = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+    except OSError as exc:
+        raise MigrationBlocked(f"migration directory {name!r} is unsafe") from exc
+    if not stat.S_ISDIR(before.st_mode):
+        raise MigrationBlocked(f"migration directory {name!r} is not a directory")
+    try:
+        child_fd = os.open(name, _DIRECTORY_FLAGS, dir_fd=parent_fd)
+    except OSError as exc:
+        raise MigrationBlocked(f"migration directory {name!r} changed") from exc
+    after = os.fstat(child_fd)
+    if (before.st_dev, before.st_ino) != (after.st_dev, after.st_ino):
+        os.close(child_fd)
+        raise MigrationBlocked(f"migration directory {name!r} changed")
+    return child_fd
+
+
+def _open_existing_directory_at(parent_fd: int, name: str) -> int | None:
+    try:
+        before = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+    except FileNotFoundError:
+        return None
+    except OSError as exc:
+        raise MigrationBlocked(f"migration directory {name!r} is unsafe") from exc
+    if not stat.S_ISDIR(before.st_mode):
+        raise MigrationBlocked(f"migration directory {name!r} is unsafe")
+    try:
+        child_fd = os.open(name, _DIRECTORY_FLAGS, dir_fd=parent_fd)
+    except OSError as exc:
+        raise MigrationBlocked(f"migration directory {name!r} changed") from exc
+    after = os.fstat(child_fd)
+    if (before.st_dev, before.st_ino) != (after.st_dev, after.st_ino):
+        os.close(child_fd)
+        raise MigrationBlocked(f"migration directory {name!r} changed")
+    return child_fd
+
+
+def _verified_file_at(
+    directory_fd: int,
+    name: str,
+    expected_hash: str,
+    expected_size: int,
+    *,
+    discard_mismatch: bool = False,
+) -> os.stat_result | None:
+    file_fd, opened, classification = _open_regular_at(directory_fd, name)
+    if classification == "missing":
+        return None
+    if file_fd is None or opened is None:
+        raise MigrationBlocked(f"migration file {name!r} is unsafe")
+    try:
+        actual_hash, actual_size = _hash_fd(file_fd)
+        final = os.fstat(file_fd)
+    finally:
+        os.close(file_fd)
+    if (
+        (opened.st_dev, opened.st_ino, opened.st_size, opened.st_mtime_ns)
+        != (final.st_dev, final.st_ino, final.st_size, final.st_mtime_ns)
+    ):
+        raise MigrationBlocked(f"migration file {name!r} changed while hashing")
+    if (actual_hash, actual_size) != (expected_hash, expected_size):
+        if discard_mismatch:
+            os.unlink(name, dir_fd=directory_fd)
+            os.fsync(directory_fd)
+            return None
+        raise MigrationBlocked(f"migration file {name!r} exists with different bytes")
+    return final
 
 
 def _verified_existing_file(
@@ -935,58 +1133,32 @@ def _verified_existing_file(
     *,
     discard_mismatch: bool = False,
 ) -> Path | None:
-    candidate = papers_dir / relative
-    if candidate.is_symlink():
-        raise MigrationBlocked(f"migration destination {relative!r} is a symlink")
-    if not candidate.exists():
-        return None
-    resolved = resolve_contained(papers_dir, relative, must_exist=True)
-    if resolved is None or not resolved.is_file():
-        raise MigrationBlocked(f"migration destination {relative!r} is unsafe")
-    actual_hash, actual_size = _hash_file(resolved)
-    if (actual_hash, actual_size) != (expected_hash, expected_size):
-        if discard_mismatch:
-            resolved.unlink()
-            parent_fd = os.open(resolved.parent, os.O_RDONLY)
-            try:
-                os.fsync(parent_fd)
-            finally:
+    if not _policy_relative(papers_dir, relative):
+        raise MigrationBlocked(f"unsafe migration destination {relative!r}")
+    components = relative.split("/")
+    with _trusted_root(papers_dir) as root_fd:
+        parent_fd = os.dup(root_fd)
+        try:
+            for component in components[:-1]:
+                next_fd = _open_existing_directory_at(parent_fd, component)
+                if next_fd is None:
+                    return None
                 os.close(parent_fd)
-            return None
-        raise MigrationBlocked(
-            f"migration destination {relative!r} exists with different bytes"
-        )
-    return resolved
+                parent_fd = next_fd
+            verified = _verified_file_at(
+                parent_fd,
+                components[-1],
+                expected_hash,
+                expected_size,
+                discard_mismatch=discard_mismatch,
+            )
+            return papers_dir / relative if verified is not None else None
+        finally:
+            os.close(parent_fd)
 
 
 def _after_copy_verified() -> None:
     """Test seam for simulating interruption after a durable verified copy."""
-
-
-def _fsync_directory(directory: Path) -> None:
-    directory_fd = os.open(directory, os.O_RDONLY)
-    try:
-        os.fsync(directory_fd)
-    finally:
-        os.close(directory_fd)
-
-
-def _discard_matching_stage_part(
-    papers_dir: Path,
-    part_relative: str,
-    expected_hash: str,
-    expected_size: int,
-) -> None:
-    raw_part = papers_dir / part_relative
-    if not raw_part.exists() and not raw_part.is_symlink():
-        return
-    part = _verified_existing_file(
-        papers_dir, part_relative, expected_hash, expected_size,
-    )
-    if part is None:
-        return
-    part.unlink()
-    _fsync_directory(part.parent)
 
 
 def _copy_and_publish_revision(
@@ -999,119 +1171,170 @@ def _copy_and_publish_revision(
 ) -> Path:
     stage_relative = f".publishing-migration-stage/{paper_id}"
     target_relative = paper_id
-    _contained_directory(papers_dir, ".publishing-migration-stage")
-    stage_dir = _contained_directory(papers_dir, stage_relative)
-    target_dir = _contained_directory(papers_dir, target_relative)
-    part_relative = f"{stage_relative}/1.pdf.part"
     destination_relative = f"{target_relative}/1.pdf"
-
-    destination = _verified_existing_file(
-        papers_dir, destination_relative, expected_hash, expected_size,
-    )
-    if destination is not None:
-        _discard_matching_stage_part(
-            papers_dir, part_relative, expected_hash, expected_size,
-        )
-        _fsync_directory(target_dir)
-        _set_checkpoint(engine, legacy_filename, "destination_verified")
-        return destination
-
-    part = _verified_existing_file(
-        papers_dir,
-        part_relative,
-        expected_hash,
-        expected_size,
-        discard_mismatch=True,
-    )
-    copied = False
-    if part is None:
-        source, source_hash, source_size = _safe_source_details(
-            papers_dir, legacy_filename,
-        )
-        if (source_hash, source_size) != (expected_hash, expected_size):
-            raise MigrationBlocked(f"legacy PDF {legacy_filename!r} changed after journaling")
-        raw_part = papers_dir / part_relative
-        if raw_part.is_symlink():
-            raise MigrationBlocked(f"migration stage file {part_relative!r} is a symlink")
-        with source.open("rb") as source_stream, raw_part.open("xb") as target_stream:
-            shutil.copyfileobj(source_stream, target_stream, length=1024 * 1024)
-            target_stream.flush()
-            os.fsync(target_stream.fileno())
-        part = _verified_existing_file(
-            papers_dir, part_relative, expected_hash, expected_size,
-        )
-        if part is None:
-            raise MigrationBlocked("verified staging copy disappeared")
-        copied = True
-
-    _set_checkpoint(engine, legacy_filename, "copy_verified")
-    if copied:
-        _after_copy_verified()
-
-    # Re-resolve both parents and the part immediately before atomic rename.
-    safe_stage = resolve_contained(papers_dir, stage_relative, must_exist=True)
-    safe_target = resolve_contained(papers_dir, target_relative, must_exist=True)
-    safe_part = resolve_contained(papers_dir, part_relative, must_exist=True)
     if (
-        safe_stage != stage_dir
-        or safe_target != target_dir
-        or safe_part != part
-        or (papers_dir / part_relative).is_symlink()
+        not _policy_legacy_name(papers_dir, legacy_filename)
+        or not _policy_relative(papers_dir, stage_relative)
+        or not _policy_relative(papers_dir, destination_relative)
     ):
-        raise MigrationBlocked("migration staging paths changed before atomic rename")
-    raw_destination = papers_dir / destination_relative
-    if raw_destination.exists() or raw_destination.is_symlink():
-        existing_destination = _verified_existing_file(
-            papers_dir, destination_relative, expected_hash, expected_size,
-        )
-        if existing_destination is None:
-            raise MigrationBlocked("existing migration destination disappeared")
-        return existing_destination
+        raise MigrationBlocked("migration source or destination violates containment policy")
 
-    # Reserve the absent destination atomically without clobbering a file that
-    # appears after the preceding check.  The hard link and part are the same
-    # inode; os.replace therefore performs the required atomic rename step
-    # without ever replacing different destination bytes.
-    try:
-        os.link(part, raw_destination)
-    except FileExistsError:
-        raced_destination = _verified_existing_file(
-            papers_dir, destination_relative, expected_hash, expected_size,
+    with _trusted_root(papers_dir) as root_fd:
+        source_fd, _source_stat, source_classification = _open_regular_at(
+            root_fd, legacy_filename, source_hook=True,
         )
-        if raced_destination is None:
-            raise MigrationBlocked("racing migration destination disappeared")
-        _discard_matching_stage_part(
-            papers_dir, part_relative, expected_hash, expected_size,
-        )
-        _fsync_directory(target_dir)
-        _set_checkpoint(engine, legacy_filename, "destination_verified")
-        return raced_destination
-    except OSError as exc:
-        raise MigrationBlocked("could not atomically reserve migration destination") from exc
+        if source_fd is None or source_classification != "ok":
+            raise MigrationBlocked(f"legacy PDF {legacy_filename!r} changed after journaling")
+        stage_root_fd = stage_fd = target_fd = None
+        try:
+            source_hash, source_size = _hash_fd(source_fd)
+            if (source_hash, source_size) != (expected_hash, expected_size):
+                raise MigrationBlocked(f"legacy PDF {legacy_filename!r} changed after journaling")
 
-    linked_destination = _verified_existing_file(
-        papers_dir, destination_relative, expected_hash, expected_size,
-    )
-    linked_part = _verified_existing_file(
-        papers_dir, part_relative, expected_hash, expected_size,
-    )
-    if linked_destination is None or linked_part is None:
-        raise MigrationBlocked("atomic migration destination reservation changed")
-    linked_stat = linked_destination.stat()
-    part_stat = linked_part.stat()
-    if (linked_stat.st_dev, linked_stat.st_ino) != (part_stat.st_dev, part_stat.st_ino):
-        raise MigrationBlocked("migration destination reservation is not the staged inode")
-    os.replace(part, raw_destination)
-    if (papers_dir / part_relative).exists():
-        (papers_dir / part_relative).unlink()
-    _fsync_directory(target_dir)
-    destination = _verified_existing_file(
-        papers_dir, destination_relative, expected_hash, expected_size,
-    )
-    if destination is None:
-        raise MigrationBlocked("published revision disappeared after atomic rename")
-    _set_checkpoint(engine, legacy_filename, "destination_verified")
-    return destination
+            stage_root_fd = _open_or_create_directory_at(
+                root_fd, ".publishing-migration-stage",
+            )
+            if os.fstat(stage_root_fd).st_dev != os.fstat(root_fd).st_dev:
+                raise MigrationBlocked("staging and Paper storage are on different devices")
+            stage_fd = _open_or_create_directory_at(stage_root_fd, paper_id)
+            target_fd = _open_or_create_directory_at(root_fd, paper_id)
+            target_identity = os.fstat(target_fd)
+            _after_target_directory_opened(paper_id)
+
+            destination = _verified_file_at(
+                target_fd, "1.pdf", expected_hash, expected_size,
+            )
+            if destination is not None:
+                staged = _verified_file_at(
+                    stage_fd, "1.pdf.part", expected_hash, expected_size,
+                    discard_mismatch=True,
+                )
+                if staged is not None:
+                    os.unlink("1.pdf.part", dir_fd=stage_fd)
+                    os.fsync(stage_fd)
+                reopened = _open_existing_directory_at(root_fd, paper_id)
+                if reopened is None:
+                    raise MigrationBlocked("published Paper directory disappeared")
+                try:
+                    current = os.fstat(reopened)
+                    if (current.st_dev, current.st_ino) != (
+                        target_identity.st_dev, target_identity.st_ino,
+                    ):
+                        raise MigrationBlocked("published Paper directory changed")
+                finally:
+                    os.close(reopened)
+                os.fsync(target_fd)
+                _set_checkpoint(engine, legacy_filename, "destination_verified")
+                return papers_dir / destination_relative
+
+            part = _verified_file_at(
+                stage_fd, "1.pdf.part", expected_hash, expected_size,
+                discard_mismatch=True,
+            )
+            copied = False
+            if part is None:
+                os.lseek(source_fd, 0, os.SEEK_SET)
+                part_fd = os.open(
+                    "1.pdf.part",
+                    os.O_WRONLY | os.O_CREAT | os.O_EXCL
+                    | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0),
+                    0o640,
+                    dir_fd=stage_fd,
+                )
+                try:
+                    with os.fdopen(os.dup(source_fd), "rb") as source_stream, os.fdopen(
+                        os.dup(part_fd), "wb"
+                    ) as target_stream:
+                        shutil.copyfileobj(source_stream, target_stream, length=1024 * 1024)
+                        target_stream.flush()
+                    os.fsync(part_fd)
+                finally:
+                    os.close(part_fd)
+                os.fsync(stage_fd)
+                part = _verified_file_at(
+                    stage_fd, "1.pdf.part", expected_hash, expected_size,
+                )
+                if part is None:
+                    raise MigrationBlocked("verified staging copy disappeared")
+                copied = True
+
+            _set_checkpoint(engine, legacy_filename, "copy_verified")
+            if copied:
+                _after_copy_verified()
+
+            try:
+                os.link(
+                    "1.pdf.part",
+                    "1.pdf",
+                    src_dir_fd=stage_fd,
+                    dst_dir_fd=target_fd,
+                    follow_symlinks=False,
+                )
+            except FileExistsError:
+                raced = _verified_file_at(
+                    target_fd, "1.pdf", expected_hash, expected_size,
+                )
+                if raced is None:
+                    raise MigrationBlocked("racing migration destination disappeared")
+                os.unlink("1.pdf.part", dir_fd=stage_fd)
+                os.fsync(stage_fd)
+            except OSError as exc:
+                raise MigrationBlocked("could not atomically reserve migration destination") from exc
+            else:
+                linked_destination = _verified_file_at(
+                    target_fd, "1.pdf", expected_hash, expected_size,
+                )
+                linked_part = _verified_file_at(
+                    stage_fd, "1.pdf.part", expected_hash, expected_size,
+                )
+                if (
+                    linked_destination is None
+                    or linked_part is None
+                    or (linked_destination.st_dev, linked_destination.st_ino)
+                    != (linked_part.st_dev, linked_part.st_ino)
+                ):
+                    raise MigrationBlocked("migration destination reservation changed")
+                os.replace(
+                    "1.pdf.part", "1.pdf", src_dir_fd=stage_fd, dst_dir_fd=target_fd,
+                )
+                try:
+                    remaining_part = os.stat(
+                        "1.pdf.part", dir_fd=stage_fd, follow_symlinks=False,
+                    )
+                except FileNotFoundError:
+                    remaining_part = None
+                if remaining_part is not None:
+                    if (
+                        remaining_part.st_dev,
+                        remaining_part.st_ino,
+                    ) != (linked_destination.st_dev, linked_destination.st_ino):
+                        raise MigrationBlocked("staged part changed after publication")
+                    os.unlink("1.pdf.part", dir_fd=stage_fd)
+                os.fsync(stage_fd)
+
+            os.fsync(target_fd)
+            reopened = _open_existing_directory_at(root_fd, paper_id)
+            if reopened is None:
+                raise MigrationBlocked("published Paper directory disappeared")
+            try:
+                current = os.fstat(reopened)
+                if (current.st_dev, current.st_ino) != (
+                    target_identity.st_dev, target_identity.st_ino,
+                ):
+                    raise MigrationBlocked("published Paper directory changed")
+                if _verified_file_at(
+                    reopened, "1.pdf", expected_hash, expected_size,
+                ) is None:
+                    raise MigrationBlocked("published revision disappeared")
+            finally:
+                os.close(reopened)
+            _set_checkpoint(engine, legacy_filename, "destination_verified")
+            return papers_dir / destination_relative
+        finally:
+            os.close(source_fd)
+            for directory_fd in (stage_fd, stage_root_fd, target_fd):
+                if directory_fd is not None:
+                    os.close(directory_fd)
 
 
 def _capture_pre_backfill_state(engine: Engine, expected_paper_count: int) -> None:
@@ -1485,7 +1708,7 @@ def _assert_count(engine: Engine, statement: str, expected: int, label: str) -> 
 
 def validate_contract_ready(engine: Engine, papers_dir: Path) -> PreflightReport:
     """Refuse contraction unless every SQL/file identity invariant is proven."""
-    report = run_preflight(engine, papers_dir)
+    report = run_preflight(engine, papers_dir, capacity_phase="contract")
     if report.blockers:
         details = ", ".join(
             f"{issue.code}:{issue.legacy_key}" for issue in report.blockers
