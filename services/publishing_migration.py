@@ -2188,6 +2188,7 @@ def _link_submissions(engine: Engine) -> None:
                 connection.execute(text("""
                     UPDATE submissions SET paper_id = NULL WHERE id = :id
                 """), {"id": submission["id"]})
+            _resolve_submission_issues(engine, submission["id"])
             _persist_issue(engine, code, submission["id"], details)
 
 
@@ -2230,6 +2231,23 @@ def _validate_submission_links(engine: Engine) -> None:
             if count != 1:
                 raise MigrationBlocked(
                     f"accepted Submission issue is missing for {submission['id']!r}"
+                )
+            opposite_kind = (
+                "submission_ambiguous"
+                if expected_kind == "submission_unmatched"
+                else "submission_unmatched"
+            )
+            stale_opposite = int(_scalar(engine, """
+                SELECT COUNT(*) FROM publishing_migration_issues
+                WHERE legacy_key = :legacy_key AND kind = :kind
+                  AND resolved_at IS NULL
+            """, {
+                "legacy_key": submission["id"],
+                "kind": opposite_kind,
+            }))
+            if stale_opposite:
+                raise MigrationBlocked(
+                    f"accepted Submission has a stale opposite diagnostic: {submission['id']!r}"
                 )
 
 

@@ -796,6 +796,53 @@ class PublishingMigrationTests(unittest.TestCase):
         with self.assertRaisesRegex(MigrationBlocked, "accepted Submission"):
             validate_contract_ready(self.engine, self.papers)
 
+    def test_submission_issue_kind_transition_resolves_stale_opposite(self):
+        self.write_legacy("one.pdf")
+        self.write_legacy("two.pdf")
+        self.insert_submission("changing", "accepted", pdf_filename="missing.pdf")
+        backfill_all(self.engine, self.papers)
+
+        with self.engine.begin() as conn:
+            conn.execute(text("""
+                UPDATE submissions
+                SET pdf_filename='one.pdf', pending_filename='two.pdf'
+                WHERE id='changing'
+            """))
+        backfill_all(self.engine, self.papers)
+
+        with self.engine.connect() as conn:
+            issues = conn.execute(text("""
+                SELECT kind, resolved_at FROM publishing_migration_issues
+                WHERE legacy_key='changing' ORDER BY kind
+            """)).mappings().all()
+        self.assertEqual([row.kind for row in issues], [
+            "submission_ambiguous", "submission_unmatched",
+        ])
+        self.assertIsNone(issues[0].resolved_at)
+        self.assertIsNotNone(issues[1].resolved_at)
+
+    def test_contract_rejects_stale_opposite_submission_diagnostic(self):
+        self.write_legacy("one.pdf")
+        self.write_legacy("two.pdf")
+        self.insert_submission(
+            "changing", "accepted", pdf_filename="one.pdf", pending_filename="two.pdf",
+        )
+        backfill_all(self.engine, self.papers)
+        with self.engine.begin() as conn:
+            conn.execute(text("""
+                INSERT INTO publishing_migration_issues (
+                    id, kind, legacy_key, paper_id, details, blocking,
+                    resolved_at, created_at, updated_at
+                ) VALUES (
+                    'stale-opposite', 'submission_unmatched', 'changing', NULL,
+                    'stale diagnostic', 0, NULL,
+                    '2026-07-20 00:00:00', '2026-07-20 00:00:00'
+                )
+            """))
+
+        with self.assertRaisesRegex(MigrationBlocked, "stale opposite"):
+            validate_contract_ready(self.engine, self.papers)
+
     def test_papers_without_chunks_get_one_deduplicated_index_job(self):
         self.write_legacy("paper.pdf")
         first = backfill_one_paper(self.engine, self.papers, "paper.pdf")
