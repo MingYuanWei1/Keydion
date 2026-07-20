@@ -1,9 +1,10 @@
 """ORM models + init_db() schema setup/migrations."""
 import logging
+import uuid
 
 from sqlalchemy import (
-    Boolean, Column, Date, DateTime, Integer, Unicode, UnicodeText,
-    create_engine, func,
+    Boolean, Column, Date, DateTime, ForeignKey, ForeignKeyConstraint, Integer,
+    String, Unicode, UnicodeText, UniqueConstraint, create_engine, func,
 )
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.orm import sessionmaker
@@ -55,7 +56,8 @@ class JournalModel(BASE):
 
 class PaperMetadataModel(BASE):
     __tablename__ = "papers_metadata"
-    filename = Column(Unicode(255), primary_key=True)
+    id = Column(Unicode(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    filename = Column(Unicode(255), nullable=False, unique=True)
     title = Column(Unicode(255))
     journal = Column(Unicode(255))
     category = Column(Unicode(255))
@@ -71,6 +73,108 @@ class PaperMetadataModel(BASE):
     is_anonymous = Column(Unicode(10))
     cp_data = Column(UnicodeText)
     ia_data = Column(UnicodeText)
+    lifecycle_state = Column(Unicode(16), nullable=False, default="publishing")
+    current_revision = Column(Integer)
+    row_version = Column(Integer, nullable=False, default=0)
+    index_status = Column(Unicode(16), nullable=False, default="pending")
+    indexed_revision = Column(Integer)
+    index_error = Column(UnicodeText)
+    direct_idempotency_key = Column(Unicode(255), unique=True)
+    direct_payload_hash = Column(Unicode(64))
+    origin_submission_id = Column(Unicode(255), unique=True)
+    reservation_expires_at = Column(DateTime(timezone=False))
+
+
+class PaperRevisionModel(BASE):
+    __tablename__ = "paper_revisions"
+    paper_id = Column(
+        Unicode(36), ForeignKey("papers_metadata.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    revision_number = Column(Integer, primary_key=True)
+    sha256 = Column(Unicode(64), nullable=False)
+    size_bytes = Column(Integer, nullable=False)
+    created_at = Column(DateTime(timezone=False), nullable=False)
+    created_by = Column(Unicode(255), nullable=False)
+    restored_from_revision = Column(Integer)
+
+
+class PaperFilenameAliasModel(BASE):
+    __tablename__ = "paper_filename_aliases"
+    lookup_key = Column(
+        Unicode(255).with_variant(
+            String(255, collation="utf8mb4_bin"), "mysql",
+        ),
+        primary_key=True,
+    )
+    filename = Column(Unicode(255), nullable=False)
+    paper_id = Column(
+        Unicode(36), ForeignKey("papers_metadata.id", ondelete="CASCADE"),
+        nullable=False, index=True,
+    )
+    created_at = Column(DateTime(timezone=False), nullable=False)
+
+
+class PublishingJobModel(BASE):
+    __tablename__ = "publishing_jobs"
+    id = Column(Unicode(36), primary_key=True)
+    kind = Column(Unicode(32), nullable=False)
+    paper_id = Column(
+        Unicode(36), ForeignKey("papers_metadata.id", ondelete="CASCADE"),
+        nullable=False, index=True,
+    )
+    revision_number = Column(Integer, nullable=False, default=0)
+    dedupe_key = Column(Unicode(255), nullable=False, unique=True)
+    state = Column(Unicode(16), nullable=False)
+    attempts = Column(Integer, nullable=False, default=0)
+    available_at = Column(DateTime(timezone=False), nullable=False)
+    lease_token = Column(Unicode(36))
+    lease_expires_at = Column(DateTime(timezone=False))
+    last_error = Column(UnicodeText)
+    created_at = Column(DateTime(timezone=False), nullable=False)
+    updated_at = Column(DateTime(timezone=False), nullable=False)
+
+
+class PublishingMigrationJournalModel(BASE):
+    __tablename__ = "publishing_migration_journal"
+    legacy_key = Column(Unicode(255), primary_key=True)
+    paper_id = Column(
+        Unicode(36), ForeignKey("papers_metadata.id", ondelete="CASCADE"),
+        nullable=False, unique=True,
+    )
+    source_sha256 = Column(Unicode(64))
+    source_size_bytes = Column(Integer)
+    legacy_chunk_count = Column(Integer, nullable=False, default=0)
+    legacy_chunk_fingerprint = Column(Unicode(64))
+    checkpoint = Column(Unicode(32), nullable=False)
+    created_at = Column(DateTime(timezone=False), nullable=False)
+    updated_at = Column(DateTime(timezone=False), nullable=False)
+
+
+class PublishingMigrationStateModel(BASE):
+    __tablename__ = "publishing_migration_state"
+    name = Column(Unicode(32), primary_key=True)
+    paper_count = Column(Integer, nullable=False)
+    submission_count = Column(Integer, nullable=False)
+    chunk_count = Column(Integer, nullable=False)
+    vector_count = Column(Integer, nullable=False)
+    captured_at = Column(DateTime(timezone=False), nullable=False)
+
+
+class PublishingMigrationIssueModel(BASE):
+    __tablename__ = "publishing_migration_issues"
+    id = Column(Unicode(36), primary_key=True)
+    kind = Column(Unicode(32), nullable=False)
+    legacy_key = Column(Unicode(255))
+    paper_id = Column(
+        Unicode(36), ForeignKey("papers_metadata.id", ondelete="CASCADE"),
+        index=True,
+    )
+    details = Column(UnicodeText, nullable=False)
+    blocking = Column(Boolean, nullable=False, default=False)
+    resolved_at = Column(DateTime(timezone=False))
+    created_at = Column(DateTime(timezone=False), nullable=False)
+    updated_at = Column(DateTime(timezone=False), nullable=False)
 
 
 class VectorType(UserDefinedType):
@@ -91,8 +195,21 @@ class VectorType(UserDefinedType):
 
 class PaperChunkModel(BASE):
     __tablename__ = "papers_chunks"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["paper_id", "revision_number"],
+            ["paper_revisions.paper_id", "paper_revisions.revision_number"],
+            ondelete="CASCADE",
+        ),
+        UniqueConstraint(
+            "paper_id", "revision_number", "chunk_index",
+            name="uq_papers_chunks_paper_revision_chunk",
+        ),
+    )
     id = Column(Integer, primary_key=True, autoincrement=True)
     filename = Column(Unicode(255), index=True)
+    paper_id = Column(Unicode(36), index=True)
+    revision_number = Column(Integer)
     chunk_index = Column(Integer)
     content = Column(UnicodeText)
     # Binary chunk vector (MySQL 9 VECTOR). The legacy JSON `embedding` column
@@ -210,6 +327,16 @@ class SubmissionModel(BASE):
     is_anonymous = Column(Unicode(10))
     cp_data = Column(UnicodeText)
     ia_data = Column(UnicodeText)
+    paper_id = Column(
+        Unicode(36), ForeignKey("papers_metadata.id", ondelete="SET NULL"),
+        index=True,
+    )
+    submitter_name = Column(Unicode(255))
+    reviewed_at = Column(DateTime(timezone=False))
+    reviewer = Column(Unicode(255))
+    comment = Column(UnicodeText)
+    decision_idempotency_key = Column(Unicode(255), unique=True)
+    decision_payload_hash = Column(Unicode(64))
 
 
 class SessionModel(BASE):

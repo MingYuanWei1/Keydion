@@ -24,6 +24,8 @@ class PaperChunkModelContract(unittest.TestCase):
     def test_uses_binary_vector_column(self):
         node, text = support.find_class("PaperChunkModel")
         src = ast.get_source_segment(text, node)
+        self.assertIn("paper_id", src)
+        self.assertIn("revision_number", src)
         self.assertIn("embedding_vec", src)
         self.assertIn("VectorType", src)
 

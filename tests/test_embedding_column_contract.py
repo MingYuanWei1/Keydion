@@ -17,6 +17,11 @@ from sqlalchemy.dialects import mysql
 
 
 class EmbeddingColumnWidth(unittest.TestCase):
+    def test_paper_chunk_identity_includes_paper_and_revision(self):
+        columns = app_module.PaperChunkModel.__table__.c
+        self.assertIn("paper_id", columns)
+        self.assertIn("revision_number", columns)
+
     def test_paper_chunk_embedding_is_vector_of_configured_dim(self):
         col_type = app_module.PaperChunkModel.__table__.c.embedding_vec.type
         self.assertEqual(

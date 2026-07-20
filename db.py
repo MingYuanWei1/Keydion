@@ -21,12 +21,16 @@ def get_engine():
     return _ENGINE
 
 
+def get_session_factory():
+    if _SESSION_LOCAL is None:
+        from models import init_db
+        init_db()
+    return _SESSION_LOCAL
+
+
 @contextmanager
 def db_session():
-    if _SESSION_LOCAL is None:
-        from models import init_db  # deferred: models imports db (BASE) at top level
-        init_db()
-    session = _SESSION_LOCAL()
+    session = get_session_factory()()
     try:
         yield session
         session.commit()
