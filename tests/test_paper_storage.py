@@ -80,6 +80,33 @@ class PaperStorageTests(unittest.TestCase):
             PaperStorage(papers_d, pending_d)
         self.assertEqual(list(outside.iterdir()), [])
 
+    def test_constructor_rejects_equal_roots_before_reserved_mutation(self):
+        common = Path(self.tmp.name) / "equal-root"
+
+        with self.assertRaises(StorageError):
+            PaperStorage(common, common)
+
+        self.assertTrue(common.is_dir())
+        self.assertEqual(list(common.iterdir()), [])
+
+    def test_constructor_rejects_nested_roots_before_reserved_mutation(self):
+        cases = (
+            ("papers-parent", Path("papers"), Path("papers/pending")),
+            ("pending-parent", Path("pending/papers"), Path("pending")),
+        )
+        for label, papers_relative, pending_relative in cases:
+            with self.subTest(label=label):
+                root = Path(self.tmp.name) / label
+                papers = root / papers_relative
+                pending = root / pending_relative
+
+                with self.assertRaises(StorageError):
+                    PaperStorage(papers, pending)
+
+                self.assertFalse((papers / ".staging").exists())
+                self.assertFalse((pending / ".trash").exists())
+                self.assertFalse((papers / ".paper-storage.lock").exists())
+
     def test_private_storage_modes_are_explicit(self):
         staged = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-mode")
         stored = self.storage.promote(staged, PAPER_ID, 1)
@@ -198,6 +225,19 @@ class PaperStorageTests(unittest.TestCase):
         self.assertEqual(repeated, stored)
         self.assertFalse(second.path.exists())
 
+    def test_idempotent_promotion_rejects_multiply_linked_final_revision(self):
+        first = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-first-link")
+        stored = self.storage.promote(first, PAPER_ID, 1)
+        alias = self.storage.papers_dir / "unexpected-hardlink.pdf"
+        os.link(stored.path, alias)
+        second = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-second-link")
+
+        with self.assertRaises(StorageError):
+            self.storage.promote(second, PAPER_ID, 1)
+
+        self.assertTrue(second.path.exists())
+        self.assertEqual(stored.path.stat().st_nlink, 2)
+
     def test_magic_header_without_parseable_pdf_is_rejected(self):
         upload = PdfUpload("broken.pdf", io.BytesIO(b"%PDF-1.4\nnot-a-pdf"))
         with self.assertRaises(StorageError):
@@ -209,6 +249,27 @@ class PaperStorageTests(unittest.TestCase):
             self.storage.stage(PdfUpload("text.pdf", io.BytesIO(b"not pdf")), "op-bad")
         self.assertTrue(retained.path.exists())
         self.assertFalse((self.storage.papers_dir / ".staging" / "op-bad.pdf").exists())
+
+    def test_unexpected_upload_stream_exception_is_wrapped_and_cleans_stage(self):
+        pdf_bytes = self.valid_pdf_upload("exploding.pdf").stream.read()
+
+        class ExplodingStream(io.BytesIO):
+            def __init__(self, contents):
+                super().__init__(contents)
+                self.read_count = 0
+
+            def read(self, size=-1):
+                self.read_count += 1
+                if self.read_count == 2:
+                    raise KeyError("injected upload stream failure")
+                return super().read(size)
+
+        upload = PdfUpload("exploding.pdf", ExplodingStream(pdf_bytes))
+
+        with self.assertRaises(StorageError):
+            self.storage.stage(upload, "op-exploding")
+
+        self.assertFalse((self.storage.staging_dir / "op-exploding.pdf").exists())
 
     def test_delete_is_idempotent(self):
         self.storage.delete_paper(PAPER_ID, ["legacy.pdf"])
@@ -286,6 +347,31 @@ class PaperStorageTests(unittest.TestCase):
         metadata = PdfReader(prepared.path).metadata
         self.assertEqual(metadata.title, "Paper")
         self.assertEqual(metadata.author, "Alice")
+
+    def test_metadata_backup_removal_is_followed_by_staging_fsync(self):
+        staged = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-backup-fsync")
+        staging_identity = (
+            os.fstat(self.storage._staging_fd).st_dev,
+            os.fstat(self.storage._staging_fd).st_ino,
+        )
+        backup_presence_at_fsync = []
+        real_fsync = storage_module._fsync_directory_fd
+
+        def record_backup_state(directory_fd):
+            info = os.fstat(directory_fd)
+            if (info.st_dev, info.st_ino) == staging_identity:
+                backup_presence_at_fsync.append(
+                    any(".metadata-backup-" in name for name in os.listdir(directory_fd))
+                )
+            return real_fsync(directory_fd)
+
+        with mock.patch(
+            "services.paper_storage._fsync_directory_fd",
+            side_effect=record_backup_state,
+        ):
+            self.storage.apply_metadata(staged, title="Paper", author="Alice")
+
+        self.assertEqual(backup_presence_at_fsync, [True, False])
 
     def test_metadata_writer_failure_preserves_staged_source(self):
         staged = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-1")
@@ -399,6 +485,27 @@ class PaperStorageTests(unittest.TestCase):
         self.assertEqual(stored.path.read_bytes(), original)
         self.assertEqual(staged.path.read_bytes(), b"racing stage")
 
+    def test_linux_style_hardlink_publication_finishes_with_single_link(self):
+        staged = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-linux-link")
+
+        def publish_as_hardlink(_source_fd, target_fd, destination_name):
+            os.link(
+                staged.path.name,
+                destination_name,
+                src_dir_fd=self.storage._staging_fd,
+                dst_dir_fd=target_fd,
+                follow_symlinks=False,
+            )
+
+        with mock.patch(
+            "services.paper_storage._publish_verified_fd_no_replace",
+            side_effect=publish_as_hardlink,
+        ):
+            stored = self.storage.promote(staged, PAPER_ID, 1)
+
+        self.assertFalse(staged.path.exists())
+        self.assertEqual(stored.path.stat().st_nlink, 1)
+
     def test_promotion_reopens_final_bytes_before_success(self):
         staged = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-final-swap")
         real_publish = getattr(storage_module, "_publish_verified_fd_no_replace", None)
@@ -455,6 +562,100 @@ class PaperStorageTests(unittest.TestCase):
         self.assertIn(papers_identity, synced)
         self.assertIn(paper_identity, synced)
         self.assertLess(synced.index(papers_identity), synced.index(paper_identity))
+
+    def test_promotion_fsyncs_verified_final_file_before_paper_directory(self):
+        staged = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-final-fsync")
+        events = []
+        real_os_fsync = os.fsync
+        real_directory_fsync = storage_module._fsync_directory_fd
+
+        def record_file_fsync(file_fd):
+            info = os.fstat(file_fd)
+            if stat.S_ISREG(info.st_mode):
+                events.append(("file", info.st_dev, info.st_ino))
+            return real_os_fsync(file_fd)
+
+        def record_directory_fsync(directory_fd):
+            info = os.fstat(directory_fd)
+            events.append(("directory", info.st_dev, info.st_ino))
+            return real_directory_fsync(directory_fd)
+
+        with mock.patch("services.paper_storage.os.fsync", side_effect=record_file_fsync), mock.patch(
+            "services.paper_storage._fsync_directory_fd",
+            side_effect=record_directory_fsync,
+        ):
+            stored = self.storage.promote(staged, PAPER_ID, 1)
+
+        final_info = stored.path.stat()
+        paper_info = stored.path.parent.stat()
+        final_event = ("file", final_info.st_dev, final_info.st_ino)
+        paper_event = ("directory", paper_info.st_dev, paper_info.st_ino)
+        self.assertIn(final_event, events)
+        self.assertIn(paper_event, events)
+        self.assertLess(events.index(final_event), events.index(paper_event))
+
+    def test_post_commit_staging_fsync_failure_does_not_fail_promotion(self):
+        staged = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-cleanup-fsync")
+        expected = staged.path.read_bytes()
+        staging_identity = (
+            os.fstat(self.storage._staging_fd).st_dev,
+            os.fstat(self.storage._staging_fd).st_ino,
+        )
+        real_fsync = storage_module._fsync_directory_fd
+        injected = False
+
+        def fail_staging_fsync(directory_fd):
+            nonlocal injected
+            info = os.fstat(directory_fd)
+            if (info.st_dev, info.st_ino) == staging_identity and not injected:
+                injected = True
+                raise OSError("injected post-commit staging fsync failure")
+            return real_fsync(directory_fd)
+
+        with mock.patch(
+            "services.paper_storage._fsync_directory_fd",
+            side_effect=fail_staging_fsync,
+        ):
+            stored = self.storage.promote(staged, PAPER_ID, 1)
+
+        self.assertTrue(injected)
+        self.assertEqual(stored.path.read_bytes(), expected)
+        self.assertFalse(staged.path.exists())
+
+    def test_post_commit_stage_unlink_failure_is_reconciled_without_losing_final(self):
+        staged = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-cleanup-unlink")
+        real_unlink_matching = self.storage._unlink_if_matching
+
+        def publish_as_hardlink(_source_fd, target_fd, destination_name):
+            os.link(
+                staged.path.name,
+                destination_name,
+                src_dir_fd=self.storage._staging_fd,
+                dst_dir_fd=target_fd,
+                follow_symlinks=False,
+            )
+
+        def fail_stage_cleanup(directory_fd, name, expected):
+            if directory_fd == self.storage._staging_fd and name == staged.path.name:
+                raise OSError("injected stage unlink failure")
+            return real_unlink_matching(directory_fd, name, expected)
+
+        with mock.patch(
+            "services.paper_storage._publish_verified_fd_no_replace",
+            side_effect=publish_as_hardlink,
+        ), mock.patch.object(
+            self.storage,
+            "_unlink_if_matching",
+            side_effect=fail_stage_cleanup,
+        ):
+            stored = self.storage.promote(staged, PAPER_ID, 1)
+
+        self.assertTrue(staged.path.exists())
+        self.assertEqual(stored.path.stat().st_nlink, 2)
+        removed = self.storage.reconcile_expired(time.time() + 60, {(PAPER_ID, 1)})
+        self.assertEqual(removed, 1)
+        self.assertFalse(staged.path.exists())
+        self.assertEqual(stored.path.stat().st_nlink, 1)
 
     def test_uuid_revision_and_operation_traversal_are_rejected(self):
         for paper_id in ("../escape", "/absolute", "not-a-uuid"):
@@ -576,6 +777,111 @@ class PaperStorageTests(unittest.TestCase):
         self.assertEqual(source.read_bytes(), source_bytes)
         self.assertEqual(destination.read_bytes(), b"incumbent trash")
 
+    def test_trash_destination_stat_failure_before_unlink_rolls_back_link(self):
+        source = self.write_pending_pdf("stat-before.pdf")
+        destination = self.storage.trash_dir / "op-stat-before.pdf"
+        real_stat = os.stat
+        injected = False
+
+        def fail_first_destination_stat(path, *args, **kwargs):
+            nonlocal injected
+            if path == destination.name and kwargs.get("dir_fd") == self.storage._trash_fd and not injected:
+                injected = True
+                raise OSError("injected destination stat failure")
+            return real_stat(path, *args, **kwargs)
+
+        with mock.patch("services.paper_storage.os.stat", side_effect=fail_first_destination_stat):
+            with self.assertRaises(StorageError):
+                self.storage.trash_pending(source.name, "op-stat-before")
+
+        self.assertTrue(injected)
+        self.assertTrue(source.exists())
+        self.assertEqual(source.stat().st_nlink, 1)
+        self.assertFalse(destination.exists())
+
+    def test_trash_destination_fsync_failure_before_unlink_rolls_back_link(self):
+        source = self.write_pending_pdf("fsync-before.pdf")
+        destination = self.storage.trash_dir / "op-fsync-before.pdf"
+        trash_identity = (
+            os.fstat(self.storage._trash_fd).st_dev,
+            os.fstat(self.storage._trash_fd).st_ino,
+        )
+        real_fsync = storage_module._fsync_directory_fd
+        injected = False
+
+        def fail_first_trash_fsync(directory_fd):
+            nonlocal injected
+            info = os.fstat(directory_fd)
+            if (info.st_dev, info.st_ino) == trash_identity and not injected:
+                injected = True
+                raise OSError("injected destination fsync failure")
+            return real_fsync(directory_fd)
+
+        with mock.patch(
+            "services.paper_storage._fsync_directory_fd",
+            side_effect=fail_first_trash_fsync,
+        ):
+            with self.assertRaises(StorageError):
+                self.storage.trash_pending(source.name, "op-fsync-before")
+
+        self.assertTrue(injected)
+        self.assertTrue(source.exists())
+        self.assertEqual(source.stat().st_nlink, 1)
+        self.assertFalse(destination.exists())
+
+    def test_trash_source_fsync_failure_after_unlink_returns_restorable_token(self):
+        source = self.write_pending_pdf("fsync-after.pdf")
+        destination = self.storage.trash_dir / "op-fsync-after.pdf"
+        pending_identity = (
+            os.fstat(self.storage._pending_fd).st_dev,
+            os.fstat(self.storage._pending_fd).st_ino,
+        )
+        real_fsync = storage_module._fsync_directory_fd
+        injected = False
+
+        def fail_first_pending_fsync(directory_fd):
+            nonlocal injected
+            info = os.fstat(directory_fd)
+            if (info.st_dev, info.st_ino) == pending_identity and not injected:
+                injected = True
+                raise OSError("injected source fsync failure")
+            return real_fsync(directory_fd)
+
+        with mock.patch(
+            "services.paper_storage._fsync_directory_fd",
+            side_effect=fail_first_pending_fsync,
+        ):
+            token = self.storage.trash_pending(source.name, "op-fsync-after")
+
+        self.assertTrue(injected)
+        self.assertFalse(source.exists())
+        self.assertEqual(destination.stat().st_nlink, 1)
+        self.storage.restore_pending(token)
+        self.assertTrue(source.exists())
+
+    def test_trash_final_stat_failure_after_unlink_returns_restorable_token(self):
+        source = self.write_pending_pdf("stat-after.pdf")
+        destination = self.storage.trash_dir / "op-stat-after.pdf"
+        real_stat = os.stat
+        destination_stats = 0
+
+        def fail_final_destination_stat(path, *args, **kwargs):
+            nonlocal destination_stats
+            if path == destination.name and kwargs.get("dir_fd") == self.storage._trash_fd:
+                destination_stats += 1
+                if destination_stats == 2:
+                    raise OSError("injected final stat failure")
+            return real_stat(path, *args, **kwargs)
+
+        with mock.patch("services.paper_storage.os.stat", side_effect=fail_final_destination_stat):
+            token = self.storage.trash_pending(source.name, "op-stat-after")
+
+        self.assertEqual(destination_stats, 2)
+        self.assertFalse(source.exists())
+        self.assertEqual(destination.stat().st_nlink, 1)
+        self.storage.restore_pending(token)
+        self.assertTrue(source.exists())
+
     def test_restore_pending_race_preserves_incumbent_and_trash_bytes(self):
         source = self.write_pending_pdf()
         source_bytes = source.read_bytes()
@@ -605,6 +911,135 @@ class PaperStorageTests(unittest.TestCase):
         source.unlink()
         self.storage.restore_pending(token)
         self.assertEqual(source.read_bytes(), source_bytes)
+
+    def test_restore_destination_stat_failure_before_unlink_is_retryable(self):
+        source = self.write_pending_pdf("restore-stat-before.pdf")
+        token = self.storage.trash_pending(source.name, "op-restore-stat-before")
+        trashed = self.storage.trash_dir / "op-restore-stat-before.pdf"
+        pending_identity = (
+            os.fstat(self.storage._pending_fd).st_dev,
+            os.fstat(self.storage._pending_fd).st_ino,
+        )
+        real_stat = os.stat
+        injected = False
+
+        def fail_first_destination_stat(path, *args, **kwargs):
+            nonlocal injected
+            directory_fd = kwargs.get("dir_fd")
+            if directory_fd is not None:
+                info = os.fstat(directory_fd)
+                if (
+                    path == source.name
+                    and (info.st_dev, info.st_ino) == pending_identity
+                    and not injected
+                ):
+                    injected = True
+                    raise OSError("injected restore destination stat failure")
+            return real_stat(path, *args, **kwargs)
+
+        with mock.patch("services.paper_storage.os.stat", side_effect=fail_first_destination_stat):
+            with self.assertRaises(StorageError):
+                self.storage.restore_pending(token)
+
+        self.assertTrue(injected)
+        self.assertFalse(source.exists())
+        self.assertEqual(trashed.stat().st_nlink, 1)
+        self.storage.restore_pending(token)
+        self.assertTrue(source.exists())
+
+    def test_restore_destination_fsync_failure_before_unlink_is_retryable(self):
+        source = self.write_pending_pdf("restore-fsync-before.pdf")
+        token = self.storage.trash_pending(source.name, "op-restore-fsync-before")
+        trashed = self.storage.trash_dir / "op-restore-fsync-before.pdf"
+        pending_identity = (
+            os.fstat(self.storage._pending_fd).st_dev,
+            os.fstat(self.storage._pending_fd).st_ino,
+        )
+        real_fsync = storage_module._fsync_directory_fd
+        injected = False
+
+        def fail_first_pending_fsync(directory_fd):
+            nonlocal injected
+            info = os.fstat(directory_fd)
+            if (info.st_dev, info.st_ino) == pending_identity and not injected:
+                injected = True
+                raise OSError("injected restore destination fsync failure")
+            return real_fsync(directory_fd)
+
+        with mock.patch(
+            "services.paper_storage._fsync_directory_fd",
+            side_effect=fail_first_pending_fsync,
+        ):
+            with self.assertRaises(StorageError):
+                self.storage.restore_pending(token)
+
+        self.assertTrue(injected)
+        self.assertFalse(source.exists())
+        self.assertEqual(trashed.stat().st_nlink, 1)
+        self.storage.restore_pending(token)
+        self.assertTrue(source.exists())
+
+    def test_restore_source_fsync_failure_after_unlink_consumes_token(self):
+        source = self.write_pending_pdf("restore-fsync-after.pdf")
+        token = self.storage.trash_pending(source.name, "op-restore-fsync-after")
+        trashed = self.storage.trash_dir / "op-restore-fsync-after.pdf"
+        trash_identity = (
+            os.fstat(self.storage._trash_fd).st_dev,
+            os.fstat(self.storage._trash_fd).st_ino,
+        )
+        real_fsync = storage_module._fsync_directory_fd
+        injected = False
+
+        def fail_first_trash_fsync(directory_fd):
+            nonlocal injected
+            info = os.fstat(directory_fd)
+            if (info.st_dev, info.st_ino) == trash_identity and not injected:
+                injected = True
+                raise OSError("injected restore source fsync failure")
+            return real_fsync(directory_fd)
+
+        with mock.patch(
+            "services.paper_storage._fsync_directory_fd",
+            side_effect=fail_first_trash_fsync,
+        ):
+            self.storage.restore_pending(token)
+
+        self.assertTrue(injected)
+        self.assertTrue(source.exists())
+        self.assertFalse(trashed.exists())
+        with self.assertRaises(StorageError):
+            self.storage.restore_pending(token)
+
+    def test_restore_final_stat_failure_after_unlink_consumes_token(self):
+        source = self.write_pending_pdf("restore-stat-after.pdf")
+        token = self.storage.trash_pending(source.name, "op-restore-stat-after")
+        trashed = self.storage.trash_dir / "op-restore-stat-after.pdf"
+        pending_identity = (
+            os.fstat(self.storage._pending_fd).st_dev,
+            os.fstat(self.storage._pending_fd).st_ino,
+        )
+        real_stat = os.stat
+        destination_stats = 0
+
+        def fail_final_destination_stat(path, *args, **kwargs):
+            nonlocal destination_stats
+            directory_fd = kwargs.get("dir_fd")
+            if directory_fd is not None:
+                info = os.fstat(directory_fd)
+                if path == source.name and (info.st_dev, info.st_ino) == pending_identity:
+                    destination_stats += 1
+                    if destination_stats == 2:
+                        raise OSError("injected restore final stat failure")
+            return real_stat(path, *args, **kwargs)
+
+        with mock.patch("services.paper_storage.os.stat", side_effect=fail_final_destination_stat):
+            self.storage.restore_pending(token)
+
+        self.assertEqual(destination_stats, 2)
+        self.assertTrue(source.exists())
+        self.assertFalse(trashed.exists())
+        with self.assertRaises(StorageError):
+            self.storage.restore_pending(token)
 
     def test_copy_revision_rewrites_metadata_into_new_immutable_revision(self):
         first = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-1")

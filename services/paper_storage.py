@@ -75,6 +75,14 @@ class StoredPdf:
 
 @dataclass(frozen=True)
 class PendingTrash:
+    """Process-local one-use authority for one committed pending-file trash.
+
+    Tokens are intentionally not restart-persistent. Failed or restarted
+    operations leave only private managed entries for ``reconcile_expired``;
+    automatic cross-process restore requires a later persisted-recovery
+    contract.
+    """
+
     original_name: str
     operation_id: str
     source_sha256: str
@@ -256,6 +264,17 @@ class PaperStorage:
             self._papers_fd = None
             self._closed = True
             raise
+        if (
+            self.papers_dir == self.pending_dir
+            or self.papers_dir in self.pending_dir.parents
+            or self.pending_dir in self.papers_dir.parents
+        ):
+            os.close(self._pending_fd)
+            os.close(self._papers_fd)
+            self._pending_fd = None
+            self._papers_fd = None
+            self._closed = True
+            raise StorageError("Paper and pending storage roots must be disjoint")
         self._process_lock = _root_process_lock(self._papers_stat)
         self.staging_dir = self.papers_dir / ".staging"
         self.trash_dir = self.pending_dir / ".trash"
@@ -555,7 +574,7 @@ class PaperStorage:
                 except FileNotFoundError:
                     pass
             raise
-        except (OSError, RuntimeError, TypeError, ValueError) as exc:
+        except Exception as exc:
             if created is not None:
                 self._unlink_if_matching(self._staging_fd, name, created)
             elif created_entry:
@@ -770,9 +789,17 @@ class PaperStorage:
                         raise StorageError("installed metadata verification failed")
             if backup_name is None or backup_stat is None:
                 raise StorageError("metadata backup was not retained")
-            self._unlink_if_matching(self._staging_fd, backup_name, backup_stat)
+            if not self._unlink_if_matching(self._staging_fd, backup_name, backup_stat):
+                raise StorageError("metadata backup changed before removal")
             backup_name = None
             backup_stat = None
+            try:
+                _fsync_directory_fd(self._staging_fd)
+            except OSError:
+                # The verified metadata rewrite is already committed and the
+                # backup name is gone.  Do not report a retryable rewrite
+                # failure for cleanup durability that reconciliation can audit.
+                pass
             return StagedPdf(
                 source_path,
                 staged.source_sha256,
@@ -893,6 +920,7 @@ class PaperStorage:
                     verified_hash, verified_size = _hash_reader(source)
                 if (verified_hash, verified_size) != (source_hash, source_size):
                     raise StorageError("staged PDF changed before promotion")
+                published = False
                 try:
                     _publish_verified_fd_no_replace(
                         source_fd,
@@ -901,6 +929,8 @@ class PaperStorage:
                     )
                 except FileExistsError:
                     pass
+                else:
+                    published = True
 
                 try:
                     final_fd = os.open(destination_name, _READ_FLAGS, dir_fd=paper_fd)
@@ -911,21 +941,36 @@ class PaperStorage:
                     if (
                         not stat.S_ISREG(final_stat.st_mode)
                         or not _private_mode(final_stat, 0o600)
+                        or (
+                            final_stat.st_nlink != 1
+                            and not (
+                                published
+                                and final_stat.st_nlink == 2
+                                and _same_inode(final_stat, source_stat)
+                            )
+                        )
                     ):
                         raise StorageError("published revision is not a private file")
                     with os.fdopen(os.dup(final_fd), "rb") as final_file:
                         final_hash, final_size = _hash_reader(final_file)
+                    if (final_hash, final_size) != (source_hash, source_size):
+                        raise StorageError("published revision bytes do not match the stage")
+                    os.fsync(final_fd)
                 finally:
                     os.close(final_fd)
-                if (final_hash, final_size) != (source_hash, source_size):
-                    raise StorageError("published revision bytes do not match the stage")
                 _fsync_directory_fd(paper_fd)
-                if self._unlink_if_matching(
-                    self._staging_fd,
-                    source_path.name,
-                    source_stat,
-                ):
-                    _fsync_directory_fd(self._staging_fd)
+                try:
+                    if self._unlink_if_matching(
+                        self._staging_fd,
+                        source_path.name,
+                        source_stat,
+                    ):
+                        _fsync_directory_fd(self._staging_fd)
+                except (OSError, StorageError):
+                    # The final file and its parent directory are durable.
+                    # Stage cleanup is reconcilable and cannot invalidate the
+                    # already committed immutable revision.
+                    pass
             return StoredPdf(destination, source_hash, source_size)
         except StorageError:
             raise
@@ -1098,6 +1143,7 @@ class PaperStorage:
         destination_name: str,
     ) -> os.stat_result:
         linked = False
+        committed = False
         try:
             current = os.stat(source_name, dir_fd=source_parent_fd, follow_symlinks=False)
             if (
@@ -1132,31 +1178,48 @@ class PaperStorage:
             _fsync_directory_fd(destination_parent_fd)
             if not self._unlink_if_matching(source_parent_fd, source_name, source_stat):
                 raise StorageError("pending PDF changed before source removal")
-            linked = False
-            _fsync_directory_fd(source_parent_fd)
-            if destination_parent_fd != source_parent_fd:
-                _fsync_directory_fd(destination_parent_fd)
-            final = os.stat(
-                destination_name,
-                dir_fd=destination_parent_fd,
-                follow_symlinks=False,
-            )
+            committed = True
+            try:
+                _fsync_directory_fd(source_parent_fd)
+                if destination_parent_fd != source_parent_fd:
+                    _fsync_directory_fd(destination_parent_fd)
+                final = os.stat(
+                    destination_name,
+                    dir_fd=destination_parent_fd,
+                    follow_symlinks=False,
+                )
+            except OSError:
+                # The exact source name is already gone.  Returning authority
+                # for the committed destination is safer than reporting a
+                # retryable failure that could orphan or reverse the move.
+                return source_stat
             if not _same_inode(final, source_stat) or final.st_nlink != 1:
                 raise StorageError("pending PDF move did not produce one private name")
             return final
         except FileExistsError as exc:
             raise StorageError("pending destination is occupied") from exc
-        except StorageError:
+        except (OSError, StorageError) as exc:
+            if committed:
+                if isinstance(exc, StorageError):
+                    raise
+                return source_stat
             if linked:
                 try:
-                    self._unlink_if_matching(
+                    removed = self._unlink_if_matching(
                         destination_parent_fd,
                         destination_name,
                         source_stat,
                     )
-                except OSError:
-                    pass
-            raise
+                    if not removed:
+                        raise StorageError(
+                            "pending destination changed before move rollback"
+                        )
+                    _fsync_directory_fd(destination_parent_fd)
+                except (OSError, StorageError) as rollback_exc:
+                    raise StorageError("pending move rollback failed") from rollback_exc
+            if isinstance(exc, StorageError):
+                raise
+            raise StorageError("pending PDF move failed before commit") from exc
 
     @_serialized
     def trash_pending(self, filename: str, operation_id: str) -> PendingTrash:
@@ -1304,6 +1367,7 @@ class PaperStorage:
         directory: Path,
         directory_fd: int,
         cutoff: float,
+        publication_links: set[tuple[int, int]],
     ) -> dict[str, os.stat_result]:
         stale: dict[str, os.stat_result] = {}
         entries: dict[str, os.stat_result] = {}
@@ -1340,7 +1404,10 @@ class PaperStorage:
                             == name[:-4]
                             and _same_inode(entry, other)
                         ]
-                        allowed_internal_link = len(partners) == 1
+                        allowed_internal_link = (
+                            len(partners) == 1
+                            or (entry.st_dev, entry.st_ino) in publication_links
+                        )
                 elif directory_fd == self._trash_fd and entry.st_nlink == 2:
                     allowed_internal_link = (
                         name.endswith(".pdf")
@@ -1358,8 +1425,59 @@ class PaperStorage:
                 stale[name] = entry
         return stale
 
+    def _publication_link_identities(self) -> set[tuple[int, int]]:
+        """Recognize only exact stage/final pairs left by committed promotion."""
+        staged: dict[tuple[int, int], int] = {}
+        finals: dict[tuple[int, int], int] = {}
+        for name in os.listdir(self._staging_fd):
+            if not name.endswith(".pdf") or _OPERATION_ID.fullmatch(name[:-4]) is None:
+                continue
+            entry = os.stat(name, dir_fd=self._staging_fd, follow_symlinks=False)
+            if (
+                stat.S_ISREG(entry.st_mode)
+                and _private_mode(entry, 0o600)
+                and entry.st_nlink == 2
+            ):
+                key = (entry.st_dev, entry.st_ino)
+                staged[key] = staged.get(key, 0) + 1
+
+        for paper_id in os.listdir(self._papers_fd):
+            try:
+                if _canonical_paper_id(paper_id) != paper_id:
+                    continue
+            except StorageError:
+                continue
+            try:
+                paper_fd = os.open(paper_id, _DIRECTORY_FLAGS, dir_fd=self._papers_fd)
+            except OSError:
+                continue
+            try:
+                for filename in os.listdir(paper_fd):
+                    if _REVISION_FILENAME.fullmatch(filename) is None:
+                        continue
+                    entry = os.stat(
+                        filename,
+                        dir_fd=paper_fd,
+                        follow_symlinks=False,
+                    )
+                    if (
+                        stat.S_ISREG(entry.st_mode)
+                        and _private_mode(entry, 0o600)
+                        and entry.st_nlink == 2
+                    ):
+                        key = (entry.st_dev, entry.st_ino)
+                        finals[key] = finals.get(key, 0) + 1
+            finally:
+                os.close(paper_fd)
+        return {
+            key
+            for key, count in staged.items()
+            if count == 1 and finals.get(key) == 1
+        }
+
     def _revision_namespace(
         self,
+        publication_links: set[tuple[int, int]],
     ) -> dict[str, tuple[os.stat_result, dict[str, os.stat_result]]]:
         namespace: dict[str, tuple[os.stat_result, dict[str, os.stat_result]]] = {}
         for paper_id in os.listdir(self._papers_fd):
@@ -1400,7 +1518,10 @@ class PaperStorage:
                     if (
                         not _private_mode(entry, 0o600)
                         or entry.st_dev != opened.st_dev
-                        or entry.st_nlink != 1
+                        or (
+                            entry.st_nlink != 1
+                            and (entry.st_dev, entry.st_ino) not in publication_links
+                        )
                     ):
                         raise StorageError("Paper revision file is unsafe")
                     revisions[filename] = entry
@@ -1420,17 +1541,20 @@ class PaperStorage:
         for paper_id, revision in referenced_revisions:
             referenced.add((_canonical_paper_id(paper_id), _valid_revision(revision)))
 
+        publication_links = self._publication_link_identities()
         staging_stale = self._stale_entries(
             self.staging_dir,
             self._staging_fd,
             cutoff_timestamp,
+            publication_links,
         )
         trash_stale = self._stale_entries(
             self.trash_dir,
             self._trash_fd,
             cutoff_timestamp,
+            publication_links,
         )
-        namespace = self._revision_namespace()
+        namespace = self._revision_namespace(publication_links)
         removed = 0
         try:
             for directory_fd, entries in (

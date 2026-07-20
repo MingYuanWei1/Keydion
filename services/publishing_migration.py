@@ -1468,7 +1468,7 @@ def _open_or_create_directory_at(parent_fd: int, name: str) -> int:
         before = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
     except FileNotFoundError:
         try:
-            os.mkdir(name, mode=0o750, dir_fd=parent_fd)
+            os.mkdir(name, mode=0o700, dir_fd=parent_fd)
             os.fsync(parent_fd)
         except FileExistsError:
             pass
@@ -1482,9 +1482,18 @@ def _open_or_create_directory_at(parent_fd: int, name: str) -> int:
     except OSError as exc:
         raise MigrationBlocked(f"migration directory {name!r} changed") from exc
     after = os.fstat(child_fd)
-    if (before.st_dev, before.st_ino) != (after.st_dev, after.st_ino):
+    if (
+        (before.st_dev, before.st_ino) != (after.st_dev, after.st_ino)
+        or after.st_uid != os.getuid()
+    ):
         os.close(child_fd)
         raise MigrationBlocked(f"migration directory {name!r} changed")
+    try:
+        os.fchmod(child_fd, 0o700)
+        os.fsync(child_fd)
+    except OSError as exc:
+        os.close(child_fd)
+        raise MigrationBlocked(f"migration directory {name!r} is not private") from exc
     return child_fd
 
 
@@ -1833,10 +1842,61 @@ def _create_stage_file(stage_fd: int) -> tuple[str, int]:
     candidates.extend(f"1.{uuid.uuid4().hex}.pdf.part" for _ in range(4))
     for name in candidates:
         try:
-            return name, os.open(name, flags, 0o640, dir_fd=stage_fd)
+            return name, os.open(name, flags, 0o600, dir_fd=stage_fd)
         except FileExistsError:
             continue
     raise MigrationBlocked("could not reserve a unique migration stage file")
+
+
+def _remove_matching_stage_links(
+    stage_fd: int,
+    expected: os.stat_result,
+) -> bool:
+    """Remove only direct stage entries still naming the verified inode."""
+    removed = False
+    try:
+        names = tuple(entry.name for entry in os.scandir(stage_fd))
+        for name in names:
+            try:
+                current = os.stat(name, dir_fd=stage_fd, follow_symlinks=False)
+            except FileNotFoundError:
+                continue
+            if (current.st_dev, current.st_ino) != (expected.st_dev, expected.st_ino):
+                continue
+            os.unlink(name, dir_fd=stage_fd)
+            removed = True
+        if removed:
+            os.fsync(stage_fd)
+        return removed
+    except OSError as exc:
+        raise MigrationBlocked("migration stage cleanup failed") from exc
+
+
+def _normalize_private_final(
+    target_fd: int,
+    expected_hash: str,
+    expected_size: int,
+) -> os.stat_result:
+    file_fd, opened, classification = _open_regular_at(target_fd, "1.pdf")
+    if file_fd is None or opened is None or classification != "ok":
+        raise MigrationBlocked("published revision disappeared")
+    try:
+        actual_hash, actual_size = _hash_fd(file_fd)
+        os.fchmod(file_fd, 0o600)
+        os.fsync(file_fd)
+        final = os.fstat(file_fd)
+    except OSError as exc:
+        raise MigrationBlocked("published revision could not be made private") from exc
+    finally:
+        os.close(file_fd)
+    if (
+        (actual_hash, actual_size) != (expected_hash, expected_size)
+        or final.st_uid != os.getuid()
+        or stat.S_IMODE(final.st_mode) != 0o600
+        or final.st_nlink != 1
+    ):
+        raise MigrationBlocked("published revision is not a private single-link file")
+    return final
 
 
 def _copy_and_publish_revision(
@@ -1858,6 +1918,14 @@ def _copy_and_publish_revision(
         raise MigrationBlocked("migration source or destination violates containment policy")
 
     with _trusted_root(papers_dir) as root_fd:
+        root_info = os.fstat(root_fd)
+        if root_info.st_uid != os.getuid():
+            raise MigrationBlocked("Paper storage root is not owned by the app user")
+        try:
+            os.fchmod(root_fd, 0o700)
+            os.fsync(root_fd)
+        except OSError as exc:
+            raise MigrationBlocked("Paper storage root could not be made private") from exc
         source_fd, _source_stat, source_classification = _open_regular_at(
             root_fd, legacy_filename, source_hook=True,
         )
@@ -1883,6 +1951,8 @@ def _copy_and_publish_revision(
                 target_fd, "1.pdf", expected_hash, expected_size,
             )
             if destination is not None:
+                _remove_matching_stage_links(stage_fd, destination)
+                _normalize_private_final(target_fd, expected_hash, expected_size)
                 reopened = _open_existing_directory_at(root_fd, paper_id)
                 if reopened is None:
                     raise MigrationBlocked("published Paper directory disappeared")
@@ -1932,6 +2002,12 @@ def _copy_and_publish_revision(
             else:
                 stage_name, verified_stage_fd = stage_candidate
 
+            try:
+                os.fchmod(verified_stage_fd, 0o600)
+                os.fsync(verified_stage_fd)
+            except OSError as exc:
+                raise MigrationBlocked("migration stage could not be made private") from exc
+
             _set_checkpoint(engine, legacy_filename, "copy_verified")
             if copied:
                 _after_copy_verified()
@@ -1958,6 +2034,10 @@ def _copy_and_publish_revision(
                     raise MigrationBlocked("migration destination reservation changed")
 
             os.fsync(target_fd)
+            verified_stage_identity = os.fstat(verified_stage_fd)
+            _remove_matching_stage_links(stage_fd, verified_stage_identity)
+            _normalize_private_final(target_fd, expected_hash, expected_size)
+            os.fsync(target_fd)
             reopened = _open_existing_directory_at(root_fd, paper_id)
             if reopened is None:
                 raise MigrationBlocked("published Paper directory disappeared")
@@ -1967,10 +2047,7 @@ def _copy_and_publish_revision(
                     target_identity.st_dev, target_identity.st_ino,
                 ):
                     raise MigrationBlocked("published Paper directory changed")
-                if _verified_file_at(
-                    reopened, "1.pdf", expected_hash, expected_size,
-                ) is None:
-                    raise MigrationBlocked("published revision disappeared")
+                _normalize_private_final(reopened, expected_hash, expected_size)
             finally:
                 os.close(reopened)
             _set_checkpoint(engine, legacy_filename, "destination_verified")

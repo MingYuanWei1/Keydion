@@ -3,6 +3,7 @@ import importlib.util
 import io
 import os
 import shutil
+import stat
 import tempfile
 import threading
 import time
@@ -15,10 +16,12 @@ from unittest import mock
 from alembic import command
 from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
+from PyPDF2 import PdfWriter
 from sqlalchemy import create_engine, inspect, text
 
 from services import publishing_migration
 from services.paper_identity import normalize_alias_key
+from services.paper_storage import PaperStorage
 from services.publishing_migration import (
     MigrationBlocked,
     backfill_all,
@@ -494,6 +497,60 @@ class PublishingMigrationTests(unittest.TestCase):
         self.assertEqual(self.scalar("SELECT value FROM rag_index_meta WHERE name='chunks_version'"), 1)
         self.assertEqual(self.scalar("SELECT COUNT(*) FROM publishing_jobs"), 0)
 
+    def test_backfill_hands_off_private_single_link_revision_without_owned_stage(self):
+        self.papers.chmod(0o755)
+        self.write_legacy("paper.pdf", b"private-source")
+
+        result = backfill_one_paper(self.engine, self.papers, "paper.pdf")
+
+        destination = Path(result.destination)
+        stage_root = self.papers / ".publishing-migration-stage"
+        stage_paper = stage_root / result.paper_id
+        for directory in (self.papers, stage_root, stage_paper, destination.parent):
+            self.assertEqual(stat.S_IMODE(directory.stat().st_mode), 0o700)
+        self.assertEqual(stat.S_IMODE(destination.stat().st_mode), 0o600)
+        self.assertEqual(destination.stat().st_nlink, 1)
+        self.assertEqual(list(stage_paper.iterdir()), [])
+        self.assertEqual(destination.read_bytes(), b"private-source")
+
+    def test_migrated_revision_supports_complete_paper_storage_lifecycle(self):
+        pdf = io.BytesIO()
+        writer = PdfWriter()
+        writer.add_blank_page(width=72, height=72)
+        writer.write(pdf)
+        self.write_legacy("paper.pdf", pdf.getvalue())
+        result = backfill_one_paper(self.engine, self.papers, "paper.pdf")
+        pending = Path(self.temp_dir.name) / "pending"
+
+        storage = PaperStorage(self.papers, pending)
+        try:
+            self.assertEqual(
+                storage.open_revision(result.paper_id, 1),
+                Path(result.destination).resolve(),
+            )
+            copied = storage.copy_revision(
+                result.paper_id,
+                source_revision=1,
+                target_revision=2,
+                operation_id="migration-copy",
+                title="Migrated Paper",
+                author="Migration Author",
+            )
+            self.assertEqual(copied.path, storage.revision_path(result.paper_id, 2))
+            self.assertEqual(
+                storage.reconcile_expired(
+                    time.time() + 60,
+                    {(result.paper_id, 1), (result.paper_id, 2)},
+                ),
+                0,
+            )
+            storage.delete_paper(result.paper_id, ["paper.pdf"])
+            self.assertFalse(Path(result.destination).parent.exists())
+            self.assertFalse((self.papers / "paper.pdf").exists())
+            self.assertEqual(storage.reconcile_expired(time.time() + 60, set()), 0)
+        finally:
+            storage.close()
+
     def test_backfill_fails_closed_without_explicit_maintenance_guard(self):
         self.write_legacy("paper.pdf")
         with mock.patch.dict(os.environ, {}, clear=False):
@@ -574,7 +631,8 @@ class PublishingMigrationTests(unittest.TestCase):
         self.assertEqual(self.scalar("SELECT COUNT(*) FROM papers_metadata"), 1)
         self.assertEqual(self.scalar("SELECT COUNT(*) FROM paper_revisions"), 1)
         retained_stage = self.papers / ".publishing-migration-stage" / paper_id / "1.pdf.part"
-        self.assertEqual(retained_stage.read_bytes(), b"%PDF-1.4\n")
+        self.assertFalse(retained_stage.exists())
+        self.assertEqual((self.papers / paper_id / "1.pdf").stat().st_nlink, 1)
 
     def test_interruption_during_copy_retains_partial_stage_and_resumes_safely(self):
         self.write_legacy("paper.pdf", b"complete-source")
@@ -707,7 +765,8 @@ class PublishingMigrationTests(unittest.TestCase):
 
         self.assertEqual(Path(result.destination).read_bytes(), b"verified-source")
         self.assertEqual(stage.read_bytes(), b"replacement-owned-by-racer")
-        self.assertEqual(verified.read_bytes(), b"verified-source")
+        self.assertFalse(verified.exists())
+        self.assertEqual(Path(result.destination).stat().st_nlink, 1)
 
     def test_missing_descriptor_publication_primitive_fails_before_destination(self):
         self.write_legacy("paper.pdf", b"verified-source")
