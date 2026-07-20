@@ -7,7 +7,7 @@ from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
 from sqlalchemy import (
-    Boolean, Column, Date, DateTime, ForeignKey, ForeignKeyConstraint, Integer,
+    Boolean, CheckConstraint, Column, Date, DateTime, ForeignKey, ForeignKeyConstraint, Integer,
     String, Unicode, UnicodeText, UniqueConstraint, create_engine, func, inspect,
     select,
 )
@@ -58,6 +58,13 @@ class JournalModel(BASE):
 
 class PaperMetadataModel(BASE):
     __tablename__ = "papers_metadata"
+    __table_args__ = (
+        CheckConstraint(
+            "(lifecycle_state = 'publishing' AND current_revision IS NULL) OR "
+            "(lifecycle_state IN ('published', 'deleting') AND current_revision IS NOT NULL)",
+            name="ck_papers_metadata_lifecycle_revision",
+        ),
+    )
     id = Column(Unicode(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     filename = Column(Unicode(255), nullable=False, unique=True)
     title = Column(Unicode(255))
@@ -210,9 +217,9 @@ class PaperChunkModel(BASE):
     )
     id = Column(Integer, primary_key=True, autoincrement=True)
     filename = Column(Unicode(255), index=True)
-    paper_id = Column(Unicode(36), index=True)
-    revision_number = Column(Integer)
-    chunk_index = Column(Integer)
+    paper_id = Column(Unicode(36), nullable=False, index=True)
+    revision_number = Column(Integer, nullable=False)
+    chunk_index = Column(Integer, nullable=False)
     content = Column(UnicodeText)
     # Binary chunk vector (MySQL 9 VECTOR). The legacy JSON `embedding` column
     # is intentionally unmapped; tools/migrate_chunk_vectors.py backfills it
