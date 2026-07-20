@@ -4,6 +4,8 @@ from datetime import datetime
 from enum import StrEnum
 from typing import BinaryIO, Protocol
 
+from services.publishing_time import require_db_utc
+
 
 class LifecycleError(Exception):
     pass
@@ -242,12 +244,21 @@ class JobLease:
     created_at: datetime
     previous_updated_at: datetime
 
+    def __post_init__(self) -> None:
+        require_db_utc(self.lease_expires_at)
+        require_db_utc(self.created_at)
+        require_db_utc(self.previous_updated_at)
+
 
 @dataclass(frozen=True)
 class IndexingOutcome:
     state: IndexingState
     job_id: str | None = None
     next_retry_at: datetime | None = None
+
+    def __post_init__(self) -> None:
+        if self.next_retry_at is not None:
+            require_db_utc(self.next_retry_at)
 
 
 @dataclass(frozen=True)
@@ -302,6 +313,10 @@ class JobProgress:
     state: JobState
     attempts: int
     next_retry_at: datetime | None = None
+
+    def __post_init__(self) -> None:
+        if self.next_retry_at is not None:
+            require_db_utc(self.next_retry_at)
 
 
 class PublishingLifecyclePort(Protocol):

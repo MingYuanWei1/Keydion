@@ -1,12 +1,13 @@
 import io
 import unittest
 from dataclasses import FrozenInstanceError
-from datetime import datetime
+from datetime import datetime, timezone
 
 from services.paper_identity import normalize_alias_key
 from services.publishing_time import utc_iso_z
 from services.publishing_contracts import (
-    Actor, BulkEditMetadata, DirectPublish, IndexingOutcome, IndexingState,
+    Actor, BulkEditMetadata, DirectPublish, IndexingOutcome, IndexingState, JobLease,
+    JobProgress, JobState,
     InvalidInput, MetadataPatch, NormalizedPaperMetadata, PdfUpload, PreparedChunk,
     PreparedRevisionIndex, Published,
 )
@@ -88,3 +89,41 @@ class PublishingContractTests(unittest.TestCase):
     def test_bulk_edit_metadata_rejects_non_patch_members(self):
         with self.assertRaises(InvalidInput):
             BulkEditMetadata(Actor("curator", 3), ("not a patch",))
+
+    def test_job_lease_rejects_aware_database_timestamps(self):
+        aware = datetime(2026, 7, 20, 12, 0, tzinfo=timezone.utc)
+        for field in ("lease_expires_at", "created_at", "previous_updated_at"):
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                values = {
+                    "lease_expires_at": datetime(2026, 7, 20, 12, 0),
+                    "created_at": datetime(2026, 7, 20, 12, 0),
+                    "previous_updated_at": datetime(2026, 7, 20, 12, 0),
+                }
+                values[field] = aware
+                JobLease(
+                    job_id="33333333-3333-4333-8333-333333333333",
+                    paper_id="22222222-2222-4222-8222-222222222222",
+                    revision=1,
+                    kind="index",
+                    attempts=1,
+                    lease_token="lease",
+                    **values,
+                )
+
+    def test_indexing_outcome_rejects_aware_next_retry_at(self):
+        with self.assertRaises(ValueError):
+            IndexingOutcome(
+                state=IndexingState.PENDING,
+                next_retry_at=datetime(2026, 7, 20, 12, 0, tzinfo=timezone.utc),
+            )
+
+    def test_job_progress_rejects_aware_next_retry_at(self):
+        with self.assertRaises(ValueError):
+            JobProgress(
+                job_id="33333333-3333-4333-8333-333333333333",
+                paper_id="22222222-2222-4222-8222-222222222222",
+                revision=1,
+                state=JobState.PENDING,
+                attempts=0,
+                next_retry_at=datetime(2026, 7, 20, 12, 0, tzinfo=timezone.utc),
+            )
