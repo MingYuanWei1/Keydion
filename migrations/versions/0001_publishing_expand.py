@@ -6,7 +6,12 @@ import sqlalchemy as sa
 from sqlalchemy import create_engine, pool
 
 from config import PAPERS_DIR
-from services.publishing_migration import MigrationBlocked, migration_fence, run_preflight
+from services.publishing_migration import (
+    MigrationBlocked,
+    migration_fence,
+    publishing_schema_phase,
+    run_preflight,
+)
 
 
 revision = "0001_publishing_expand"
@@ -22,6 +27,7 @@ def _validate_legacy_before_expand():
     validation_engine = create_engine(bind.engine.url, poolclass=pool.NullPool)
     try:
         report = run_preflight(validation_engine, papers_dir)
+        schema_phase = publishing_schema_phase(validation_engine)
     finally:
         validation_engine.dispose()
     if report.blockers:
@@ -38,10 +44,12 @@ def _validate_legacy_before_expand():
                 f"and file snapshots before retrying ({details})"
             )
         raise MigrationBlocked(f"publishing expand preflight blocked: {details}")
+    return schema_phase == "expanded"
 
 
 def _upgrade_unfenced():
-    _validate_legacy_before_expand()
+    if _validate_legacy_before_expand():
+        return
     # Keep filename as the legacy primary key throughout expand/backfill.  Every
     # added column is nullable until the contract validator proves it populated.
     for column in (

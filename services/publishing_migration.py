@@ -6,11 +6,14 @@ ordered Alembic data migration after an operator has reviewed preflight output.
 """
 from __future__ import annotations
 
+import ctypes
+import errno
 import hashlib
 import fcntl
 import os
 import shutil
 import stat
+import sys
 import threading
 import uuid
 from contextlib import contextmanager
@@ -103,6 +106,74 @@ _EXPANDED_TABLE_COLUMNS = {
         "resolved_at", "created_at", "updated_at",
     }),
 }
+_EXPANDED_MYSQL_COLUMN_DEFINITIONS = {
+    "paper_revisions": {
+        "paper_id": ("varchar(36)", "NO"),
+        "revision_number": ("int", "NO"),
+        "sha256": ("varchar(64)", "NO"),
+        "size_bytes": ("int", "NO"),
+        "created_at": ("datetime", "NO"),
+        "created_by": ("varchar(255)", "NO"),
+        "restored_from_revision": ("int", "YES"),
+    },
+    "paper_filename_aliases": {
+        "lookup_key": ("varchar(255)", "NO"),
+        "filename": ("varchar(255)", "NO"),
+        "paper_id": ("varchar(36)", "NO"),
+        "created_at": ("datetime", "NO"),
+    },
+    "publishing_jobs": {
+        "id": ("varchar(36)", "NO"),
+        "kind": ("varchar(32)", "NO"),
+        "paper_id": ("varchar(36)", "NO"),
+        "revision_number": ("int", "NO"),
+        "dedupe_key": ("varchar(255)", "NO"),
+        "state": ("varchar(16)", "NO"),
+        "attempts": ("int", "NO"),
+        "available_at": ("datetime", "NO"),
+        "lease_token": ("varchar(36)", "YES"),
+        "lease_expires_at": ("datetime", "YES"),
+        "last_error": ("text", "YES"),
+        "created_at": ("datetime", "NO"),
+        "updated_at": ("datetime", "NO"),
+    },
+    "publishing_migration_journal": {
+        "legacy_key": ("varchar(255)", "NO"),
+        "paper_id": ("varchar(36)", "NO"),
+        "revision_number": ("int", "NO"),
+        "source_sha256": ("varchar(64)", "YES"),
+        "source_size_bytes": ("int", "YES"),
+        "legacy_chunk_count": ("int", "NO"),
+        "legacy_chunk_fingerprint": ("varchar(64)", "YES"),
+        "checkpoint": ("varchar(32)", "NO"),
+        "created_at": ("datetime", "NO"),
+        "updated_at": ("datetime", "NO"),
+    },
+    "publishing_migration_state": {
+        "name": ("varchar(32)", "NO"),
+        "paper_count": ("int", "NO"),
+        "submission_count": ("int", "NO"),
+        "chunk_count": ("int", "NO"),
+        "vector_count": ("int", "NO"),
+        "ddl_phase": ("varchar(32)", "NO"),
+        "captured_at": ("datetime", "NO"),
+    },
+    "publishing_migration_issues": {
+        "id": ("varchar(36)", "NO"),
+        "kind": ("varchar(32)", "NO"),
+        "legacy_key": ("varchar(255)", "YES"),
+        "paper_id": ("varchar(36)", "YES"),
+        "details": ("text", "NO"),
+        "blocking": ("tinyint(1)", "NO"),
+        "resolved_at": ("datetime", "YES"),
+        "created_at": ("datetime", "NO"),
+        "updated_at": ("datetime", "NO"),
+    },
+}
+_RAG_MYSQL_COLUMN_DEFINITIONS = {
+    "name": ("varchar(32)", "NO"),
+    "value": ("int", "NO"),
+}
 _MIGRATION_ACTOR = "publishing-migration"
 _MAINTENANCE_ENV = "PAPERQUERY_PUBLISHING_MAINTENANCE"
 _CHECKPOINT_ORDER = (
@@ -189,6 +260,60 @@ def _columns(engine: Engine, table_name: str) -> set[str]:
     if table_name not in _table_names(engine):
         return set()
     return {column["name"] for column in inspect(engine).get_columns(table_name)}
+
+
+def publishing_schema_phase(engine: Engine) -> str:
+    """Classify only the exact legacy baseline or exact expanded DDL shape."""
+    inspector = inspect(engine)
+    table_names = set(inspector.get_table_names())
+    core_columns = {
+        "papers_metadata": {
+            column["name"] for column in inspector.get_columns("papers_metadata")
+        } if "papers_metadata" in table_names else set(),
+        "papers_chunks": {
+            column["name"] for column in inspector.get_columns("papers_chunks")
+        } if "papers_chunks" in table_names else set(),
+        "submissions": {
+            column["name"] for column in inspector.get_columns("submissions")
+        } if "submissions" in table_names else set(),
+    }
+    migration_tables = table_names & set(_EXPANDED_TABLES)
+    if core_columns == {
+        "papers_metadata": set(_LEGACY_PAPER_COLUMNS),
+        "papers_chunks": set(_LEGACY_CHUNK_COLUMNS),
+        "submissions": set(_LEGACY_SUBMISSION_COLUMNS),
+    } and not migration_tables:
+        return "baseline"
+    if core_columns != {
+        "papers_metadata": set(_EXPANDED_PAPER_COLUMNS),
+        "papers_chunks": set(_EXPANDED_CHUNK_COLUMNS),
+        "submissions": set(_EXPANDED_SUBMISSION_COLUMNS),
+    } or migration_tables != set(_EXPANDED_TABLES):
+        return "unexpected"
+    if any(
+        {column["name"] for column in inspector.get_columns(table_name)}
+        != set(expected_columns)
+        for table_name, expected_columns in _EXPANDED_TABLE_COLUMNS.items()
+    ):
+        return "unexpected"
+    expected_primary_keys = {
+        "papers_metadata": ["filename"],
+        "papers_chunks": ["id"],
+        "submissions": ["id"],
+        "paper_revisions": ["paper_id", "revision_number"],
+        "paper_filename_aliases": ["lookup_key"],
+        "publishing_jobs": ["id"],
+        "publishing_migration_journal": ["legacy_key"],
+        "publishing_migration_state": ["name"],
+        "publishing_migration_issues": ["id"],
+    }
+    if any(
+        inspector.get_pk_constraint(table_name).get("constrained_columns")
+        != expected_key
+        for table_name, expected_key in expected_primary_keys.items()
+    ):
+        return "unexpected"
+    return "expanded"
 
 
 def _rows(engine: Engine, statement: str, parameters: dict | None = None):
@@ -505,6 +630,24 @@ def _mysql_preflight_issues(
     }
     inspector = inspect(engine)
     table_names = set(inspector.get_table_names())
+    expanded_definition_rows = _rows(engine, """
+        SELECT TABLE_NAME AS table_name, COLUMN_NAME AS column_name,
+               COLUMN_TYPE AS column_type, IS_NULLABLE AS is_nullable
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME IN (
+              'rag_index_meta', 'paper_revisions', 'paper_filename_aliases',
+              'publishing_jobs', 'publishing_migration_journal',
+              'publishing_migration_state', 'publishing_migration_issues'
+          )
+    """)
+    expanded_definitions = {
+        (row["table_name"], row["column_name"]): (
+            " ".join(str(row["column_type"]).casefold().split()),
+            str(row["is_nullable"]).upper(),
+        )
+        for row in expanded_definition_rows
+    }
     actual_core_columns: dict[str, set[str]] = {}
     for table_name, expected_columns in requirements.items():
         actual = (
@@ -572,18 +715,22 @@ def _mysql_preflight_issues(
             "rag_index_meta must have exactly the singleton name/value shape",
         ))
     else:
-        rag_name_type = str(rag_columns["name"]["type"]).casefold().replace(" ", "")
-        rag_value_type = str(rag_columns["value"]["type"]).casefold().replace(" ", "")
+        rag_definition_drift = {
+            column_name: (
+                expected,
+                expanded_definitions.get(("rag_index_meta", column_name)),
+            )
+            for column_name, expected in _RAG_MYSQL_COLUMN_DEFINITIONS.items()
+            if expanded_definitions.get(("rag_index_meta", column_name)) != expected
+        }
         if (
             inspector.get_pk_constraint("rag_index_meta").get("constrained_columns") != ["name"]
-            or rag_columns["name"]["nullable"]
-            or rag_columns["value"]["nullable"]
-            or rag_name_type != "varchar(32)"
-            or not rag_value_type.startswith(("int", "integer"))
+            or rag_definition_drift
         ):
             issues.append(_issue(
                 "unexpected_legacy_schema", "rag_index_meta",
-                "rag_index_meta requires VARCHAR(32) primary key name and non-null INTEGER value",
+                "rag_index_meta exact MySQL definition drift: "
+                + repr(rag_definition_drift),
             ))
         unexpected_rag_rows = int(_scalar(engine, """
             SELECT COUNT(*) FROM rag_index_meta WHERE name <> 'chunks_version'
@@ -714,136 +861,21 @@ def _mysql_preflight_issues(
                     "expanded named index contract drift: " + repr(named_drift),
                 ))
 
-        required_nonnull = {
-            "paper_revisions": {
-                "paper_id", "revision_number", "sha256", "size_bytes",
-                "created_at", "created_by",
-            },
-            "paper_filename_aliases": {"lookup_key", "filename", "paper_id", "created_at"},
-            "publishing_jobs": {
-                "id", "kind", "paper_id", "revision_number", "dedupe_key",
-                "state", "attempts", "available_at", "created_at", "updated_at",
-            },
-            "publishing_migration_journal": {
-                "legacy_key", "paper_id", "revision_number", "legacy_chunk_count",
-                "checkpoint", "created_at", "updated_at",
-            },
-            "publishing_migration_state": {
-                "name", "paper_count", "submission_count", "chunk_count",
-                "vector_count", "ddl_phase", "captured_at",
-            },
-            "publishing_migration_issues": {
-                "id", "kind", "details", "blocking", "created_at", "updated_at",
-            },
-        }
-        for table_name, nonnull_columns in required_nonnull.items():
-            definitions_by_name = {
-                column["name"]: column for column in inspector.get_columns(table_name)
-            }
-            nullable_drift = sorted(
-                name for name in nonnull_columns
-                if definitions_by_name.get(name, {}).get("nullable", True)
-            )
-            if nullable_drift:
-                issues.append(_issue(
-                    "unexpected_legacy_schema", table_name,
-                    "expanded non-null contract drift: " + ", ".join(nullable_drift),
-                ))
-
-        expanded_type_contracts = {
-            "paper_revisions": {
-                "paper_id": ("string", 36), "revision_number": ("integer", None),
-                "sha256": ("string", 64), "size_bytes": ("integer", None),
-                "created_at": ("datetime", None), "created_by": ("string", 255),
-                "restored_from_revision": ("integer", None),
-            },
-            "paper_filename_aliases": {
-                "lookup_key": ("string", 255), "filename": ("string", 255),
-                "paper_id": ("string", 36), "created_at": ("datetime", None),
-            },
-            "publishing_jobs": {
-                "id": ("string", 36), "kind": ("string", 32),
-                "paper_id": ("string", 36), "revision_number": ("integer", None),
-                "dedupe_key": ("string", 255), "state": ("string", 16),
-                "attempts": ("integer", None), "available_at": ("datetime", None),
-                "lease_token": ("string", 36), "lease_expires_at": ("datetime", None),
-                "last_error": ("text", None), "created_at": ("datetime", None),
-                "updated_at": ("datetime", None),
-            },
-            "publishing_migration_journal": {
-                "legacy_key": ("string", 255), "paper_id": ("string", 36),
-                "revision_number": ("integer", None), "source_sha256": ("string", 64),
-                "source_size_bytes": ("integer", None),
-                "legacy_chunk_count": ("integer", None),
-                "legacy_chunk_fingerprint": ("string", 64),
-                "checkpoint": ("string", 32), "created_at": ("datetime", None),
-                "updated_at": ("datetime", None),
-            },
-            "publishing_migration_state": {
-                "name": ("string", 32), "paper_count": ("integer", None),
-                "submission_count": ("integer", None), "chunk_count": ("integer", None),
-                "vector_count": ("integer", None), "ddl_phase": ("string", 32),
-                "captured_at": ("datetime", None),
-            },
-            "publishing_migration_issues": {
-                "id": ("string", 36), "kind": ("string", 32),
-                "legacy_key": ("string", 255), "paper_id": ("string", 36),
-                "details": ("text", None), "blocking": ("boolean", None),
-                "resolved_at": ("datetime", None), "created_at": ("datetime", None),
-                "updated_at": ("datetime", None),
-            },
-        }
-        expanded_nullable = {
-            "paper_revisions": {"restored_from_revision"},
-            "paper_filename_aliases": set(),
-            "publishing_jobs": {"lease_token", "lease_expires_at", "last_error"},
-            "publishing_migration_journal": {
-                "source_sha256", "source_size_bytes", "legacy_chunk_fingerprint",
-            },
-            "publishing_migration_state": set(),
-            "publishing_migration_issues": {"legacy_key", "paper_id", "resolved_at"},
-        }
-
-        def reflected_kind(column):
-            rendered = str(column["type"]).casefold().replace(" ", "")
-            if rendered.startswith("varchar("):
-                return "string", getattr(column["type"], "length", None)
-            if rendered in {"text", "mediumtext", "longtext"}:
-                return "text", None
-            if rendered.startswith(("int", "integer", "bigint")):
-                return "integer", None
-            if rendered.startswith(("datetime", "timestamp")):
-                return "datetime", None
-            if (
-                rendered in {"bool", "boolean", "tinyint(1)"}
-                or (
-                    rendered.startswith("tinyint")
-                    and getattr(column["type"], "display_width", None) == 1
+        for table_name, expected_definitions in (
+            _EXPANDED_MYSQL_COLUMN_DEFINITIONS.items()
+        ):
+            drift = {
+                column_name: (
+                    expected,
+                    expanded_definitions.get((table_name, column_name)),
                 )
-            ):
-                return "boolean", None
-            return rendered, getattr(column["type"], "length", None)
-
-        for table_name, expected_types in expanded_type_contracts.items():
-            definitions_by_name = {
-                column["name"]: column for column in inspector.get_columns(table_name)
+                for column_name, expected in expected_definitions.items()
+                if expanded_definitions.get((table_name, column_name)) != expected
             }
-            drift: list[str] = []
-            for column_name, expected_type in expected_types.items():
-                actual_column = definitions_by_name[column_name]
-                if reflected_kind(actual_column) != expected_type:
-                    drift.append(
-                        f"{column_name} type {reflected_kind(actual_column)!r} != {expected_type!r}"
-                    )
-                expected_is_nullable = column_name in expanded_nullable[table_name]
-                if bool(actual_column["nullable"]) != expected_is_nullable:
-                    drift.append(
-                        f"{column_name} nullable={actual_column['nullable']!r}"
-                    )
             if drift:
                 issues.append(_issue(
                     "unexpected_legacy_schema", table_name,
-                    "expanded type/nullability contract drift: " + "; ".join(drift),
+                    "expanded exact MySQL definition drift: " + repr(drift),
                 ))
         alias_lookup_collation = str(_scalar(engine, """
             SELECT COLLATION_NAME FROM information_schema.COLUMNS
@@ -1674,11 +1706,90 @@ def _after_stage_candidate_hashed(_stage_name: str, _matched: bool) -> None:
     """Test seam proving a hashed stage pathname is never later unlinked."""
 
 
+def _publish_verified_fd_no_replace(
+    source_fd: int,
+    target_fd: int,
+    destination_name: str,
+) -> None:
+    """Atomically publish bytes from an already-verified open file.
+
+    Linux can hard-link the open inode with ``linkat(AT_EMPTY_PATH)`` (or the
+    process-owned procfs FD symlink when unprivileged linkat forbids the empty
+    path).  Darwin's equivalent source-FD primitive is atomic ``fclonefileat``.
+    A platform without an inode-bound, no-replace primitive is unsafe for this
+    migration and must stop before creating the destination.
+    """
+    libc = ctypes.CDLL(None, use_errno=True)
+    encoded_destination = os.fsencode(destination_name)
+
+    def failed(operation: str) -> None:
+        error_number = ctypes.get_errno()
+        if error_number == errno.EEXIST:
+            raise FileExistsError(error_number, os.strerror(error_number), destination_name)
+        raise OSError(error_number, f"{operation}: {os.strerror(error_number)}")
+
+    if sys.platform.startswith("linux"):
+        linkat = getattr(libc, "linkat", None)
+        if linkat is None:
+            raise MigrationBlocked(
+                "platform has no descriptor-based no-replace publication primitive"
+            )
+        linkat.argtypes = (
+            ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p,
+            ctypes.c_int,
+        )
+        linkat.restype = ctypes.c_int
+        ctypes.set_errno(0)
+        if linkat(source_fd, b"", target_fd, encoded_destination, 0x1000) == 0:
+            return
+        first_error = ctypes.get_errno()
+        if first_error == errno.EEXIST:
+            failed("linkat(AT_EMPTY_PATH)")
+
+        # AT_EMPTY_PATH normally requires CAP_DAC_READ_SEARCH.  procfs exposes
+        # a process-private symlink for this still-open descriptor; asking
+        # linkat to follow it links the same inode without consulting the
+        # replaceable staging pathname.
+        descriptor_path = f"/proc/self/fd/{source_fd}"
+        if not os.path.isdir("/proc/self/fd"):
+            ctypes.set_errno(first_error)
+            failed("linkat(AT_EMPTY_PATH)")
+        ctypes.set_errno(0)
+        if linkat(
+            -100,
+            os.fsencode(descriptor_path),
+            target_fd,
+            encoded_destination,
+            0x400,
+        ) == 0:
+            return
+        failed("linkat(descriptor)")
+
+    if sys.platform == "darwin":
+        fclonefileat = getattr(libc, "fclonefileat", None)
+        if fclonefileat is None:
+            raise MigrationBlocked(
+                "platform has no descriptor-based no-replace publication primitive"
+            )
+        fclonefileat.argtypes = (
+            ctypes.c_int, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint32,
+        )
+        fclonefileat.restype = ctypes.c_int
+        ctypes.set_errno(0)
+        if fclonefileat(source_fd, target_fd, encoded_destination, 0) == 0:
+            return
+        failed("fclonefileat")
+
+    raise MigrationBlocked(
+        "platform has no descriptor-based no-replace publication primitive"
+    )
+
+
 def _matching_stage_candidate(
     stage_fd: int,
     expected_hash: str,
     expected_size: int,
-) -> str | None:
+) -> tuple[str, int] | None:
     names = sorted(entry.name for entry in os.scandir(stage_fd))
     for name in names:
         if not (
@@ -1694,33 +1805,28 @@ def _matching_stage_candidate(
         try:
             actual_hash, actual_size = _hash_fd(file_fd)
             final = os.fstat(file_fd)
-        finally:
+            if (
+                opened.st_dev, opened.st_ino, opened.st_size, opened.st_mtime_ns,
+            ) != (
+                final.st_dev, final.st_ino, final.st_size, final.st_mtime_ns,
+            ):
+                raise MigrationBlocked(f"migration stage candidate {name!r} changed")
+            matched = (actual_hash, actual_size) == (expected_hash, expected_size)
+            _after_stage_candidate_hashed(name, matched)
+            if matched:
+                return name, file_fd
+        except BaseException:
             os.close(file_fd)
-        if (
-            opened.st_dev, opened.st_ino, opened.st_size, opened.st_mtime_ns,
-        ) != (
-            final.st_dev, final.st_ino, final.st_size, final.st_mtime_ns,
-        ):
-            raise MigrationBlocked(f"migration stage candidate {name!r} changed")
-        matched = (actual_hash, actual_size) == (expected_hash, expected_size)
-        _after_stage_candidate_hashed(name, matched)
-        if not matched:
-            # Never unlink a pathname based on a descriptor hashed earlier.
-            # A later attempt uses a new unpredictable stage name.
-            continue
-        try:
-            current = os.stat(name, dir_fd=stage_fd, follow_symlinks=False)
-        except OSError as exc:
-            raise MigrationBlocked(f"migration stage candidate {name!r} changed") from exc
-        if (current.st_dev, current.st_ino) != (final.st_dev, final.st_ino):
-            raise MigrationBlocked(f"migration stage candidate {name!r} changed")
-        return name
+            raise
+        # Never unlink a pathname based on a descriptor hashed earlier.  A
+        # later attempt uses a new unpredictable stage name.
+        os.close(file_fd)
     return None
 
 
 def _create_stage_file(stage_fd: int) -> tuple[str, int]:
     flags = (
-        os.O_WRONLY | os.O_CREAT | os.O_EXCL
+        os.O_RDWR | os.O_CREAT | os.O_EXCL
         | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
     )
     candidates = ["1.pdf.part"]
@@ -1757,7 +1863,7 @@ def _copy_and_publish_revision(
         )
         if source_fd is None or source_classification != "ok":
             raise MigrationBlocked(f"legacy PDF {legacy_filename!r} changed after journaling")
-        stage_root_fd = stage_fd = target_fd = None
+        stage_root_fd = stage_fd = target_fd = verified_stage_fd = None
         try:
             source_hash, source_size = _hash_fd(source_fd)
             if (source_hash, source_size) != (expected_hash, expected_size):
@@ -1792,59 +1898,48 @@ def _copy_and_publish_revision(
                 _set_checkpoint(engine, legacy_filename, "destination_verified")
                 return papers_dir / destination_relative
 
-            stage_name = _matching_stage_candidate(
+            stage_candidate = _matching_stage_candidate(
                 stage_fd, expected_hash, expected_size,
             )
             copied = False
-            if stage_name is None:
+            if stage_candidate is None:
                 os.lseek(source_fd, 0, os.SEEK_SET)
-                stage_name, part_fd = _create_stage_file(stage_fd)
+                stage_name, verified_stage_fd = _create_stage_file(stage_fd)
                 try:
                     with os.fdopen(os.dup(source_fd), "rb") as source_stream, os.fdopen(
-                        os.dup(part_fd), "wb"
+                        os.dup(verified_stage_fd), "wb"
                     ) as target_stream:
                         shutil.copyfileobj(source_stream, target_stream, length=1024 * 1024)
                         target_stream.flush()
-                    os.fsync(part_fd)
-                finally:
-                    os.close(part_fd)
+                    os.fsync(verified_stage_fd)
+                except BaseException:
+                    os.close(verified_stage_fd)
+                    verified_stage_fd = None
+                    raise
                 os.fsync(stage_fd)
-                part = _verified_file_at(
-                    stage_fd, stage_name, expected_hash, expected_size,
-                )
-                if part is None:
-                    raise MigrationBlocked("verified staging copy disappeared")
+                before_hash = os.fstat(verified_stage_fd)
+                actual_hash, actual_size = _hash_fd(verified_stage_fd)
+                after_hash = os.fstat(verified_stage_fd)
+                if (
+                    before_hash.st_dev, before_hash.st_ino,
+                    before_hash.st_size, before_hash.st_mtime_ns,
+                ) != (
+                    after_hash.st_dev, after_hash.st_ino,
+                    after_hash.st_size, after_hash.st_mtime_ns,
+                ) or (actual_hash, actual_size) != (expected_hash, expected_size):
+                    raise MigrationBlocked("verified staging copy changed")
                 copied = True
+            else:
+                stage_name, verified_stage_fd = stage_candidate
 
             _set_checkpoint(engine, legacy_filename, "copy_verified")
             if copied:
                 _after_copy_verified()
 
-            try:
-                stage_before_publication = os.stat(
-                    stage_name, dir_fd=stage_fd, follow_symlinks=False,
-                )
-            except OSError as exc:
-                raise MigrationBlocked("verified migration stage file disappeared") from exc
             _before_atomic_publication(stage_name)
             try:
-                stage_at_publication = os.stat(
-                    stage_name, dir_fd=stage_fd, follow_symlinks=False,
-                )
-            except OSError as exc:
-                raise MigrationBlocked("verified migration stage file changed") from exc
-            if (
-                stage_before_publication.st_dev,
-                stage_before_publication.st_ino,
-            ) != (stage_at_publication.st_dev, stage_at_publication.st_ino):
-                raise MigrationBlocked("verified migration stage file changed")
-            try:
-                os.link(
-                    stage_name,
-                    "1.pdf",
-                    src_dir_fd=stage_fd,
-                    dst_dir_fd=target_fd,
-                    follow_symlinks=False,
+                _publish_verified_fd_no_replace(
+                    verified_stage_fd, target_fd, "1.pdf",
                 )
             except FileExistsError:
                 raced = _verified_file_at(
@@ -1882,6 +1977,8 @@ def _copy_and_publish_revision(
             return papers_dir / destination_relative
         finally:
             os.close(source_fd)
+            if verified_stage_fd is not None:
+                os.close(verified_stage_fd)
             for directory_fd in (stage_fd, stage_root_fd, target_fd):
                 if directory_fd is not None:
                     os.close(directory_fd)

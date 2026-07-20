@@ -276,6 +276,29 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
             """)).scalar_one()
         self.assertEqual(paper_id_column, 0)
 
+    def test_exact_expanded_shape_stamped_legacy_replays_without_duplicate_ddl(self):
+        config = self._config()
+        command.stamp(config, "0000_legacy_baseline")
+        command.upgrade(config, "0001_publishing_expand")
+
+        command.stamp(config, "0000_legacy_baseline")
+        command.upgrade(config, "0001_publishing_expand")
+
+        with self.engine.connect() as connection:
+            self.assertEqual(
+                MigrationContext.configure(connection).get_current_revision(),
+                "0001_publishing_expand",
+            )
+        self.assertEqual(
+            inspect(self.engine).get_pk_constraint("papers_metadata")[
+                "constrained_columns"
+            ],
+            ["filename"],
+        )
+        self.assertIn(
+            "publishing_migration_state", inspect(self.engine).get_table_names(),
+        )
+
     def test_missing_rag_index_meta_blocks_before_expand(self):
         with self.engine.begin() as conn:
             conn.execute(text("DROP TABLE rag_index_meta"))
@@ -340,6 +363,48 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
             blocker_keys,
         )
 
+    def test_expanded_infrastructure_types_preserve_exact_mysql_definitions(self):
+        config = self._config()
+        command.stamp(config, "0000_legacy_baseline")
+        command.upgrade(config, "0001_publishing_expand")
+        with self.engine.begin() as conn:
+            conn.execute(text("""
+                ALTER TABLE publishing_jobs
+                MODIFY COLUMN attempts BIGINT NOT NULL,
+                MODIFY COLUMN available_at TIMESTAMP NOT NULL
+            """))
+            conn.execute(text("""
+                ALTER TABLE publishing_migration_state
+                MODIFY COLUMN paper_count INT UNSIGNED NOT NULL
+            """))
+            conn.execute(text("""
+                ALTER TABLE publishing_migration_issues
+                MODIFY COLUMN details MEDIUMTEXT NOT NULL
+            """))
+            conn.execute(text("""
+                ALTER TABLE rag_index_meta
+                MODIFY COLUMN value INT UNSIGNED NOT NULL
+            """))
+
+        report = run_preflight(self.engine, self.papers)
+        blocker_keys = {
+            (issue.code, issue.legacy_key) for issue in report.blockers
+        }
+        self.assertIn(
+            ("unexpected_legacy_schema", "publishing_jobs"), blocker_keys,
+        )
+        self.assertIn(
+            ("unexpected_legacy_schema", "publishing_migration_state"),
+            blocker_keys,
+        )
+        self.assertIn(
+            ("unexpected_legacy_schema", "publishing_migration_issues"),
+            blocker_keys,
+        )
+        self.assertIn(
+            ("unexpected_legacy_schema", "rag_index_meta"), blocker_keys,
+        )
+
     def test_same_named_malformed_lifecycle_check_requires_snapshot_restore(self):
         (self.papers / "paper.pdf").write_bytes(b"%PDF-1.4\n")
         with self.engine.begin() as conn:
@@ -362,6 +427,42 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
                     DROP INDEX ux_papers_metadata_migration_id,
                     ADD CONSTRAINT ck_papers_metadata_lifecycle_revision CHECK (
                         lifecycle_state IN ('publishing', 'published', 'deleting')
+                    )
+            """))
+
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "unsafe partial publishing contract shape.*restore coordinated database and file snapshots",
+        ):
+            command.upgrade(config, "0003_publishing_contract")
+
+    def test_lifecycle_check_with_unsupported_suffix_requires_snapshot_restore(self):
+        (self.papers / "paper.pdf").write_bytes(b"%PDF-1.4\n")
+        with self.engine.begin() as conn:
+            conn.execute(text(
+                "INSERT INTO papers_metadata (filename) VALUES ('paper.pdf')"
+            ))
+        config = self._config()
+        command.stamp(config, "0000_legacy_baseline")
+        command.upgrade(config, "0002_publishing_backfill")
+        with self.engine.begin() as conn:
+            conn.execute(text("""
+                ALTER TABLE papers_metadata
+                    MODIFY COLUMN id VARCHAR(36) NOT NULL,
+                    MODIFY COLUMN lifecycle_state VARCHAR(16) NOT NULL,
+                    MODIFY COLUMN row_version INTEGER NOT NULL,
+                    MODIFY COLUMN index_status VARCHAR(16) NOT NULL,
+                    DROP PRIMARY KEY,
+                    ADD CONSTRAINT pk_papers_metadata PRIMARY KEY (id),
+                    ADD CONSTRAINT uq_papers_metadata_filename UNIQUE (filename),
+                    DROP INDEX ux_papers_metadata_migration_id,
+                    ADD CONSTRAINT ck_papers_metadata_lifecycle_revision CHECK (
+                        (
+                            (lifecycle_state = 'publishing' AND current_revision IS NULL)
+                            OR
+                            (lifecycle_state IN ('published', 'deleting')
+                             AND current_revision IS NOT NULL)
+                        ) + 1
                     )
             """))
 

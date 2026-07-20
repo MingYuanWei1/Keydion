@@ -1,4 +1,5 @@
 import hashlib
+import importlib.util
 import io
 import os
 import shutil
@@ -16,6 +17,7 @@ from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
 from sqlalchemy import create_engine, inspect, text
 
+from services import publishing_migration
 from services.paper_identity import normalize_alias_key
 from services.publishing_migration import (
     MigrationBlocked,
@@ -24,6 +26,21 @@ from services.publishing_migration import (
     run_preflight,
     validate_contract_ready,
 )
+
+
+def _contract_migration_module():
+    migration_path = (
+        Path(__file__).resolve().parents[1]
+        / "migrations" / "versions" / "0003_publishing_contract.py"
+    )
+    spec = importlib.util.spec_from_file_location(
+        "publishing_contract_migration_for_tests", migration_path,
+    )
+    if spec is None or spec.loader is None:
+        raise RuntimeError("could not load publishing contract migration")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 class PublishingMigrationTests(unittest.TestCase):
@@ -619,24 +636,24 @@ class PublishingMigrationTests(unittest.TestCase):
 
     def test_destination_created_in_publication_race_is_never_overwritten(self):
         self.write_legacy("paper.pdf", b"source")
-        real_link = os.link
+        real_publish = publishing_migration._publish_verified_fd_no_replace
 
-        def racing_link(source, destination, **kwargs):
+        def racing_publish(source_fd, target_fd, destination):
             racer_fd = os.open(
                 destination,
                 os.O_WRONLY | os.O_CREAT | os.O_EXCL,
                 0o640,
-                dir_fd=kwargs["dst_dir_fd"],
+                dir_fd=target_fd,
             )
             try:
                 os.write(racer_fd, b"racer")
             finally:
                 os.close(racer_fd)
-            return real_link(source, destination, **kwargs)
+            return real_publish(source_fd, target_fd, destination)
 
         with mock.patch(
-            "services.publishing_migration.os.link",
-            side_effect=racing_link,
+            "services.publishing_migration._publish_verified_fd_no_replace",
+            side_effect=racing_publish,
         ):
             with self.assertRaises(MigrationBlocked):
                 backfill_one_paper(self.engine, self.papers, "paper.pdf")
@@ -663,6 +680,49 @@ class PublishingMigrationTests(unittest.TestCase):
         paper_id = self.scalar("SELECT paper_id FROM publishing_migration_journal")
         destination = self.papers / paper_id / "1.pdf"
         self.assertEqual(destination.read_bytes(), b"late-racer")
+        self.assertEqual(self.scalar("SELECT COUNT(*) FROM paper_revisions"), 0)
+
+    def test_matching_stage_swap_publishes_verified_open_file(self):
+        self.write_legacy("paper.pdf", b"verified-source")
+        with mock.patch(
+            "services.publishing_migration._after_copy_verified",
+            side_effect=RuntimeError("retain matching stage"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "retain matching stage"):
+                backfill_one_paper(self.engine, self.papers, "paper.pdf")
+
+        paper_id = self.scalar("SELECT paper_id FROM publishing_migration_journal")
+        stage = self.papers / ".publishing-migration-stage" / paper_id / "1.pdf.part"
+        verified = stage.with_name("verified-stage-owned-by-migration")
+
+        def swap_matching_stage(_stage_name):
+            stage.rename(verified)
+            stage.write_bytes(b"replacement-owned-by-racer")
+
+        with mock.patch(
+            "services.publishing_migration._before_atomic_publication",
+            side_effect=swap_matching_stage,
+        ):
+            result = backfill_one_paper(self.engine, self.papers, "paper.pdf")
+
+        self.assertEqual(Path(result.destination).read_bytes(), b"verified-source")
+        self.assertEqual(stage.read_bytes(), b"replacement-owned-by-racer")
+        self.assertEqual(verified.read_bytes(), b"verified-source")
+
+    def test_missing_descriptor_publication_primitive_fails_before_destination(self):
+        self.write_legacy("paper.pdf", b"verified-source")
+
+        with mock.patch(
+            "services.publishing_migration.sys.platform", "unsupported-os",
+        ):
+            with self.assertRaisesRegex(
+                MigrationBlocked,
+                "no descriptor-based no-replace publication primitive",
+            ):
+                backfill_one_paper(self.engine, self.papers, "paper.pdf")
+
+        paper_id = self.scalar("SELECT paper_id FROM publishing_migration_journal")
+        self.assertFalse((self.papers / paper_id / "1.pdf").exists())
         self.assertEqual(self.scalar("SELECT COUNT(*) FROM paper_revisions"), 0)
 
     def test_stage_replacement_after_mismatch_hash_is_never_unlinked(self):
@@ -1176,6 +1236,26 @@ class PublishingMigrationTests(unittest.TestCase):
         )
         self.assertIn("id", {column["name"] for column in inspect(engine).get_columns("papers_metadata")})
 
+    def test_exact_expanded_shape_stamped_legacy_replays_idempotently(self):
+        engine = self._legacy_engine("expand-replay.sqlite")
+        config = self._alembic_config(engine)
+        command.stamp(config, "0000_legacy_baseline")
+        command.upgrade(config, "0001_publishing_expand")
+
+        command.stamp(config, "0000_legacy_baseline")
+        command.upgrade(config, "0001_publishing_expand")
+
+        with engine.connect() as connection:
+            self.assertEqual(
+                MigrationContext.configure(connection).get_current_revision(),
+                "0001_publishing_expand",
+            )
+        self.assertEqual(
+            inspect(engine).get_pk_constraint("papers_metadata")["constrained_columns"],
+            ["filename"],
+        )
+        self.assertIn("publishing_migration_state", inspect(engine).get_table_names())
+
     def test_contract_downgrade_refuses_partial_database_rollback(self):
         engine = self._legacy_engine("downgrade.sqlite")
         (self.papers / "paper.pdf").write_bytes(b"%PDF-1.4\n")
@@ -1188,6 +1268,17 @@ class PublishingMigrationTests(unittest.TestCase):
         command.upgrade(config, "head")
         with self.assertRaisesRegex(RuntimeError, "coordinated database and file snapshots"):
             command.downgrade(config, "0002_publishing_backfill")
+
+
+class LifecycleCheckNormalizationTests(unittest.TestCase):
+    def test_rejects_unsupported_suffix_instead_of_ignoring_it(self):
+        migration = _contract_migration_module()
+        expected = migration._LIFECYCLE_CHECK
+
+        self.assertIsNotNone(migration._normalized_check_expression(expected))
+        self.assertIsNone(
+            migration._normalized_check_expression(f"({expected}) + 1")
+        )
 
 
 if __name__ == "__main__":

@@ -226,7 +226,15 @@ def _normalized_check_expression(expression):
     source = re.sub(
         r"_[a-z0-9]+(?=')", "", str(expression).replace("`", "").casefold(),
     )
-    tokens = _CHECK_TOKEN.findall(source)
+    tokens = []
+    cursor = 0
+    for match in _CHECK_TOKEN.finditer(source):
+        if source[cursor:match.start()].strip():
+            return None
+        tokens.append(match.group(0))
+        cursor = match.end()
+    if source[cursor:].strip():
+        return None
     position = 0
 
     def consume(expected=None):
