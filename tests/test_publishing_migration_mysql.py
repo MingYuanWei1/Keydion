@@ -5,6 +5,7 @@ import tempfile
 import unittest
 import uuid
 from pathlib import Path
+from unittest import mock
 
 # Capture only the caller's explicit environment before importing application
 # config, which may load .env.prod.  The migration suite must never discover or
@@ -37,6 +38,11 @@ _TEST_DATABASE_RE = re.compile(r"keydion_test_[0-9a-f]{32}\Z")
 )
 class PublishingMigrationMySQLTests(unittest.TestCase):
     def setUp(self):
+        maintenance = mock.patch.dict(
+            os.environ, {"PAPERQUERY_PUBLISHING_MAINTENANCE": "1"},
+        )
+        maintenance.start()
+        self.addCleanup(maintenance.stop)
         admin_url = make_url(MYSQL_ADMIN_URL)
         if admin_url.get_backend_name() != "mysql":
             raise ValueError("PAPERQUERY_TEST_MYSQL_ADMIN_URL must use MySQL")

@@ -151,6 +151,7 @@ class PublishingMigrationJournalModel(BASE):
         Unicode(36), ForeignKey("papers_metadata.id", ondelete="CASCADE"),
         nullable=False, unique=True,
     )
+    revision_number = Column(Integer, nullable=False, default=1)
     source_sha256 = Column(Unicode(64))
     source_size_bytes = Column(Integer)
     legacy_chunk_count = Column(Integer, nullable=False, default=0)

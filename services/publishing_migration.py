@@ -7,15 +7,18 @@ ordered Alembic data migration after an operator has reviewed preflight output.
 from __future__ import annotations
 
 import hashlib
+import fcntl
 import os
 import shutil
 import stat
+import threading
 import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from sqlalchemy import inspect, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.engine import Engine
 
 from config import RAG_EMBED_DIM
@@ -87,7 +90,7 @@ _EXPANDED_TABLE_COLUMNS = {
         "last_error", "created_at", "updated_at",
     }),
     "publishing_migration_journal": frozenset({
-        "legacy_key", "paper_id", "source_sha256", "source_size_bytes",
+        "legacy_key", "paper_id", "revision_number", "source_sha256", "source_size_bytes",
         "legacy_chunk_count", "legacy_chunk_fingerprint", "checkpoint",
         "created_at", "updated_at",
     }),
@@ -101,6 +104,13 @@ _EXPANDED_TABLE_COLUMNS = {
     }),
 }
 _MIGRATION_ACTOR = "publishing-migration"
+_MAINTENANCE_ENV = "PAPERQUERY_PUBLISHING_MAINTENANCE"
+_CHECKPOINT_ORDER = (
+    "source_verified", "copy_verified", "destination_verified", "db_complete",
+)
+_PROCESS_LOCKS: dict[str, threading.RLock] = {}
+_PROCESS_LOCKS_GUARD = threading.Lock()
+_HELD_LOCKS = threading.local()
 
 
 class MigrationBlocked(RuntimeError):
@@ -428,8 +438,6 @@ def _submission_summary(engine: Engine, known_filenames: set[str]):
         status = (row["status"] or "").casefold()
         if status == "accepted":
             accepted += 1
-            if "paper_id" in row and row["paper_id"]:
-                continue
             candidates = {
                 row[column]
                 for column in candidate_columns
@@ -959,7 +967,7 @@ def legacy_chunk_fingerprint(engine: Engine, legacy_filename: str) -> tuple[int,
 
 def _journal(engine: Engine, legacy_filename: str):
     rows = _rows(engine, """
-        SELECT legacy_key, paper_id, source_sha256, source_size_bytes,
+        SELECT legacy_key, paper_id, revision_number, source_sha256, source_size_bytes,
                legacy_chunk_count, legacy_chunk_fingerprint, checkpoint
         FROM publishing_migration_journal
         WHERE legacy_key = :legacy_key
@@ -968,16 +976,35 @@ def _journal(engine: Engine, legacy_filename: str):
 
 
 def _set_checkpoint(engine: Engine, legacy_filename: str, checkpoint: str) -> None:
+    if checkpoint not in _CHECKPOINT_ORDER:
+        raise ValueError(f"unknown migration checkpoint: {checkpoint}")
+    allowed_predecessors = _CHECKPOINT_ORDER[:_CHECKPOINT_ORDER.index(checkpoint) + 1]
+    placeholders = ", ".join(f":checkpoint_{index}" for index, _ in enumerate(allowed_predecessors))
+    parameters = {
+        f"checkpoint_{index}": value
+        for index, value in enumerate(allowed_predecessors)
+    }
+    parameters.update({
+        "checkpoint": checkpoint,
+        "updated_at": _now(),
+        "legacy_key": legacy_filename,
+    })
     with engine.begin() as connection:
-        connection.execute(text("""
+        result = connection.execute(text(f"""
             UPDATE publishing_migration_journal
             SET checkpoint = :checkpoint, updated_at = :updated_at
             WHERE legacy_key = :legacy_key
-        """), {
-            "checkpoint": checkpoint,
-            "updated_at": _now(),
-            "legacy_key": legacy_filename,
-        })
+              AND checkpoint IN ({placeholders})
+        """), parameters)
+        if result.rowcount == 0:
+            current = connection.execute(text("""
+                SELECT checkpoint FROM publishing_migration_journal
+                WHERE legacy_key = :legacy_key
+            """), {"legacy_key": legacy_filename}).scalar()
+            if current not in _CHECKPOINT_ORDER:
+                raise MigrationBlocked(
+                    f"journal has unknown checkpoint {current!r} for {legacy_filename!r}"
+                )
 
 
 def _insert_or_verify_journal(
@@ -995,10 +1022,10 @@ def _insert_or_verify_journal(
         except (ValueError, TypeError) as exc:
             raise MigrationBlocked("migration journal contains an invalid Paper UUID") from exc
         expected = (
-            source_hash, source_size, chunk_count, chunk_fingerprint,
+            1, source_hash, source_size, chunk_count, chunk_fingerprint,
         )
         actual = (
-            existing["source_sha256"], existing["source_size_bytes"],
+            existing["revision_number"], existing["source_sha256"], existing["source_size_bytes"],
             existing["legacy_chunk_count"], existing["legacy_chunk_fingerprint"],
         )
         if actual != expected:
@@ -1009,27 +1036,38 @@ def _insert_or_verify_journal(
 
     paper_id = str(uuid.uuid4())
     now = _now()
-    with engine.begin() as connection:
-        connection.execute(text("""
-            INSERT INTO publishing_migration_journal (
-                legacy_key, paper_id, source_sha256, source_size_bytes,
-                legacy_chunk_count, legacy_chunk_fingerprint, checkpoint,
-                created_at, updated_at
-            ) VALUES (
-                :legacy_key, :paper_id, :source_sha256, :source_size_bytes,
-                :legacy_chunk_count, :legacy_chunk_fingerprint, 'source_verified',
-                :created_at, :updated_at
-            )
-        """), {
-            "legacy_key": legacy_filename,
-            "paper_id": paper_id,
-            "source_sha256": source_hash,
-            "source_size_bytes": source_size,
-            "legacy_chunk_count": chunk_count,
-            "legacy_chunk_fingerprint": chunk_fingerprint,
-            "created_at": now,
-            "updated_at": now,
-        })
+    try:
+        with engine.begin() as connection:
+            connection.execute(text("""
+                INSERT INTO publishing_migration_journal (
+                    legacy_key, paper_id, revision_number,
+                    source_sha256, source_size_bytes,
+                    legacy_chunk_count, legacy_chunk_fingerprint, checkpoint,
+                    created_at, updated_at
+                ) VALUES (
+                    :legacy_key, :paper_id, 1, :source_sha256, :source_size_bytes,
+                    :legacy_chunk_count, :legacy_chunk_fingerprint, 'source_verified',
+                    :created_at, :updated_at
+                )
+            """), {
+                "legacy_key": legacy_filename,
+                "paper_id": paper_id,
+                "source_sha256": source_hash,
+                "source_size_bytes": source_size,
+                "legacy_chunk_count": chunk_count,
+                "legacy_chunk_fingerprint": chunk_fingerprint,
+                "created_at": now,
+                "updated_at": now,
+            })
+    except IntegrityError:
+        winner = _journal(engine, legacy_filename)
+        if winner is None:
+            raise
+        verified, _resumed = _insert_or_verify_journal(
+            engine, legacy_filename, source_hash, source_size,
+            chunk_count, chunk_fingerprint,
+        )
+        return verified, True
     return _journal(engine, legacy_filename), False
 
 
@@ -1091,6 +1129,133 @@ def _open_existing_directory_at(parent_fd: int, name: str) -> int | None:
         os.close(child_fd)
         raise MigrationBlocked(f"migration directory {name!r} changed")
     return child_fd
+
+
+def require_publishing_maintenance() -> None:
+    """Fail closed unless the operator has stopped every app/worker writer."""
+    if os.environ.get(_MAINTENANCE_ENV) != "1":
+        raise MigrationBlocked(
+            f"publishing migration maintenance fence is closed; set {_MAINTENANCE_ENV}=1 "
+            "only after all application and worker processes have been stopped"
+        )
+
+
+def _after_migration_lock_acquired(_paper_key: str | None) -> None:
+    """Test seam reached only while the durable migration lock is held."""
+
+
+def _process_lock(key: str) -> threading.RLock:
+    with _PROCESS_LOCKS_GUARD:
+        return _PROCESS_LOCKS.setdefault(key, threading.RLock())
+
+
+@contextmanager
+def _single_migration_lock(
+    engine: Engine,
+    papers_dir: Path,
+    scope: str,
+):
+    canonical = os.path.abspath(os.fspath(papers_dir))
+    lock_key = f"{engine.url.render_as_string(hide_password=True)}|{canonical}|{scope}"
+    held = getattr(_HELD_LOCKS, "keys", set())
+    if lock_key in held:
+        yield
+        return
+
+    process_lock = _process_lock(lock_key)
+    with process_lock:
+        connection = None
+        lock_fd = None
+        lock_directory_fd = None
+        try:
+            if engine.dialect.name == "mysql":
+                connection = engine.connect()
+                advisory_name = "keydion-pub-" + hashlib.sha256(
+                    f"{canonical}|{scope}".encode("utf-8")
+                ).hexdigest()[:48]
+                acquired = connection.execute(
+                    text("SELECT GET_LOCK(:lock_name, 60)"),
+                    {"lock_name": advisory_name},
+                ).scalar()
+                if acquired != 1:
+                    raise MigrationBlocked(
+                        f"could not acquire MySQL publishing migration lock for {scope}"
+                    )
+            elif engine.dialect.name == "sqlite" and engine.url.database not in (None, ":memory:"):
+                database_path = os.path.abspath(os.fspath(engine.url.database))
+                lock_path = (
+                    database_path + ".publishing-migration-"
+                    + hashlib.sha256(scope.encode("utf-8")).hexdigest() + ".lock"
+                )
+                lock_fd = os.open(
+                    lock_path,
+                    os.O_RDWR | os.O_CREAT | getattr(os, "O_CLOEXEC", 0)
+                    | getattr(os, "O_NOFOLLOW", 0),
+                    0o600,
+                )
+                if not stat.S_ISREG(os.fstat(lock_fd).st_mode):
+                    raise MigrationBlocked("publishing migration lock entry is unsafe")
+                fcntl.flock(lock_fd, fcntl.LOCK_EX)
+            else:
+                with _trusted_root(papers_dir) as root_fd:
+                    lock_directory_fd = _open_or_create_directory_at(
+                        root_fd, ".publishing-migration-locks",
+                    )
+                lock_name = hashlib.sha256(scope.encode("utf-8")).hexdigest() + ".lock"
+                lock_fd = os.open(
+                    lock_name,
+                    os.O_RDWR | os.O_CREAT | getattr(os, "O_CLOEXEC", 0)
+                    | getattr(os, "O_NOFOLLOW", 0),
+                    0o600,
+                    dir_fd=lock_directory_fd,
+                )
+                if not stat.S_ISREG(os.fstat(lock_fd).st_mode):
+                    raise MigrationBlocked("publishing migration lock entry is unsafe")
+                fcntl.flock(lock_fd, fcntl.LOCK_EX)
+
+            held = set(getattr(_HELD_LOCKS, "keys", set()))
+            held.add(lock_key)
+            _HELD_LOCKS.keys = held
+            yield
+        finally:
+            held = set(getattr(_HELD_LOCKS, "keys", set()))
+            held.discard(lock_key)
+            _HELD_LOCKS.keys = held
+            if lock_fd is not None:
+                fcntl.flock(lock_fd, fcntl.LOCK_UN)
+                os.close(lock_fd)
+            if lock_directory_fd is not None:
+                os.close(lock_directory_fd)
+            if connection is not None:
+                try:
+                    connection.execute(
+                        text("SELECT RELEASE_LOCK(:lock_name)"),
+                        {"lock_name": advisory_name},
+                    )
+                finally:
+                    connection.close()
+
+
+@contextmanager
+def migration_fence(
+    engine: Engine,
+    papers_dir: Path,
+    *,
+    paper_key: str | None = None,
+):
+    """Require maintenance mode and serialize global and per-Paper work."""
+    require_publishing_maintenance()
+    with _single_migration_lock(engine, papers_dir, "global"):
+        if paper_key is None:
+            _after_migration_lock_acquired(None)
+            yield
+        else:
+            paper_scope = "paper:" + hashlib.sha256(
+                paper_key.encode("utf-8")
+            ).hexdigest()
+            with _single_migration_lock(engine, papers_dir, paper_scope):
+                _after_migration_lock_acquired(paper_key)
+                yield
 
 
 def _verified_file_at(
@@ -1540,7 +1705,7 @@ def _persist_paper_rows(
                 })
 
 
-def backfill_one_paper(
+def _backfill_one_paper_unfenced(
     engine: Engine, papers_dir: Path, legacy_filename: str,
 ) -> BackfilledPaper:
     """Backfill one legacy Paper durably and idempotently."""
@@ -1561,6 +1726,27 @@ def backfill_one_paper(
         chunk_fingerprint,
     )
     paper_id = journal["paper_id"]
+    if journal["checkpoint"] == "db_complete":
+        destination_relative = f"{paper_id}/1.pdf"
+        destination = _verified_existing_file(
+            papers_dir,
+            destination_relative,
+            source_hash,
+            source_size,
+        )
+        if destination is None:
+            raise MigrationBlocked(
+                f"completed migration destination is missing for {legacy_filename!r}"
+            )
+        return BackfilledPaper(
+            paper_id=paper_id,
+            legacy_filename=legacy_filename,
+            revision_number=1,
+            sha256=source_hash,
+            size_bytes=source_size,
+            destination=str(destination),
+            resumed=True,
+        )
     destination = _copy_and_publish_revision(
         papers_dir,
         legacy_filename,
@@ -1588,6 +1774,14 @@ def backfill_one_paper(
         destination=str(destination),
         resumed=resumed,
     )
+
+
+def backfill_one_paper(
+    engine: Engine, papers_dir: Path, legacy_filename: str,
+) -> BackfilledPaper:
+    papers_dir = Path(papers_dir)
+    with migration_fence(engine, papers_dir, paper_key=legacy_filename):
+        return _backfill_one_paper_unfenced(engine, papers_dir, legacy_filename)
 
 
 def _persist_issue(
@@ -1632,6 +1826,21 @@ def _persist_issue(
             })
 
 
+def _resolve_submission_issues(engine: Engine, submission_id: str) -> None:
+    with engine.begin() as connection:
+        connection.execute(text("""
+            UPDATE publishing_migration_issues
+            SET resolved_at = :resolved_at, updated_at = :updated_at
+            WHERE legacy_key = :legacy_key
+              AND kind IN ('submission_unmatched', 'submission_ambiguous')
+              AND resolved_at IS NULL
+        """), {
+            "legacy_key": submission_id,
+            "resolved_at": _now(),
+            "updated_at": _now(),
+        })
+
+
 def _link_submissions(engine: Engine) -> None:
     columns = _columns(engine, "submissions")
     if not {"id", "status", "paper_id"}.issubset(columns):
@@ -1674,6 +1883,7 @@ def _link_submissions(engine: Engine) -> None:
                 connection.execute(text("""
                     UPDATE submissions SET paper_id = :paper_id WHERE id = :id
                 """), {"paper_id": paper_id, "id": submission["id"]})
+            _resolve_submission_issues(engine, submission["id"])
         else:
             code = "submission_unmatched" if not candidates else "submission_ambiguous"
             details = (
@@ -1681,23 +1891,71 @@ def _link_submissions(engine: Engine) -> None:
                 if not candidates
                 else "accepted Submission has multiple exact legacy filename matches"
             )
+            with engine.begin() as connection:
+                connection.execute(text("""
+                    UPDATE submissions SET paper_id = NULL WHERE id = :id
+                """), {"id": submission["id"]})
             _persist_issue(engine, code, submission["id"], details)
+
+
+def _validate_submission_links(engine: Engine) -> None:
+    columns = _columns(engine, "submissions")
+    if not {"id", "status", "paper_id"}.issubset(columns):
+        return
+    candidate_columns = [
+        name for name in ("pdf_filename", "pending_filename", "original_filename")
+        if name in columns
+    ]
+    selected = ", ".join(["id", "status", "paper_id"] + candidate_columns)
+    submissions = _rows(engine, f"SELECT {selected} FROM submissions ORDER BY id")
+    paper_by_filename = {
+        row["filename"]: row["id"]
+        for row in _rows(engine, "SELECT filename, id FROM papers_metadata")
+        if row["id"] is not None
+    }
+    for submission in submissions:
+        status = (submission["status"] or "").casefold()
+        candidates = {
+            paper_by_filename[submission[column]]
+            for column in candidate_columns
+            if submission[column] and submission[column] in paper_by_filename
+        }
+        expected = next(iter(candidates)) if status == "accepted" and len(candidates) == 1 else None
+        if submission["paper_id"] != expected:
+            raise MigrationBlocked(
+                f"accepted Submission link is not exact for {submission['id']!r}"
+                if status == "accepted"
+                else f"non-accepted Submission remains linked: {submission['id']!r}"
+            )
+        if status == "accepted" and len(candidates) != 1:
+            expected_kind = "submission_unmatched" if not candidates else "submission_ambiguous"
+            count = int(_scalar(engine, """
+                SELECT COUNT(*) FROM publishing_migration_issues
+                WHERE legacy_key = :legacy_key AND kind = :kind
+                  AND blocking = 0 AND resolved_at IS NULL
+            """, {"legacy_key": submission["id"], "kind": expected_kind}))
+            if count != 1:
+                raise MigrationBlocked(
+                    f"accepted Submission issue is missing for {submission['id']!r}"
+                )
 
 
 def backfill_all(engine: Engine, papers_dir: Path) -> tuple[BackfilledPaper, ...]:
     """Backfill every safe metadata/file Paper, then link legacy Submissions."""
-    report = run_preflight(engine, papers_dir)
-    if report.blockers:
-        codes = ", ".join(issue.code for issue in report.blockers)
-        raise MigrationBlocked(f"publishing migration preflight blockers: {codes}")
-    filenames = sorted(set(_legacy_metadata_keys(engine)) | set(report.importable_file_only))
-    _capture_pre_backfill_state(engine, len(filenames))
-    results = tuple(
-        backfill_one_paper(engine, papers_dir, filename)
-        for filename in filenames
-    )
-    _link_submissions(engine)
-    return results
+    papers_dir = Path(papers_dir)
+    with migration_fence(engine, papers_dir):
+        report = run_preflight(engine, papers_dir)
+        if report.blockers:
+            codes = ", ".join(issue.code for issue in report.blockers)
+            raise MigrationBlocked(f"publishing migration preflight blockers: {codes}")
+        filenames = sorted(set(_legacy_metadata_keys(engine)) | set(report.importable_file_only))
+        _capture_pre_backfill_state(engine, len(filenames))
+        results = tuple(
+            backfill_one_paper(engine, papers_dir, filename)
+            for filename in filenames
+        )
+        _link_submissions(engine)
+        return results
 
 
 def _assert_count(engine: Engine, statement: str, expected: int, label: str) -> None:
@@ -1706,8 +1964,18 @@ def _assert_count(engine: Engine, statement: str, expected: int, label: str) -> 
         raise MigrationBlocked(f"{label} count changed: expected {expected}, found {actual}")
 
 
-def validate_contract_ready(engine: Engine, papers_dir: Path) -> PreflightReport:
+def validate_contract_ready(
+    engine: Engine,
+    papers_dir: Path,
+    *,
+    _fenced: bool = False,
+) -> PreflightReport:
     """Refuse contraction unless every SQL/file identity invariant is proven."""
+    if not _fenced:
+        with migration_fence(engine, Path(papers_dir)):
+            return validate_contract_ready(
+                engine, papers_dir, _fenced=True,
+            )
     report = run_preflight(engine, papers_dir, capacity_phase="contract")
     if report.blockers:
         details = ", ".join(
@@ -1740,6 +2008,7 @@ def validate_contract_ready(engine: Engine, papers_dir: Path) -> PreflightReport
             "persisted migration issue blocks contraction: "
             f"{issue['kind']}:{issue['legacy_key']}"
         )
+    _validate_submission_links(engine)
 
     paper_orphan_checks = (
         ("paper_revisions", "paper_id", False),
@@ -1792,7 +2061,7 @@ def validate_contract_ready(engine: Engine, papers_dir: Path) -> PreflightReport
         ):
             raise MigrationBlocked(f"Paper row is not contract-ready: {paper['filename']!r}")
         journal_rows = _rows(engine, """
-            SELECT paper_id, source_sha256, source_size_bytes,
+            SELECT paper_id, revision_number, source_sha256, source_size_bytes,
                    legacy_chunk_count, legacy_chunk_fingerprint, checkpoint
             FROM publishing_migration_journal
             WHERE legacy_key = :legacy_key
@@ -1800,6 +2069,7 @@ def validate_contract_ready(engine: Engine, papers_dir: Path) -> PreflightReport
         if (
             len(journal_rows) != 1
             or journal_rows[0]["paper_id"] != paper["id"]
+            or journal_rows[0]["revision_number"] != 1
             or journal_rows[0]["checkpoint"] != "db_complete"
         ):
             raise MigrationBlocked(

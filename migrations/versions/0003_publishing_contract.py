@@ -6,7 +6,7 @@ import sqlalchemy as sa
 from sqlalchemy import create_engine, pool
 
 from config import PAPERS_DIR
-from services.publishing_migration import validate_contract_ready
+from services.publishing_migration import migration_fence, validate_contract_ready
 
 
 revision = "0003_publishing_contract"
@@ -19,17 +19,6 @@ _LIFECYCLE_CHECK = (
     "(lifecycle_state = 'publishing' AND current_revision IS NULL) OR "
     "(lifecycle_state IN ('published', 'deleting') AND current_revision IS NOT NULL)"
 )
-
-
-def _validate_before_ddl():
-    bind = op.get_bind()
-    configured = op.get_context().config.attributes.get("papers_dir")
-    papers_dir = Path(configured) if configured is not None else PAPERS_DIR
-    validation_engine = create_engine(bind.engine.url, poolclass=pool.NullPool)
-    try:
-        validate_contract_ready(validation_engine, papers_dir)
-    finally:
-        validation_engine.dispose()
 
 
 def _sqlite_contract():
@@ -237,13 +226,24 @@ def _mysql_contract():
 
 
 def upgrade():
-    # MySQL DDL implicitly commits, so every content/count/hash invariant is
-    # validated on a read-only separate connection before the first DDL call.
-    _validate_before_ddl()
-    if op.get_bind().dialect.name == "sqlite":
-        _sqlite_contract()
-    else:
-        _mysql_contract()
+    bind = op.get_bind()
+    configured = op.get_context().config.attributes.get("papers_dir")
+    papers_dir = Path(configured) if configured is not None else PAPERS_DIR
+    validation_engine = create_engine(bind.engine.url, poolclass=pool.NullPool)
+    try:
+        # The explicit maintenance guard is an operator assertion that every
+        # app/worker writer is stopped. The durable lock serializes migration
+        # invocations and remains held through validation and irreversible DDL.
+        with migration_fence(validation_engine, papers_dir):
+            validate_contract_ready(
+                validation_engine, papers_dir, _fenced=True,
+            )
+            if bind.dialect.name == "sqlite":
+                _sqlite_contract()
+            else:
+                _mysql_contract()
+    finally:
+        validation_engine.dispose()
 
 
 def downgrade():

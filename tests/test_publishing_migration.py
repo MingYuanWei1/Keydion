@@ -3,7 +3,10 @@ import io
 import os
 import shutil
 import tempfile
+import threading
+import time
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import FrozenInstanceError
 from pathlib import Path
 from unittest import mock
@@ -25,6 +28,11 @@ from services.publishing_migration import (
 
 class PublishingMigrationTests(unittest.TestCase):
     def setUp(self):
+        maintenance = mock.patch.dict(
+            os.environ, {"PAPERQUERY_PUBLISHING_MAINTENANCE": "1"},
+        )
+        maintenance.start()
+        self.addCleanup(maintenance.stop)
         self.temp_dir = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp_dir.cleanup)
         root = Path(self.temp_dir.name)
@@ -109,6 +117,7 @@ class PublishingMigrationTests(unittest.TestCase):
             conn.execute(text("""
                 CREATE TABLE publishing_migration_journal (
                     legacy_key VARCHAR(255) PRIMARY KEY, paper_id VARCHAR(36) NOT NULL UNIQUE,
+                    revision_number INTEGER NOT NULL,
                     source_sha256 VARCHAR(64), source_size_bytes INTEGER,
                     legacy_chunk_count INTEGER NOT NULL,
                     legacy_chunk_fingerprint VARCHAR(64), checkpoint VARCHAR(32) NOT NULL,
@@ -428,8 +437,78 @@ class PublishingMigrationTests(unittest.TestCase):
             """))
         replay = backfill_one_paper(self.engine, self.papers, "paper.pdf")
         self.assertTrue(replay.resumed)
+        self.assertEqual(
+            self.scalar("SELECT checkpoint FROM publishing_migration_journal"),
+            "db_complete",
+        )
+        completed_replay = backfill_one_paper(
+            self.engine, self.papers, "paper.pdf",
+        )
+        self.assertTrue(completed_replay.resumed)
+        self.assertEqual(
+            self.scalar("SELECT checkpoint FROM publishing_migration_journal"),
+            "db_complete",
+        )
         self.assertEqual(self.scalar("SELECT value FROM rag_index_meta WHERE name='chunks_version'"), 1)
         self.assertEqual(self.scalar("SELECT COUNT(*) FROM publishing_jobs"), 0)
+
+    def test_backfill_fails_closed_without_explicit_maintenance_guard(self):
+        self.write_legacy("paper.pdf")
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("PAPERQUERY_PUBLISHING_MAINTENANCE", None)
+            with self.assertRaisesRegex(MigrationBlocked, "maintenance"):
+                backfill_one_paper(self.engine, self.papers, "paper.pdf")
+        self.assertEqual(self.scalar("SELECT COUNT(*) FROM publishing_migration_journal"), 0)
+
+    def test_concurrent_backfill_invocations_are_globally_serialized(self):
+        self.write_legacy("paper.pdf", b"source")
+        active = 0
+        maximum = 0
+        mutex = threading.Lock()
+
+        def observe_lock(_paper_key):
+            nonlocal active, maximum
+            with mutex:
+                active += 1
+                maximum = max(maximum, active)
+            time.sleep(0.05)
+            with mutex:
+                active -= 1
+
+        first_engine = create_engine(str(self.engine.url))
+        second_engine = create_engine(str(self.engine.url))
+        self.addCleanup(first_engine.dispose)
+        self.addCleanup(second_engine.dispose)
+        with mock.patch(
+            "services.publishing_migration._after_migration_lock_acquired",
+            side_effect=observe_lock,
+        ):
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                results = tuple(executor.map(
+                    lambda candidate: backfill_one_paper(
+                        candidate, self.papers, "paper.pdf",
+                    ),
+                    (first_engine, second_engine),
+                ))
+
+        self.assertEqual(maximum, 1)
+        self.assertEqual(results[0].paper_id, results[1].paper_id)
+        self.assertEqual(self.scalar("SELECT COUNT(*) FROM publishing_migration_journal"), 1)
+        self.assertEqual(self.scalar("SELECT COUNT(*) FROM paper_revisions"), 1)
+
+    def test_expanded_journal_persists_fixed_revision_number(self):
+        columns = {
+            column["name"]: column
+            for column in inspect(self.engine).get_columns("publishing_migration_journal")
+        }
+        self.assertIn("revision_number", columns)
+        self.assertFalse(columns["revision_number"]["nullable"])
+        self.write_legacy("paper.pdf")
+        backfill_one_paper(self.engine, self.papers, "paper.pdf")
+        self.assertEqual(
+            self.scalar("SELECT revision_number FROM publishing_migration_journal"),
+            1,
+        )
 
     def test_interruption_after_verified_copy_resumes_with_stable_uuid(self):
         self.write_legacy("paper.pdf")
@@ -602,6 +681,43 @@ class PublishingMigrationTests(unittest.TestCase):
         report = run_preflight(self.engine, self.papers)
         self.assertEqual(report.unavailable_rejected_pdfs, ("rejected",))
         validate_contract_ready(self.engine, self.papers)
+
+    def test_accepted_submission_links_are_recomputed_even_when_prelinked(self):
+        self.write_legacy("one.pdf")
+        self.write_legacy("two.pdf")
+        self.insert_submission("unmatched", "accepted", pdf_filename="missing.pdf")
+        self.insert_submission(
+            "ambiguous", "accepted", pdf_filename="one.pdf", pending_filename="two.pdf",
+        )
+        with self.engine.begin() as conn:
+            conn.execute(text(
+                "UPDATE submissions SET paper_id='stale-paper-id'"
+            ))
+
+        backfill_all(self.engine, self.papers)
+
+        self.assertEqual(
+            self.scalar("SELECT COUNT(*) FROM submissions WHERE paper_id IS NOT NULL"),
+            0,
+        )
+
+    def test_contract_recomputes_and_rejects_stale_accepted_submission_link(self):
+        self.write_legacy("one.pdf")
+        self.write_legacy("two.pdf")
+        self.insert_submission(
+            "ambiguous", "accepted", pdf_filename="one.pdf", pending_filename="two.pdf",
+        )
+        backfill_all(self.engine, self.papers)
+        paper_id = self.scalar(
+            "SELECT id FROM papers_metadata WHERE filename='one.pdf'"
+        )
+        with self.engine.begin() as conn:
+            conn.execute(text(
+                "UPDATE submissions SET paper_id=:paper_id WHERE id='ambiguous'"
+            ), {"paper_id": paper_id})
+
+        with self.assertRaisesRegex(MigrationBlocked, "accepted Submission"):
+            validate_contract_ready(self.engine, self.papers)
 
     def test_papers_without_chunks_get_one_deduplicated_index_job(self):
         self.write_legacy("paper.pdf")

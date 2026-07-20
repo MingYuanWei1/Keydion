@@ -6,7 +6,7 @@ import sqlalchemy as sa
 from sqlalchemy import create_engine, pool
 
 from config import PAPERS_DIR
-from services.publishing_migration import MigrationBlocked, run_preflight
+from services.publishing_migration import MigrationBlocked, migration_fence, run_preflight
 
 
 revision = "0001_publishing_expand"
@@ -31,7 +31,7 @@ def _validate_legacy_before_expand():
         raise MigrationBlocked(f"publishing expand preflight blocked: {details}")
 
 
-def upgrade():
+def _upgrade_unfenced():
     _validate_legacy_before_expand()
     # Keep filename as the legacy primary key throughout expand/backfill.  Every
     # added column is nullable until the contract validator proves it populated.
@@ -143,6 +143,7 @@ def upgrade():
         "publishing_migration_journal",
         sa.Column("legacy_key", sa.String(255), nullable=False),
         sa.Column("paper_id", sa.String(36), nullable=False),
+        sa.Column("revision_number", sa.Integer(), nullable=False),
         sa.Column("source_sha256", sa.String(64), nullable=True),
         sa.Column("source_size_bytes", sa.Integer(), nullable=True),
         sa.Column("legacy_chunk_count", sa.Integer(), nullable=False),
@@ -181,6 +182,18 @@ def upgrade():
         "publishing_migration_issues",
         ["paper_id"],
     )
+
+
+def upgrade():
+    bind = op.get_bind()
+    configured = op.get_context().config.attributes.get("papers_dir")
+    papers_dir = Path(configured) if configured is not None else PAPERS_DIR
+    migration_engine = create_engine(bind.engine.url, poolclass=pool.NullPool)
+    try:
+        with migration_fence(migration_engine, papers_dir):
+            _upgrade_unfenced()
+    finally:
+        migration_engine.dispose()
 
 
 def downgrade():
