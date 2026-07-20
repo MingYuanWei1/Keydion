@@ -249,6 +249,9 @@ MIN_SEMANTIC_QUERY_LEN = 2   # skip embedding for 1-char queries (idea #4)
 # model's output (gemini-embedding-001: 3072). Changing it requires a column
 # migration + full re-index, not just an env flip.
 RAG_EMBED_DIM = int(os.environ.get("RAG_EMBED_DIM", "3072"))
+PUBLISHING_INLINE_INDEX_TIMEOUT_SECONDS = int(
+    os.environ.get("PAPERQUERY_PUBLISHING_INLINE_INDEX_TIMEOUT_SECONDS", "45")
+)
 PASSWORD_SCHEME = "pbkdf2_sha256"
 SUPPORTED_LOCALES = ("en", "zh")
 SESSION_TIMEOUT_SECONDS = int(os.environ.get("PAPERQUERY_SESSION_TIMEOUT", "3600"))
