@@ -13,6 +13,7 @@ from models import (
     SubmissionModel,
 )
 from services.paper_storage import PaperStorage, StorageError
+from services.publishing import _submission_trash_operation_id
 from services.publishing_contracts import (
     AcceptSubmission,
     Actor,
@@ -79,6 +80,10 @@ class SubmissionPublishingTests(PublishingLifecycleTestCase, unittest.TestCase):
 
     def pending_name(self, submission_id="submission-1"):
         return f"pending-{submission_id}.pdf"
+
+    def lifecycle_trash_path(self, submission_id="submission-1"):
+        operation_id = _submission_trash_operation_id(submission_id)
+        return self.storage.trash_dir / f"{operation_id}.pdf"
 
     def seed_submission(
         self,
@@ -309,7 +314,37 @@ class SubmissionPublishingTests(PublishingLifecycleTestCase, unittest.TestCase):
         self.assertEqual(outcome.submission_id, "submission-1")
         self.assertIsNone(self.submission())
         self.assertFalse((self.storage.pending_dir / self.pending_name()).exists())
-        self.assertFalse((self.storage.trash_dir / "submission-1.pdf").exists())
+        self.assertFalse(self.lifecycle_trash_path().exists())
+
+    def test_cancellation_uses_safe_fixed_length_trash_keys_for_arbitrary_ids(self):
+        submission_ids = ("reader/path", "x" * 200)
+        operation_ids = []
+        real_trash = self.storage.trash_pending
+
+        def capture_trash(filename, operation_id):
+            operation_ids.append(operation_id)
+            return real_trash(filename, operation_id)
+
+        for index, submission_id in enumerate(submission_ids):
+            self.seed_submission(
+                submission_id,
+                pending_filename=f"arbitrary-{index}.pdf",
+            )
+        with mock.patch.object(
+            self.storage,
+            "trash_pending",
+            side_effect=capture_trash,
+        ):
+            for submission_id in submission_ids:
+                self.lifecycle.cancel_submission(self.cancel_intent(submission_id))
+
+        self.assertEqual(len(operation_ids), 2)
+        self.assertEqual(len(set(operation_ids)), 2)
+        for operation_id in operation_ids:
+            self.assertLessEqual(len(operation_id), 128)
+            self.assertRegex(operation_id, r"\Asubmission-[0-9a-f]{64}\Z")
+        for submission_id in submission_ids:
+            self.assertIsNone(self.submission(submission_id))
 
     def test_wrong_owner_cannot_cancel_before_storage_moves(self):
         with mock.patch.object(
@@ -392,6 +427,81 @@ class SubmissionPublishingTests(PublishingLifecycleTestCase, unittest.TestCase):
         self.assertEqual(outcome.paper_id, reserved_id)
         self.assertEqual(len(self.papers()), 1)
 
+    def test_delayed_acceptance_replay_renews_and_reuses_origin_reservation(self):
+        failing = CommitFailingFactory(self.session_factory, failure_number=2)
+        lifecycle = self.new_lifecycle(
+            FakeRevisionIndexer(enabled=False), session_factory=failing
+        )
+        with self.assertRaises(PersistenceFailed):
+            lifecycle.review_submission(self.accept_intent())
+        reserved_id = self.papers()[0].id
+        self.age_reconciliation_window()
+
+        outcome = self.lifecycle.review_submission(self.accept_intent())
+
+        self.assertEqual(outcome.paper_id, reserved_id)
+        self.assertEqual(self.paper(reserved_id).lifecycle_state, "published")
+        self.assertEqual(len(self.papers()), 1)
+
+    def test_rejection_reconciles_expired_origin_reservation_storage_first(self):
+        failing = CommitFailingFactory(self.session_factory, failure_number=2)
+        lifecycle = self.new_lifecycle(
+            FakeRevisionIndexer(enabled=False), session_factory=failing
+        )
+        with self.assertRaises(PersistenceFailed):
+            lifecycle.review_submission(self.accept_intent())
+        reserved_id = self.papers()[0].id
+        self.storage.revision_path(reserved_id, 1).parent.mkdir(mode=0o700)
+        residual = self.storage.revision_path(reserved_id, 1)
+        residual.write_bytes(self.valid_pdf_bytes("expired-origin"))
+        residual.chmod(0o600)
+        self.age_reconciliation_window()
+
+        outcome = self.lifecycle.review_submission(self.reject_intent())
+
+        self.assertEqual(outcome.decision, "rejected")
+        self.assertIsNone(self.paper(reserved_id))
+        self.assertFalse(residual.exists())
+        self.assertTrue((self.storage.pending_dir / self.pending_name()).exists())
+
+    def test_cancellation_reconciles_expired_origin_reservation(self):
+        failing = CommitFailingFactory(self.session_factory, failure_number=2)
+        lifecycle = self.new_lifecycle(
+            FakeRevisionIndexer(enabled=False), session_factory=failing
+        )
+        with self.assertRaises(PersistenceFailed):
+            lifecycle.review_submission(self.accept_intent())
+        reserved_id = self.papers()[0].id
+        self.age_reconciliation_window()
+
+        self.lifecycle.cancel_submission(self.cancel_intent())
+
+        self.assertIsNone(self.submission())
+        self.assertIsNone(self.paper(reserved_id))
+        self.assertFalse((self.storage.pending_dir / self.pending_name()).exists())
+
+    def test_background_reconciles_expired_origin_reservation_for_pending_submission(self):
+        failing = CommitFailingFactory(self.session_factory, failure_number=2)
+        lifecycle = self.new_lifecycle(
+            FakeRevisionIndexer(enabled=False), session_factory=failing
+        )
+        with self.assertRaises(PersistenceFailed):
+            lifecycle.review_submission(self.accept_intent())
+        reserved_id = self.papers()[0].id
+        self.storage.revision_path(reserved_id, 1).parent.mkdir(mode=0o700)
+        residual = self.storage.revision_path(reserved_id, 1)
+        residual.write_bytes(self.valid_pdf_bytes("expired-background-origin"))
+        residual.chmod(0o600)
+        self.age_reconciliation_window()
+
+        reconciled = self.lifecycle.reconcile_submissions()
+
+        self.assertEqual(reconciled, 1)
+        self.assertIsNone(self.paper(reserved_id))
+        self.assertFalse(residual.exists())
+        self.assertEqual(self.submission().status, "pending")
+        self.assertTrue((self.storage.pending_dir / self.pending_name()).exists())
+
     def test_ambiguous_final_commit_reconstructs_accepted_decision(self):
         ambiguous = AmbiguousCommitFactory(self.session_factory, failure_number=2)
         lifecycle = self.new_lifecycle(
@@ -456,13 +566,44 @@ class SubmissionPublishingTests(PublishingLifecycleTestCase, unittest.TestCase):
         accepted = self.submission()
         self.assertEqual(accepted.status, "accepted")
         self.assertEqual(self.paper(accepted.paper_id).lifecycle_state, "published")
-        self.assertTrue((self.storage.trash_dir / "submission-1.pdf").exists())
+        self.assertTrue(self.lifecycle_trash_path().exists())
 
         self.replace_storage()
         self.age_reconciliation_window()
         self.lifecycle.reconcile_submissions()
         self.assertEqual(self.submission().status, "accepted")
-        self.assertFalse((self.storage.trash_dir / "submission-1.pdf").exists())
+        self.assertFalse(self.lifecycle_trash_path().exists())
+
+    def test_restart_finishes_accepted_cleanup_after_link_before_unlink_crash(self):
+        original = self.storage.pending_dir / self.pending_name()
+        trashed = self.lifecycle_trash_path()
+        real_unlink = self.storage._unlink_if_matching
+
+        def crash_before_pending_unlink(directory_fd, name, expected):
+            if directory_fd != self.storage._trash_fd and name == original.name:
+                raise InjectedCrash("accepted cleanup link committed")
+            return real_unlink(directory_fd, name, expected)
+
+        with mock.patch.object(
+            self.storage,
+            "_unlink_if_matching",
+            side_effect=crash_before_pending_unlink,
+        ):
+            with self.assertRaises(InjectedCrash):
+                self.lifecycle.review_submission(self.accept_intent())
+
+        self.assertEqual(self.submission().status, "accepted")
+        self.assertTrue(original.exists())
+        self.assertTrue(trashed.exists())
+        self.assertTrue(os.path.samefile(original, trashed))
+
+        self.replace_storage()
+        self.age_reconciliation_window()
+        self.lifecycle.reconcile_submissions()
+
+        self.assertEqual(self.submission().status, "accepted")
+        self.assertFalse(original.exists())
+        self.assertFalse(trashed.exists())
 
     def test_unsafe_pending_names_fail_acceptance_before_copying_any_bytes(self):
         outside = Path(self.tmp.name) / "outside.pdf"
@@ -592,13 +733,69 @@ class SubmissionPublishingTests(PublishingLifecycleTestCase, unittest.TestCase):
                 self.lifecycle.cancel_submission(self.cancel_intent())
         self.assertEqual(self.submission().status, "cancelling")
         self.assertFalse((self.storage.pending_dir / self.pending_name()).exists())
-        self.assertTrue((self.storage.trash_dir / "submission-1.pdf").exists())
+        self.assertTrue(self.lifecycle_trash_path().exists())
 
         self.replace_storage()
         self.age_reconciliation_window()
         self.lifecycle.reconcile_submissions()
         self.assertIsNone(self.submission())
-        self.assertFalse((self.storage.trash_dir / "submission-1.pdf").exists())
+        self.assertFalse(self.lifecycle_trash_path().exists())
+
+    def test_reconcile_finishes_cancellation_after_link_before_unlink_crash(self):
+        original = self.storage.pending_dir / self.pending_name()
+        trashed = self.lifecycle_trash_path()
+        real_unlink = self.storage._unlink_if_matching
+
+        def crash_before_source_unlink(directory_fd, name, expected):
+            if directory_fd != self.storage._trash_fd and name == original.name:
+                raise InjectedCrash("after trash link before source unlink")
+            return real_unlink(directory_fd, name, expected)
+
+        with mock.patch.object(
+            self.storage,
+            "_unlink_if_matching",
+            side_effect=crash_before_source_unlink,
+        ):
+            with self.assertRaises(InjectedCrash):
+                self.lifecycle.cancel_submission(self.cancel_intent())
+
+        self.assertEqual(self.submission().status, "cancelling")
+        self.assertTrue(original.exists())
+        self.assertTrue(trashed.exists())
+        self.assertTrue(os.path.samefile(original, trashed))
+        self.assertEqual(original.stat().st_nlink, 2)
+
+        self.replace_storage()
+        self.age_reconciliation_window()
+        self.lifecycle.reconcile_submissions()
+
+        self.assertIsNone(self.submission())
+        self.assertFalse(original.exists())
+        self.assertFalse(trashed.exists())
+
+    def test_reconcile_restores_pending_after_link_before_unlink_crash(self):
+        original = self.storage.pending_dir / self.pending_name()
+        trashed = self.storage.trash_dir / "submission-1.pdf"
+
+        os.link(
+            original.name,
+            trashed.name,
+            src_dir_fd=self.storage._pending_fd,
+            dst_dir_fd=self.storage._trash_fd,
+            follow_symlinks=False,
+        )
+        original.chmod(0o600)
+        self.assertTrue(os.path.samefile(original, trashed))
+        self.assertEqual(original.stat().st_nlink, 2)
+
+        self.replace_storage()
+        self.age_reconciliation_window()
+        self.lifecycle.reconcile_submissions()
+
+        self.assertEqual(self.submission().status, "pending")
+        self.assertTrue(original.exists())
+        self.assertEqual(original.stat().st_nlink, 1)
+        self.assertFalse(trashed.exists())
 
     def test_restart_reaudit_issues_fresh_one_use_trash_capability(self):
         original = self.storage.trash_pending(self.pending_name(), "submission-1")
@@ -623,12 +820,12 @@ class SubmissionPublishingTests(PublishingLifecycleTestCase, unittest.TestCase):
             with self.assertRaises(InjectedCrash):
                 self.lifecycle.cancel_submission(self.cancel_intent())
         self.assertIsNone(self.submission())
-        self.assertTrue((self.storage.trash_dir / "submission-1.pdf").exists())
+        self.assertTrue(self.lifecycle_trash_path().exists())
 
         self.replace_storage()
         self.age_reconciliation_window()
         self.lifecycle.reconcile_submissions()
-        self.assertFalse((self.storage.trash_dir / "submission-1.pdf").exists())
+        self.assertFalse(self.lifecycle_trash_path().exists())
 
     def test_reconciliation_restores_trash_referenced_by_surviving_pending_row(self):
         self.storage.trash_pending(self.pending_name(), "submission-1")
@@ -663,7 +860,43 @@ class SubmissionPublishingTests(PublishingLifecycleTestCase, unittest.TestCase):
 
         self.assertEqual(self.submission().status, "pending")
         self.assertTrue((self.storage.pending_dir / self.pending_name()).exists())
-        self.assertFalse((self.storage.trash_dir / "submission-1.pdf").exists())
+        self.assertFalse(self.lifecycle_trash_path().exists())
+
+    def test_final_cancellation_failure_keeps_cancelling_when_pdf_is_missing(self):
+        (self.storage.pending_dir / self.pending_name()).unlink()
+        failing = CommitFailingFactory(self.session_factory, failure_number=2)
+        lifecycle = self.new_lifecycle(session_factory=failing)
+
+        with self.assertRaises(PersistenceFailed):
+            lifecycle.cancel_submission(self.cancel_intent())
+
+        self.assertEqual(self.submission().status, "cancelling")
+        self.assertFalse((self.storage.pending_dir / self.pending_name()).exists())
+        self.assertFalse(self.lifecycle_trash_path().exists())
+
+    def test_storage_error_with_no_recoverable_bytes_keeps_cancelling(self):
+        pending = self.storage.pending_dir / self.pending_name()
+        calls = 0
+
+        def lose_bytes_then_fail(_original_name, _operation_id):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                pending.unlink()
+                raise StorageError("injected storage failure")
+            return None
+
+        with mock.patch.object(
+            self.storage,
+            "rehydrate_pending_trash",
+            side_effect=lose_bytes_then_fail,
+        ):
+            with self.assertRaises(StorageFailed):
+                self.lifecycle.cancel_submission(self.cancel_intent())
+
+        self.assertEqual(self.submission().status, "cancelling")
+        self.assertFalse(pending.exists())
+        self.assertFalse(self.lifecycle_trash_path().exists())
 
     def test_post_move_storage_failure_restores_pdf_and_pending_status(self):
         real_trash_pending = self.storage.trash_pending
@@ -681,7 +914,7 @@ class SubmissionPublishingTests(PublishingLifecycleTestCase, unittest.TestCase):
                 self.lifecycle.cancel_submission(self.cancel_intent())
         self.assertEqual(self.submission().status, "pending")
         self.assertTrue((self.storage.pending_dir / self.pending_name()).exists())
-        self.assertFalse((self.storage.trash_dir / "submission-1.pdf").exists())
+        self.assertFalse(self.lifecycle_trash_path().exists())
 
     def test_failed_post_move_restore_leaves_cancelling_row_and_trash(self):
         real_trash_pending = self.storage.trash_pending
@@ -704,7 +937,7 @@ class SubmissionPublishingTests(PublishingLifecycleTestCase, unittest.TestCase):
 
         self.assertEqual(self.submission().status, "cancelling")
         self.assertFalse((self.storage.pending_dir / self.pending_name()).exists())
-        self.assertTrue((self.storage.trash_dir / "submission-1.pdf").exists())
+        self.assertTrue(self.lifecycle_trash_path().exists())
 
     def test_two_concurrent_acceptance_intents_leave_one_paper(self):
         ready = threading.Barrier(2)
@@ -736,6 +969,55 @@ class SubmissionPublishingTests(PublishingLifecycleTestCase, unittest.TestCase):
         self.assertEqual(len(self.papers()), 1)
         self.assertEqual(len([outcome for outcome in outcomes if not isinstance(outcome, Exception)]), 2)
         self.assertEqual({outcome.paper_id for outcome in outcomes}, {self.papers()[0].id})
+        self.assertEqual(sorted(outcome.replayed for outcome in outcomes), [False, True])
+
+    def test_acceptance_reconstructs_winner_when_cleanup_wins_stage_race(self):
+        second_storage = PaperStorage(
+            self.storage.papers_dir,
+            self.storage.pending_dir,
+        )
+        second = self.new_lifecycle(
+            FakeRevisionIndexer(enabled=False),
+            storage=second_storage,
+        )
+        entered_stage = threading.Event()
+        release_stage = threading.Event()
+        outcomes = []
+        errors = []
+        real_stage = second_storage.stage_pending
+
+        def stage_after_winner_cleanup(filename, operation_id):
+            entered_stage.set()
+            if not release_stage.wait(timeout=5):
+                raise RuntimeError("acceptance race release timed out")
+            return real_stage(filename, operation_id)
+
+        def accept_second():
+            try:
+                outcomes.append(second.review_submission(self.accept_intent()))
+            except Exception as exc:
+                errors.append(exc)
+
+        try:
+            with mock.patch.object(
+                second_storage,
+                "stage_pending",
+                side_effect=stage_after_winner_cleanup,
+            ):
+                thread = threading.Thread(target=accept_second)
+                thread.start()
+                self.assertTrue(entered_stage.wait(timeout=2))
+                winner = self.lifecycle.review_submission(self.accept_intent())
+                release_stage.set()
+                thread.join(timeout=5)
+            self.assertFalse(thread.is_alive())
+            self.assertEqual(errors, [])
+            self.assertEqual(len(outcomes), 1)
+            self.assertEqual(outcomes[0].paper_id, winner.paper_id)
+            self.assertTrue(outcomes[0].replayed)
+        finally:
+            release_stage.set()
+            second_storage.close()
 
 
 if __name__ == "__main__":

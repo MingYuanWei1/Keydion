@@ -1453,6 +1453,15 @@ class PaperStorage:
         self._trash_tokens[capability] = token
         return token
 
+    def _consume_pending_trash_tokens(self, token: PendingTrash) -> None:
+        for capability, issued in tuple(self._trash_tokens.items()):
+            if (
+                issued.operation_id == token.operation_id
+                and issued.device == token.device
+                and issued.inode == token.inode
+            ):
+                del self._trash_tokens[capability]
+
     @_serialized
     def pending_exists(self, filename: str) -> bool:
         """Audit whether a contained, single-link pending PDF exists."""
@@ -1496,9 +1505,27 @@ class PaperStorage:
             with self._opened_regular(
                 self.trash_dir,
                 trash_name,
-                require_single_link=True,
                 require_private=True,
             ) as (source_fd, _, _, _, source_stat):
+                if source_stat.st_nlink not in {1, 2}:
+                    raise StorageError("pending trash has an unsafe link count")
+                if source_stat.st_nlink == 2:
+                    if original_name is None:
+                        raise StorageError(
+                            "two-link pending trash requires its persisted original name"
+                        )
+                    with self._opened_regular(
+                        self.pending_dir,
+                        original_name,
+                        require_private=True,
+                    ) as (_, _, _, _, original_stat):
+                        if (
+                            original_stat.st_nlink != 2
+                            or not _same_inode(source_stat, original_stat)
+                        ):
+                            raise StorageError(
+                                "pending trash is not the exact interrupted move pair"
+                            )
                 with os.fdopen(os.dup(source_fd), "rb") as source:
                     source_hash, source_size = _hash_reader(source)
                 return self._issue_pending_trash_token(
@@ -1513,6 +1540,67 @@ class PaperStorage:
             raise
         except OSError as exc:
             raise StorageError("pending trash could not be rehydrated") from exc
+
+    @_serialized
+    def commit_pending_trash(self, token: PendingTrash) -> PendingTrash:
+        """Finish an audited link-before-unlink crash in the trash direction."""
+        if not isinstance(token, PendingTrash):
+            raise StorageError("pending trash commit requires a trash token")
+        stored = self._trash_tokens.get(token._capability)
+        if stored != token:
+            raise StorageError("pending trash token is invalid or already consumed")
+        self._validate_pending_recovery_name(token.original_name)
+        trash_name = f"{_valid_operation_id(token.operation_id)}.pdf"
+        try:
+            with self._opened_regular(
+                self.trash_dir,
+                trash_name,
+                require_private=True,
+            ) as (source_fd, _, _, _, source_stat):
+                with os.fdopen(os.dup(source_fd), "rb") as source:
+                    source_hash, source_size = _hash_reader(source)
+                if (
+                    (source_stat.st_dev, source_stat.st_ino)
+                    != (token.device, token.inode)
+                    or (source_hash, source_size)
+                    != (token.source_sha256, token.size_bytes)
+                ):
+                    raise StorageError("trashed pending PDF does not match its token")
+                if source_stat.st_nlink == 1:
+                    return token
+                if source_stat.st_nlink != 2:
+                    raise StorageError("pending trash has an unsafe link count")
+                with self._opened_regular(
+                    self.pending_dir,
+                    token.original_name,
+                    require_private=True,
+                ) as (_, original_parent_fd, original_name, _, original_stat):
+                    if (
+                        original_stat.st_nlink != 2
+                        or not _same_inode(source_stat, original_stat)
+                    ):
+                        raise StorageError(
+                            "pending trash is not the exact interrupted move pair"
+                        )
+                    if not self._unlink_if_matching(
+                        original_parent_fd,
+                        original_name,
+                        original_stat,
+                    ):
+                        raise StorageError("pending original changed before trash commit")
+                    _fsync_directory_fd(original_parent_fd)
+                final = os.stat(
+                    trash_name,
+                    dir_fd=self._trash_fd,
+                    follow_symlinks=False,
+                )
+                if not _same_inode(final, source_stat) or final.st_nlink != 1:
+                    raise StorageError("pending trash commit did not produce one name")
+                return token
+        except StorageError:
+            raise
+        except OSError as exc:
+            raise StorageError("pending trash could not be committed") from exc
 
     def _open_destination_parent(self, relative_name: str) -> tuple[list[int], int, str]:
         parts = Path(relative_name).parts
@@ -1544,7 +1632,6 @@ class PaperStorage:
             with self._opened_regular(
                 self.trash_dir,
                 trash_name,
-                require_single_link=True,
                 require_private=True,
             ) as (
                 source_fd,
@@ -1562,20 +1649,40 @@ class PaperStorage:
                     != (token.source_sha256, token.size_bytes)
                 ):
                     raise StorageError("trashed pending PDF does not match its token")
-                self._link_then_unlink(
-                    self._trash_fd,
-                    source_name,
-                    source_stat,
-                    destination_parent_fd,
-                    destination_name,
-                )
-            for capability, issued in tuple(self._trash_tokens.items()):
-                if (
-                    issued.operation_id == token.operation_id
-                    and issued.device == token.device
-                    and issued.inode == token.inode
-                ):
-                    del self._trash_tokens[capability]
+                if source_stat.st_nlink == 2:
+                    with self._opened_regular(
+                        self.pending_dir,
+                        original_relative,
+                        require_private=True,
+                    ) as (_, _, _, _, original_stat):
+                        if (
+                            original_stat.st_nlink != 2
+                            or not _same_inode(source_stat, original_stat)
+                        ):
+                            raise StorageError(
+                                "pending trash is not the exact interrupted move pair"
+                            )
+                        if not self._unlink_if_matching(
+                            self._trash_fd,
+                            source_name,
+                            source_stat,
+                        ):
+                            raise StorageError("pending trash changed before restore")
+                        try:
+                            _fsync_directory_fd(self._trash_fd)
+                        except OSError:
+                            pass
+                elif source_stat.st_nlink == 1:
+                    self._link_then_unlink(
+                        self._trash_fd,
+                        source_name,
+                        source_stat,
+                        destination_parent_fd,
+                        destination_name,
+                    )
+                else:
+                    raise StorageError("pending trash has an unsafe link count")
+            self._consume_pending_trash_tokens(token)
         except StorageError:
             raise
         except OSError as exc:
@@ -1612,13 +1719,7 @@ class PaperStorage:
                 if not self._unlink_if_matching(self._trash_fd, source_name, source_stat):
                     raise StorageError("pending trash changed before removal")
             _fsync_directory_fd(self._trash_fd)
-            for capability, issued in tuple(self._trash_tokens.items()):
-                if (
-                    issued.operation_id == token.operation_id
-                    and issued.device == token.device
-                    and issued.inode == token.inode
-                ):
-                    del self._trash_tokens[capability]
+            self._consume_pending_trash_tokens(token)
         except StorageError:
             raise
         except OSError as exc:
@@ -1640,7 +1741,7 @@ class PaperStorage:
                 if (
                     not stat.S_ISREG(entry.st_mode)
                     or not _private_mode(entry, 0o600)
-                    or entry.st_nlink != 1
+                    or entry.st_nlink not in {1, 2}
                     or entry.st_dev != directory.st_dev
                 ):
                     raise StorageError("reserved trash contains an unsafe entry")

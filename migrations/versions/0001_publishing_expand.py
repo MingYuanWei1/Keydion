@@ -109,7 +109,13 @@ def _upgrade_unfenced():
         sa.Column("reviewed_at", sa.DateTime(), nullable=True),
         sa.Column("reviewer", sa.String(255), nullable=True),
         sa.Column("comment", sa.Text(), nullable=True),
-        sa.Column("decision_idempotency_key", sa.String(255), nullable=True),
+        sa.Column(
+            "decision_idempotency_key",
+            sa.String(255).with_variant(
+                sa.String(255, collation="utf8mb4_bin"), "mysql",
+            ),
+            nullable=True,
+        ),
         sa.Column("decision_payload_hash", sa.String(64), nullable=True),
     ):
         op.add_column("submissions", column)

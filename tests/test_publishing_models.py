@@ -34,7 +34,7 @@ class PublishingModelTests(unittest.TestCase):
         self.assertTrue(PaperFilenameAliasModel.lookup_key.primary_key)
         self.assertTrue(PublishingJobModel.dedupe_key.unique)
 
-    def test_raw_filename_and_direct_idempotency_key_are_binary_on_mysql(self):
+    def test_opaque_publishing_identity_keys_are_binary_on_mysql(self):
         dialect = mysql.dialect()
         for column_name in ("filename", "direct_idempotency_key"):
             column_type = PaperMetadataModel.__table__.c[column_name].type
@@ -42,6 +42,11 @@ class PublishingModelTests(unittest.TestCase):
                 column_type.dialect_impl(dialect).collation,
                 "utf8mb4_bin",
             )
+        decision_type = SubmissionModel.decision_idempotency_key.type
+        self.assertEqual(
+            decision_type.dialect_impl(dialect).collation,
+            "utf8mb4_bin",
+        )
 
     def test_migration_journal_has_stable_identity_and_checkpoint(self):
         self.assertTrue(PublishingMigrationJournalModel.legacy_key.primary_key)

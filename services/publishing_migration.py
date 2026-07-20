@@ -902,6 +902,26 @@ def _mysql_preflight_issues(
                     "expanded opaque identity collation must be utf8mb4_bin, "
                     f"found {collation!r}",
                 ))
+        decision_collation = str(_scalar(engine, """
+            SELECT COLLATION_NAME FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'submissions'
+              AND COLUMN_NAME = 'decision_idempotency_key'
+        """, default="")).casefold()
+        recoverable_legacy_decision_collation = (
+            allow_contract_recovery
+            and decision_collation.startswith("utf8mb4_")
+        )
+        if (
+            decision_collation != "utf8mb4_bin"
+            and not recoverable_legacy_decision_collation
+        ):
+            issues.append(_issue(
+                "unexpected_legacy_schema",
+                "submissions.decision_idempotency_key",
+                "expanded opaque identity collation must be utf8mb4_bin, "
+                f"found {decision_collation!r}",
+            ))
 
     expected_primary_keys = {
         "papers_metadata": ["filename"],

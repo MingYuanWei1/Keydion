@@ -251,7 +251,7 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
             tuple((issue.code, issue.legacy_key) for issue in report.blockers),
         )
 
-    def test_raw_filename_and_direct_key_are_binary_in_expand_and_final_schema(self):
+    def test_opaque_identity_keys_are_binary_in_expand_and_final_schema(self):
         config = self._config()
         command.stamp(config, "0000_legacy_baseline")
         command.upgrade(config, "0001_publishing_expand")
@@ -266,6 +266,16 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
                       AND COLUMN_NAME IN ('filename', 'direct_idempotency_key')
                 """)).all())
 
+        def decision_collation():
+            with self.engine.connect() as conn:
+                return conn.execute(text("""
+                    SELECT COLLATION_NAME
+                    FROM information_schema.COLUMNS
+                    WHERE TABLE_SCHEMA=DATABASE()
+                      AND TABLE_NAME='submissions'
+                      AND COLUMN_NAME='decision_idempotency_key'
+                """)).scalar_one()
+
         self.assertEqual(
             paper_collations(),
             {
@@ -273,6 +283,14 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
                 "direct_idempotency_key": "utf8mb4_bin",
             },
         )
+        self.assertEqual(decision_collation(), "utf8mb4_bin")
+        with self.engine.begin() as conn:
+            conn.execute(text("""
+                ALTER TABLE submissions
+                    MODIFY COLUMN decision_idempotency_key VARCHAR(255)
+                        CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL
+            """))
+        self.assertEqual(decision_collation(), "utf8mb4_unicode_ci")
         command.upgrade(config, "head")
         self.assertEqual(
             paper_collations(),
@@ -281,6 +299,7 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
                 "direct_idempotency_key": "utf8mb4_bin",
             },
         )
+        self.assertEqual(decision_collation(), "utf8mb4_bin")
         with self.engine.begin() as conn:
             conn.execute(text("""
                 INSERT INTO papers_metadata (
@@ -292,11 +311,24 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
                     ('00000000-0000-4000-8000-000000000002', 'case.pdf',
                      'publishing', NULL, 0, 'pending', 'opaque-key')
             """))
+            conn.execute(text("""
+                INSERT INTO submissions (id, decision_idempotency_key) VALUES
+                    ('submission-case-upper', 'Decision-Key'),
+                    ('submission-case-lower', 'decision-key')
+            """))
         with self.engine.connect() as conn:
             self.assertEqual(
                 conn.execute(text("""
                     SELECT COUNT(*) FROM papers_metadata
                     WHERE filename IN ('Case.pdf', 'case.pdf')
+                """)).scalar_one(),
+                2,
+            )
+            self.assertEqual(
+                conn.execute(text("""
+                    SELECT COUNT(*) FROM submissions
+                    WHERE decision_idempotency_key
+                        IN ('Decision-Key', 'decision-key')
                 """)).scalar_one(),
                 2,
             )
@@ -313,6 +345,11 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
                     MODIFY COLUMN direct_idempotency_key VARCHAR(255)
                         CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL
             """))
+            conn.execute(text("""
+                ALTER TABLE submissions
+                    MODIFY COLUMN decision_idempotency_key VARCHAR(255)
+                        CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL
+            """))
 
         report = run_preflight(self.engine, self.papers)
         blocker_keys = {
@@ -324,6 +361,10 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
         )
         self.assertIn(
             ("unexpected_legacy_schema", "papers_metadata.direct_idempotency_key"),
+            blocker_keys,
+        )
+        self.assertIn(
+            ("unexpected_legacy_schema", "submissions.decision_idempotency_key"),
             blocker_keys,
         )
 

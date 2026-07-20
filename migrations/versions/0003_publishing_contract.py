@@ -447,6 +447,35 @@ def _mysql_paper_contract_group():
     """))
 
 
+def _mysql_decision_key_collation(engine):
+    with engine.connect() as connection:
+        value = connection.execute(sa.text("""
+            SELECT COLLATION_NAME
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA=DATABASE()
+              AND TABLE_NAME='submissions'
+              AND COLUMN_NAME='decision_idempotency_key'
+        """)).scalar()
+    return str(value or "").casefold()
+
+
+def _mysql_decision_key_contract(engine):
+    collation = _mysql_decision_key_collation(engine)
+    if collation == "utf8mb4_bin":
+        return
+    if not collation.startswith("utf8mb4_"):
+        _snapshot_restore_required(
+            "Submission decision-key collation is not recoverable"
+        )
+    op.execute(sa.text("""
+        ALTER TABLE submissions
+            MODIFY COLUMN decision_idempotency_key VARCHAR(255)
+                CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL
+    """))
+    if _mysql_decision_key_collation(engine) != "utf8mb4_bin":
+        _snapshot_restore_required("Submission decision-key collation is not binary")
+
+
 def _mysql_relationship_contract_group(engine):
     for name, table_name, referred_table, local, remote, ondelete in _SIMPLE_FOREIGN_KEYS:
         inspector = sa.inspect(engine)
@@ -503,6 +532,9 @@ def _mysql_relationship_contract_group(engine):
 
 def _mysql_contract(engine, papers_dir):
     phase = _reconcile_ddl_phase(engine)
+    if _mysql_decision_key_collation(engine) != "utf8mb4_bin":
+        validate_contract_ready(engine, papers_dir, _fenced=True)
+        _mysql_decision_key_contract(engine)
     if phase == "expanded":
         validate_contract_ready(engine, papers_dir, _fenced=True)
         _mysql_paper_contract_group()

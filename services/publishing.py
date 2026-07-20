@@ -69,6 +69,11 @@ _METADATA_STRING_LIMITS = {
 _PAPER_METADATA_FIELDS = tuple(asdict(NormalizedPaperMetadata()).keys())
 
 
+def _submission_trash_operation_id(submission_id: str) -> str:
+    digest = hashlib.sha256(submission_id.encode("utf-8")).hexdigest()
+    return f"submission-{digest}"
+
+
 class RevisionIndexer(Protocol):
     def enabled(self) -> bool: ...
 
@@ -405,6 +410,8 @@ class PublishingLifecycle:
                     or not self._metadata_matches(paper, intent.metadata)
                 ):
                     raise DecisionConflict("Submission acceptance reservation conflicts")
+                paper.reservation_expires_at = self._clock() + _RESERVATION_TTL
+                session.commit()
                 return "reserved", paper.id, None
             key_owner = (
                 session.query(SubmissionModel)
@@ -484,6 +491,10 @@ class PublishingLifecycle:
                         or not self._metadata_matches(existing_paper, intent.metadata)
                     ):
                         raise DecisionConflict("Submission acceptance reservation conflicts")
+                    existing_paper.reservation_expires_at = (
+                        self._clock() + _RESERVATION_TTL
+                    )
+                    session.commit()
                     return "reserved", existing_paper.id, None
                 key_owner = (
                     session.query(SubmissionModel)
@@ -589,6 +600,13 @@ class PublishingLifecycle:
 
     def _reconcile_locked_expired(self, session, paper) -> bool:
         """Remove an expired hidden reservation only after storage is clean."""
+        if not self._remove_expired_reservation_locked(session, paper):
+            return False
+        session.commit()
+        return True
+
+    def _remove_expired_reservation_locked(self, session, paper) -> bool:
+        """Stage removal of one expired hidden reservation, storage first."""
         if (
             paper.lifecycle_state != "publishing"
             or paper.current_revision is not None
@@ -610,7 +628,6 @@ class PublishingLifecycle:
         except StorageError as exc:
             raise StorageFailed("expired publication cleanup failed") from exc
         session.delete(paper)
-        session.commit()
         return True
 
     def _reserve(self, intent: DirectPublish, payload_hash: str):
@@ -770,7 +787,7 @@ class PublishingLifecycle:
         stored,
         indexing_enabled: bool,
         submission_decision: tuple[str, str, str] | None = None,
-    ) -> JobLease | None:
+    ) -> JobLease | _SubmissionDecision | None:
         with self._session() as session:
             submission = None
             if submission_decision is not None:
@@ -791,7 +808,7 @@ class PublishingLifecycle:
                     payload_hash=decision_hash,
                 )
                 if existing is not None:
-                    return None
+                    return existing
                 if submission.status != "pending":
                     raise SubmissionNotPending("Submission is not pending")
             paper = (
@@ -1252,15 +1269,17 @@ class PublishingLifecycle:
         pending_filename: str,
     ) -> bool:
         """Best-effort cleanup after the acceptance transaction is permanent."""
+        operation_id = _submission_trash_operation_id(submission_id)
         try:
             token = self._storage.rehydrate_pending_trash(
                 pending_filename,
-                submission_id,
+                operation_id,
             )
             if token is not None:
+                token = self._storage.commit_pending_trash(token)
                 self._storage.discard_pending_trash(token)
             if self._storage.pending_exists(pending_filename):
-                token = self._storage.trash_pending(pending_filename, submission_id)
+                token = self._storage.trash_pending(pending_filename, operation_id)
                 self._storage.discard_pending_trash(token)
             return True
         except StorageError:
@@ -1289,6 +1308,17 @@ class PublishingLifecycle:
         try:
             staged = self._storage.stage_pending(pending_filename, operation_id)
         except StorageError as exc:
+            recovered = self._accepted_row(
+                intent.submission_id,
+                intent.idempotency_key,
+                payload_hash,
+            )
+            if recovered is not None:
+                self._cleanup_accepted_pending(
+                    intent.submission_id,
+                    pending_filename,
+                )
+                return recovered
             raise StorageFailed("pending Submission PDF could not be staged") from exc
         active_stage = [staged]
         try:
@@ -1369,14 +1399,14 @@ class PublishingLifecycle:
                         "could not make Submission acceptance visible"
                     ) from exc
                 self._cleanup_accepted_pending(intent.submission_id, pending_filename)
-                return _SubmissionDecision(
-                    submission_id=recovered.submission_id,
-                    accepted=True,
-                    paper_id=recovered.paper_id,
-                    replayed=False,
-                    indexing=recovered.indexing,
-                )
+                return recovered
 
+            if isinstance(lease, _SubmissionDecision):
+                self._cleanup_accepted_pending(
+                    intent.submission_id,
+                    pending_filename,
+                )
+                return lease
             self._cleanup_accepted_pending(intent.submission_id, pending_filename)
             if not indexing_enabled:
                 indexing = IndexingOutcome(IndexingState.NOT_REQUIRED)
@@ -1443,7 +1473,13 @@ class PublishingLifecycle:
                     .one_or_none()
                 )
                 if reservation is not None:
-                    raise DecisionConflict("Submission acceptance is already reserved")
+                    if not self._remove_expired_reservation_locked(
+                        session,
+                        reservation,
+                    ):
+                        raise DecisionConflict(
+                            "Submission acceptance is already reserved"
+                        )
                 key_owner = (
                     session.query(SubmissionModel)
                     .filter(SubmissionModel.decision_idempotency_key == decision_key)
@@ -1531,7 +1567,9 @@ class PublishingLifecycle:
         submission_id: str,
         *,
         expected_owner: str | None,
+        trash_operation_id: str | None = None,
     ) -> SubmissionCancelled:
+        operation_id = trash_operation_id or _submission_trash_operation_id(submission_id)
         with self._session() as session:
             submission = (
                 session.query(SubmissionModel)
@@ -1551,26 +1589,33 @@ class PublishingLifecycle:
         try:
             token = self._storage.rehydrate_pending_trash(
                 pending_filename,
-                submission_id,
+                operation_id,
             )
             if token is None and self._storage.pending_exists(pending_filename):
-                token = self._storage.trash_pending(pending_filename, submission_id)
+                token = self._storage.trash_pending(pending_filename, operation_id)
+            if token is not None:
+                token = self._storage.commit_pending_trash(token)
         except StorageError as exc:
-            audit = None
+            pdf_restored_or_present = False
             try:
                 audit = self._storage.rehydrate_pending_trash(
                     None,
-                    submission_id,
+                    operation_id,
                 )
                 if audit is not None:
                     recoverable = self._storage.rehydrate_pending_trash(
                         pending_filename,
-                        submission_id,
+                        operation_id,
                     )
                     self._storage.restore_pending(recoverable)
+                    pdf_restored_or_present = True
+                else:
+                    pdf_restored_or_present = self._storage.pending_exists(
+                        pending_filename
+                    )
             except StorageError:
                 pass
-            else:
+            if pdf_restored_or_present:
                 try:
                     self._restore_cancellation_status(submission_id)
                 except PersistenceFailed:
@@ -1617,6 +1662,7 @@ class PublishingLifecycle:
             if not row_survives:
                 committed = True
             else:
+                pdf_restored = False
                 if token is not None:
                     try:
                         self._storage.restore_pending(token)
@@ -1624,7 +1670,14 @@ class PublishingLifecycle:
                         raise StorageFailed(
                             "cancellation transaction failed and PDF restore failed"
                         ) from restore_exc
-                self._restore_cancellation_status(submission_id)
+                    pdf_restored = True
+                else:
+                    try:
+                        pdf_restored = self._storage.pending_exists(pending_filename)
+                    except StorageError:
+                        pdf_restored = False
+                if pdf_restored:
+                    self._restore_cancellation_status(submission_id)
                 raise PersistenceFailed("could not delete cancelling Submission") from exc
 
         if committed and token is not None:
@@ -1636,6 +1689,7 @@ class PublishingLifecycle:
 
     def cancel_submission(self, intent: CancelSubmission) -> SubmissionCancelled:
         self._validate_cancellation(intent)
+        trash_operation_id = _submission_trash_operation_id(intent.submission_id)
         try:
             with self._session() as session:
                 submission = (
@@ -1651,6 +1705,12 @@ class PublishingLifecycle:
                 if submission.status not in {"pending", "cancelling"}:
                     raise SubmissionNotPending("Submission is not pending")
                 if submission.status == "pending":
+                    try:
+                        self._storage.pending_exists(submission.pending_filename)
+                    except StorageError as exc:
+                        raise StorageFailed(
+                            "pending Submission PDF could not be audited"
+                        ) from exc
                     reservation = (
                         session.query(PaperMetadataModel)
                         .filter(
@@ -1661,19 +1721,30 @@ class PublishingLifecycle:
                         .one_or_none()
                     )
                     if reservation is not None:
-                        raise SubmissionNotPending(
-                            "Submission acceptance reservation prevents cancellation"
-                        )
+                        if not self._remove_expired_reservation_locked(
+                            session,
+                            reservation,
+                        ):
+                            raise SubmissionNotPending(
+                                "Submission acceptance reservation prevents cancellation"
+                            )
                     submission.status = "cancelling"
                     submission.reviewed_at = self._clock()
                     session.commit()
-        except (Forbidden, NotFound, SubmissionNotPending):
+        except (
+            Forbidden,
+            NotFound,
+            PersistenceFailed,
+            StorageFailed,
+            SubmissionNotPending,
+        ):
             raise
         except Exception as exc:
             raise PersistenceFailed("could not begin Submission cancellation") from exc
         return self._finish_cancellation(
             intent.submission_id,
             expected_owner=intent.actor.user_id,
+            trash_operation_id=trash_operation_id,
         )
 
     def reconcile_submissions(self) -> int:
@@ -1701,7 +1772,58 @@ class PublishingLifecycle:
                     .order_by(SubmissionModel.id)
                     .all()
                 ]
+                pending_origin_ids = [
+                    row.id
+                    for row in session.query(SubmissionModel)
+                    .join(
+                        PaperMetadataModel,
+                        PaperMetadataModel.origin_submission_id
+                        == SubmissionModel.id,
+                    )
+                    .filter(
+                        SubmissionModel.status == "pending",
+                        PaperMetadataModel.lifecycle_state == "publishing",
+                        PaperMetadataModel.current_revision.is_(None),
+                    )
+                    .order_by(SubmissionModel.id)
+                    .all()
+                ]
+                trash_submission_ids = {
+                    _submission_trash_operation_id(row.id): row.id
+                    for row in session.query(SubmissionModel.id).all()
+                }
             reconciled = 0
+            for submission_id in pending_origin_ids:
+                with self._session() as session:
+                    submission = (
+                        session.query(SubmissionModel)
+                        .filter(SubmissionModel.id == submission_id)
+                        .with_for_update()
+                        .one_or_none()
+                    )
+                    if submission is None or submission.status != "pending":
+                        continue
+                    reservation = (
+                        session.query(PaperMetadataModel)
+                        .filter(
+                            PaperMetadataModel.origin_submission_id == submission_id
+                        )
+                        .with_for_update()
+                        .one_or_none()
+                    )
+                    if reservation is None or not self._remove_expired_reservation_locked(
+                        session,
+                        reservation,
+                    ):
+                        continue
+                    submission.paper_id = None
+                    submission.reviewed_at = None
+                    submission.reviewer = None
+                    submission.comment = None
+                    submission.decision_idempotency_key = None
+                    submission.decision_payload_hash = None
+                    session.commit()
+                    reconciled += 1
             for submission_id in cancelling_ids:
                 self._finish_cancellation(submission_id, expected_owner=None)
                 reconciled += 1
@@ -1710,10 +1832,11 @@ class PublishingLifecycle:
                     reconciled += 1
 
             for operation_id in self._storage.stale_pending_trash(cutoff):
+                submission_id = trash_submission_ids.get(operation_id, operation_id)
                 with self._session() as session:
                     submission = (
                         session.query(SubmissionModel)
-                        .filter(SubmissionModel.id == operation_id)
+                        .filter(SubmissionModel.id == submission_id)
                         .with_for_update()
                         .one_or_none()
                     )

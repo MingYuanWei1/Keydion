@@ -357,7 +357,12 @@ class SubmissionModel(BASE):
     reviewed_at = Column(DateTime(timezone=False))
     reviewer = Column(Unicode(255))
     comment = Column(UnicodeText)
-    decision_idempotency_key = Column(Unicode(255), unique=True)
+    decision_idempotency_key = Column(
+        Unicode(255).with_variant(
+            String(255, collation="utf8mb4_bin"), "mysql",
+        ),
+        unique=True,
+    )
     decision_payload_hash = Column(Unicode(64))
 
 

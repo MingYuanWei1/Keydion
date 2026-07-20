@@ -884,6 +884,27 @@ class PaperStorageTests(unittest.TestCase):
         with self.assertRaises(StorageError):
             self.storage.restore_pending(token)
 
+    def test_rehydrate_rejects_two_link_trash_not_paired_with_original(self):
+        expected = self.write_pending_pdf("expected.pdf")
+        unrelated = self.write_pending_pdf("unrelated.pdf", width=73)
+        unrelated.chmod(0o600)
+        trashed = self.storage.trash_dir / "op-unrelated.pdf"
+        os.link(
+            unrelated.name,
+            trashed.name,
+            src_dir_fd=self.storage._pending_fd,
+            dst_dir_fd=self.storage._trash_fd,
+            follow_symlinks=False,
+        )
+
+        with self.assertRaises(StorageError):
+            self.storage.rehydrate_pending_trash(expected.name, "op-unrelated")
+
+        self.assertTrue(expected.exists())
+        self.assertTrue(unrelated.exists())
+        self.assertTrue(trashed.exists())
+        self.assertTrue(os.path.samefile(unrelated, trashed))
+
     def test_pending_ingress_cannot_address_reserved_trash_namespace(self):
         source = self.write_pending_pdf("reserved-trash.pdf")
         source_bytes = source.read_bytes()
