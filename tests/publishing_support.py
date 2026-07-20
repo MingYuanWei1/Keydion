@@ -126,3 +126,6 @@ class PublishingLifecycleTestCase:
                 .order_by(PublishingJobModel.created_at, PublishingJobModel.id)
                 .all()
             )
+
+    def staged_entries(self):
+        return sorted(self.storage.staging_dir.iterdir())

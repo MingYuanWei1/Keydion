@@ -641,6 +641,55 @@ class PaperStorage:
         return self._stage_stream(upload.stream, operation_id)
 
     @_serialized
+    def discard_stage(self, staged: StagedPdf) -> None:
+        """Discard only the exact verified operation stage, if it still exists."""
+        if not isinstance(staged, StagedPdf):
+            raise StorageError("expected a staged PDF")
+        path = Path(staged.path)
+        try:
+            relative = path.relative_to(self.staging_dir)
+        except ValueError as exc:
+            raise StorageError("stage is outside storage") from exc
+        if relative.parent != Path(".") or path.suffix != ".pdf":
+            raise StorageError("invalid staged PDF path")
+        _valid_operation_id(path.stem)
+        try:
+            expected = os.stat(
+                path.name,
+                dir_fd=self._staging_fd,
+                follow_symlinks=False,
+            )
+        except FileNotFoundError:
+            return
+        except OSError as exc:
+            raise StorageError("staged PDF could not be inspected") from exc
+        publication_links = self._publication_link_identities()
+        try:
+            with self._opened_regular(
+                self.staging_dir,
+                path.name,
+                require_private=True,
+            ) as (stage_fd, _, _, _, opened):
+                if not _same_inode(expected, opened):
+                    raise StorageError("staged PDF changed before discard")
+                if opened.st_nlink != 1 and (
+                    opened.st_nlink != 2
+                    or (opened.st_dev, opened.st_ino) not in publication_links
+                ):
+                    raise StorageError("staged PDF has an unknown hard link")
+                with os.fdopen(os.dup(stage_fd), "rb") as source:
+                    digest, size = _hash_reader(source)
+                if (digest, size) != (staged.sha256, staged.size_bytes):
+                    raise StorageError("staged PDF bytes changed")
+            if not self._unlink_if_matching(self._staging_fd, path.name, expected):
+                raise StorageError("staged PDF changed before discard")
+            _fsync_directory_fd(self._staging_fd)
+        except StorageError:
+            raise
+        except OSError as exc:
+            raise StorageError("staged PDF could not be discarded") from exc
+
+    @_serialized
     def stage_pending(self, filename: str, operation_id: str) -> StagedPdf:
         self._validate_pending_ingress(filename)
         with self._opened_regular(
@@ -1025,6 +1074,39 @@ class PaperStorage:
                 return path
         except StorageError as exc:
             raise StorageError("Paper revision does not exist") from exc
+
+    @_serialized
+    def verify_revision(
+        self,
+        paper_id: str,
+        revision: int,
+        *,
+        sha256: str,
+        size_bytes: int,
+    ) -> StoredPdf:
+        """Reopen and hash the exact immutable revision under the storage lock."""
+        path = self.revision_path(paper_id, revision)
+        if not isinstance(sha256, str) or re.fullmatch(r"[0-9a-f]{64}", sha256) is None:
+            raise StorageError("invalid expected revision hash")
+        if isinstance(size_bytes, bool) or not isinstance(size_bytes, int) or size_bytes < 1:
+            raise StorageError("invalid expected revision size")
+        relative = f"{path.parent.name}/{path.name}"
+        try:
+            with self._opened_regular(
+                self.papers_dir,
+                relative,
+                require_single_link=True,
+                require_private=True,
+            ) as (revision_fd, _, _, resolved, _):
+                with os.fdopen(os.dup(revision_fd), "rb") as source:
+                    digest, size = _hash_reader(source)
+                if (digest, size) != (sha256, size_bytes):
+                    raise StorageError("Paper revision bytes do not match persistence")
+                return StoredPdf(resolved, digest, size)
+        except StorageError:
+            raise
+        except OSError as exc:
+            raise StorageError("Paper revision could not be verified") from exc
 
     @_serialized
     def copy_revision(

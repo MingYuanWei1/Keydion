@@ -231,6 +231,70 @@ class PaperStorageTests(unittest.TestCase):
         )
         self.assertGreater(stored.size_bytes, 100)
 
+    def test_discard_stage_removes_only_the_exact_staged_inode(self):
+        staged = self.storage.stage(self.valid_pdf_upload("discard.pdf"), "op-discard")
+        replacement = self.valid_pdf_upload("replacement.pdf", width=73).stream.getvalue()
+        original_stat = staged.path.stat()
+
+        real_unlink = self.storage._unlink_if_matching
+
+        def replace_before_unlink(directory_fd, name, expected):
+            if (expected.st_dev, expected.st_ino) == (
+                original_stat.st_dev,
+                original_stat.st_ino,
+            ):
+                staged.path.unlink()
+                staged.path.write_bytes(replacement)
+                staged.path.chmod(0o600)
+            return real_unlink(directory_fd, name, expected)
+
+        with mock.patch.object(
+            self.storage,
+            "_unlink_if_matching",
+            side_effect=replace_before_unlink,
+        ):
+            with self.assertRaises(StorageError):
+                self.storage.discard_stage(staged)
+
+        self.assertEqual(staged.path.read_bytes(), replacement)
+
+    def test_discard_stage_is_idempotent_after_promotion_consumed_it(self):
+        staged = self.storage.stage(self.valid_pdf_upload("discard.pdf"), "op-discard")
+        prepared = self.storage.apply_metadata(staged, title="Paper", author="Alice")
+        self.storage.promote(
+            prepared,
+            "11111111-1111-4111-8111-111111111111",
+            1,
+        )
+
+        self.storage.discard_stage(prepared)
+
+        self.assertFalse(prepared.path.exists())
+
+    def test_verify_revision_rehashes_exact_final_without_mutating_it(self):
+        staged = self.storage.stage(self.valid_pdf_upload("verify.pdf"), "op-verify")
+        stored = self.storage.promote(
+            staged,
+            "11111111-1111-4111-8111-111111111111",
+            1,
+        )
+
+        verified = self.storage.verify_revision(
+            "11111111-1111-4111-8111-111111111111",
+            1,
+            sha256=stored.sha256,
+            size_bytes=stored.size_bytes,
+        )
+        self.assertEqual(verified, stored)
+        with self.assertRaises(StorageError):
+            self.storage.verify_revision(
+                "11111111-1111-4111-8111-111111111111",
+                1,
+                sha256="0" * 64,
+                size_bytes=stored.size_bytes,
+            )
+        self.assertEqual(stored.path.read_bytes(), verified.path.read_bytes())
+
     def test_existing_revision_bytes_are_immutable(self):
         first = self.storage.stage(self.valid_pdf_upload("a.pdf", width=72), "op-1")
         original = first.path.read_bytes()

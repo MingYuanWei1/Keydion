@@ -116,6 +116,7 @@ class PublishingLifecycle:
         if not isinstance(intent.actor, Actor) or (
             isinstance(intent.actor.role, bool)
             or not isinstance(intent.actor.role, int)
+            or intent.actor.role not in {1, 2, 3}
         ):
             raise InvalidInput({"actor": "is invalid"})
         if intent.actor.role < 2:
@@ -125,6 +126,7 @@ class PublishingLifecycle:
         if (
             not isinstance(intent.actor.user_id, str)
             or not intent.actor.user_id
+            or intent.actor.user_id != intent.actor.user_id.strip()
             or len(intent.actor.user_id) > 255
         ):
             errors["actor"] = "must identify a user"
@@ -213,11 +215,23 @@ class PublishingLifecycle:
                 filename_owner = (
                     session.query(PaperMetadataModel)
                     .filter(PaperMetadataModel.filename == intent.metadata.filename)
+                    .with_for_update()
                     .one_or_none()
                 )
+                filename_owner_id = (
+                    filename_owner.id if filename_owner is not None else None
+                )
+                if filename_owner is not None and self._reconcile_locked_expired(
+                    session,
+                    filename_owner,
+                ):
+                    return "expired", filename_owner_id, None
                 if alias is not None or filename_owner is not None:
                     raise AliasConflict(intent.metadata.filename)
                 raise PersistenceFailed("publication reservation conflicted")
+            paper_id = paper.id
+            if self._reconcile_locked_expired(session, paper):
+                return "expired", paper_id, None
             if paper.direct_payload_hash != payload_hash:
                 raise IdempotencyConflict(intent.idempotency_key)
             if paper.lifecycle_state == "published":
@@ -225,12 +239,33 @@ class PublishingLifecycle:
                 return "published", paper.id, outcome
             if paper.lifecycle_state != "publishing" or paper.current_revision is not None:
                 raise PersistenceFailed("publication reservation has an invalid state")
-            if paper.reservation_expires_at is None or paper.reservation_expires_at <= self._clock():
-                paper_id = paper.id
-                session.delete(paper)
-                session.commit()
-                return "expired", paper_id, None
             return "reserved", paper.id, None
+
+    def _reconcile_locked_expired(self, session, paper) -> bool:
+        """Remove an expired hidden reservation only after storage is clean."""
+        if (
+            paper.lifecycle_state != "publishing"
+            or paper.current_revision is not None
+            or (
+                paper.reservation_expires_at is not None
+                and paper.reservation_expires_at > self._clock()
+            )
+        ):
+            return False
+        referenced = (
+            session.query(PaperRevisionModel)
+            .filter(PaperRevisionModel.paper_id == paper.id)
+            .first()
+        )
+        if referenced is not None:
+            raise PersistenceFailed("expired reservation owns a persisted revision")
+        try:
+            self._storage.delete_paper(paper.id, ())
+        except StorageError as exc:
+            raise StorageFailed("expired publication cleanup failed") from exc
+        session.delete(paper)
+        session.commit()
+        return True
 
     def _reserve(self, intent: DirectPublish, payload_hash: str):
         """Reserve by insertion; unique constraints serialize key/filename races."""
@@ -244,7 +279,6 @@ class PublishingLifecycle:
             except IntegrityError:
                 state, paper_id, outcome = self._reservation_conflict(intent, payload_hash)
                 if state == "expired":
-                    self._remove_unreferenced_paper_files(paper_id)
                     continue
                 return state, paper_id, outcome
             except (AliasConflict, IdempotencyConflict, PersistenceFailed):
@@ -404,6 +438,8 @@ class PublishingLifecycle:
                 return None
             if paper.lifecycle_state != "publishing" or paper.current_revision is not None:
                 raise PersistenceFailed("publication reservation changed")
+            if self._reconcile_locked_expired(session, paper):
+                raise PersistenceFailed("publication reservation expired")
 
             lookup_key = normalize_alias_key(intent.metadata.filename)
             alias = (
@@ -414,6 +450,13 @@ class PublishingLifecycle:
             )
             if alias is not None and alias.paper_id != paper_id:
                 raise AliasConflict(intent.metadata.filename)
+
+            self._storage.verify_revision(
+                paper_id,
+                1,
+                sha256=stored.sha256,
+                size_bytes=stored.size_bytes,
+            )
 
             now = self._clock()
             session.add(
@@ -644,7 +687,7 @@ class PublishingLifecycle:
                 or prepared.revision != lease.revision
             ):
                 raise ValueError("indexer prepared the wrong Paper revision")
-            if self._monotonic_clock() > deadline:
+            if self._monotonic_clock() >= deadline:
                 raise IndexDeadlineExceeded()
             if self._complete_index(lease, prepared):
                 return IndexingOutcome(IndexingState.INDEXED)
@@ -665,94 +708,106 @@ class PublishingLifecycle:
             staged = self._storage.stage(intent.pdf, operation_id)
         except StorageError as exc:
             raise StorageFailed("PDF could not be staged") from exc
+        active_stage = [staged]
+        try:
+            payload_hash = self._payload_hash(intent, staged.source_sha256)
+            state, paper_id, replay_outcome = self._reserve(intent, payload_hash)
+            if state == "published":
+                with self._session() as session:
+                    paper = session.get(PaperMetadataModel, paper_id)
+                    return Published(
+                        paper_id=paper.id,
+                        filename=paper.filename,
+                        revision=paper.current_revision,
+                        row_version=paper.row_version,
+                        replayed=True,
+                        indexing=replay_outcome,
+                    )
 
-        payload_hash = self._payload_hash(intent, staged.source_sha256)
-        state, paper_id, replay_outcome = self._reserve(intent, payload_hash)
-        if state == "published":
-            with self._session() as session:
-                paper = session.get(PaperMetadataModel, paper_id)
+            try:
+                prepared_pdf = self._storage.apply_metadata(
+                    staged,
+                    title=intent.metadata.title,
+                    author=intent.metadata.author_name,
+                )
+                active_stage[0] = prepared_pdf
+                stored = self._storage.promote(prepared_pdf, paper_id, 1)
+                self._storage.discard_stage(prepared_pdf)
+                active_stage[0] = None
+            except StorageError as exc:
+                self._remove_unreferenced_paper_files(paper_id)
+                raise StorageFailed("PDF could not be published") from exc
+
+            enabled_error = None
+            try:
+                indexing_enabled = bool(self._indexer.enabled())
+            except Exception as exc:
+                # A broken capability probe is an indexing failure, not a reason to
+                # hide an otherwise durable publication.  Reserve retry work.
+                indexing_enabled = True
+                enabled_error = exc
+            try:
+                lease = self._make_visible(
+                    intent=intent,
+                    paper_id=paper_id,
+                    payload_hash=payload_hash,
+                    stored=stored,
+                    indexing_enabled=indexing_enabled,
+                )
+            except AliasConflict:
+                self._abandon_hidden_reservation(paper_id)
+                raise
+            except IdempotencyConflict:
+                self._remove_unreferenced_paper_files(paper_id)
+                raise
+            except Exception as exc:
+                if isinstance(exc, IntegrityError) and self._alias_owned_by_other(
+                    intent.metadata.filename,
+                    paper_id,
+                ):
+                    self._abandon_hidden_reservation(paper_id)
+                    raise AliasConflict(intent.metadata.filename) from exc
+                recovered = self._published_row(paper_id)
+                if recovered is None:
+                    self._remove_unreferenced_paper_files(paper_id)
+                    if isinstance(exc, PersistenceFailed):
+                        raise
+                    if isinstance(exc, StorageError):
+                        raise StorageFailed("published PDF verification failed") from exc
+                    raise PersistenceFailed("could not make publication visible") from exc
+                filename, revision, row_version, outcome = recovered
                 return Published(
-                    paper_id=paper.id,
-                    filename=paper.filename,
-                    revision=paper.current_revision,
-                    row_version=paper.row_version,
-                    replayed=True,
-                    indexing=replay_outcome,
+                    paper_id=paper_id,
+                    filename=filename,
+                    revision=revision,
+                    row_version=row_version,
+                    replayed=False,
+                    indexing=outcome,
                 )
 
-        try:
-            prepared_pdf = self._storage.apply_metadata(
-                staged,
-                title=intent.metadata.title,
-                author=intent.metadata.author_name,
-            )
-            stored = self._storage.promote(prepared_pdf, paper_id, 1)
-        except StorageError as exc:
-            self._remove_unreferenced_paper_files(paper_id)
-            raise StorageFailed("PDF could not be published") from exc
-
-        enabled_error = None
-        try:
-            indexing_enabled = bool(self._indexer.enabled())
-        except Exception as exc:
-            # A broken capability probe is an indexing failure, not a reason to
-            # hide an otherwise durable publication.  Reserve retry work.
-            indexing_enabled = True
-            enabled_error = exc
-        try:
-            lease = self._make_visible(
-                intent=intent,
-                paper_id=paper_id,
-                payload_hash=payload_hash,
-                stored=stored,
-                indexing_enabled=indexing_enabled,
-            )
-        except AliasConflict:
-            self._abandon_hidden_reservation(paper_id)
-            raise
-        except IdempotencyConflict:
-            self._remove_unreferenced_paper_files(paper_id)
-            raise
-        except Exception as exc:
-            if isinstance(exc, IntegrityError) and self._alias_owned_by_other(
-                intent.metadata.filename,
-                paper_id,
-            ):
-                self._abandon_hidden_reservation(paper_id)
-                raise AliasConflict(intent.metadata.filename) from exc
-            recovered = self._published_row(paper_id)
-            if recovered is None:
-                self._remove_unreferenced_paper_files(paper_id)
-                if isinstance(exc, PersistenceFailed):
-                    raise
-                raise PersistenceFailed("could not make publication visible") from exc
-            filename, revision, row_version, outcome = recovered
+            if not indexing_enabled:
+                indexing = IndexingOutcome(IndexingState.NOT_REQUIRED)
+            elif lease is None:
+                recovered = self._published_row(paper_id)
+                indexing = recovered[3]
+            elif enabled_error is not None:
+                indexing = self._mark_index_failure(lease, enabled_error)
+            else:
+                indexing = self._run_inline_index(paper_id, lease, deadline)
             return Published(
                 paper_id=paper_id,
-                filename=filename,
-                revision=revision,
-                row_version=row_version,
+                filename=intent.metadata.filename,
+                revision=1,
+                row_version=1,
                 replayed=False,
-                indexing=outcome,
+                indexing=indexing,
             )
-
-        if not indexing_enabled:
-            indexing = IndexingOutcome(IndexingState.NOT_REQUIRED)
-        elif lease is None:
-            recovered = self._published_row(paper_id)
-            indexing = recovered[3]
-        elif enabled_error is not None:
-            indexing = self._mark_index_failure(lease, enabled_error)
-        else:
-            indexing = self._run_inline_index(paper_id, lease, deadline)
-        return Published(
-            paper_id=paper_id,
-            filename=intent.metadata.filename,
-            revision=1,
-            row_version=1,
-            replayed=False,
-            indexing=indexing,
-        )
+        finally:
+            if active_stage[0] is not None:
+                try:
+                    self._storage.discard_stage(active_stage[0])
+                except StorageError as exc:
+                    raise StorageFailed("staged PDF cleanup failed") from exc
 
     def direct_publish(self, intent: DirectPublish) -> Published:
         """Task 1 protocol-compatible spelling."""
