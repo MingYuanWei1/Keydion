@@ -150,6 +150,13 @@ class MetadataPatch:
     def __post_init__(self) -> None:
         if not isinstance(self.changes, tuple):
             raise InvalidInput({"changes": "must be an immutable tuple"})
+        if any(
+            not isinstance(change, tuple)
+            or len(change) != 2
+            or not all(isinstance(value, str) for value in change)
+            for change in self.changes
+        ):
+            raise InvalidInput({"changes": "must contain key/value string tuples"})
         invalid = [key for key, _value in self.changes if key not in EDITABLE_METADATA_FIELDS]
         if invalid:
             raise InvalidInput({key: "is not editable" for key in invalid})
@@ -201,12 +208,24 @@ class PreparedChunk:
     embedding: tuple[float, ...]
     language: str
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.embedding, tuple) or not all(
+            isinstance(value, float) for value in self.embedding
+        ):
+            raise InvalidInput({"embedding": "must be an immutable tuple of floats"})
+
 
 @dataclass(frozen=True)
 class PreparedRevisionIndex:
     paper_id: str
     revision: int
     chunks: tuple[PreparedChunk, ...]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.chunks, tuple) or not all(
+            isinstance(chunk, PreparedChunk) for chunk in self.chunks
+        ):
+            raise InvalidInput({"chunks": "must be an immutable tuple of PreparedChunk records"})
 
 
 @dataclass(frozen=True)

@@ -7,7 +7,8 @@ from services.paper_identity import normalize_alias_key
 from services.publishing_time import utc_iso_z
 from services.publishing_contracts import (
     Actor, DirectPublish, IndexingOutcome, IndexingState,
-    InvalidInput, MetadataPatch, NormalizedPaperMetadata, PdfUpload, Published,
+    InvalidInput, MetadataPatch, NormalizedPaperMetadata, PdfUpload, PreparedChunk,
+    PreparedRevisionIndex, Published,
 )
 
 
@@ -53,3 +54,33 @@ class PublishingContractTests(unittest.TestCase):
                 expected_row_version=1,
                 changes=(("title", "Not allowed"),),
             )
+
+    def test_metadata_patch_rejects_mutable_or_non_string_pairs(self):
+        with self.assertRaises(InvalidInput):
+            MetadataPatch(
+                paper_id="22222222-2222-4222-8222-222222222222",
+                expected_row_version=1,
+                changes=(["journal", "Allowed but mutable"],),
+            )
+        with self.assertRaises(InvalidInput):
+            MetadataPatch(
+                paper_id="22222222-2222-4222-8222-222222222222",
+                expected_row_version=1,
+                changes=(("journal", 1),),
+            )
+
+    def test_prepared_chunk_rejects_mutable_embeddings(self):
+        with self.assertRaises(InvalidInput):
+            PreparedChunk(
+                chunk_index=0,
+                content="content",
+                embedding=[0.5],
+                language="en",
+            )
+
+    def test_prepared_revision_index_rejects_mutable_or_invalid_chunks(self):
+        chunk = PreparedChunk(0, "content", (0.5,), "en")
+        with self.assertRaises(InvalidInput):
+            PreparedRevisionIndex("22222222-2222-4222-8222-222222222222", 1, [chunk])
+        with self.assertRaises(InvalidInput):
+            PreparedRevisionIndex("22222222-2222-4222-8222-222222222222", 1, ("not a chunk",))
