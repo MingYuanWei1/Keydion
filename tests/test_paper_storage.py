@@ -1,16 +1,19 @@
 import hashlib
 import io
+import math
 import os
 import stat
 import tempfile
 import threading
 import time
 import unittest
+from dataclasses import FrozenInstanceError, replace
 from pathlib import Path
 from unittest import mock
 
 from PyPDF2 import PdfReader, PdfWriter
 
+import services.paper_storage as storage_module
 from services.paper_storage import PaperStorage, StorageError
 from services.publishing_contracts import PdfUpload
 
@@ -60,6 +63,21 @@ class PaperStorageTests(unittest.TestCase):
         (papers / ".staging").symlink_to(outside, target_is_directory=True)
         with self.assertRaises(StorageError):
             PaperStorage(papers, pending)
+
+        papers_c = root / "papers-c"
+        pending_c = root / "pending-c"
+        papers_c.mkdir(mode=0o700)
+        pending_c.mkdir(mode=0o700)
+        (pending_c / ".trash").symlink_to(outside, target_is_directory=True)
+        with self.assertRaises(StorageError):
+            PaperStorage(papers_c, pending_c)
+
+        papers_d = root / "papers-d"
+        pending_d = root / "pending-d"
+        papers_d.mkdir(mode=0o755)
+        pending_d.mkdir(mode=0o700)
+        with self.assertRaises(StorageError):
+            PaperStorage(papers_d, pending_d)
         self.assertEqual(list(outside.iterdir()), [])
 
     def test_private_storage_modes_are_explicit(self):
@@ -223,6 +241,39 @@ class PaperStorageTests(unittest.TestCase):
         self.assertTrue(self.storage.revision_path(PAPER_ID, 1).exists())
         self.assertTrue(legacy.exists())
 
+    def test_delete_rejects_nested_paper_layout_before_any_removal(self):
+        revision = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-nested-delete")
+        stored = self.storage.promote(revision, PAPER_ID, 1)
+        unexpected = stored.path.parent / "unexpected"
+        unexpected.mkdir(mode=0o700)
+        (unexpected / "payload").write_bytes(b"keep")
+
+        with self.assertRaises(StorageError):
+            self.storage.delete_paper(PAPER_ID, [])
+
+        self.assertTrue(stored.path.exists())
+        self.assertEqual((unexpected / "payload").read_bytes(), b"keep")
+
+    def test_delete_rechecks_legacy_inode_before_unlink(self):
+        legacy = self.storage.papers_dir / "legacy.pdf"
+        legacy.write_bytes(b"original")
+        real_stat = os.stat
+        calls = 0
+
+        def replace_before_recheck(path, *args, **kwargs):
+            nonlocal calls
+            if path == legacy.name and kwargs.get("dir_fd") is not None:
+                calls += 1
+                if calls == 2:
+                    legacy.unlink()
+                    legacy.write_bytes(b"replacement")
+            return real_stat(path, *args, **kwargs)
+
+        with mock.patch("services.paper_storage.os.stat", side_effect=replace_before_recheck):
+            with self.assertRaises(StorageError):
+                self.storage.delete_paper(PAPER_ID, [legacy.name])
+        self.assertEqual(legacy.read_bytes(), b"replacement")
+
     def test_pdf_metadata_is_written_only_to_staged_bytes(self):
         staged = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-1")
         source_hash = staged.source_sha256
@@ -248,6 +299,41 @@ class PaperStorageTests(unittest.TestCase):
         self.assertEqual(staged.path.read_bytes(), before)
         self.assertEqual(list(staged.path.parent.glob("*.metadata-*.tmp")), [])
 
+    def test_metadata_post_replace_validation_failure_restores_source(self):
+        staged = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-validate")
+        before = staged.path.read_bytes()
+        with mock.patch(
+            "services.paper_storage._strict_pdf",
+            side_effect=StorageError("injected final validation failure"),
+        ):
+            with self.assertRaises(StorageError):
+                self.storage.apply_metadata(staged, title="Paper", author="Alice")
+        self.assertEqual(staged.path.read_bytes(), before)
+        self.assertEqual(list(self.storage.staging_dir.glob("*.metadata-*")), [])
+
+    def test_metadata_directory_fsync_failure_restores_source(self):
+        staged = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-fsync")
+        before = staged.path.read_bytes()
+        with mock.patch(
+            "services.paper_storage._fsync_directory_fd",
+            side_effect=[OSError("injected fsync failure"), None],
+        ):
+            with self.assertRaises(StorageError):
+                self.storage.apply_metadata(staged, title="Paper", author="Alice")
+        self.assertEqual(staged.path.read_bytes(), before)
+        self.assertEqual(list(self.storage.staging_dir.glob("*.metadata-*")), [])
+
+    def test_unexpected_metadata_library_failure_is_wrapped_and_preserves_source(self):
+        staged = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-library")
+        before = staged.path.read_bytes()
+        with mock.patch(
+            "services.paper_storage.PdfWriter.add_page",
+            side_effect=KeyError("injected library failure"),
+        ):
+            with self.assertRaises(StorageError):
+                self.storage.apply_metadata(staged, title="Paper", author="Alice")
+        self.assertEqual(staged.path.read_bytes(), before)
+
     def test_final_path_byte_mismatch_is_rejected_without_clobber(self):
         destination = self.storage.revision_path(PAPER_ID, 1)
         destination.parent.mkdir()
@@ -261,35 +347,114 @@ class PaperStorageTests(unittest.TestCase):
     def test_destination_replaced_during_promotion_is_never_overwritten(self):
         staged = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-race")
         destination = self.storage.revision_path(PAPER_ID, 1)
-        real_link = os.link
+        real_publish = storage_module._publish_verified_fd_no_replace
         injected = False
 
-        def link_after_injection(source, target, *args, **kwargs):
+        def publish_after_injection(source_fd, target_fd, destination_name):
             nonlocal injected
-            if target == "1.pdf" and kwargs.get("dst_dir_fd") is not None:
-                injected = True
-                try:
-                    os.unlink(target, dir_fd=kwargs["dst_dir_fd"])
-                except FileNotFoundError:
-                    pass
-                attacker_fd = os.open(
-                    target,
-                    os.O_WRONLY | os.O_CREAT | os.O_EXCL,
-                    0o600,
-                    dir_fd=kwargs["dst_dir_fd"],
-                )
-                try:
-                    os.write(attacker_fd, b"racing bytes")
-                finally:
-                    os.close(attacker_fd)
-            return real_link(source, target, *args, **kwargs)
+            injected = True
+            attacker_fd = os.open(
+                destination_name,
+                os.O_WRONLY | os.O_CREAT | os.O_EXCL,
+                0o600,
+                dir_fd=target_fd,
+            )
+            try:
+                os.write(attacker_fd, b"racing bytes")
+            finally:
+                os.close(attacker_fd)
+            return real_publish(source_fd, target_fd, destination_name)
 
-        with mock.patch("services.paper_storage.os.link", side_effect=link_after_injection):
+        with mock.patch(
+            "services.paper_storage._publish_verified_fd_no_replace",
+            side_effect=publish_after_injection,
+        ):
             with self.assertRaises(StorageError):
                 self.storage.promote(staged, PAPER_ID, 1)
         self.assertTrue(injected)
         self.assertEqual(destination.read_bytes(), b"racing bytes")
         self.assertTrue(staged.path.exists())
+
+    def test_promotion_uses_verified_fd_and_never_unlinks_swapped_stage(self):
+        staged = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-stage-swap")
+        original = staged.path.read_bytes()
+        real_publish = getattr(storage_module, "_publish_verified_fd_no_replace", None)
+        injected = False
+
+        def publish_after_stage_swap(source_fd, target_fd, destination_name):
+            nonlocal injected
+            injected = True
+            staged.path.unlink()
+            staged.path.write_bytes(b"racing stage")
+            staged.path.chmod(0o600)
+            return real_publish(source_fd, target_fd, destination_name)
+
+        with mock.patch(
+            "services.paper_storage._publish_verified_fd_no_replace",
+            create=True,
+            side_effect=publish_after_stage_swap,
+        ):
+            stored = self.storage.promote(staged, PAPER_ID, 1)
+        self.assertTrue(injected)
+        self.assertEqual(stored.path.read_bytes(), original)
+        self.assertEqual(staged.path.read_bytes(), b"racing stage")
+
+    def test_promotion_reopens_final_bytes_before_success(self):
+        staged = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-final-swap")
+        real_publish = getattr(storage_module, "_publish_verified_fd_no_replace", None)
+        injected = False
+
+        def publish_then_replace(source_fd, target_fd, destination_name):
+            nonlocal injected
+            real_publish(source_fd, target_fd, destination_name)
+            os.unlink(destination_name, dir_fd=target_fd)
+            replacement = os.open(
+                destination_name,
+                os.O_WRONLY | os.O_CREAT | os.O_EXCL,
+                0o600,
+                dir_fd=target_fd,
+            )
+            try:
+                os.write(replacement, b"racing final")
+            finally:
+                os.close(replacement)
+            injected = True
+
+        with mock.patch(
+            "services.paper_storage._publish_verified_fd_no_replace",
+            create=True,
+            side_effect=publish_then_replace,
+        ):
+            with self.assertRaises(StorageError):
+                self.storage.promote(staged, PAPER_ID, 1)
+        self.assertTrue(injected)
+        self.assertEqual(self.storage.revision_path(PAPER_ID, 1).read_bytes(), b"racing final")
+        self.assertTrue(staged.path.exists())
+
+    def test_promotion_fsyncs_new_uuid_parent_and_revision_directory(self):
+        staged = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-fsync-order")
+        papers_identity = (
+            os.fstat(self.storage._papers_fd).st_dev,
+            os.fstat(self.storage._papers_fd).st_ino,
+        )
+        synced = []
+        real_fsync = storage_module._fsync_directory_fd
+
+        def record_fsync(directory_fd):
+            info = os.fstat(directory_fd)
+            synced.append((info.st_dev, info.st_ino))
+            return real_fsync(directory_fd)
+
+        with mock.patch(
+            "services.paper_storage._fsync_directory_fd",
+            side_effect=record_fsync,
+        ):
+            stored = self.storage.promote(staged, PAPER_ID, 1)
+        paper_info = stored.path.parent.stat()
+        paper_identity = (paper_info.st_dev, paper_info.st_ino)
+        self.assertIn(papers_identity, synced)
+        self.assertIn(paper_identity, synced)
+        self.assertLess(synced.index(papers_identity), synced.index(paper_identity))
 
     def test_uuid_revision_and_operation_traversal_are_rejected(self):
         for paper_id in ("../escape", "/absolute", "not-a-uuid"):
@@ -324,9 +489,15 @@ class PaperStorageTests(unittest.TestCase):
         symlink.symlink_to(outside)
         for filename in ("../outside.pdf", str(outside), symlink.name):
             with self.subTest(filename=filename):
-                with mock.patch("builtins.open", side_effect=AssertionError("outside read")):
+                with mock.patch(
+                    "services.paper_storage.os.open",
+                    wraps=os.open,
+                ) as descriptor_open:
                     with self.assertRaises(StorageError):
                         self.storage.stage_pending(filename, "op-pending")
+                opened_names = [call.args[0] for call in descriptor_open.call_args_list]
+                self.assertNotIn(filename, opened_names)
+                self.assertNotIn(str(outside), opened_names)
         self.assertTrue(outside.exists())
 
     def test_stage_pending_does_not_follow_source_swapped_to_symlink(self):
@@ -362,22 +533,78 @@ class PaperStorageTests(unittest.TestCase):
         self.assertTrue(outside.exists())
         self.assertEqual(outside.read_bytes()[:5], b"%PDF-")
 
-    def test_trash_and_restore_pending_are_contained_and_no_clobber(self):
+    def test_trash_token_is_bound_one_use_and_restores_exact_pending_file(self):
         source = self.write_pending_pdf()
-        original, trashed = self.storage.trash_pending(source.name, "op-trash")
-        self.assertEqual(original, source.resolve())
-        self.assertFalse(original.exists())
-        self.assertTrue(trashed.exists())
-        self.storage.restore_pending(original, trashed)
-        self.assertTrue(original.exists())
-        self.assertFalse(trashed.exists())
-
-        original.write_bytes(b"occupied")
-        trashed.write_bytes(b"trashed")
+        token = self.storage.trash_pending(source.name, "op-trash")
+        trashed = self.storage.trash_dir / "op-trash.pdf"
+        self.assertEqual(token.original_name, source.name)
+        self.assertEqual(token.operation_id, "op-trash")
+        with self.assertRaises(FrozenInstanceError):
+            token.operation_id = "changed"
+        forged = replace(token, operation_id="other")
         with self.assertRaises(StorageError):
-            self.storage.restore_pending(original, trashed)
-        self.assertEqual(original.read_bytes(), b"occupied")
-        self.assertEqual(trashed.read_bytes(), b"trashed")
+            self.storage.restore_pending(forged)
+        self.storage.restore_pending(token)
+        self.assertTrue(source.exists())
+        self.assertFalse(trashed.exists())
+        with self.assertRaises(StorageError):
+            self.storage.restore_pending(token)
+
+    def test_trash_pending_race_preserves_incumbent_and_source_bytes(self):
+        source = self.write_pending_pdf()
+        source_bytes = source.read_bytes()
+        destination = self.storage.trash_dir / "op-trash-race.pdf"
+        real_link = os.link
+
+        def inject_incumbent(source_name, destination_name, *args, **kwargs):
+            if destination_name == destination.name:
+                incumbent_fd = os.open(
+                    destination_name,
+                    os.O_WRONLY | os.O_CREAT | os.O_EXCL,
+                    0o600,
+                    dir_fd=kwargs["dst_dir_fd"],
+                )
+                try:
+                    os.write(incumbent_fd, b"incumbent trash")
+                finally:
+                    os.close(incumbent_fd)
+            return real_link(source_name, destination_name, *args, **kwargs)
+
+        with mock.patch("services.paper_storage.os.link", side_effect=inject_incumbent):
+            with self.assertRaises(StorageError):
+                self.storage.trash_pending(source.name, "op-trash-race")
+        self.assertEqual(source.read_bytes(), source_bytes)
+        self.assertEqual(destination.read_bytes(), b"incumbent trash")
+
+    def test_restore_pending_race_preserves_incumbent_and_trash_bytes(self):
+        source = self.write_pending_pdf()
+        source_bytes = source.read_bytes()
+        token = self.storage.trash_pending(source.name, "op-restore-race")
+        trashed = self.storage.trash_dir / "op-restore-race.pdf"
+        real_link = os.link
+
+        def inject_incumbent(source_name, destination_name, *args, **kwargs):
+            if destination_name == source.name:
+                incumbent_fd = os.open(
+                    destination_name,
+                    os.O_WRONLY | os.O_CREAT | os.O_EXCL,
+                    0o600,
+                    dir_fd=kwargs["dst_dir_fd"],
+                )
+                try:
+                    os.write(incumbent_fd, b"incumbent pending")
+                finally:
+                    os.close(incumbent_fd)
+            return real_link(source_name, destination_name, *args, **kwargs)
+
+        with mock.patch("services.paper_storage.os.link", side_effect=inject_incumbent):
+            with self.assertRaises(StorageError):
+                self.storage.restore_pending(token)
+        self.assertEqual(source.read_bytes(), b"incumbent pending")
+        self.assertEqual(trashed.read_bytes(), source_bytes)
+        source.unlink()
+        self.storage.restore_pending(token)
+        self.assertEqual(source.read_bytes(), source_bytes)
 
     def test_copy_revision_rewrites_metadata_into_new_immutable_revision(self):
         first = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-1")
@@ -405,7 +632,8 @@ class PaperStorageTests(unittest.TestCase):
         old_stage = self.storage.stage(self.valid_pdf_upload("c.pdf"), "op-old")
         new_stage = self.storage.stage(self.valid_pdf_upload("d.pdf"), "op-new")
         pending = self.write_pending_pdf("trash.pdf")
-        _original, old_trash = self.storage.trash_pending(pending.name, "op-trash")
+        self.storage.trash_pending(pending.name, "op-trash")
+        old_trash = self.storage.trash_dir / "op-trash.pdf"
         old = time.time() - 120
         os.utime(old_stage.path, (old, old))
         os.utime(old_trash, (old, old))
@@ -419,6 +647,56 @@ class PaperStorageTests(unittest.TestCase):
         self.assertFalse(old_trash.exists())
         self.assertTrue(self.storage.revision_path(PAPER_ID, 1).exists())
         self.assertFalse(self.storage.revision_path(PAPER_ID, 2).exists())
+
+    def test_reconcile_rejects_non_finite_cutoff_before_mutation(self):
+        for index, cutoff in enumerate((math.nan, math.inf, -math.inf)):
+            with self.subTest(cutoff=cutoff):
+                staged = self.storage.stage(
+                    self.valid_pdf_upload(f"finite-{index}.pdf"),
+                    f"op-finite-{index}",
+                )
+                with self.assertRaises(StorageError):
+                    self.storage.reconcile_expired(cutoff, set())
+                self.assertTrue(staged.path.exists())
+
+    def test_reconcile_recognizes_only_its_internal_metadata_backup_link(self):
+        staged = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-backup")
+        backup = self.storage.staging_dir / (
+            "op-backup.metadata-backup-11111111111111111111111111111111.tmp"
+        )
+        os.link(staged.path, backup)
+        old = time.time() - 120
+        os.utime(staged.path, (old, old))
+
+        removed = self.storage.reconcile_expired(time.time() - 60, set())
+
+        self.assertEqual(removed, 2)
+        self.assertFalse(staged.path.exists())
+        self.assertFalse(backup.exists())
+
+    def test_reconcile_rejects_nested_paper_layout_before_removing_revisions(self):
+        revision = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-nested-reconcile")
+        stored = self.storage.promote(revision, PAPER_ID, 1)
+        unexpected = stored.path.parent / "unexpected"
+        unexpected.mkdir(mode=0o700)
+
+        with self.assertRaises(StorageError):
+            self.storage.reconcile_expired(time.time() + 60, set())
+
+        self.assertTrue(stored.path.exists())
+        self.assertTrue(unexpected.exists())
+
+    def test_reconcile_never_treats_unicode_digits_as_revision_names(self):
+        revision = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-ascii")
+        stored = self.storage.promote(revision, PAPER_ID, 1)
+        unicode_revision = stored.path.parent / "١.pdf"
+        unicode_revision.write_bytes(b"not a revision")
+        unicode_revision.chmod(0o600)
+
+        self.storage.reconcile_expired(time.time() + 60, set())
+
+        self.assertFalse(stored.path.exists())
+        self.assertTrue(unicode_revision.exists())
 
 
 if __name__ == "__main__":

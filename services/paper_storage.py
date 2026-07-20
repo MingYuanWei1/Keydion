@@ -3,15 +3,19 @@
 from __future__ import annotations
 
 import hashlib
+import ctypes
+import errno
 import fcntl
 import functools
+import math
 import os
 import re
+import secrets
 import stat
-import tempfile
+import sys
 import threading
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import BinaryIO, Iterable, Iterator
@@ -25,6 +29,12 @@ from services.publishing_contracts import PdfUpload
 
 _BLOCK_SIZE = 1024 * 1024
 _OPERATION_ID = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9._-]{0,127})\Z")
+_REVISION_FILENAME = re.compile(r"[1-9][0-9]*\.pdf\Z", re.ASCII)
+_METADATA_BACKUP = re.compile(
+    r"(?P<operation>[A-Za-z0-9](?:[A-Za-z0-9._-]{0,127}))"
+    r"\.metadata-backup-[0-9a-f]{32}\.tmp\Z",
+    re.ASCII,
+)
 _DIRECTORY_FLAGS = (
     os.O_RDONLY
     | getattr(os, "O_DIRECTORY", 0)
@@ -61,6 +71,17 @@ class StoredPdf:
     path: Path
     sha256: str
     size_bytes: int
+
+
+@dataclass(frozen=True)
+class PendingTrash:
+    original_name: str
+    operation_id: str
+    source_sha256: str
+    size_bytes: int
+    device: int
+    inode: int
+    _capability: str = field(repr=False)
 
 
 def _fsync_directory_fd(directory_fd: int) -> None:
@@ -134,6 +155,73 @@ def _root_process_lock(info: os.stat_result) -> threading.RLock:
         return _PROCESS_LOCKS.setdefault(key, threading.RLock())
 
 
+def _publish_verified_fd_no_replace(
+    source_fd: int,
+    target_fd: int,
+    destination_name: str,
+) -> None:
+    """Publish the exact open inode without replacing an existing destination."""
+    libc = ctypes.CDLL(None, use_errno=True)
+    encoded_destination = os.fsencode(destination_name)
+
+    def failed(operation: str) -> None:
+        error_number = ctypes.get_errno()
+        if error_number == errno.EEXIST:
+            raise FileExistsError(error_number, os.strerror(error_number), destination_name)
+        raise OSError(error_number, f"{operation}: {os.strerror(error_number)}")
+
+    if sys.platform.startswith("linux"):
+        linkat = getattr(libc, "linkat", None)
+        if linkat is None:
+            raise StorageError("platform has no exact-FD publication primitive")
+        linkat.argtypes = (
+            ctypes.c_int,
+            ctypes.c_char_p,
+            ctypes.c_int,
+            ctypes.c_char_p,
+            ctypes.c_int,
+        )
+        linkat.restype = ctypes.c_int
+        ctypes.set_errno(0)
+        if linkat(source_fd, b"", target_fd, encoded_destination, 0x1000) == 0:
+            return
+        first_error = ctypes.get_errno()
+        if first_error == errno.EEXIST:
+            failed("linkat(AT_EMPTY_PATH)")
+        descriptor_path = f"/proc/self/fd/{source_fd}"
+        if not os.path.isdir("/proc/self/fd"):
+            ctypes.set_errno(first_error)
+            failed("linkat(AT_EMPTY_PATH)")
+        ctypes.set_errno(0)
+        if linkat(
+            -100,
+            os.fsencode(descriptor_path),
+            target_fd,
+            encoded_destination,
+            0x400,
+        ) == 0:
+            return
+        failed("linkat(descriptor)")
+
+    if sys.platform == "darwin":
+        fclonefileat = getattr(libc, "fclonefileat", None)
+        if fclonefileat is None:
+            raise StorageError("platform has no exact-FD publication primitive")
+        fclonefileat.argtypes = (
+            ctypes.c_int,
+            ctypes.c_int,
+            ctypes.c_char_p,
+            ctypes.c_uint32,
+        )
+        fclonefileat.restype = ctypes.c_int
+        ctypes.set_errno(0)
+        if fclonefileat(source_fd, target_fd, encoded_destination, 0) == 0:
+            return
+        failed("fclonefileat")
+
+    raise StorageError("platform has no exact-FD publication primitive")
+
+
 def _serialized(method):
     @functools.wraps(method)
     def wrapped(self, *args, **kwargs):
@@ -144,11 +232,18 @@ def _serialized(method):
 
 
 class PaperStorage:
-    """Store staged uploads and immutable revisions behind one filesystem seam."""
+    """Store staged uploads and immutable revisions behind one filesystem seam.
+
+    Roots are private app-owned namespaces. The root-scoped file/process lock
+    serializes cooperating app instances; it is not a security boundary against
+    arbitrary code already running as the app owner. Database-supplied names
+    still receive descriptor-relative no-follow checks at the actual operation.
+    """
 
     def __init__(self, papers_dir: Path, pending_dir: Path):
         self._closed = False
         self._lock_state = threading.local()
+        self._trash_tokens: dict[str, PendingTrash] = {}
         self.papers_dir, self._papers_fd, self._papers_stat = self._open_private_root(
             Path(papers_dir), "Paper"
         )
@@ -158,6 +253,8 @@ class PaperStorage:
             )
         except Exception:
             os.close(self._papers_fd)
+            self._papers_fd = None
+            self._closed = True
             raise
         self._process_lock = _root_process_lock(self._papers_stat)
         self.staging_dir = self.papers_dir / ".staging"
@@ -183,6 +280,10 @@ class PaperStorage:
             os.close(self._lock_fd)
             os.close(self._pending_fd)
             os.close(self._papers_fd)
+            self._lock_fd = None
+            self._pending_fd = None
+            self._papers_fd = None
+            self._closed = True
             raise
 
     @staticmethod
@@ -367,6 +468,7 @@ class PaperStorage:
         value: str,
         *,
         require_single_link: bool = False,
+        require_private: bool = False,
     ) -> Iterator[tuple[int, int, str, Path, os.stat_result]]:
         resolved, parts = self._relative_policy(root, value, must_exist=True)
         directory_fds: list[int] = []
@@ -398,6 +500,7 @@ class PaperStorage:
                 not stat.S_ISREG(opened.st_mode)
                 or not _same_inode(before, opened)
                 or (require_single_link and opened.st_nlink != 1)
+                or (require_private and not _private_mode(opened, 0o600))
             ):
                 raise StorageError("stored PDF changed while opening")
             yield file_fd, parent_fd, leaf, resolved, opened
@@ -415,9 +518,11 @@ class PaperStorage:
         path = self._stage_path(operation_id)
         name = path.name
         created: os.stat_result | None = None
+        created_entry = False
         stage_fd: int | None = None
         try:
             stage_fd = os.open(name, _CREATE_RW_FLAGS, 0o600, dir_fd=self._staging_fd)
+            created_entry = True
             created = os.fstat(stage_fd)
             if not stat.S_ISREG(created.st_mode) or not _private_mode(created, 0o600):
                 raise StorageError("new stage is not a private regular file")
@@ -444,10 +549,20 @@ class PaperStorage:
         except StorageError:
             if created is not None:
                 self._unlink_if_matching(self._staging_fd, name, created)
+            elif created_entry:
+                try:
+                    os.unlink(name, dir_fd=self._staging_fd)
+                except FileNotFoundError:
+                    pass
             raise
         except (OSError, RuntimeError, TypeError, ValueError) as exc:
             if created is not None:
                 self._unlink_if_matching(self._staging_fd, name, created)
+            elif created_entry:
+                try:
+                    os.unlink(name, dir_fd=self._staging_fd)
+                except FileNotFoundError:
+                    pass
             raise StorageError("PDF could not be staged") from exc
         finally:
             if stage_fd is not None:
@@ -505,7 +620,12 @@ class PaperStorage:
             raise StorageError("invalid staged PDF path")
         _valid_operation_id(path.stem)
         try:
-            with self._opened_regular(self.staging_dir, path.name) as (file_fd, _, _, resolved, _):
+            with self._opened_regular(
+                self.staging_dir,
+                path.name,
+                require_single_link=True,
+                require_private=True,
+            ) as (file_fd, _, _, resolved, _):
                 with os.fdopen(os.dup(file_fd), "rb") as source:
                     current_hash, current_size = _hash_reader(source)
         except StorageError:
@@ -514,19 +634,52 @@ class PaperStorage:
             raise StorageError("staged PDF bytes changed")
         return resolved, current_hash, current_size
 
+    def _create_staging_temporary(
+        self,
+        prefix: str,
+        suffix: str,
+    ) -> tuple[int, str, os.stat_result]:
+        for _attempt in range(16):
+            name = f"{prefix}{secrets.token_hex(16)}{suffix}"
+            try:
+                file_fd = os.open(name, _CREATE_RW_FLAGS, 0o600, dir_fd=self._staging_fd)
+            except FileExistsError:
+                continue
+            try:
+                opened = os.fstat(file_fd)
+                if not stat.S_ISREG(opened.st_mode) or not _private_mode(opened, 0o600):
+                    raise StorageError("temporary stage is not a private regular file")
+                return file_fd, name, opened
+            except Exception:
+                os.close(file_fd)
+                try:
+                    os.unlink(name, dir_fd=self._staging_fd)
+                except FileNotFoundError:
+                    pass
+                raise
+        raise StorageError("could not allocate a unique staging temporary")
+
     @_serialized
     def apply_metadata(self, staged: StagedPdf, *, title: str, author: str) -> StagedPdf:
         source_path, _source_hash, _source_size = self._validated_stage(staged)
-        temporary: Path | None = None
+        temporary_name: str | None = None
+        temporary_stat: os.stat_result | None = None
         temporary_fd: int | None = None
+        backup_name: str | None = None
+        backup_stat: os.stat_result | None = None
+        backup_fd: int | None = None
+        installed = False
         try:
-            temporary_fd, temporary_name = tempfile.mkstemp(
-                prefix=f"{source_path.stem}.metadata-",
-                suffix=".tmp",
-                dir=self.staging_dir,
+            temporary_fd, temporary_name, temporary_stat = self._create_staging_temporary(
+                f"{source_path.stem}.metadata-",
+                ".tmp",
             )
-            temporary = Path(temporary_name)
-            with self._opened_regular(self.staging_dir, source_path.name) as (source_fd, _, _, _, _):
+            with self._opened_regular(
+                self.staging_dir,
+                source_path.name,
+                require_single_link=True,
+                require_private=True,
+            ) as (source_fd, _, _, _, source_stat):
                 with os.fdopen(os.dup(source_fd), "rb") as source:
                     reader = PdfReader(source, strict=True)
                     source_page_count = len(reader.pages)
@@ -546,46 +699,172 @@ class PaperStorage:
                         metadata = verified.metadata
                         if metadata.title != str(title) or metadata.author != str(author):
                             raise StorageError("metadata rewrite verification failed")
-            self._validated_stage(staged)
-            os.replace(temporary, source_path)
-            temporary = None
-            with os.fdopen(os.open(source_path, _READ_FLAGS), "rb") as prepared:
-                _strict_pdf(prepared)
-                stored_hash, stored_size = _hash_reader(prepared)
-            directory_fd = os.open(os.fspath(self.staging_dir), _DIRECTORY_FLAGS)
-            try:
-                _fsync_directory_fd(directory_fd)
-            finally:
-                os.close(directory_fd)
-            return StagedPdf(source_path, staged.source_sha256, stored_hash, stored_size)
-        except StorageError:
-            raise
-        except (OSError, RuntimeError, TypeError, ValueError) as exc:
+                        stored_hash, stored_size = _hash_reader(output)
+                current_source = os.fstat(source_fd)
+                if not _same_inode(current_source, source_stat):
+                    raise StorageError("source stage changed during metadata rewrite")
+                backup_name = (
+                    f"{source_path.stem}.metadata-backup-{secrets.token_hex(16)}.tmp"
+                )
+                os.link(
+                    source_path.name,
+                    backup_name,
+                    src_dir_fd=self._staging_fd,
+                    dst_dir_fd=self._staging_fd,
+                    follow_symlinks=False,
+                )
+                backup_stat = os.stat(
+                    backup_name,
+                    dir_fd=self._staging_fd,
+                    follow_symlinks=False,
+                )
+                if not _same_inode(backup_stat, source_stat):
+                    raise StorageError("metadata backup does not match source stage")
+                backup_fd = os.open(backup_name, _READ_FLAGS, dir_fd=self._staging_fd)
+                if not _same_inode(os.fstat(backup_fd), source_stat):
+                    raise StorageError("metadata backup descriptor changed")
+
+            with self._opened_regular(
+                self.staging_dir,
+                temporary_name,
+                require_single_link=True,
+                require_private=True,
+            ) as (verified_fd, _, _, _, verified_stat):
+                with os.fdopen(os.dup(verified_fd), "rb") as verified_file:
+                    verified_hash, verified_size = _hash_reader(verified_file)
+                if (
+                    (verified_hash, verified_size) != (stored_hash, stored_size)
+                    or not _same_inode(verified_stat, temporary_stat)
+                ):
+                    raise StorageError("metadata sibling changed before installation")
+
+            os.replace(
+                temporary_name,
+                source_path.name,
+                src_dir_fd=self._staging_fd,
+                dst_dir_fd=self._staging_fd,
+            )
+            temporary_name = None
+            temporary_stat = None
+            installed = True
+            _fsync_directory_fd(self._staging_fd)
+            with self._opened_regular(
+                self.staging_dir,
+                source_path.name,
+                require_single_link=True,
+                require_private=True,
+            ) as (prepared_fd, _, _, _, _):
+                with os.fdopen(os.dup(prepared_fd), "rb") as prepared:
+                    _strict_pdf(prepared)
+                    final_hash, final_size = _hash_reader(prepared)
+                    prepared.seek(0)
+                    final_reader = PdfReader(prepared, strict=True)
+                    if len(final_reader.pages) != source_page_count:
+                        raise StorageError("installed metadata changed page count")
+                    final_metadata = final_reader.metadata
+                    if (
+                        final_metadata.title != str(title)
+                        or final_metadata.author != str(author)
+                        or (final_hash, final_size) != (stored_hash, stored_size)
+                    ):
+                        raise StorageError("installed metadata verification failed")
+            if backup_name is None or backup_stat is None:
+                raise StorageError("metadata backup was not retained")
+            self._unlink_if_matching(self._staging_fd, backup_name, backup_stat)
+            backup_name = None
+            backup_stat = None
+            return StagedPdf(
+                source_path,
+                staged.source_sha256,
+                stored_hash,
+                stored_size,
+            )
+        except Exception as exc:
+            if installed and backup_name is not None:
+                try:
+                    current_backup = os.stat(
+                        backup_name,
+                        dir_fd=self._staging_fd,
+                        follow_symlinks=False,
+                    )
+                    if backup_fd is None or not _same_inode(
+                        current_backup,
+                        os.fstat(backup_fd),
+                    ):
+                        raise StorageError("metadata backup changed before rollback")
+                    os.replace(
+                        backup_name,
+                        source_path.name,
+                        src_dir_fd=self._staging_fd,
+                        dst_dir_fd=self._staging_fd,
+                    )
+                    backup_name = None
+                    backup_stat = None
+                    _fsync_directory_fd(self._staging_fd)
+                except Exception as rollback_exc:
+                    raise StorageError("metadata rollback failed") from rollback_exc
+            if isinstance(exc, StorageError):
+                raise
             raise StorageError("PDF metadata could not be written") from exc
         finally:
+            if backup_fd is not None:
+                os.close(backup_fd)
             if temporary_fd is not None:
                 os.close(temporary_fd)
-            if temporary is not None:
-                temporary.unlink(missing_ok=True)
+            if temporary_name is not None and temporary_stat is not None:
+                self._unlink_if_matching(
+                    self._staging_fd,
+                    temporary_name,
+                    temporary_stat,
+                )
+            if backup_name is not None and backup_stat is not None:
+                self._unlink_if_matching(
+                    self._staging_fd,
+                    backup_name,
+                    backup_stat,
+                )
 
     def revision_path(self, paper_id: str, revision: int) -> Path:
         canonical = _canonical_paper_id(paper_id)
         number = _valid_revision(revision)
         return self.papers_dir / canonical / f"{number}.pdf"
 
-    def _open_paper_directory(self, paper_id: str, *, create: bool) -> tuple[int, int, str]:
+    def _open_paper_directory(
+        self,
+        paper_id: str,
+        *,
+        create: bool,
+    ) -> tuple[int, int, str, bool]:
         canonical = _canonical_paper_id(paper_id)
-        root_fd: int | None = None
+        root_fd: int | None = os.dup(self._papers_fd)
         paper_fd: int | None = None
+        created = False
         try:
-            root_fd = os.open(os.fspath(self.papers_dir), _DIRECTORY_FLAGS)
             if create:
                 try:
                     os.mkdir(canonical, 0o700, dir_fd=root_fd)
+                    created = True
+                    _fsync_directory_fd(root_fd)
                 except FileExistsError:
                     pass
+            before = os.stat(canonical, dir_fd=root_fd, follow_symlinks=False)
+            if (
+                not stat.S_ISDIR(before.st_mode)
+                or not _private_mode(before, 0o700)
+                or before.st_dev != self._papers_stat.st_dev
+            ):
+                raise StorageError("Paper revision directory is unsafe")
             paper_fd = os.open(canonical, _DIRECTORY_FLAGS, dir_fd=root_fd)
-            return root_fd, paper_fd, canonical
+            opened = os.fstat(paper_fd)
+            if not _same_inode(before, opened):
+                raise StorageError("Paper revision directory changed while opening")
+            return root_fd, paper_fd, canonical, created
+        except StorageError:
+            if paper_fd is not None:
+                os.close(paper_fd)
+            if root_fd is not None:
+                os.close(root_fd)
+            raise
         except (OSError, RuntimeError, ValueError) as exc:
             if paper_fd is not None:
                 os.close(paper_fd)
@@ -597,128 +876,62 @@ class PaperStorage:
     def promote(self, staged: StagedPdf, paper_id: str, revision: int) -> StoredPdf:
         source_path, source_hash, source_size = self._validated_stage(staged)
         number = _valid_revision(revision)
-        root_fd, paper_fd, canonical = self._open_paper_directory(paper_id, create=True)
+        root_fd, paper_fd, canonical, _created = self._open_paper_directory(
+            paper_id,
+            create=True,
+        )
         destination_name = f"{number}.pdf"
         destination = self.papers_dir / canonical / destination_name
-        staging_fd: int | None = None
-        temporary_name = f".promote-{source_path.stem}-{canonical}-{number}.pdf"
-        moved_to_temporary = False
-        reservation_stat: os.stat_result | None = None
         try:
-            try:
-                existing_fd = os.open(destination_name, _READ_FLAGS, dir_fd=paper_fd)
-            except FileNotFoundError:
-                existing_fd = None
-            except OSError as exc:
-                raise StorageError("existing revision is unsafe") from exc
-            if existing_fd is not None:
+            with self._opened_regular(
+                self.staging_dir,
+                source_path.name,
+                require_single_link=True,
+                require_private=True,
+            ) as (source_fd, _, _, _, source_stat):
+                with os.fdopen(os.dup(source_fd), "rb") as source:
+                    verified_hash, verified_size = _hash_reader(source)
+                if (verified_hash, verified_size) != (source_hash, source_size):
+                    raise StorageError("staged PDF changed before promotion")
                 try:
-                    opened = os.fstat(existing_fd)
-                    if not stat.S_ISREG(opened.st_mode):
-                        raise StorageError("existing revision is not a regular file")
-                    with os.fdopen(os.dup(existing_fd), "rb") as existing:
-                        existing_hash, existing_size = _hash_reader(existing)
-                finally:
-                    os.close(existing_fd)
-                if (existing_hash, existing_size) != (source_hash, source_size):
-                    raise StorageError("immutable revision already contains different bytes")
-                source_path.unlink(missing_ok=True)
-                staging_fd = os.open(os.fspath(self.staging_dir), _DIRECTORY_FLAGS)
-                try:
-                    _fsync_directory_fd(staging_fd)
-                finally:
-                    os.close(staging_fd)
-                    staging_fd = None
-                return StoredPdf(destination, existing_hash, existing_size)
-
-            try:
-                staging_fd = os.open(os.fspath(self.staging_dir), _DIRECTORY_FLAGS)
-                reservation_fd = os.open(
-                    temporary_name,
-                    _CREATE_FLAGS,
-                    0o600,
-                    dir_fd=staging_fd,
-                )
-                reservation_stat = os.fstat(reservation_fd)
-            except FileExistsError as exc:
-                raise StorageError("stale promotion stage already exists") from exc
-            try:
-                os.close(reservation_fd)
-                os.replace(
-                    source_path.name,
-                    temporary_name,
-                    src_dir_fd=staging_fd,
-                    dst_dir_fd=staging_fd,
-                )
-                moved_to_temporary = True
-                temporary_fd = os.open(temporary_name, _READ_FLAGS, dir_fd=staging_fd)
-                try:
-                    with os.fdopen(os.dup(temporary_fd), "rb") as temporary:
-                        moved_hash, moved_size = _hash_reader(temporary)
-                finally:
-                    os.close(temporary_fd)
-                if (moved_hash, moved_size) != (source_hash, source_size):
-                    raise StorageError("staged PDF changed during promotion")
-
-                try:
-                    os.link(
-                        temporary_name,
+                    _publish_verified_fd_no_replace(
+                        source_fd,
+                        paper_fd,
                         destination_name,
-                        src_dir_fd=staging_fd,
-                        dst_dir_fd=paper_fd,
-                        follow_symlinks=False,
                     )
                 except FileExistsError:
-                    existing_fd = os.open(destination_name, _READ_FLAGS, dir_fd=paper_fd)
-                    try:
-                        with os.fdopen(os.dup(existing_fd), "rb") as existing:
-                            existing_hash, existing_size = _hash_reader(existing)
-                    finally:
-                        os.close(existing_fd)
-                    if (existing_hash, existing_size) != (source_hash, source_size):
-                        raise StorageError(
-                            "immutable revision appeared with different bytes"
-                        )
+                    pass
+
+                try:
+                    final_fd = os.open(destination_name, _READ_FLAGS, dir_fd=paper_fd)
+                except OSError as exc:
+                    raise StorageError("published revision could not be reopened") from exc
+                try:
+                    final_stat = os.fstat(final_fd)
+                    if (
+                        not stat.S_ISREG(final_stat.st_mode)
+                        or not _private_mode(final_stat, 0o600)
+                    ):
+                        raise StorageError("published revision is not a private file")
+                    with os.fdopen(os.dup(final_fd), "rb") as final_file:
+                        final_hash, final_size = _hash_reader(final_file)
+                finally:
+                    os.close(final_fd)
+                if (final_hash, final_size) != (source_hash, source_size):
+                    raise StorageError("published revision bytes do not match the stage")
                 _fsync_directory_fd(paper_fd)
-                os.unlink(temporary_name, dir_fd=staging_fd)
-                moved_to_temporary = False
-                reservation_stat = None
-                _fsync_directory_fd(staging_fd)
-            finally:
-                if moved_to_temporary:
-                    try:
-                        os.link(
-                            temporary_name,
-                            source_path.name,
-                            src_dir_fd=staging_fd,
-                            dst_dir_fd=staging_fd,
-                            follow_symlinks=False,
-                        )
-                    except FileExistsError:
-                        pass
-                    else:
-                        os.unlink(temporary_name, dir_fd=staging_fd)
-                        moved_to_temporary = False
-                        reservation_stat = None
-                elif reservation_stat is not None:
-                    try:
-                        current = os.stat(
-                            temporary_name,
-                            dir_fd=staging_fd,
-                            follow_symlinks=False,
-                        )
-                        if _same_inode(current, reservation_stat):
-                            os.unlink(temporary_name, dir_fd=staging_fd)
-                    except FileNotFoundError:
-                        pass
+                if self._unlink_if_matching(
+                    self._staging_fd,
+                    source_path.name,
+                    source_stat,
+                ):
+                    _fsync_directory_fd(self._staging_fd)
             return StoredPdf(destination, source_hash, source_size)
         except StorageError:
             raise
         except OSError as exc:
             raise StorageError("PDF revision could not be promoted") from exc
         finally:
-            if staging_fd is not None:
-                os.close(staging_fd)
             os.close(paper_fd)
             os.close(root_fd)
 
@@ -727,7 +940,12 @@ class PaperStorage:
         path = self.revision_path(paper_id, revision)
         relative = f"{path.parent.name}/{path.name}"
         try:
-            with self._opened_regular(self.papers_dir, relative):
+            with self._opened_regular(
+                self.papers_dir,
+                relative,
+                require_single_link=True,
+                require_private=True,
+            ):
                 return path
         except StorageError as exc:
             raise StorageError("Paper revision does not exist") from exc
@@ -745,14 +963,22 @@ class PaperStorage:
     ) -> StoredPdf:
         source = self.open_revision(paper_id, source_revision)
         relative = f"{source.parent.name}/{source.name}"
-        with self._opened_regular(self.papers_dir, relative) as (source_fd, _, _, _, _):
+        with self._opened_regular(
+            self.papers_dir,
+            relative,
+            require_single_link=True,
+            require_private=True,
+        ) as (source_fd, _, _, _, _):
             with os.fdopen(os.dup(source_fd), "rb") as stream:
                 staged = self._stage_stream(stream, operation_id)
         prepared = self.apply_metadata(staged, title=title, author=author)
         return self.promote(prepared, paper_id, target_revision)
 
-    def _legacy_names(self, filenames: Iterable[str]) -> tuple[str, ...]:
-        validated: list[str] = []
+    def _legacy_entries(
+        self,
+        filenames: Iterable[str],
+    ) -> dict[str, os.stat_result | None]:
+        validated: dict[str, os.stat_result | None] = {}
         for filename in filenames:
             if (
                 not isinstance(filename, str)
@@ -768,153 +994,212 @@ class PaperStorage:
             if resolved is None:
                 raise StorageError("unsafe retained legacy filename")
             try:
-                info = resolved.lstat()
+                info = os.stat(
+                    filename,
+                    dir_fd=self._papers_fd,
+                    follow_symlinks=False,
+                )
             except FileNotFoundError:
-                pass
-            else:
-                if not stat.S_ISREG(info.st_mode):
-                    raise StorageError("legacy PDF is not a regular file")
-            validated.append(filename)
-        return tuple(validated)
-
-    def _clear_directory(self, directory_fd: int) -> None:
-        for name in os.listdir(directory_fd):
-            try:
-                before = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
-            except FileNotFoundError:
-                continue
-            if stat.S_ISDIR(before.st_mode):
-                child_fd = os.open(name, _DIRECTORY_FLAGS, dir_fd=directory_fd)
-                try:
-                    opened = os.fstat(child_fd)
-                    if not _same_inode(before, opened):
-                        raise StorageError("Paper directory changed during deletion")
-                    self._clear_directory(child_fd)
-                finally:
-                    os.close(child_fd)
-                try:
-                    os.rmdir(name, dir_fd=directory_fd)
-                except FileNotFoundError:
-                    pass
-            else:
-                try:
-                    os.unlink(name, dir_fd=directory_fd)
-                except FileNotFoundError:
-                    pass
+                info = None
+            if info is not None and not stat.S_ISREG(info.st_mode):
+                raise StorageError("legacy PDF is not a regular file")
+            validated[filename] = info
+        return validated
 
     @_serialized
     def delete_paper(self, paper_id: str, retained_legacy_filenames: Iterable[str]) -> None:
         canonical = _canonical_paper_id(paper_id)
-        legacy_names = self._legacy_names(retained_legacy_filenames)
-        root_fd = os.open(os.fspath(self.papers_dir), _DIRECTORY_FLAGS)
+        legacy_entries = self._legacy_entries(retained_legacy_filenames)
+        root_fd = os.dup(self._papers_fd)
+        paper_fd: int | None = None
+        paper_stat: os.stat_result | None = None
+        revision_entries: dict[str, os.stat_result] = {}
         try:
             try:
+                paper_stat = os.stat(canonical, dir_fd=root_fd, follow_symlinks=False)
                 paper_fd = os.open(canonical, _DIRECTORY_FLAGS, dir_fd=root_fd)
             except FileNotFoundError:
                 paper_fd = None
             except OSError as exc:
                 raise StorageError("Paper revision directory is unsafe") from exc
             if paper_fd is not None:
+                opened = os.fstat(paper_fd)
+                if (
+                    paper_stat is None
+                    or not _same_inode(paper_stat, opened)
+                    or not _private_mode(opened, 0o700)
+                    or opened.st_dev != self._papers_stat.st_dev
+                ):
+                    raise StorageError("Paper revision directory changed")
+                for name in os.listdir(paper_fd):
+                    entry = os.stat(name, dir_fd=paper_fd, follow_symlinks=False)
+                    if (
+                        _REVISION_FILENAME.fullmatch(name) is None
+                        or not stat.S_ISREG(entry.st_mode)
+                        or not _private_mode(entry, 0o600)
+                        or entry.st_dev != opened.st_dev
+                    ):
+                        raise StorageError("Paper revision layout is not flat and canonical")
+                    revision_entries[name] = entry
+
+            for filename, expected in legacy_entries.items():
                 try:
-                    self._clear_directory(paper_fd)
-                finally:
-                    os.close(paper_fd)
-                try:
-                    os.rmdir(canonical, dir_fd=root_fd)
+                    current = os.stat(filename, dir_fd=root_fd, follow_symlinks=False)
                 except FileNotFoundError:
-                    pass
-            for filename in legacy_names:
-                try:
-                    os.unlink(filename, dir_fd=root_fd)
-                except FileNotFoundError:
-                    pass
-                except IsADirectoryError as exc:
-                    raise StorageError("legacy PDF is not a regular file") from exc
+                    current = None
+                if (expected is None) != (current is None) or (
+                    expected is not None
+                    and current is not None
+                    and not _same_inode(expected, current)
+                ):
+                    raise StorageError("legacy PDF changed before deletion")
+
+            if paper_fd is not None:
+                for name, expected in revision_entries.items():
+                    current = os.stat(name, dir_fd=paper_fd, follow_symlinks=False)
+                    if not _same_inode(expected, current):
+                        raise StorageError("Paper revision changed before deletion")
+                for name, expected in revision_entries.items():
+                    if not self._unlink_if_matching(paper_fd, name, expected):
+                        raise StorageError("Paper revision changed during deletion")
+                _fsync_directory_fd(paper_fd)
+                current_directory = os.stat(
+                    canonical,
+                    dir_fd=root_fd,
+                    follow_symlinks=False,
+                )
+                if paper_stat is None or not _same_inode(paper_stat, current_directory):
+                    raise StorageError("Paper directory changed before removal")
+                os.rmdir(canonical, dir_fd=root_fd)
+                _fsync_directory_fd(root_fd)
+            for filename, expected in legacy_entries.items():
+                if expected is not None and not self._unlink_if_matching(
+                    root_fd,
+                    filename,
+                    expected,
+                ):
+                    raise StorageError("legacy PDF changed during deletion")
             _fsync_directory_fd(root_fd)
         except StorageError:
             raise
         except OSError as exc:
             raise StorageError("Paper files could not be deleted") from exc
         finally:
+            if paper_fd is not None:
+                os.close(paper_fd)
             os.close(root_fd)
 
-    def _reserve_and_replace(
+    def _link_then_unlink(
         self,
         source_parent_fd: int,
         source_name: str,
         source_stat: os.stat_result,
         destination_parent_fd: int,
         destination_name: str,
-    ) -> None:
-        reservation_fd: int | None = None
-        reservation_stat: os.stat_result | None = None
+    ) -> os.stat_result:
+        linked = False
         try:
-            reservation_fd = os.open(
-                destination_name,
-                _CREATE_FLAGS,
-                0o600,
-                dir_fd=destination_parent_fd,
-            )
-            reservation_stat = os.fstat(reservation_fd)
-            os.close(reservation_fd)
-            reservation_fd = None
             current = os.stat(source_name, dir_fd=source_parent_fd, follow_symlinks=False)
-            if not stat.S_ISREG(current.st_mode) or not _same_inode(current, source_stat):
+            if (
+                not stat.S_ISREG(current.st_mode)
+                or not _same_inode(current, source_stat)
+                or current.st_nlink != 1
+            ):
                 raise StorageError("pending PDF changed before move")
-            os.replace(
+            os.link(
                 source_name,
                 destination_name,
                 src_dir_fd=source_parent_fd,
                 dst_dir_fd=destination_parent_fd,
+                follow_symlinks=False,
             )
-            moved = os.stat(destination_name, dir_fd=destination_parent_fd, follow_symlinks=False)
-            if not _same_inode(moved, source_stat):
-                raise StorageError("pending PDF changed during move")
+            linked = True
+            destination = os.stat(
+                destination_name,
+                dir_fd=destination_parent_fd,
+                follow_symlinks=False,
+            )
+            source_now = os.stat(
+                source_name,
+                dir_fd=source_parent_fd,
+                follow_symlinks=False,
+            )
+            if (
+                not _same_inode(destination, source_stat)
+                or not _same_inode(source_now, source_stat)
+            ):
+                raise StorageError("pending PDF changed during no-clobber move")
+            _fsync_directory_fd(destination_parent_fd)
+            if not self._unlink_if_matching(source_parent_fd, source_name, source_stat):
+                raise StorageError("pending PDF changed before source removal")
+            linked = False
             _fsync_directory_fd(source_parent_fd)
             if destination_parent_fd != source_parent_fd:
                 _fsync_directory_fd(destination_parent_fd)
-        except Exception:
-            if reservation_fd is not None:
-                os.close(reservation_fd)
-            if reservation_stat is not None:
+            final = os.stat(
+                destination_name,
+                dir_fd=destination_parent_fd,
+                follow_symlinks=False,
+            )
+            if not _same_inode(final, source_stat) or final.st_nlink != 1:
+                raise StorageError("pending PDF move did not produce one private name")
+            return final
+        except FileExistsError as exc:
+            raise StorageError("pending destination is occupied") from exc
+        except StorageError:
+            if linked:
                 try:
-                    current = os.stat(
+                    self._unlink_if_matching(
+                        destination_parent_fd,
                         destination_name,
-                        dir_fd=destination_parent_fd,
-                        follow_symlinks=False,
+                        source_stat,
                     )
-                    if _same_inode(current, reservation_stat):
-                        os.unlink(destination_name, dir_fd=destination_parent_fd)
-                except FileNotFoundError:
+                except OSError:
                     pass
             raise
 
     @_serialized
-    def trash_pending(self, filename: str, operation_id: str) -> tuple[Path, Path]:
+    def trash_pending(self, filename: str, operation_id: str) -> PendingTrash:
         trash_name = f"{_valid_operation_id(operation_id)}.pdf"
-        trash_fd = os.open(os.fspath(self.trash_dir), _DIRECTORY_FLAGS)
         try:
-            with self._opened_regular(self.pending_dir, filename) as (
-                _source_fd,
+            with self._opened_regular(
+                self.pending_dir,
+                filename,
+                require_single_link=True,
+            ) as (
+                source_fd,
                 source_parent_fd,
                 source_name,
-                original,
+                _original,
                 source_stat,
             ):
-                self._reserve_and_replace(
+                os.fchmod(source_fd, 0o600)
+                source_stat = os.fstat(source_fd)
+                with os.fdopen(os.dup(source_fd), "rb") as source:
+                    source_hash, source_size = _hash_reader(source)
+                final = self._link_then_unlink(
                     source_parent_fd,
                     source_name,
                     source_stat,
-                    trash_fd,
+                    self._trash_fd,
                     trash_name,
                 )
-            return original, self.trash_dir / trash_name
+            capability = secrets.token_urlsafe(32)
+            token = PendingTrash(
+                original_name=filename,
+                operation_id=operation_id,
+                source_sha256=source_hash,
+                size_bytes=source_size,
+                device=final.st_dev,
+                inode=final.st_ino,
+                _capability=capability,
+            )
+            self._trash_tokens[capability] = token
+            return token
         except StorageError:
             raise
         except OSError as exc:
             raise StorageError("pending PDF could not be trashed") from exc
-        finally:
-            os.close(trash_fd)
 
     def _pending_relative_path(self, value: Path, *, must_exist: bool) -> tuple[Path, str]:
         path = Path(value)
@@ -932,7 +1217,7 @@ class PaperStorage:
 
     def _open_destination_parent(self, relative_name: str) -> tuple[list[int], int, str]:
         parts = Path(relative_name).parts
-        fds = [os.open(os.fspath(self.pending_dir), _DIRECTORY_FLAGS)]
+        fds = [os.dup(self._pending_fd)]
         try:
             for component in parts[:-1]:
                 fds.append(os.open(component, _DIRECTORY_FLAGS, dir_fd=fds[-1]))
@@ -943,40 +1228,53 @@ class PaperStorage:
             raise
 
     @_serialized
-    def restore_pending(self, original: Path, trashed: Path) -> None:
-        _original_path, original_relative = self._pending_relative_path(
-            original,
+    def restore_pending(self, token: PendingTrash) -> None:
+        if not isinstance(token, PendingTrash):
+            raise StorageError("pending restore requires a trash token")
+        stored = self._trash_tokens.get(token._capability)
+        if stored != token:
+            raise StorageError("pending trash token is invalid or already consumed")
+        self._relative_policy(
+            self.pending_dir,
+            token.original_name,
             must_exist=False,
         )
-        trashed_path, trashed_relative = self._pending_relative_path(
-            trashed,
-            must_exist=True,
-        )
-        if Path(original_relative).parts[0] == ".trash":
-            raise StorageError("original pending path cannot be trash")
-        if Path(trashed_relative).parent != Path(".trash"):
-            raise StorageError("trashed pending path is invalid")
+        original_relative = token.original_name
+        trash_name = f"{token.operation_id}.pdf"
         destination_fds: list[int] = []
         try:
             destination_fds, destination_parent_fd, destination_name = (
                 self._open_destination_parent(original_relative)
             )
-            with self._opened_regular(self.pending_dir, trashed_relative) as (
-                _source_fd,
-                source_parent_fd,
+            with self._opened_regular(
+                self.trash_dir,
+                trash_name,
+                require_single_link=True,
+                require_private=True,
+            ) as (
+                source_fd,
+                _source_parent_fd,
                 source_name,
                 _resolved,
                 source_stat,
             ):
-                self._reserve_and_replace(
-                    source_parent_fd,
+                with os.fdopen(os.dup(source_fd), "rb") as source:
+                    source_hash, source_size = _hash_reader(source)
+                if (
+                    (source_stat.st_dev, source_stat.st_ino)
+                    != (token.device, token.inode)
+                    or (source_hash, source_size)
+                    != (token.source_sha256, token.size_bytes)
+                ):
+                    raise StorageError("trashed pending PDF does not match its token")
+                self._link_then_unlink(
+                    self._trash_fd,
                     source_name,
                     source_stat,
                     destination_parent_fd,
                     destination_name,
                 )
-        except FileExistsError as exc:
-            raise StorageError("original pending path is occupied") from exc
+            del self._trash_tokens[token._capability]
         except StorageError:
             raise
         except OSError as exc:
@@ -990,38 +1288,126 @@ class PaperStorage:
         if isinstance(cutoff, datetime):
             if cutoff.tzinfo is None:
                 cutoff = cutoff.replace(tzinfo=timezone.utc)
-            return cutoff.timestamp()
+            timestamp = cutoff.timestamp()
+            if not math.isfinite(timestamp):
+                raise StorageError("invalid reconciliation cutoff")
+            return timestamp
         if isinstance(cutoff, bool) or not isinstance(cutoff, (int, float)):
             raise StorageError("invalid reconciliation cutoff")
-        return float(cutoff)
+        timestamp = float(cutoff)
+        if not math.isfinite(timestamp):
+            raise StorageError("invalid reconciliation cutoff")
+        return timestamp
 
-    def _remove_stale_entries(self, directory: Path, cutoff: float) -> int:
-        removed = 0
-        directory_fd = os.open(os.fspath(directory), _DIRECTORY_FLAGS)
-        try:
-            for name in os.listdir(directory_fd):
-                try:
-                    entry = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
-                except FileNotFoundError:
+    def _stale_entries(
+        self,
+        directory: Path,
+        directory_fd: int,
+        cutoff: float,
+    ) -> dict[str, os.stat_result]:
+        stale: dict[str, os.stat_result] = {}
+        entries: dict[str, os.stat_result] = {}
+        directory_stat = os.fstat(directory_fd)
+        for name in os.listdir(directory_fd):
+            entry = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
+            if (
+                not stat.S_ISREG(entry.st_mode)
+                or not _private_mode(entry, 0o600)
+                or entry.st_dev != directory_stat.st_dev
+            ):
+                raise StorageError("reserved storage contains an unsafe entry")
+            entries[name] = entry
+
+        for name, entry in entries.items():
+            if entry.st_nlink != 1:
+                allowed_internal_link = False
+                if directory_fd == self._staging_fd and entry.st_nlink == 2:
+                    backup_match = _METADATA_BACKUP.fullmatch(name)
+                    if backup_match is not None:
+                        partner_name = f"{backup_match.group('operation')}.pdf"
+                        partner = entries.get(partner_name)
+                        allowed_internal_link = (
+                            partner is not None
+                            and partner.st_nlink == 2
+                            and _same_inode(entry, partner)
+                        )
+                    elif name.endswith(".pdf") and _OPERATION_ID.fullmatch(name[:-4]):
+                        partners = [
+                            other
+                            for other_name, other in entries.items()
+                            if _METADATA_BACKUP.fullmatch(other_name)
+                            and _METADATA_BACKUP.fullmatch(other_name).group("operation")
+                            == name[:-4]
+                            and _same_inode(entry, other)
+                        ]
+                        allowed_internal_link = len(partners) == 1
+                elif directory_fd == self._trash_fd and entry.st_nlink == 2:
+                    allowed_internal_link = (
+                        name.endswith(".pdf")
+                        and _OPERATION_ID.fullmatch(name[:-4]) is not None
+                    )
+                if not allowed_internal_link:
+                    raise StorageError("reserved storage contains an unknown hard link")
+            try:
+                resolved = resolve_contained(directory, name, must_exist=True)
+            except (OSError, RuntimeError, ValueError):
+                resolved = None
+            if resolved is None:
+                raise StorageError("reserved storage entry is not contained")
+            if entry.st_mtime < cutoff:
+                stale[name] = entry
+        return stale
+
+    def _revision_namespace(
+        self,
+    ) -> dict[str, tuple[os.stat_result, dict[str, os.stat_result]]]:
+        namespace: dict[str, tuple[os.stat_result, dict[str, os.stat_result]]] = {}
+        for paper_id in os.listdir(self._papers_fd):
+            try:
+                if _canonical_paper_id(paper_id) != paper_id:
                     continue
-                if entry.st_mtime >= cutoff or stat.S_ISDIR(entry.st_mode):
-                    continue
-                try:
-                    resolved = resolve_contained(directory, name, must_exist=True)
-                except (OSError, RuntimeError, ValueError):
-                    resolved = None
-                if resolved is None:
-                    continue
-                current = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
-                if not _same_inode(entry, current):
-                    continue
-                os.unlink(name, dir_fd=directory_fd)
-                removed += 1
-            if removed:
-                _fsync_directory_fd(directory_fd)
-            return removed
-        finally:
-            os.close(directory_fd)
+            except StorageError:
+                continue
+            directory = os.stat(
+                paper_id,
+                dir_fd=self._papers_fd,
+                follow_symlinks=False,
+            )
+            if (
+                not stat.S_ISDIR(directory.st_mode)
+                or not _private_mode(directory, 0o700)
+                or directory.st_dev != self._papers_stat.st_dev
+            ):
+                raise StorageError("Paper revision namespace is unsafe")
+            paper_fd = os.open(paper_id, _DIRECTORY_FLAGS, dir_fd=self._papers_fd)
+            try:
+                opened = os.fstat(paper_fd)
+                if not _same_inode(directory, opened):
+                    raise StorageError("Paper revision directory changed")
+                revisions: dict[str, os.stat_result] = {}
+                for filename in os.listdir(paper_fd):
+                    entry = os.stat(
+                        filename,
+                        dir_fd=paper_fd,
+                        follow_symlinks=False,
+                    )
+                    if stat.S_ISDIR(entry.st_mode):
+                        raise StorageError("Paper revision layout contains a directory")
+                    if not stat.S_ISREG(entry.st_mode):
+                        raise StorageError("Paper revision layout contains a special entry")
+                    if _REVISION_FILENAME.fullmatch(filename) is None:
+                        continue
+                    if (
+                        not _private_mode(entry, 0o600)
+                        or entry.st_dev != opened.st_dev
+                        or entry.st_nlink != 1
+                    ):
+                        raise StorageError("Paper revision file is unsafe")
+                    revisions[filename] = entry
+                namespace[paper_id] = (directory, revisions)
+            finally:
+                os.close(paper_fd)
+        return namespace
 
     @_serialized
     def reconcile_expired(
@@ -1034,49 +1420,60 @@ class PaperStorage:
         for paper_id, revision in referenced_revisions:
             referenced.add((_canonical_paper_id(paper_id), _valid_revision(revision)))
 
-        removed = self._remove_stale_entries(self.staging_dir, cutoff_timestamp)
-        removed += self._remove_stale_entries(self.trash_dir, cutoff_timestamp)
-        root_fd = os.open(os.fspath(self.papers_dir), _DIRECTORY_FLAGS)
+        staging_stale = self._stale_entries(
+            self.staging_dir,
+            self._staging_fd,
+            cutoff_timestamp,
+        )
+        trash_stale = self._stale_entries(
+            self.trash_dir,
+            self._trash_fd,
+            cutoff_timestamp,
+        )
+        namespace = self._revision_namespace()
+        removed = 0
         try:
-            for paper_id in os.listdir(root_fd):
+            for directory_fd, entries in (
+                (self._staging_fd, staging_stale),
+                (self._trash_fd, trash_stale),
+            ):
+                directory_removed = 0
+                for name, expected in entries.items():
+                    if not self._unlink_if_matching(directory_fd, name, expected):
+                        raise StorageError("stale storage entry changed before removal")
+                    removed += 1
+                    directory_removed += 1
+                    if directory_fd == self._trash_fd:
+                        operation_id = name[:-4] if name.endswith(".pdf") else None
+                        for capability, token in tuple(self._trash_tokens.items()):
+                            if token.operation_id == operation_id:
+                                del self._trash_tokens[capability]
+                if directory_removed:
+                    _fsync_directory_fd(directory_fd)
+
+            for paper_id, (expected_directory, revisions) in namespace.items():
+                paper_fd = os.open(paper_id, _DIRECTORY_FLAGS, dir_fd=self._papers_fd)
                 try:
-                    if _canonical_paper_id(paper_id) != paper_id:
-                        continue
-                except StorageError:
-                    continue
-                try:
-                    paper_fd = os.open(paper_id, _DIRECTORY_FLAGS, dir_fd=root_fd)
-                except (FileNotFoundError, NotADirectoryError, OSError):
-                    continue
-                paper_removed = 0
-                try:
-                    for filename in os.listdir(paper_fd):
-                        if not filename.endswith(".pdf"):
-                            continue
-                        stem = filename[:-4]
-                        if not stem.isdigit() or stem.startswith("0"):
-                            continue
-                        revision = int(stem)
+                    opened = os.fstat(paper_fd)
+                    if not _same_inode(expected_directory, opened):
+                        raise StorageError("Paper directory changed before reconciliation")
+                    paper_removed = 0
+                    for filename, expected in revisions.items():
+                        revision = int(filename[:-4])
                         if (paper_id, revision) in referenced:
                             continue
-                        relative = f"{paper_id}/{filename}"
                         try:
                             resolved = resolve_contained(
                                 self.papers_dir,
-                                relative,
+                                f"{paper_id}/{filename}",
                                 must_exist=True,
                             )
                         except (OSError, RuntimeError, ValueError):
                             resolved = None
                         if resolved is None:
-                            continue
-                        before = os.stat(filename, dir_fd=paper_fd, follow_symlinks=False)
-                        if not stat.S_ISREG(before.st_mode):
-                            continue
-                        current = os.stat(filename, dir_fd=paper_fd, follow_symlinks=False)
-                        if not _same_inode(before, current):
-                            continue
-                        os.unlink(filename, dir_fd=paper_fd)
+                            raise StorageError("revision escaped containment before removal")
+                        if not self._unlink_if_matching(paper_fd, filename, expected):
+                            raise StorageError("revision changed before reconciliation")
                         removed += 1
                         paper_removed += 1
                     if paper_removed:
@@ -1084,11 +1481,30 @@ class PaperStorage:
                 finally:
                     os.close(paper_fd)
                 try:
-                    os.rmdir(paper_id, dir_fd=root_fd)
-                except OSError:
-                    pass
+                    check_fd = os.open(
+                        paper_id,
+                        _DIRECTORY_FLAGS,
+                        dir_fd=self._papers_fd,
+                    )
+                except FileNotFoundError:
+                    remaining = None
+                else:
+                    try:
+                        remaining = os.listdir(check_fd)
+                    finally:
+                        os.close(check_fd)
+                if remaining == []:
+                    current_directory = os.stat(
+                        paper_id,
+                        dir_fd=self._papers_fd,
+                        follow_symlinks=False,
+                    )
+                    if not _same_inode(expected_directory, current_directory):
+                        raise StorageError("Paper directory changed before reconciliation")
+                    os.rmdir(paper_id, dir_fd=self._papers_fd)
+                    _fsync_directory_fd(self._papers_fd)
             return removed
+        except StorageError:
+            raise
         except OSError as exc:
             raise StorageError("storage reconciliation failed") from exc
-        finally:
-            os.close(root_fd)
