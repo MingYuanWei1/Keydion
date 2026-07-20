@@ -53,7 +53,7 @@ def _drop_database(admin_url: str, database_name: str) -> None:
     engine = create_engine(_server_url(admin_url), pool_pre_ping=True)
     try:
         with engine.begin() as conn:
-            conn.execute(text(f"DROP DATABASE `{database_name}`"))
+            conn.execute(text(f"DROP DATABASE IF EXISTS `{database_name}`"))
     finally:
         engine.dispose()
 
@@ -96,11 +96,20 @@ def main(argv: list[str] | None = None) -> int:
             }
         )
 
-        _create_database(admin_url, database_name)
+        primary_error = None
         try:
+            _create_database(admin_url, database_name)
             return _run_child(list(argv or ()), child_env)
+        except BaseException as exc:
+            primary_error = exc
+            raise
         finally:
-            _drop_database(admin_url, database_name)
+            try:
+                _drop_database(admin_url, database_name)
+            except BaseException:
+                if primary_error is None:
+                    raise
+                primary_error.add_note("isolated database cleanup also failed")
 
 
 if __name__ == "__main__":

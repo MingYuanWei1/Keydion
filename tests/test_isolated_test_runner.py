@@ -57,6 +57,68 @@ class IsolatedTestRunnerTests(unittest.TestCase):
             captured_env["PAPERQUERY_UPLOAD_DIR"],
         )
 
+    def test_create_failure_still_attempts_exact_generated_database_cleanup(self):
+        runner = self._load_runner()
+        generated_name = "keydion_test_0123456789abcdef0123456789abcdef"
+
+        with mock.patch.dict(
+            os.environ,
+            {"PAPERQUERY_TEST_MYSQL_ADMIN_URL": ADMIN_URL},
+            clear=True,
+        ), mock.patch.object(
+            runner,
+            "_create_database",
+            side_effect=RuntimeError("create failed"),
+        ) as create_database, mock.patch.object(
+            runner,
+            "_drop_database",
+            side_effect=RuntimeError("cleanup failed"),
+        ) as drop_database, mock.patch.object(runner.uuid, "uuid4") as uuid4:
+            uuid4.return_value.hex = "0123456789abcdef0123456789abcdef"
+            with self.assertRaisesRegex(RuntimeError, "create failed"):
+                runner.main([])
+
+        create_database.assert_called_once_with(ADMIN_URL, generated_name)
+        drop_database.assert_called_once_with(ADMIN_URL, generated_name)
+
+    def test_cleanup_failure_does_not_mask_child_exception(self):
+        runner = self._load_runner()
+        generated_name = "keydion_test_0123456789abcdef0123456789abcdef"
+
+        with mock.patch.dict(
+            os.environ,
+            {"PAPERQUERY_TEST_MYSQL_ADMIN_URL": ADMIN_URL},
+            clear=True,
+        ), mock.patch.object(runner, "_create_database"), mock.patch.object(
+            runner,
+            "_run_child",
+            side_effect=RuntimeError("child failed"),
+        ), mock.patch.object(
+            runner,
+            "_drop_database",
+            side_effect=RuntimeError("cleanup failed"),
+        ) as drop_database, mock.patch.object(runner.uuid, "uuid4") as uuid4:
+            uuid4.return_value.hex = "0123456789abcdef0123456789abcdef"
+            with self.assertRaisesRegex(RuntimeError, "child failed"):
+                runner.main([])
+
+        drop_database.assert_called_once_with(ADMIN_URL, generated_name)
+
+    def test_drop_database_is_idempotent_for_validated_generated_name(self):
+        runner = self._load_runner()
+        generated_name = "keydion_test_0123456789abcdef0123456789abcdef"
+        engine = mock.MagicMock()
+        connection = engine.begin.return_value.__enter__.return_value
+
+        with mock.patch.object(runner, "create_engine", return_value=engine):
+            runner._drop_database(ADMIN_URL, generated_name)
+
+        statement = str(connection.execute.call_args.args[0])
+        self.assertEqual(
+            statement,
+            f"DROP DATABASE IF EXISTS `{generated_name}`",
+        )
+
     def test_production_looking_admin_target_is_refused_before_create(self):
         runner = self._load_runner()
         production_url = (

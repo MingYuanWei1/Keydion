@@ -119,6 +119,7 @@ class AlembicRuntimeTests(unittest.TestCase):
 
             self.assertIsNone(db._ENGINE)
             self.assertIsNone(db._SESSION_LOCAL)
+            first_engine.dispose.assert_called_once_with()
 
             models.init_db()
 
