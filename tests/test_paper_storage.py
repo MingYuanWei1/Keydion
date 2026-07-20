@@ -89,6 +89,30 @@ class PaperStorageTests(unittest.TestCase):
         self.assertTrue(common.is_dir())
         self.assertEqual(list(common.iterdir()), [])
 
+    def test_constructor_rejects_distinct_aliases_of_same_open_root_identity(self):
+        common = Path(self.tmp.name) / "descriptor-alias-root"
+        common.mkdir(mode=0o700)
+
+        def open_same_root(path, _label):
+            root_fd = os.open(
+                common,
+                os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_CLOEXEC", 0),
+            )
+            return Path(os.path.abspath(os.fspath(path))), root_fd, os.fstat(root_fd)
+
+        with mock.patch.object(
+            PaperStorage,
+            "_open_private_root",
+            side_effect=open_same_root,
+        ):
+            with self.assertRaises(StorageError):
+                PaperStorage(
+                    Path(self.tmp.name) / "papers-bind-alias",
+                    Path(self.tmp.name) / "pending-bind-alias",
+                )
+
+        self.assertEqual(list(common.iterdir()), [])
+
     def test_constructor_rejects_nested_roots_before_reserved_mutation(self):
         cases = (
             ("papers-parent", Path("papers"), Path("papers/pending")),
@@ -334,6 +358,22 @@ class PaperStorageTests(unittest.TestCase):
             with self.assertRaises(StorageError):
                 self.storage.delete_paper(PAPER_ID, [legacy.name])
         self.assertEqual(legacy.read_bytes(), b"replacement")
+
+    def test_delete_rejects_multiply_linked_revision_before_any_removal(self):
+        staged = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-delete-link")
+        stored = self.storage.promote(staged, PAPER_ID, 1)
+        alias = self.storage.papers_dir / "outside-revision-alias"
+        os.link(stored.path, alias)
+        legacy = self.storage.papers_dir / "legacy.pdf"
+        legacy.write_bytes(b"legacy")
+
+        with self.assertRaises(StorageError):
+            self.storage.delete_paper(PAPER_ID, [legacy.name])
+
+        self.assertTrue(stored.path.exists())
+        self.assertTrue(alias.exists())
+        self.assertTrue(legacy.exists())
+        self.assertEqual(stored.path.stat().st_nlink, 2)
 
     def test_pdf_metadata_is_written_only_to_staged_bytes(self):
         staged = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-1")
@@ -750,6 +790,21 @@ class PaperStorageTests(unittest.TestCase):
         self.assertFalse(trashed.exists())
         with self.assertRaises(StorageError):
             self.storage.restore_pending(token)
+
+    def test_pending_ingress_cannot_address_reserved_trash_namespace(self):
+        source = self.write_pending_pdf("reserved-trash.pdf")
+        source_bytes = source.read_bytes()
+        token = self.storage.trash_pending(source.name, "op-reserved-trash")
+        reserved_spelling = ".trash/op-reserved-trash.pdf"
+
+        with self.assertRaises(StorageError):
+            self.storage.stage_pending(reserved_spelling, "op-direct-stage")
+        with self.assertRaises(StorageError):
+            self.storage.trash_pending(reserved_spelling, "op-direct-retrash")
+
+        self.storage.restore_pending(token)
+        self.assertEqual(source.read_bytes(), source_bytes)
+        self.assertFalse((self.storage.trash_dir / "op-reserved-trash.pdf").exists())
 
     def test_trash_pending_race_preserves_incumbent_and_source_bytes(self):
         source = self.write_pending_pdf()

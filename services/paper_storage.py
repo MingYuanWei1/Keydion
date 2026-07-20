@@ -265,7 +265,8 @@ class PaperStorage:
             self._closed = True
             raise
         if (
-            self.papers_dir == self.pending_dir
+            _same_inode(self._papers_stat, self._pending_stat)
+            or self.papers_dir == self.pending_dir
             or self.papers_dir in self.pending_dir.parents
             or self.pending_dir in self.papers_dir.parents
         ):
@@ -480,6 +481,15 @@ class PaperStorage:
             raise StorageError("unsafe stored filename")
         return resolved, tuple(parts)
 
+    def _validate_pending_ingress(self, filename: str) -> None:
+        _resolved, parts = self._relative_policy(
+            self.pending_dir,
+            filename,
+            must_exist=True,
+        )
+        if parts[0] == ".trash":
+            raise StorageError("pending ingress cannot address reserved trash storage")
+
     @contextmanager
     def _opened_regular(
         self,
@@ -610,6 +620,7 @@ class PaperStorage:
 
     @_serialized
     def stage_pending(self, filename: str, operation_id: str) -> StagedPdf:
+        self._validate_pending_ingress(filename)
         with self._opened_regular(
             self.pending_dir,
             filename,
@@ -861,16 +872,14 @@ class PaperStorage:
         paper_id: str,
         *,
         create: bool,
-    ) -> tuple[int, int, str, bool]:
+    ) -> tuple[int, int, str]:
         canonical = _canonical_paper_id(paper_id)
         root_fd: int | None = os.dup(self._papers_fd)
         paper_fd: int | None = None
-        created = False
         try:
             if create:
                 try:
                     os.mkdir(canonical, 0o700, dir_fd=root_fd)
-                    created = True
                     _fsync_directory_fd(root_fd)
                 except FileExistsError:
                     pass
@@ -885,7 +894,7 @@ class PaperStorage:
             opened = os.fstat(paper_fd)
             if not _same_inode(before, opened):
                 raise StorageError("Paper revision directory changed while opening")
-            return root_fd, paper_fd, canonical, created
+            return root_fd, paper_fd, canonical
         except StorageError:
             if paper_fd is not None:
                 os.close(paper_fd)
@@ -903,7 +912,7 @@ class PaperStorage:
     def promote(self, staged: StagedPdf, paper_id: str, revision: int) -> StoredPdf:
         source_path, source_hash, source_size = self._validated_stage(staged)
         number = _valid_revision(revision)
-        root_fd, paper_fd, canonical, _created = self._open_paper_directory(
+        root_fd, paper_fd, canonical = self._open_paper_directory(
             paper_id,
             create=True,
         )
@@ -1083,6 +1092,7 @@ class PaperStorage:
                         or not stat.S_ISREG(entry.st_mode)
                         or not _private_mode(entry, 0o600)
                         or entry.st_dev != opened.st_dev
+                        or entry.st_nlink != 1
                     ):
                         raise StorageError("Paper revision layout is not flat and canonical")
                     revision_entries[name] = entry
@@ -1102,9 +1112,20 @@ class PaperStorage:
             if paper_fd is not None:
                 for name, expected in revision_entries.items():
                     current = os.stat(name, dir_fd=paper_fd, follow_symlinks=False)
-                    if not _same_inode(expected, current):
+                    if (
+                        not _same_inode(expected, current)
+                        or current.st_dev != expected.st_dev
+                        or current.st_nlink != 1
+                    ):
                         raise StorageError("Paper revision changed before deletion")
                 for name, expected in revision_entries.items():
+                    current = os.stat(name, dir_fd=paper_fd, follow_symlinks=False)
+                    if (
+                        not _same_inode(expected, current)
+                        or current.st_dev != expected.st_dev
+                        or current.st_nlink != 1
+                    ):
+                        raise StorageError("Paper revision changed before unlink")
                     if not self._unlink_if_matching(paper_fd, name, expected):
                         raise StorageError("Paper revision changed during deletion")
                 _fsync_directory_fd(paper_fd)
@@ -1224,6 +1245,7 @@ class PaperStorage:
     @_serialized
     def trash_pending(self, filename: str, operation_id: str) -> PendingTrash:
         trash_name = f"{_valid_operation_id(operation_id)}.pdf"
+        self._validate_pending_ingress(filename)
         try:
             with self._opened_regular(
                 self.pending_dir,
@@ -1263,20 +1285,6 @@ class PaperStorage:
             raise
         except OSError as exc:
             raise StorageError("pending PDF could not be trashed") from exc
-
-    def _pending_relative_path(self, value: Path, *, must_exist: bool) -> tuple[Path, str]:
-        path = Path(value)
-        try:
-            relative = path.relative_to(self.pending_dir)
-        except ValueError as exc:
-            raise StorageError("pending path is outside storage") from exc
-        relative_name = relative.as_posix()
-        resolved, _parts = self._relative_policy(
-            self.pending_dir,
-            relative_name,
-            must_exist=must_exist,
-        )
-        return resolved, relative_name
 
     def _open_destination_parent(self, relative_name: str) -> tuple[list[int], int, str]:
         parts = Path(relative_name).parts
