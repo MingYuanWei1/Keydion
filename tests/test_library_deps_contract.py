@@ -52,7 +52,6 @@ def _app_with_live_document(
         author_name=author_name,
     )
     library = mock.Mock()
-    library.resolve_alias.return_value = record
     library.current_pdf.return_value = types.SimpleNamespace(paper=record)
     return _app_with_library(library), library
 
@@ -79,7 +78,6 @@ class TestLibFullText(unittest.TestCase):
             filename="paper.pdf",
         )
         library = mock.Mock()
-        library.resolve_alias.return_value = record
         library.current_pdf.side_effect = NotFound()
         app = _app_with_library(library)
         cm = _make_db_cm([
@@ -91,10 +89,9 @@ class TestLibFullText(unittest.TestCase):
             "db_session",
             return_value=cm,
         ):
-            result = app_module._lib_full_text("paper.pdf")
+            result = app_module._lib_full_text(PAPER_A_ID)
 
         self.assertEqual(result, "")
-        library.resolve_alias.assert_called_once_with("paper.pdf")
         library.current_pdf.assert_called_once_with(PAPER_A_ID)
         cm.__enter__.assert_not_called()
 
@@ -106,7 +103,7 @@ class TestLibFullText(unittest.TestCase):
         with app.test_request_context(), \
              mock.patch.object(ask_module, "db_session", return_value=cm), \
              mock.patch.object(ask_module, "_rag_paper_text") as mock_fallback:
-            result = app_module._lib_full_text("paper.pdf")
+            result = app_module._lib_full_text(PAPER_A_ID)
         expected = app_module.rag_index.reassemble(["hello world this is chunk A extra text here",
                                                     "extra text here and some more content B"])
         self.assertEqual(result, expected)
@@ -118,8 +115,8 @@ class TestLibFullText(unittest.TestCase):
         with app.test_request_context(), \
              mock.patch.object(ask_module, "db_session", return_value=cm), \
              mock.patch.object(ask_module, "_rag_paper_text", return_value="fallback text") as mock_fallback:
-            result = app_module._lib_full_text("paper.pdf")
-        mock_fallback.assert_called_once_with("paper.pdf")
+            result = app_module._lib_full_text(PAPER_A_ID)
+        mock_fallback.assert_called_once_with(PAPER_A_ID)
         self.assertEqual(result, "fallback text")
 
     def test_fallback_failure_returns_empty_string(self):
@@ -129,7 +126,7 @@ class TestLibFullText(unittest.TestCase):
              mock.patch.object(ask_module, "db_session", return_value=cm), \
              mock.patch.object(ask_module, "_rag_paper_text", side_effect=RuntimeError("OCR failed")), \
              mock.patch.object(ask_module.logger, "exception"):
-            result = app_module._lib_full_text("paper.pdf")
+            result = app_module._lib_full_text(PAPER_A_ID)
         self.assertEqual(result, "")
 
     def test_fallback_failure_log_omits_provider_exception_details(self):
@@ -150,7 +147,7 @@ class TestLibFullText(unittest.TestCase):
             "disabled",
             False,
         ), self.assertLogs(ask_module.logger, level="ERROR") as logs:
-            result = app_module._lib_full_text("paper.pdf")
+            result = app_module._lib_full_text(PAPER_A_ID)
 
         self.assertEqual(result, "")
         self.assertEqual(
@@ -174,7 +171,7 @@ class TestLibFullText(unittest.TestCase):
         with app.test_request_context(), \
              mock.patch.object(ask_module, "db_session", return_value=cm), \
              mock.patch.object(ask_module, "_rag_paper_text"):
-            app_module._lib_full_text("paper.pdf")
+            app_module._lib_full_text(PAPER_A_ID)
         join_args = fake_db.query.return_value.join.call_args.args
         self.assertIs(join_args[0], app_module.PaperMetadataModel)
         self.assertTrue(
@@ -209,13 +206,13 @@ class TestLibFullText(unittest.TestCase):
         with app.test_request_context(), \
              mock.patch.object(ask_module, "db_session", return_value=cm), \
              mock.patch.object(ask_module.logger, "exception"):
-            result = app_module._lib_full_text("paper.pdf")
+            result = app_module._lib_full_text(PAPER_A_ID)
         self.assertEqual(result, "")
 
     def test_outer_full_text_failure_log_omits_exception_details(self):
         sentinel = "SENTINEL_LIBRARY_PROVIDER_SECRET_DO_NOT_LOG"
         library = mock.Mock()
-        library.resolve_alias.side_effect = RuntimeError(sentinel)
+        library.current_pdf.side_effect = RuntimeError(sentinel)
         app = _app_with_library(library)
 
         with app.test_request_context(), mock.patch.object(
@@ -226,7 +223,7 @@ class TestLibFullText(unittest.TestCase):
             ask_module.logger,
             level="ERROR",
         ) as logs:
-            result = app_module._lib_full_text("paper.pdf")
+            result = app_module._lib_full_text(PAPER_A_ID)
 
         self.assertEqual(result, "")
         self.assertEqual(
@@ -243,7 +240,7 @@ class TestLibFullText(unittest.TestCase):
         with app.test_request_context(), \
              mock.patch.object(ask_module, "db_session", return_value=cm), \
              mock.patch.object(ask_module, "_rag_paper_text") as mock_fallback:
-            result = app_module._lib_full_text("paper.pdf")
+            result = app_module._lib_full_text(PAPER_A_ID)
         # Single chunk with None content — reassemble([""])
         self.assertEqual(result, app_module.rag_index.reassemble([""]))
         mock_fallback.assert_not_called()
@@ -309,10 +306,6 @@ class TestLibFullTextVisibilityRace(PublishingLifecycleTestCase, unittest.TestCa
         )
 
         class RacingLibrary:
-            def resolve_alias(inner_self, filename):
-                self.assertEqual(filename, record.filename)
-                return record
-
             def current_pdf(inner_self, paper_id):
                 self.assertEqual(paper_id, record.paper_id)
                 document = types.SimpleNamespace(paper=record)
@@ -331,9 +324,9 @@ class TestLibFullTextVisibilityRace(PublishingLifecycleTestCase, unittest.TestCa
             "_rag_paper_text",
             return_value=fallback_text,
         ) as fallback:
-            result = app_module._lib_full_text(record.filename)
+            result = app_module._lib_full_text(record.paper_id)
 
-        fallback.assert_called_once_with(record.filename)
+        fallback.assert_called_once_with(record.paper_id)
         self.assertEqual(result, fallback_text)
 
     def test_revision_switch_after_verification_drops_old_revision_chunks(self):
@@ -410,7 +403,10 @@ class TestLibSearch(unittest.TestCase):
              mock.patch.object(ask_module, "url_for", return_value="/preview/x.pdf"):
             results = app_module._lib_search("q")
         for r in results:
-            self.assertSetEqual(set(r.keys()), {"filename", "title", "authors", "url", "snippet"})
+            self.assertSetEqual(
+                set(r.keys()),
+                {"paper_id", "revision_number", "filename", "title", "authors", "url", "snippet"},
+            )
 
     def test_snippet_max_400_chars(self):
         hits = self._make_hits()
@@ -539,6 +535,36 @@ class TestLibSearch(unittest.TestCase):
             ["notes.txt", "current.pdf"],
         )
 
+    def test_current_hit_reprojects_live_display_metadata(self):
+        hits = [{
+            "paper_id": PAPER_A_ID,
+            "revision_number": 2,
+            "filename": "stale-name.pdf",
+            "title": "Stale title",
+            "author_name": "Stale Author",
+            "content": "CURRENT REVISION TEXT",
+        }]
+        library = mock.Mock()
+        library.list_visible.return_value = (
+            types.SimpleNamespace(
+                paper_id=PAPER_A_ID,
+                current_revision=2,
+                filename="current-name.pdf",
+                title="Current title",
+                author_name="Current Author",
+            ),
+        )
+
+        results = ask_module._filter_available_grounding_hits(hits, library)
+
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["paper_id"], PAPER_A_ID)
+        self.assertEqual(results[0]["revision_number"], 2)
+        self.assertEqual(results[0]["filename"], "current-name.pdf")
+        self.assertEqual(results[0]["title"], "Current title")
+        self.assertEqual(results[0]["author_name"], "Current Author")
+        self.assertEqual(results[0]["content"], "CURRENT REVISION TEXT")
+
     def test_stale_revision_text_never_merges_into_a_current_hit(self):
         hits = [
             {
@@ -585,22 +611,13 @@ class TestLibPaperMeta(unittest.TestCase):
     def test_unavailable_current_file_never_discloses_stored_metadata(self):
         record = types.SimpleNamespace(paper_id=PAPER_A_ID)
         library = mock.Mock()
-        library.resolve_alias.return_value = record
         library.current_pdf.side_effect = NotFound()
         app = _app_with_library(library)
 
-        with app.test_request_context(), mock.patch.object(
-            ask_module,
-            "_visible_paper_by_filename",
-            return_value={
-                "title": "Unavailable Secret Title",
-                "author_name": "Secret Author",
-            },
-        ):
-            result = app_module._lib_paper_meta("paper.pdf")
+        with app.test_request_context():
+            result = app_module._lib_paper_meta(PAPER_A_ID)
 
         self.assertEqual(result, {})
-        library.resolve_alias.assert_called_once_with("paper.pdf")
         library.current_pdf.assert_called_once_with(PAPER_A_ID)
 
     def test_returns_title_and_authors(self):
@@ -609,8 +626,14 @@ class TestLibPaperMeta(unittest.TestCase):
             author_name="Doe",
         )
         with app.test_request_context():
-            result = app_module._lib_paper_meta("paper.pdf")
-        self.assertEqual(result, {"title": "My Paper", "authors": "Doe"})
+            result = app_module._lib_paper_meta(PAPER_A_ID)
+        self.assertEqual(result, {
+            "paper_id": PAPER_A_ID,
+            "revision_number": 2,
+            "filename": "paper.pdf",
+            "title": "My Paper",
+            "authors": "Doe",
+        })
 
     def test_title_falls_back_to_filename_when_empty(self):
         app, _library = _app_with_live_document(
@@ -618,16 +641,15 @@ class TestLibPaperMeta(unittest.TestCase):
             author_name="",
         )
         with app.test_request_context():
-            result = app_module._lib_paper_meta("paper.pdf")
+            result = app_module._lib_paper_meta(PAPER_A_ID)
         self.assertEqual(result["title"], "paper.pdf")
 
 
 class TestLibPaperUrl(unittest.TestCase):
 
-    def test_resolves_live_alias_and_current_file_to_uuid_url(self):
+    def test_resolves_current_uuid_to_canonical_url(self):
         record = types.SimpleNamespace(paper_id=PAPER_A_ID)
         library = mock.Mock()
-        library.resolve_alias.return_value = record
         library.current_pdf.return_value = types.SimpleNamespace(paper=record)
         app = _app_with_library(library)
 
@@ -636,17 +658,15 @@ class TestLibPaperUrl(unittest.TestCase):
             "url_for",
             return_value=f"/paper/{PAPER_A_ID}",
         ) as build_url:
-            result = app_module._lib_paper_url("paper.pdf")
+            result = app_module._lib_paper_url(PAPER_A_ID)
 
         self.assertEqual(result, f"/paper/{PAPER_A_ID}")
-        library.resolve_alias.assert_called_once_with("paper.pdf")
         library.current_pdf.assert_called_once_with(PAPER_A_ID)
         build_url.assert_called_once_with("preview_paper", paper_id=PAPER_A_ID)
 
     def test_returns_none_when_current_file_is_unavailable(self):
         record = types.SimpleNamespace(paper_id=PAPER_A_ID)
         library = mock.Mock()
-        library.resolve_alias.return_value = record
         library.current_pdf.side_effect = NotFound()
         app = _app_with_library(library)
 
@@ -654,10 +674,9 @@ class TestLibPaperUrl(unittest.TestCase):
             ask_module,
             "url_for",
         ) as build_url:
-            result = app_module._lib_paper_url("paper.pdf")
+            result = app_module._lib_paper_url(PAPER_A_ID)
 
         self.assertIsNone(result)
-        library.resolve_alias.assert_called_once_with("paper.pdf")
         library.current_pdf.assert_called_once_with(PAPER_A_ID)
         build_url.assert_not_called()
 

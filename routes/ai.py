@@ -37,6 +37,7 @@ from services.ai import (
     _build_library_deps,
     _filter_cited,
     _forced_grounding,
+    _normalize_stored_paper_references,
     _prepare_available_grounding_hits,
     _tool_status_text,
 )
@@ -179,17 +180,33 @@ def register_routes(app):
             out = []
             for m in msgs:
                 try:
-                    cites = json.loads(m.citations) if m.citations else []
+                    stored_cites = json.loads(m.citations) if m.citations else []
                 except (ValueError, TypeError):
-                    cites = []
+                    stored_cites = []
+                cites = _normalize_stored_paper_references(
+                    stored_cites,
+                    app.extensions["paper_library"],
+                    allow_legacy_aliases=True,
+                    preserve_attachments=True,
+                )
+                for citation in cites:
+                    if not citation.get("is_attachment"):
+                        citation["url"] = url_for(
+                            "preview_paper", paper_id=citation["paper_id"]
+                        )
                 try:
                     atts = json.loads(m.attachments) if m.attachments else []
                 except (ValueError, TypeError):
                     atts = []
                 try:
-                    paps = json.loads(m.cited_papers) if m.cited_papers else []
+                    stored_paps = json.loads(m.cited_papers) if m.cited_papers else []
                 except (ValueError, TypeError):
-                    paps = []
+                    stored_paps = []
+                paps = _normalize_stored_paper_references(
+                    stored_paps,
+                    app.extensions["paper_library"],
+                    allow_legacy_aliases=True,
+                )
                 out.append({"role": m.role, "content": m.content,
                             "citations": cites, "attachments": atts, "papers": paps})
             att = (db.query(AttachmentChunkModel.filename)
@@ -221,6 +238,7 @@ def register_routes(app):
             records = visible_records
         items = [{
             "paper_id": r["paper_id"],
+            "revision_number": r["current_revision"],
             "filename": r["filename"],
             "title": r.get("title") or r["filename"],
             "authors": r.get("author_name", ""),
@@ -314,34 +332,20 @@ def register_routes(app):
         if not isinstance(msg_attachments, list):
             msg_attachments = []
         msg_attachments = [str(x)[:255] for x in msg_attachments[:10]]
-        # Library papers cited with *this* message ({filename, title}). Persisted
+        # Library Papers cited with this message. Client display fields are
+        # ignored; exact current metadata is re-projected from PaperLibrary.
         # per-message so the chip follows the message and the forced-grounding set
         # can be rebuilt as the union across the conversation (cited papers stay
         # as context for follow-ups).
         msg_papers = data.get("message_papers") or []
         if not isinstance(msg_papers, list):
             msg_papers = []
-        clean_papers = []
-        for it in msg_papers[:10]:
-            if isinstance(it, dict) and it.get("filename"):
-                clean_papers.append({
-                    "filename": str(it.get("filename"))[:255],
-                    "title": str(it.get("title") or it.get("filename"))[:255],
-                })
-        # Backward-compat: older cached frontends post a flat `paper_filenames`
-        # list (no titles) instead of `message_papers`. Honor it so a stale
-        # client never silently loses library-cite grounding (the title falls
-        # back to the filename — display-only and replaced once new JS loads).
-        legacy = data.get("paper_filenames")
-        if isinstance(legacy, list):
-            have = {p["filename"] for p in clean_papers}
-            for fn in legacy[:10]:
-                fn = str(fn)[:255]
-                if fn and fn not in have:
-                    have.add(fn)
-                    clean_papers.append({"filename": fn, "title": fn})
-        msg_papers = clean_papers
-        forced = [p["filename"] for p in msg_papers]   # union'd across the conversation below
+        msg_papers = _normalize_stored_paper_references(
+            msg_papers[:10],
+            app.extensions["paper_library"],
+            allow_legacy_aliases=False,
+        )
+        forced = [p["paper_id"] for p in msg_papers]
         if not question:
             return jsonify({"error": str(_("Please enter a question."))}), 400
         if len(question) > MAX_QUESTION_CHARS:
@@ -386,11 +390,16 @@ def register_routes(app):
                             cp_items = json.loads(cp) if cp else []
                         except (ValueError, TypeError):
                             cp_items = []
-                        for it in cp_items:
-                            fn = it.get("filename") if isinstance(it, dict) else None
-                            if fn and fn not in seen_forced:
-                                seen_forced.add(fn)
-                                forced.append(fn)
+                        references = _normalize_stored_paper_references(
+                            cp_items,
+                            app.extensions["paper_library"],
+                            allow_legacy_aliases=True,
+                        )
+                        for reference in references:
+                            paper_id = reference["paper_id"]
+                            if paper_id not in seen_forced:
+                                seen_forced.add(paper_id)
+                                forced.append(paper_id)
                 else:
                     conv_serial = None
         llm_messages = _ask_llm_messages(question, history_rows)
@@ -415,13 +424,24 @@ def register_routes(app):
             hits = []
 
         model = llm_client.think_model() if mode == "think" else llm_client.flash_model()
-        citations = [
-            {"n": i + 1, "filename": h["filename"], "title": h["title"],
-             "authors": h.get("author_name", ""),
-             "url": (None if h.get("is_attachment")
-                     else url_for("preview_paper", paper_id=h["paper_id"]))}
-            for i, h in enumerate(hits)
-        ]
+        citations = []
+        for i, hit in enumerate(hits):
+            citation = {
+                "n": i + 1,
+                "filename": hit["filename"],
+                "title": hit["title"],
+                "authors": hit.get("author_name", ""),
+                "url": None,
+            }
+            if hit.get("is_attachment"):
+                citation["is_attachment"] = True
+            else:
+                citation.update({
+                    "paper_id": hit["paper_id"],
+                    "revision_number": hit["revision_number"],
+                    "url": url_for("preview_paper", paper_id=hit["paper_id"]),
+                })
+            citations.append(citation)
         web_results = []
         if web_on and web_search.web_search_enabled():
             try:
@@ -477,20 +497,39 @@ def register_routes(app):
                 # candidates), preserving order so [n] matches what the model sees.
                 candidates = []
                 for h in hits:
-                    n = registry.register(h["filename"], {
+                    is_attachment = bool(h.get("is_attachment"))
+                    source_id = h["filename"] if is_attachment else h["paper_id"]
+                    source_meta = {
+                        "filename": h["filename"],
                         "title": h.get("title") or h["filename"],
                         "authors": h.get("author_name", ""),
-                        "url": (None if h.get("is_attachment")
+                        "url": (None if is_attachment
                                 else url_for("preview_paper", paper_id=h["paper_id"])),
-                    })
-                    candidates.append({
+                    }
+                    if not is_attachment:
+                        source_meta.update({
+                            "paper_id": h["paper_id"],
+                            "revision_number": h["revision_number"],
+                        })
+                    n = registry.register(
+                        source_id,
+                        source_meta,
+                        is_attachment=is_attachment,
+                    )
+                    candidate = {
                         "n": n,
                         "title": h.get("title") or h["filename"],
                         "authors": h.get("author_name", ""),
                         "filename": h["filename"],
                         "snippet": (h.get("content") or "")[:500],
-                        "is_attachment": bool(h.get("is_attachment")),
-                    })
+                        "is_attachment": is_attachment,
+                    }
+                    if not is_attachment:
+                        candidate.update({
+                            "paper_id": h["paper_id"],
+                            "revision_number": h["revision_number"],
+                        })
+                    candidates.append(candidate)
 
                 # Register web results into the SAME registry right after the
                 # library seed, reserving contiguous numbers so papers discovered
@@ -515,9 +554,13 @@ def register_routes(app):
                 # Pre-read forced papers so the model has their full text up front.
                 if forced:
                     results = []
-                    for fn in forced:
+                    for paper_id in forced:
                         res = library_tools.run_tool(
-                            "read_paper", _json.dumps({"filename": fn}), registry, deps)
+                            "read_paper",
+                            _json.dumps({"paper_id": paper_id}),
+                            registry,
+                            deps,
+                        )
                         if res and not res.startswith("Error:"):
                             results.append(res)
                     if results:

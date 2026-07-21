@@ -16,7 +16,9 @@ class SearchTemplateTest(unittest.TestCase):
         return template.render(
             _=lambda value, **kwargs: value % kwargs if kwargs else value,
             ngettext=lambda singular, plural, n, **kwargs: singular % kwargs if n == 1 else plural % kwargs,
-            url_for=lambda endpoint, **kwargs: f"/{endpoint}",
+            url_for=lambda endpoint, **kwargs: (
+                f"/{endpoint}/{kwargs.get('paper_id', '')}"
+            ),
             get_flashed_messages=lambda with_categories=False: [],
             request=SimpleNamespace(full_path="/search", args={}),
             session={},
@@ -45,6 +47,8 @@ class SearchTemplateTest(unittest.TestCase):
     def test_legacy_ib_sample_result_hides_school_and_keeps_date(self):
         html = self.render_search([
             {
+                "paper_id": "00000000-0000-4000-8000-000000000931",
+                "revision_number": 1,
                 "filename": "sample.pdf",
                 "title": "Sample",
                 "category": "History",
@@ -64,6 +68,8 @@ class SearchTemplateTest(unittest.TestCase):
     def test_anonymous_result_hides_author_and_school_keeps_date(self):
         html = self.render_search([
             {
+                "paper_id": "00000000-0000-4000-8000-000000000932",
+                "revision_number": 2,
                 "filename": "anon.pdf",
                 "title": "Anonymous Paper",
                 "category": "Physics",
@@ -85,6 +91,24 @@ class SearchTemplateTest(unittest.TestCase):
         html = self.render_search([])
 
         self.assertIn('<option value="cp" >Community Project</option>', html)
+
+    def test_result_links_use_uuid_not_filename(self):
+        paper_id = "00000000-0000-4000-8000-000000000933"
+        html = self.render_search([{
+            "paper_id": paper_id,
+            "revision_number": 4,
+            "filename": "display-name.pdf",
+            "title": "Display title",
+            "category": "History",
+            "author_name": "Author",
+            "author_school": "School",
+            "published_at": "2026-07-21",
+            "abstract": "Abstract",
+            "is_ib_sample": "",
+        }])
+
+        self.assertIn(f"/preview_paper/{paper_id}", html)
+        self.assertNotIn("/preview_paper/display-name.pdf", html)
 
 
 if __name__ == "__main__":

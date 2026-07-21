@@ -2,6 +2,8 @@
 import os
 import sys
 import unittest
+from pathlib import Path
+from types import SimpleNamespace
 
 os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
 
@@ -100,23 +102,20 @@ class ConversationDeletePurges(unittest.TestCase):
 class RagPaperTextOcr(unittest.TestCase):
     def test_rag_paper_text_uses_pdf_text(self):
         from unittest import mock
-        from pathlib import Path
-        with mock.patch.object(
-            ask_module,
-            "_visible_paper_by_filename",
-            return_value={
-                "paper_id": "11111111-1111-4111-8111-111111111111",
-                "current_revision": 1,
-                "filename": "paper.pdf",
-                "language": "en",
-            },
-        ), \
-             mock.patch.object(
-                 ask_module, "_revision_path", return_value=Path("/safe/1.pdf")
+        paper_id = "11111111-1111-4111-8111-111111111111"
+        library = mock.Mock()
+        library.current_pdf.return_value = SimpleNamespace(
+            paper=SimpleNamespace(language="en"),
+            path=Path("/safe/1.pdf"),
+        )
+        with app_module.app.app_context(), \
+             mock.patch.dict(
+                 app_module.app.extensions, {"paper_library": library}
              ), \
              mock.patch("pathlib.Path.read_bytes", return_value=b"%PDF-1.4 fake"), \
              mock.patch("pdf_text.extract_pdf_text", return_value="scanned paper text") as ex:
-            out = app_module._rag_paper_text("paper.pdf")
+            out = app_module._rag_paper_text(paper_id)
+        library.current_pdf.assert_called_once_with(paper_id)
         ex.assert_called_once()
         self.assertEqual(out, "scanned paper text")
 

@@ -34,8 +34,9 @@ class AskCiteFollowMessageJs(unittest.TestCase):
         self.assertNotIn("paper_filenames", self.js)
 
     def test_selected_paper_list_helper_exists(self):
-        # a helper exposes selected papers as {filename, title} for display + posting
+        # a helper exposes UUID-keyed selected Paper records for display + posting
         self.assertIn("__selectedPaperList", self.js)
+        self.assertIn("paper_id: paperId", self.js)
 
     def test_send_clears_selected_papers(self):
         # send() must empty the library-cite set so the composer doesn't keep it pinned
@@ -78,11 +79,9 @@ class AskPersistsCitedPapers(unittest.TestCase):
         self.assertIn("ChatMessageModel.cited_papers", self.src)
         self.assertIn("_forced_grounding(", self.src)
 
-    def test_honors_legacy_paper_filenames(self):
-        # Backward-compat: a stale/cached frontend still posts the old flat
-        # `paper_filenames` field instead of `message_papers`. The backend must
-        # honor it so version skew never silently drops library-cite grounding.
-        self.assertIn('data.get("paper_filenames"', self.src)
+    def test_new_writes_do_not_resolve_legacy_paper_filenames(self):
+        self.assertNotIn('data.get("paper_filenames"', self.src)
+        self.assertIn("allow_legacy_aliases=False", self.src)
 
 
 class ConversationGetReturnsMessagePapers(unittest.TestCase):

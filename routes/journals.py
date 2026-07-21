@@ -170,10 +170,11 @@ def register_routes(app):
             return redirect(url_for("admin_journal_edit", journal_id=journal_id))
 
         # GET: load papers belonging to this journal + the full pool for the picker
-        all_papers = [
-            asdict(paper)
-            for paper in app.extensions["paper_library"].list_visible()
-        ]
+        all_papers = []
+        for paper in app.extensions["paper_library"].list_visible():
+            record = asdict(paper)
+            record["revision_number"] = paper.current_revision
+            all_papers.append(record)
         journal_papers = [p for p in all_papers if p.get("journal") == journal["name"]]
         journal_papers.sort(key=lambda r: r.get("published_at") or "", reverse=True)
         journal_paper_ids = [p.get("paper_id") for p in journal_papers]
@@ -257,6 +258,8 @@ def register_routes(app):
             return redirect(url_for("journal_list_page"))
         # Get papers in this journal
         all_papers = gather_paper_records(app.extensions["paper_library"])
+        for paper in all_papers:
+            paper["revision_number"] = paper["current_revision"]
         journal_papers = [p for p in all_papers if p.get("journal") == journal["name"]]
         journal_papers.sort(key=lambda r: r.get("published_at") or "", reverse=True)
 

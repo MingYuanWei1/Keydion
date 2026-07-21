@@ -669,6 +669,10 @@ class CanonicalPaperPdfRouteTest(unittest.TestCase):
             [record["paper_id"] for record in rendered["records"]],
             [PAPER_ID],
         )
+        self.assertEqual(
+            [record["revision_number"] for record in rendered["records"]],
+            [2],
+        )
         self.assertEqual(rendered["total_matches"], 1)
 
 
@@ -724,6 +728,7 @@ class AiPaperVisibilityRouteTest(unittest.TestCase):
             [
                 {
                     "paper_id": PAPER_ID,
+                    "revision_number": 2,
                     "filename": "canonical paper.pdf",
                     "title": "Canonical Paper",
                     "authors": "Ada Author",

@@ -65,6 +65,7 @@ def _visible_paper_records() -> List[Dict[str, str]]:
             }
             record["paper_id"] = paper.id
             record["current_revision"] = paper.current_revision
+            record["revision_number"] = paper.current_revision
             if not record["title"]:
                 record["title"] = paper.filename.rsplit(".", 1)[0]
             records.append(record)

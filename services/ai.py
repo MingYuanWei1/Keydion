@@ -14,7 +14,6 @@ import pdf_text
 import rag_index
 import vision_read
 import web_search
-from config import PAPERS_DIR, PENDING_PAPERS_DIR
 from db import db_session
 from models import (
     AttachmentChunkModel,
@@ -22,7 +21,6 @@ from models import (
     PaperMetadataModel,
     RagIndexMetaModel,
 )
-from services.paper_storage import PaperStorage
 from services.publishing_contracts import NotFound
 
 logger = logging.getLogger(__name__)
@@ -43,52 +41,23 @@ def _index_ocr_langs(language: str) -> str:
     return "eng+chi_sim"
 
 
-def _visible_paper_by_filename(filename):
-    with db_session() as db:
-        paper = (
-            db.query(PaperMetadataModel)
-            .filter(
-                PaperMetadataModel.filename == filename,
-                PaperMetadataModel.lifecycle_state == "published",
-                PaperMetadataModel.current_revision.isnot(None),
-            )
-            .one_or_none()
-        )
-        if paper is None:
-            return None
-        return {
-            "paper_id": paper.id,
-            "current_revision": paper.current_revision,
-            "filename": paper.filename,
-            "title": paper.title or paper.filename,
-            "author_name": paper.author_name or "",
-            "language": paper.language or "",
-        }
-
-
-def _revision_path(paper_id, revision):
-    storage = PaperStorage(PAPERS_DIR, PENDING_PAPERS_DIR)
-    try:
-        return storage.open_revision(paper_id, revision)
-    finally:
-        storage.close()
-
-
-def _rag_paper_text(filename):
+def _rag_paper_text(paper_id):
     # Indexing path: OCR scanned published papers so they're retrievable by
     # chat grounding AND readable in full by read_paper. Uses a higher page
     # cap (50) than request-path callers (10) and biases OCR by the paper's
     # declared language. (The live /search full-text fallback still uses the
     # pypdf-only extract_pdf_text(pdf_path) to avoid OCR per request.)
-    record = _visible_paper_by_filename(filename)
-    if record is None:
+    try:
+        document = current_app.extensions["paper_library"].current_pdf(paper_id)
+    except NotFound:
         return ""
-    lang = record.get("language", "")
+    record = document.paper
+    lang = record.language or ""
     ocr_langs = _index_ocr_langs(lang)
     vf = (lambda b, mp: vision_read.transcribe_pdf(b, max_pages=mp, language=lang or "en")) \
         if llm_client.vision_enabled() else None
     return pdf_text.extract_pdf_text(
-        _revision_path(record["paper_id"], record["current_revision"]).read_bytes(),
+        document.path.read_bytes(),
         ocr_langs=ocr_langs, max_ocr_pages=50, vision_fallback=vf)
 
 
@@ -206,17 +175,91 @@ def configure_rag():
 # _build_library_deps() and pass the result as `deps`.
 
 
-def _live_paper_document(filename: str):
-    """Resolve one alias only when its exact current PDF is still available."""
+def _live_paper_document(paper_id: str):
+    """Resolve one UUID only when its exact current PDF is still available."""
     library = current_app.extensions["paper_library"]
     try:
-        record = library.resolve_alias(filename)
-        return library.current_pdf(record.paper_id)
+        return library.current_pdf(paper_id)
     except NotFound:
         return None
 
 
-def _lib_full_text(filename: str) -> str:
+def _normalize_stored_paper_references(
+    items,
+    library,
+    *,
+    allow_legacy_aliases: bool,
+    preserve_attachments: bool = False,
+) -> list[dict]:
+    """Project stored/new references from live PaperLibrary state.
+
+    Filename aliases are consulted only for old persisted records. New caller
+    data must provide a Paper UUID; client-provided display metadata is ignored.
+    """
+    if not isinstance(items, list):
+        return []
+    normalized = []
+    seen = set()
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        paper_id = item.get("paper_id")
+        has_paper_id = isinstance(paper_id, str) and bool(paper_id.strip())
+        is_attachment = item.get("is_attachment") is True or (
+            not has_paper_id
+            and "url" in item
+            and not item.get("url")
+        )
+        if is_attachment:
+            if not preserve_attachments:
+                continue
+            filename = item.get("filename")
+            if not isinstance(filename, str) or not filename:
+                continue
+            identity = ("attachment", filename)
+            if identity in seen:
+                continue
+            seen.add(identity)
+            attachment = {
+                "filename": filename,
+                "title": item.get("title") or filename,
+                "authors": item.get("authors") or "",
+                "url": None,
+                "is_attachment": True,
+            }
+            if type(item.get("n")) is int:
+                attachment["n"] = item["n"]
+            normalized.append(attachment)
+            continue
+        try:
+            if has_paper_id:
+                document = library.current_pdf(paper_id.strip())
+            elif allow_legacy_aliases and isinstance(item.get("filename"), str):
+                record = library.resolve_alias(item["filename"])
+                document = library.current_pdf(record.paper_id)
+            else:
+                continue
+        except NotFound:
+            continue
+        record = document.paper
+        identity = ("paper", record.paper_id)
+        if identity in seen:
+            continue
+        seen.add(identity)
+        reference = {
+            "paper_id": record.paper_id,
+            "revision_number": record.current_revision,
+            "filename": record.filename,
+            "title": record.title or record.filename,
+            "authors": record.author_name or "",
+        }
+        if type(item.get("n")) is int:
+            reference["n"] = item["n"]
+        normalized.append(reference)
+    return normalized
+
+
+def _lib_full_text(paper_id: str) -> str:
     """Return the full text of a paper by reassembling its stored chunks.
 
     Prefers stored chunks (reassemble undoes the overlap introduced by
@@ -226,7 +269,7 @@ def _lib_full_text(filename: str) -> str:
     returned so the caller is never disrupted.
     """
     try:
-        document = _live_paper_document(filename)
+        document = _live_paper_document(paper_id)
         if document is None:
             return ""
         with db_session() as db:
@@ -254,7 +297,7 @@ def _lib_full_text(filename: str) -> str:
             return rag_index.reassemble(contents)
         # No stored chunks — try live extraction as a last resort.
         try:
-            return _rag_paper_text(document.paper.filename)
+            return _rag_paper_text(document.paper.paper_id)
         except Exception:
             logger.error("library full-text OCR fallback failed")
             return ""
@@ -264,22 +307,37 @@ def _lib_full_text(filename: str) -> str:
 
 
 def _filter_available_grounding_hits(hits, library) -> list:
-    """Keep attachments and live library hits without changing their rank."""
-    current_revision_by_id = {
-        str(record.paper_id): record.current_revision
+    """Keep attachments and current Paper hits, reprojected from live metadata."""
+    current_by_id = {
+        str(record.paper_id): record
         for record in library.list_visible()
     }
-    return [
-        hit
-        for hit in hits
-        if hit.get("is_attachment") is True
-        or (
-            hit.get("paper_id") is not None
-            and type(hit.get("revision_number")) is int
-            and current_revision_by_id.get(str(hit["paper_id"]))
-            == hit["revision_number"]
-        )
-    ]
+    available = []
+    missing = object()
+    for hit in hits:
+        if hit.get("is_attachment") is True:
+            available.append(hit)
+            continue
+
+        paper_id = hit.get("paper_id")
+        revision_number = hit.get("revision_number")
+        record = current_by_id.get(str(paper_id))
+        if (
+            record is None
+            or type(revision_number) is not int
+            or record.current_revision != revision_number
+        ):
+            continue
+
+        projected = dict(hit)
+        projected["paper_id"] = str(record.paper_id)
+        projected["revision_number"] = record.current_revision
+        for field in ("filename", "title", "author_name"):
+            value = getattr(record, field, missing)
+            if value is not missing:
+                projected[field] = value
+        available.append(projected)
+    return available
 
 
 def _prepare_available_grounding_hits(hits, library) -> list:
@@ -302,6 +360,8 @@ def _lib_search(query: str) -> list:
         )
         return [
             {
+                "paper_id": h["paper_id"],
+                "revision_number": h["revision_number"],
                 "filename": h["filename"],
                 "title": h.get("title") or h["filename"],
                 "authors": h.get("author_name", ""),
@@ -319,19 +379,22 @@ def _lib_search(query: str) -> list:
         return []
 
 
-def _lib_paper_meta(filename: str) -> dict:
-    document = _live_paper_document(filename)
+def _lib_paper_meta(paper_id: str) -> dict:
+    document = _live_paper_document(paper_id)
     if document is None:
         return {}
     record = document.paper
     return {
+        "paper_id": record.paper_id,
+        "revision_number": record.current_revision,
+        "filename": record.filename,
         "title": record.title or record.filename,
         "authors": record.author_name,
     }
 
 
-def _lib_paper_url(filename: str) -> str | None:
-    document = _live_paper_document(filename)
+def _lib_paper_url(paper_id: str) -> str | None:
+    document = _live_paper_document(paper_id)
     if document is None:
         return None
     return url_for("preview_paper", paper_id=document.paper.paper_id)
@@ -443,9 +506,12 @@ def _build_agentic_ask_prompt(question, candidates, web_sources, locale_code,
     lines = []
     for c in candidates:
         head = (f"[{c['n']}] {c.get('title') or c.get('filename')} — "
-                f"{c.get('authors', '')} (filename: {c.get('filename')})")
+                f"{c.get('authors', '')}")
         if c.get("is_attachment"):
-            head += " (attached file)"
+            head += f" (attached filename: {c.get('filename')})"
+        else:
+            head += (f" (paper_id: {c.get('paper_id')}; "
+                     f"filename: {c.get('filename')})")
         lines.append(head)
         snippet = (c.get("snippet") or "").strip()
         if snippet:
@@ -465,7 +531,7 @@ def _build_agentic_ask_prompt(question, candidates, web_sources, locale_code,
         "- search_library(query): search the library for more relevant papers — use "
         "it to find papers beyond the candidates listed below, or when the "
         "candidates do not cover the question.\n"
-        "- read_paper(filename): fetch a paper's FULL text — use it when the user "
+        "- read_paper(paper_id): fetch a paper's FULL text — use it when the user "
         "asks you to explain or summarize a specific paper, or when a candidate "
         "snippet is too thin to answer well.\n"
         + ("- web_search(query): search the public web. Prefer the library FIRST; "
@@ -506,18 +572,18 @@ def _tool_status_text(name, arguments, registry, deps):
         title = None
         try:
             args = arguments if isinstance(arguments, dict) else json.loads(arguments)
-            filename = str(args.get("filename") or "").strip()
-            if filename:
+            paper_id = str(args.get("paper_id") or "").strip()
+            if paper_id:
                 for c in registry.as_citations():
-                    if c.get("filename") == filename:
+                    if c.get("paper_id") == paper_id:
                         title = c.get("title")
                         break
                 if not title:
                     try:
-                        title = (deps.paper_meta(filename) or {}).get("title")
+                        title = (deps.paper_meta(paper_id) or {}).get("title")
                     except Exception:
                         title = None
-                title = title or filename
+                title = title or paper_id
         except Exception:
             title = None
         if title:
@@ -605,7 +671,12 @@ def _dedupe_hits_by_paper(hits):
     merged = {}
     order = []
     for h in hits:
-        identity = h.get("paper_id") or h.get("filename")
+        if h.get("is_attachment") is True:
+            identity = ("attachment", h.get("filename"))
+        else:
+            identity = ("paper", h.get("paper_id"))
+        if not identity[1]:
+            continue
         if identity not in merged:
             merged[identity] = dict(h)
             order.append(identity)
@@ -648,7 +719,7 @@ def _cosine_f32(qvec, buf):
     return float(np.dot(v, qvec)) / denom
 
 
-def _forced_grounding(question, filenames):
+def _forced_grounding(question, paper_ids):
     """Ground on user-selected papers: score their stored chunks against the question."""
     chunks = []
     with db_session() as db:
@@ -665,7 +736,7 @@ def _forced_grounding(question, filenames):
             )
             .join(PaperMetadataModel, PaperMetadataModel.id == PaperChunkModel.paper_id)
             .filter(
-                PaperMetadataModel.filename.in_(filenames),
+                PaperMetadataModel.id.in_(paper_ids),
                 PaperMetadataModel.lifecycle_state == "published",
                 PaperMetadataModel.current_revision == PaperChunkModel.revision_number,
             )

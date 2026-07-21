@@ -1,8 +1,8 @@
 # tests/test_ask_citation_url_contract.py
 """Contract: Ask answer citations link to the human-facing preview page.
 
-Clicking a cited source must land the user on the paper preview page
-(`preview_paper` -> /preview/<file>), NOT on `paper_info` -> /paper/<file>/info.
+Clicking a cited source must land the user on the canonical UUID paper preview
+page (`preview_paper` -> /paper/<paper_id>), NOT on the admin JSON endpoint.
 `paper_info` is an admin-only (require_login level=3) JSON endpoint built for the
 dashboard preview modal; the Ask feature is available to every signed-in user
 (and to guests under OPEN_ACCESS), so a citation pointing there yields a 401 for
@@ -25,8 +25,8 @@ class AskCitationUrl(unittest.TestCase):
 
     def test_citations_link_to_preview_page(self):
         self.assertIn(
-            'url_for("preview_paper"', self.src,
-            "Ask citations must link to the preview page (preview_paper).",
+            'url_for("preview_paper", paper_id=', self.src,
+            "Ask citations must link to preview_paper with immutable Paper UUID identity.",
         )
 
     def test_citations_do_not_link_to_admin_info_json(self):

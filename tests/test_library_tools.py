@@ -18,6 +18,30 @@ from library_tools import (
 )
 
 
+ALPHA_ID = "00000000-0000-4000-8000-000000000a01"
+BETA_ID = "00000000-0000-4000-8000-000000000b02"
+GHOST_ID = "00000000-0000-4000-8000-000000000bad"
+
+
+def _source_meta(
+    paper_id,
+    revision_number,
+    filename,
+    *,
+    title="",
+    authors="",
+    url="",
+):
+    return {
+        "paper_id": paper_id,
+        "revision_number": revision_number,
+        "filename": filename,
+        "title": title,
+        "authors": authors,
+        "url": url,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Fake deps
 # ---------------------------------------------------------------------------
@@ -25,7 +49,7 @@ from library_tools import (
 def _make_deps(papers=None):
     """Return a simple fake deps object backed by a dict of paper dicts.
 
-    Each paper dict may have: filename, title, authors, url, text, snippet.
+    Dict keys are Paper UUIDs. Each value carries current revision and display metadata.
     """
     papers = papers or {}
 
@@ -33,10 +57,12 @@ def _make_deps(papers=None):
         # Return all papers whose title or text contains the query (case-insensitive).
         q = query.lower()
         results = []
-        for fn, p in papers.items():
+        for paper_id, p in papers.items():
             if q in (p.get("title", "") + p.get("text", "")).lower():
                 results.append({
-                    "filename": fn,
+                    "paper_id": paper_id,
+                    "revision_number": p.get("revision_number", 1),
+                    "filename": p.get("filename", ""),
                     "title": p.get("title", ""),
                     "authors": p.get("authors", ""),
                     "url": p.get("url", ""),
@@ -44,20 +70,26 @@ def _make_deps(papers=None):
                 })
         return results
 
-    def full_text(filename):
-        p = papers.get(filename)
+    def full_text(paper_id):
+        p = papers.get(paper_id)
         if p is None:
             return ""
         return p.get("text", "")
 
-    def paper_meta(filename):
-        p = papers.get(filename)
+    def paper_meta(paper_id):
+        p = papers.get(paper_id)
         if p is None:
             return {}
-        return {"title": p.get("title", ""), "authors": p.get("authors", "")}
+        return {
+            "paper_id": paper_id,
+            "revision_number": p.get("revision_number", 1),
+            "filename": p.get("filename", ""),
+            "title": p.get("title", ""),
+            "authors": p.get("authors", ""),
+        }
 
-    def paper_url(filename):
-        p = papers.get(filename)
+    def paper_url(paper_id):
+        p = papers.get(paper_id)
         if p is None:
             return None
         return p.get("url")
@@ -71,14 +103,18 @@ def _make_deps(papers=None):
 
 
 _SAMPLE_PAPERS = {
-    "alpha.pdf": {
+    ALPHA_ID: {
+        "revision_number": 2,
+        "filename": "alpha.pdf",
         "title": "Alpha Study",
         "authors": "Smith, J.",
         "url": "https://example.com/alpha",
         "text": "alpha content about alpha research",
         "snippet": "alpha snippet",
     },
-    "beta.pdf": {
+    BETA_ID: {
+        "revision_number": 3,
+        "filename": "beta.pdf",
         "title": "Beta Research",
         "authors": "Doe, A.",
         "url": "https://example.com/beta",
@@ -114,12 +150,13 @@ class TestToolSchemas(unittest.TestCase):
         self.assertIn("query", params["properties"])
         self.assertEqual(params["properties"]["query"]["type"], "string")
 
-    def test_read_paper_required_contains_filename(self):
+    def test_read_paper_required_contains_paper_id(self):
         schema = self._schema_for("read_paper")
         params = schema["function"]["parameters"]
-        self.assertIn("filename", params["required"])
-        self.assertIn("filename", params["properties"])
-        self.assertEqual(params["properties"]["filename"]["type"], "string")
+        self.assertIn("paper_id", params["required"])
+        self.assertIn("paper_id", params["properties"])
+        self.assertEqual(params["properties"]["paper_id"]["type"], "string")
+        self.assertNotIn("filename", params["properties"])
 
     def test_each_schema_has_type_function(self):
         for t in TOOL_SCHEMAS:
@@ -138,76 +175,128 @@ class TestToolSchemas(unittest.TestCase):
 class TestSourceRegistry(unittest.TestCase):
     def test_first_registration_returns_1(self):
         reg = SourceRegistry()
-        n = reg.register("a.pdf", {"title": "A", "authors": "Author A", "url": ""})
+        n = reg.register(
+            ALPHA_ID,
+            _source_meta(
+                ALPHA_ID, 1, "a.pdf", title="A", authors="Author A"
+            ),
+        )
         self.assertEqual(n, 1)
 
-    def test_second_filename_returns_2(self):
+    def test_second_paper_uuid_returns_2(self):
         reg = SourceRegistry()
-        reg.register("a.pdf", {"title": "A", "authors": "", "url": ""})
-        n = reg.register("b.pdf", {"title": "B", "authors": "", "url": ""})
+        reg.register(ALPHA_ID, _source_meta(ALPHA_ID, 1, "a.pdf", title="A"))
+        n = reg.register(BETA_ID, _source_meta(BETA_ID, 1, "b.pdf", title="B"))
         self.assertEqual(n, 2)
 
-    def test_idempotent_same_filename_same_n(self):
+    def test_idempotent_same_paper_uuid_same_n(self):
         reg = SourceRegistry()
-        n1 = reg.register("a.pdf", {"title": "A", "authors": "", "url": ""})
-        n2 = reg.register("a.pdf", {"title": "A", "authors": "", "url": ""})
+        meta = _source_meta(ALPHA_ID, 1, "a.pdf", title="A")
+        n1 = reg.register(ALPHA_ID, meta)
+        n2 = reg.register(ALPHA_ID, meta)
         self.assertEqual(n1, n2)
 
     def test_repeat_call_does_not_increment_counter(self):
         reg = SourceRegistry()
-        reg.register("a.pdf", {"title": "A", "authors": "", "url": ""})
-        reg.register("a.pdf", {"title": "A", "authors": "", "url": ""})
-        n = reg.register("b.pdf", {"title": "B", "authors": "", "url": ""})
+        meta = _source_meta(ALPHA_ID, 1, "a.pdf", title="A")
+        reg.register(ALPHA_ID, meta)
+        reg.register(ALPHA_ID, meta)
+        n = reg.register(BETA_ID, _source_meta(BETA_ID, 1, "b.pdf", title="B"))
         self.assertEqual(n, 2)
 
-    def test_backfills_empty_fields_on_repeat_call(self):
+    def test_later_paper_projection_replaces_stale_display_fields(self):
         reg = SourceRegistry()
-        reg.register("a.pdf", {"title": "", "authors": "", "url": ""})
-        reg.register("a.pdf", {"title": "Alpha", "authors": "Smith", "url": "http://x"})
+        reg.register(
+            ALPHA_ID,
+            _source_meta(ALPHA_ID, 1, "old.pdf", title="Old", authors="Old"),
+        )
+        reg.register(
+            ALPHA_ID,
+            _source_meta(
+                ALPHA_ID,
+                2,
+                "a.pdf",
+                title="Alpha",
+                authors="Smith",
+                url="http://x",
+            ),
+        )
         citations = reg.as_citations()
+        self.assertEqual(citations[0]["revision_number"], 2)
+        self.assertEqual(citations[0]["filename"], "a.pdf")
         self.assertEqual(citations[0]["title"], "Alpha")
         self.assertEqual(citations[0]["authors"], "Smith")
         self.assertEqual(citations[0]["url"], "http://x")
 
-    def test_backfill_does_not_overwrite_existing_data(self):
+    def test_web_backfill_does_not_overwrite_existing_data(self):
         reg = SourceRegistry()
-        reg.register("a.pdf", {"title": "Original", "authors": "First", "url": ""})
-        reg.register("a.pdf", {"title": "New Title", "authors": "Second", "url": "http://y"})
+        reg.register(
+            "https://example.test/source",
+            {"title": "Original", "authors": "First", "url": ""},
+            is_web=True,
+        )
+        reg.register(
+            "https://example.test/source",
+            {"title": "New Title", "authors": "Second", "url": "http://y"},
+            is_web=True,
+        )
         citations = reg.as_citations()
-        # Title and authors already set — must not be overwritten.
         self.assertEqual(citations[0]["title"], "Original")
         self.assertEqual(citations[0]["authors"], "First")
-        # url was empty, so it should be backfilled.
         self.assertEqual(citations[0]["url"], "http://y")
 
-    def test_empty_filename_returns_none(self):
+    def test_empty_source_id_returns_none(self):
         reg = SourceRegistry()
         result = reg.register("", {"title": "X", "authors": "", "url": ""})
         self.assertIsNone(result)
 
-    def test_empty_filename_does_not_pollute_registry(self):
+    def test_empty_source_id_does_not_pollute_registry(self):
         reg = SourceRegistry()
         reg.register("", {"title": "X", "authors": "", "url": ""})
         self.assertEqual(reg.as_citations(), [])
 
+    def test_invalid_paper_identity_is_rejected(self):
+        reg = SourceRegistry()
+        result = reg.register(
+            "a.pdf",
+            _source_meta("a.pdf", 1, "a.pdf", title="Not a UUID"),
+        )
+        self.assertIsNone(result)
+        self.assertEqual(reg.as_citations(), [])
+
     def test_as_citations_ascending_order(self):
         reg = SourceRegistry()
-        reg.register("b.pdf", {"title": "B", "authors": "", "url": ""})
-        reg.register("a.pdf", {"title": "A", "authors": "", "url": ""})
-        reg.register("c.pdf", {"title": "C", "authors": "", "url": ""})
+        reg.register(BETA_ID, _source_meta(BETA_ID, 1, "b.pdf", title="B"))
+        reg.register(ALPHA_ID, _source_meta(ALPHA_ID, 1, "a.pdf", title="A"))
+        reg.register(GHOST_ID, _source_meta(GHOST_ID, 1, "c.pdf", title="C"))
         ns = [c["n"] for c in reg.as_citations()]
         self.assertEqual(ns, [1, 2, 3])
 
-    def test_as_citations_has_five_keys(self):
+    def test_as_citations_has_typed_paper_identity(self):
         reg = SourceRegistry()
-        reg.register("a.pdf", {"title": "A", "authors": "X", "url": "http://u"})
+        reg.register(
+            ALPHA_ID,
+            _source_meta(
+                ALPHA_ID, 3, "a.pdf", title="A", authors="X", url="http://u"
+            ),
+        )
         c = reg.as_citations()[0]
-        for key in ("n", "filename", "title", "authors", "url"):
-            self.assertIn(key, c)
+        self.assertEqual(c["paper_id"], ALPHA_ID)
+        self.assertEqual(c["revision_number"], 3)
+        self.assertEqual(c["filename"], "a.pdf")
+        self.assertFalse(c["is_web"])
+        self.assertFalse(c["is_attachment"])
 
     def test_title_falls_back_to_filename(self):
         reg = SourceRegistry()
-        reg.register("a.pdf", {"title": "", "authors": "", "url": ""})
+        reg.register(ALPHA_ID, {
+            "paper_id": ALPHA_ID,
+            "revision_number": 2,
+            "filename": "a.pdf",
+            "title": "",
+            "authors": "",
+            "url": "",
+        })
         c = reg.as_citations()[0]
         self.assertEqual(c["title"], "a.pdf")
 
@@ -217,7 +306,7 @@ class TestSourceRegistry(unittest.TestCase):
 
     def test_is_web_defaults_false(self):
         reg = SourceRegistry()
-        reg.register("a.pdf", {"title": "A", "authors": "", "url": ""})
+        reg.register(ALPHA_ID, _source_meta(ALPHA_ID, 1, "a.pdf", title="A"))
         self.assertFalse(reg.as_citations()[0]["is_web"])
 
     def test_is_web_true_when_registered(self):
@@ -227,11 +316,29 @@ class TestSourceRegistry(unittest.TestCase):
         self.assertTrue(c["is_web"])
 
     def test_is_web_sticky_once_true(self):
-        # Registering the same key again without is_web must not clear a prior True.
         reg = SourceRegistry()
         reg.register("https://x", {"title": "X", "authors": "", "url": "https://x"}, is_web=True)
-        reg.register("https://x", {"title": "X", "authors": "", "url": "https://x"})
+        reg.register("https://x", {"title": "X", "authors": "", "url": "https://x"}, is_web=True)
+        self.assertEqual(len(reg.as_citations()), 1)
         self.assertTrue(reg.as_citations()[0]["is_web"])
+
+    def test_attachment_filename_and_paper_uuid_are_separate_identities(self):
+        reg = SourceRegistry()
+        reg.register(
+            ALPHA_ID,
+            _source_meta(ALPHA_ID, 1, "shared.pdf", title="Library Paper"),
+        )
+        reg.register(
+            "shared.pdf",
+            {"filename": "shared.pdf", "title": "Attachment"},
+            is_attachment=True,
+        )
+
+        paper, attachment = reg.as_citations()
+        self.assertEqual(paper["paper_id"], ALPHA_ID)
+        self.assertFalse(paper["is_attachment"])
+        self.assertIsNone(attachment["paper_id"])
+        self.assertTrue(attachment["is_attachment"])
 
 
 # ---------------------------------------------------------------------------
@@ -339,54 +446,56 @@ class TestRunToolReadPaper(unittest.TestCase):
 
     def test_returns_source_prefix_with_n(self):
         result = run_tool(
-            "read_paper", '{"filename": "alpha.pdf"}', self.registry, self.deps
+            "read_paper", {"paper_id": ALPHA_ID}, self.registry, self.deps
         )
         self.assertIn("Source [1]:", result)
 
     def test_returns_title_in_header(self):
         result = run_tool(
-            "read_paper", '{"filename": "alpha.pdf"}', self.registry, self.deps
+            "read_paper", {"paper_id": ALPHA_ID}, self.registry, self.deps
         )
         self.assertIn("Alpha Study", result)
 
     def test_returns_paper_text(self):
         result = run_tool(
-            "read_paper", '{"filename": "alpha.pdf"}', self.registry, self.deps
+            "read_paper", {"paper_id": ALPHA_ID}, self.registry, self.deps
         )
         self.assertIn("alpha content", result)
 
     def test_registers_citation(self):
-        run_tool("read_paper", '{"filename": "alpha.pdf"}', self.registry, self.deps)
+        run_tool("read_paper", {"paper_id": ALPHA_ID}, self.registry, self.deps)
         citations = self.registry.as_citations()
         self.assertEqual(len(citations), 1)
         self.assertEqual(citations[0]["filename"], "alpha.pdf")
 
-    def test_unknown_filename_returns_error_string(self):
+    def test_unknown_paper_id_returns_error_string(self):
         result = run_tool(
-            "read_paper", '{"filename": "ghost.pdf"}', self.registry, self.deps
+            "read_paper", {"paper_id": GHOST_ID}, self.registry, self.deps
         )
         self.assertIsInstance(result, str)
-        self.assertIn("ghost.pdf", result)
+        self.assertIn(GHOST_ID, result)
 
-    def test_unknown_filename_does_not_register_citation(self):
-        run_tool("read_paper", '{"filename": "ghost.pdf"}', self.registry, self.deps)
+    def test_unknown_paper_id_does_not_register_citation(self):
+        run_tool("read_paper", {"paper_id": GHOST_ID}, self.registry, self.deps)
         self.assertEqual(self.registry.as_citations(), [])
 
-    def test_empty_filename_returns_error_string(self):
+    def test_empty_paper_id_returns_error_string(self):
         result = run_tool(
-            "read_paper", '{"filename": ""}', self.registry, self.deps
+            "read_paper", {"paper_id": ""}, self.registry, self.deps
         )
         self.assertIsInstance(result, str)
         self.assertIn("Error", result)
 
-    def test_empty_filename_does_not_register_citation(self):
-        run_tool("read_paper", '{"filename": ""}', self.registry, self.deps)
+    def test_empty_paper_id_does_not_register_citation(self):
+        run_tool("read_paper", {"paper_id": ""}, self.registry, self.deps)
         self.assertEqual(self.registry.as_citations(), [])
 
     def test_truncation_at_cap(self):
         long_text = "x" * (PAPER_TEXT_CHAR_CAP + 500)
         big_papers = {
-            "big.pdf": {
+            ALPHA_ID: {
+                "revision_number": 1,
+                "filename": "big.pdf",
                 "title": "Big Paper",
                 "authors": "Someone",
                 "url": "",
@@ -396,7 +505,7 @@ class TestRunToolReadPaper(unittest.TestCase):
         }
         deps = _make_deps(big_papers)
         result = run_tool(
-            "read_paper", '{"filename": "big.pdf"}', SourceRegistry(), deps
+            "read_paper", {"paper_id": ALPHA_ID}, SourceRegistry(), deps
         )
         # Result must end with [truncated] marker.
         self.assertTrue(result.endswith("[truncated]"))
@@ -407,7 +516,7 @@ class TestRunToolReadPaper(unittest.TestCase):
 
     def test_short_paper_not_truncated(self):
         result = run_tool(
-            "read_paper", '{"filename": "alpha.pdf"}', self.registry, self.deps
+            "read_paper", {"paper_id": ALPHA_ID}, self.registry, self.deps
         )
         self.assertNotIn("[truncated]", result)
 
@@ -415,16 +524,52 @@ class TestRunToolReadPaper(unittest.TestCase):
         """Stability: a paper first found via search keeps its [n] when later read."""
         # Search registers alpha.pdf as [1] and beta.pdf as [2].
         run_tool("search_library", '{"query": "content"}', self.registry, self.deps)
-        citations_after_search = {c["filename"]: c["n"] for c in self.registry.as_citations()}
+        citations_after_search = {c["paper_id"]: c["n"] for c in self.registry.as_citations()}
 
         # Now read alpha.pdf — it should still be [1].
         result = run_tool(
-            "read_paper", '{"filename": "alpha.pdf"}', self.registry, self.deps
+            "read_paper", {"paper_id": ALPHA_ID}, self.registry, self.deps
         )
-        n = citations_after_search["alpha.pdf"]
+        n = citations_after_search[ALPHA_ID]
         self.assertIn(f"Source [{n}]:", result)
         # Total citations must not grow.
         self.assertEqual(len(self.registry.as_citations()), 2)
+
+    def test_revision_switch_retries_instead_of_mixing_text_and_citation(self):
+        class RacingDeps:
+            def __init__(self):
+                self.revision = 1
+                self.full_text_calls = 0
+
+            def paper_meta(self, paper_id):
+                return _source_meta(
+                    paper_id,
+                    self.revision,
+                    f"revision-{self.revision}.pdf",
+                    title=f"Revision {self.revision}",
+                )
+
+            def paper_url(self, paper_id):
+                return f"/paper/{paper_id}"
+
+            def full_text(self, _paper_id):
+                self.full_text_calls += 1
+                revision_read = self.revision
+                if self.full_text_calls == 1:
+                    self.revision = 2
+                return f"REVISION-{revision_read} TEXT"
+
+        deps = RacingDeps()
+        registry = SourceRegistry()
+
+        result = run_tool("read_paper", {"paper_id": ALPHA_ID}, registry, deps)
+
+        self.assertNotIn("REVISION-1 TEXT", result)
+        self.assertIn("REVISION-2 TEXT", result)
+        self.assertEqual(deps.full_text_calls, 2)
+        citation = registry.as_citations()[0]
+        self.assertEqual(citation["revision_number"], 2)
+        self.assertEqual(citation["title"], "Revision 2")
 
 
 # ---------------------------------------------------------------------------
@@ -484,16 +629,18 @@ class TestRunToolDefensive(unittest.TestCase):
 
     def test_full_text_dep_raises_returns_error_string(self):
         """If deps.full_text raises, run_tool must return an Error string, not propagate."""
-        def bad_full_text(filename):
+        def bad_full_text(paper_id):
             raise OSError("missing row in DB")
 
         deps = types.SimpleNamespace(
-            search=lambda q: [{"filename": "x.pdf", "title": "X", "authors": "", "url": "", "snippet": ""}],
+            search=lambda q: [{"paper_id": ALPHA_ID, "revision_number": 1,
+                               "filename": "x.pdf", "title": "X", "authors": "",
+                               "url": "", "snippet": ""}],
             full_text=bad_full_text,
             paper_meta=lambda fn: {},
             paper_url=lambda fn: None,
         )
-        result = run_tool("read_paper", '{"filename": "x.pdf"}', self.registry, deps)
+        result = run_tool("read_paper", {"paper_id": ALPHA_ID}, self.registry, deps)
         self.assertIsInstance(result, str)
         self.assertTrue(result.startswith("Error"))
 
@@ -529,10 +676,10 @@ class TestRunToolDefensive(unittest.TestCase):
         # Either finds results for "5" or returns a no-match / error string — must not crash.
         self.assertIsInstance(result, str)
 
-    def test_numeric_filename_value_does_not_crash(self):
-        """args={'filename': 123} must not raise AttributeError on .strip()."""
+    def test_numeric_paper_id_value_does_not_crash(self):
+        """args={'paper_id': 123} must not raise AttributeError on .strip()."""
         deps = _make_deps(_SAMPLE_PAPERS)
-        result = run_tool("read_paper", {"filename": 123}, self.registry, deps)
+        result = run_tool("read_paper", {"paper_id": 123}, self.registry, deps)
         self.assertIsInstance(result, str)
 
     # --- candidate missing filename / None fields ----------------------------
@@ -560,7 +707,8 @@ class TestRunToolDefensive(unittest.TestCase):
         """A candidate with snippet=None must not render the literal string 'None'."""
         def search_with_none_snippet(query):
             return [
-                {"filename": "a.pdf", "title": "Alpha", "authors": "Smith", "url": "", "snippet": None},
+                {"paper_id": ALPHA_ID, "revision_number": 2, "filename": "a.pdf",
+                 "title": "Alpha", "authors": "Smith", "url": "", "snippet": None},
             ]
 
         deps = types.SimpleNamespace(
@@ -579,7 +727,8 @@ class TestRunToolDefensive(unittest.TestCase):
         """A candidate with authors=None must not render the literal string 'None'."""
         def search_with_none_authors(query):
             return [
-                {"filename": "b.pdf", "title": "Beta", "authors": None, "url": "", "snippet": "some snippet"},
+                {"paper_id": BETA_ID, "revision_number": 3, "filename": "b.pdf",
+                 "title": "Beta", "authors": None, "url": "", "snippet": "some snippet"},
             ]
 
         deps = types.SimpleNamespace(
@@ -597,7 +746,8 @@ class TestRunToolDefensive(unittest.TestCase):
         def mixed_search(query):
             return [
                 {"filename": None, "title": "No name", "authors": "", "url": "", "snippet": "x"},
-                {"filename": "real.pdf", "title": "Real", "authors": "A", "url": "", "snippet": "y"},
+                {"paper_id": ALPHA_ID, "revision_number": 2, "filename": "real.pdf",
+                 "title": "Real", "authors": "A", "url": "", "snippet": "y"},
             ]
 
         deps = types.SimpleNamespace(

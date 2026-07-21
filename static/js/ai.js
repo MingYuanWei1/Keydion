@@ -599,12 +599,13 @@
   var allPapers = [];
   var activeFilter = "All";
   window.__selectedPaperList = function () {
-    return Object.keys(selected).map(function (fn) {
-      return { filename: fn, title: selected[fn].title };
+    return Object.keys(selected).map(function (paperId) {
+      return { paper_id: paperId, filename: selected[paperId].filename,
+               title: selected[paperId].title };
     });
   };
   window.__clearSelected = function () {
-    Object.keys(selected).forEach(function (fn) { delete selected[fn]; });
+    Object.keys(selected).forEach(function (paperId) { delete selected[paperId]; });
     updateCount();
   };
   window.__attachedDocs = {};
@@ -655,9 +656,9 @@
     citeListEl.innerHTML = "";
     var visible = activeFilter === "All" ? papers : papers.filter(function (p) { return p.category === activeFilter; });
     visible.forEach(function (p) {
-      var row = el("div", "kd-paper" + (selected[p.filename] ? " is-selected" : ""));
+      var row = el("div", "kd-paper" + (selected[p.paper_id] ? " is-selected" : ""));
       var check = el("button", "kd-check");
-      if (selected[p.filename]) check.textContent = "✓";
+      if (selected[p.paper_id]) check.textContent = "✓";
       var meta = el("div", "kd-paper__meta");
       meta.appendChild(el("div", "kd-paper__title", p.title));
       if (p.authors) meta.appendChild(el("div", "kd-paper__authors", p.authors));
@@ -668,8 +669,8 @@
       }
       row.appendChild(check); row.appendChild(meta);
       row.addEventListener("click", function () {
-        if (selected[p.filename]) { delete selected[p.filename]; row.classList.remove("is-selected"); check.textContent = ""; }
-        else { selected[p.filename] = { title: p.title }; row.classList.add("is-selected"); check.textContent = "✓"; }
+        if (selected[p.paper_id]) { delete selected[p.paper_id]; row.classList.remove("is-selected"); check.textContent = ""; }
+        else { selected[p.paper_id] = { title: p.title, filename: p.filename }; row.classList.add("is-selected"); check.textContent = "✓"; }
         updateCount();
       });
       row.addEventListener("mouseenter", function () { showPreview(p); });
@@ -732,11 +733,11 @@
   function renderChips() {
     if (!attachRow) return;
     attachRow.innerHTML = "";
-    Object.keys(selected).forEach(function (fn) {
+    Object.keys(selected).forEach(function (paperId) {
       var chip = el("span", "kd-chip kd-chip--paper");
-      chip.appendChild(el("span", "kd-chip__name", selected[fn].title));
+      chip.appendChild(el("span", "kd-chip__name", selected[paperId].title));
       var x = el("button", "kd-chip__x", "✕");
-      x.addEventListener("click", function () { delete selected[fn]; renderChips(); updateCount(); });
+      x.addEventListener("click", function () { delete selected[paperId]; renderChips(); updateCount(); });
       chip.appendChild(x);
       attachRow.appendChild(chip);
     });

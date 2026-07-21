@@ -279,7 +279,7 @@ class ChatMessageModel(BASE):
     content = Column(UnicodeText)
     citations = Column(UnicodeText)     # JSON-encoded list
     attachments = Column(UnicodeText)   # JSON-encoded list of filenames (display-only)
-    cited_papers = Column(UnicodeText)  # JSON-encoded list of {filename, title} cited from the library
+    cited_papers = Column(UnicodeText)  # JSON list of Paper UUID/revision/display records
     created_at = Column(Unicode(40))
 
 

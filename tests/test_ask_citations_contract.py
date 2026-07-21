@@ -3,7 +3,7 @@
 
 Two defects this guards against:
   A. retrieval is chunk-level, so one paper can occupy several top hits and get
-     listed (and cited) as multiple sources -> dedupe by filename.
+     listed (and cited) as multiple sources -> dedupe by Paper UUID.
   B. every retrieved source was shown regardless of use -> show only the source
      numbers the answer references (half-width [1] and full-width 【1】).
 """
@@ -15,30 +15,34 @@ os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
 import app as app_module
 
 
+PAPER_A_ID = "00000000-0000-4000-8000-000000000a01"
+PAPER_B_ID = "00000000-0000-4000-8000-000000000b02"
+
+
 class DedupeHitsByPaper(unittest.TestCase):
     def test_collapses_multiple_chunks_of_same_paper(self):
         hits = [
-            {"filename": "a.pdf", "title": "A", "author_name": "x", "content": "chunk1", "score": 0.9},
-            {"filename": "a.pdf", "title": "A", "author_name": "x", "content": "chunk2", "score": 0.8},
-            {"filename": "b.pdf", "title": "B", "author_name": "y", "content": "chunk3", "score": 0.7},
-            {"filename": "a.pdf", "title": "A", "author_name": "x", "content": "chunk4", "score": 0.6},
+            {"paper_id": PAPER_A_ID, "revision_number": 2, "filename": "a.pdf", "title": "A", "author_name": "x", "content": "chunk1", "score": 0.9},
+            {"paper_id": PAPER_A_ID, "revision_number": 2, "filename": "a.pdf", "title": "A", "author_name": "x", "content": "chunk2", "score": 0.8},
+            {"paper_id": PAPER_B_ID, "revision_number": 1, "filename": "b.pdf", "title": "B", "author_name": "y", "content": "chunk3", "score": 0.7},
+            {"paper_id": PAPER_A_ID, "revision_number": 2, "filename": "a.pdf", "title": "A", "author_name": "x", "content": "chunk4", "score": 0.6},
         ]
         out = app_module._dedupe_hits_by_paper(hits)
         self.assertEqual([h["filename"] for h in out], ["a.pdf", "b.pdf"])
 
     def test_preserves_best_score_order(self):
         hits = [
-            {"filename": "a.pdf", "title": "A", "content": "c1", "score": 0.9},
-            {"filename": "b.pdf", "title": "B", "content": "c2", "score": 0.5},
-            {"filename": "a.pdf", "title": "A", "content": "c3", "score": 0.4},
+            {"paper_id": PAPER_A_ID, "revision_number": 2, "filename": "a.pdf", "title": "A", "content": "c1", "score": 0.9},
+            {"paper_id": PAPER_B_ID, "revision_number": 1, "filename": "b.pdf", "title": "B", "content": "c2", "score": 0.5},
+            {"paper_id": PAPER_A_ID, "revision_number": 2, "filename": "a.pdf", "title": "A", "content": "c3", "score": 0.4},
         ]
         out = app_module._dedupe_hits_by_paper(hits)
         self.assertEqual([h["filename"] for h in out], ["a.pdf", "b.pdf"])
 
     def test_merges_chunk_text_for_grounding(self):
         hits = [
-            {"filename": "a.pdf", "title": "A", "content": "first", "score": 0.9},
-            {"filename": "a.pdf", "title": "A", "content": "second", "score": 0.8},
+            {"paper_id": PAPER_A_ID, "revision_number": 2, "filename": "a.pdf", "title": "A", "content": "first", "score": 0.9},
+            {"paper_id": PAPER_A_ID, "revision_number": 2, "filename": "a.pdf", "title": "A", "content": "second", "score": 0.8},
         ]
         out = app_module._dedupe_hits_by_paper(hits)
         self.assertEqual(len(out), 1)

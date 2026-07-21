@@ -69,6 +69,7 @@ def gather_paper_records(library) -> List[Dict[str, str]]:
     for paper in library.list_visible():
         record = asdict(paper)
         record.pop("row_version", None)
+        record["revision_number"] = paper.current_revision
         records.append(record)
     return records
 

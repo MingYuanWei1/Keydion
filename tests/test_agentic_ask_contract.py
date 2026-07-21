@@ -21,6 +21,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import support
 
 
+PAPER_A_ID = "00000000-0000-4000-8000-000000000921"
+PAPER_B_ID = "00000000-0000-4000-8000-000000000922"
+
+
 class SourceContract(unittest.TestCase):
     def test_api_ask_wires_tool_loop(self):
         src = support.source_of("api_ai")
@@ -44,9 +48,11 @@ class AgenticPrompt(unittest.TestCase):
     def _candidates(self):
         return [
             {"n": 1, "title": "Photosynthesis in Algae", "authors": "Lee",
+             "paper_id": PAPER_A_ID, "revision_number": 1,
              "filename": "lee2020.pdf", "snippet": "Algae convert light...",
              "is_attachment": False},
             {"n": 2, "title": "Coral Reef Decline", "authors": "Ng",
+             "paper_id": PAPER_B_ID, "revision_number": 3,
              "filename": "ng2021.pdf", "snippet": "Reefs are bleaching...",
              "is_attachment": False},
         ]
@@ -89,9 +95,16 @@ class ToolStatusText(unittest.TestCase):
 
     def test_read_status_uses_registered_title(self):
         reg = library_tools.SourceRegistry()
-        reg.register("x.pdf", {"title": "A Fine Paper", "authors": "", "url": ""})
+        reg.register(PAPER_A_ID, {
+            "paper_id": PAPER_A_ID,
+            "revision_number": 1,
+            "filename": "x.pdf",
+            "title": "A Fine Paper",
+            "authors": "",
+            "url": "",
+        })
         out = app_module._tool_status_text(
-            "read_paper", '{"filename":"x.pdf"}', reg, None)
+            "read_paper", json.dumps({"paper_id": PAPER_A_ID}), reg, None)
         self.assertIn("A Fine Paper", out)
 
     def test_read_status_malformed_args_does_not_raise(self):
@@ -152,8 +165,8 @@ class _FakeCompletions:
             # Round 1: a single read_paper tool call, arguments split in two.
             return iter([
                 _Chunk(_Delta(tool_calls=[_ToolCall(0, id="call_1", name="read_paper")])),
-                _Chunk(_Delta(tool_calls=[_ToolCall(0, arguments='{"filename":')])),
-                _Chunk(_Delta(tool_calls=[_ToolCall(0, arguments='"lee2020.pdf"}')])),
+                _Chunk(_Delta(tool_calls=[_ToolCall(0, arguments='{"paper_id":')])),
+                _Chunk(_Delta(tool_calls=[_ToolCall(0, arguments=f'"{PAPER_A_ID}"}}')])),
             ])
         # Round 2: final answer that cites [1].
         return iter([
@@ -189,14 +202,20 @@ class AgenticLoopStreaming(unittest.TestCase):
         self.client = _make_client()
 
     def test_loop_emits_status_and_citations(self):
-        paper_id = "00000000-0000-4000-8000-000000000921"
+        paper_id = PAPER_A_ID
         hit = {"paper_id": paper_id, "revision_number": 1,
                "filename": "lee2020.pdf", "title": "Photosynthesis in Algae",
                "content": "Algae convert light into energy.", "author_name": "Lee"}
         deps = mock.Mock()
         deps.full_text.return_value = "Full text of the algae paper."
-        deps.paper_meta.return_value = {"title": "Photosynthesis in Algae", "authors": "Lee"}
-        deps.paper_url.return_value = "/preview/lee2020.pdf"
+        deps.paper_meta.return_value = {
+            "paper_id": paper_id,
+            "revision_number": 1,
+            "filename": "lee2020.pdf",
+            "title": "Photosynthesis in Algae",
+            "authors": "Lee",
+        }
+        deps.paper_url.return_value = f"/paper/{paper_id}"
 
         library = self.client.application.extensions["paper_library"]
         with mock.patch.dict(os.environ, {"LLM_API_KEY": "k"}, clear=False), \
@@ -228,6 +247,8 @@ class AgenticLoopStreaming(unittest.TestCase):
         self.assertTrue(cite_events)
         items = cite_events[-1]["items"]
         self.assertEqual([it["n"] for it in items], [1])
+        self.assertEqual(items[0]["paper_id"], paper_id)
+        self.assertEqual(items[0]["revision_number"], 1)
         self.assertEqual(items[0]["filename"], "lee2020.pdf")
 
 

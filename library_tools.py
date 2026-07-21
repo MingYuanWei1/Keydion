@@ -9,7 +9,7 @@ TOOL_SCHEMAS : list[dict]
     Two OpenAI function-calling tool schemas to pass as ``tools=`` to
     ``client.chat.completions.create``:
       - ``search_library(query)`` — search the paper library.
-      - ``read_paper(filename)`` — fetch the full text of one paper.
+      - ``read_paper(paper_id)`` — fetch the full text of one paper.
 
 SourceRegistry
     Assigns a stable, 1-based ``[n]`` citation number to each paper as it is
@@ -25,13 +25,14 @@ run_tool(name, arguments, registry, deps) -> str
 ``deps`` is any object with four callables:
 
 * ``deps.search(query: str) -> list[dict]``
-      Each dict has keys: ``filename``, ``title``, ``authors``, ``url``,
-      ``snippet``.
-* ``deps.full_text(filename: str) -> str``
+      Each dict has keys: ``paper_id``, ``revision_number``, ``filename``,
+      ``title``, ``authors``, ``url``, and ``snippet``.
+* ``deps.full_text(paper_id: str) -> str``
       Reassembled full text of the paper; ``""`` if unavailable.
-* ``deps.paper_meta(filename: str) -> dict``
-      At least ``title`` and ``authors`` keys.
-* ``deps.paper_url(filename: str) -> str | None``
+* ``deps.paper_meta(paper_id: str) -> dict``
+      Current ``paper_id``, ``revision_number``, ``filename``, ``title``, and
+      ``authors`` display metadata.
+* ``deps.paper_url(paper_id: str) -> str | None``
       Canonical URL for the paper, or ``None``.
 * ``deps.web_search(query: str) -> list[dict]``  (optional)
       Each dict: ``title``, ``url``, ``content``.  Used by the web_search tool.
@@ -43,6 +44,7 @@ DB-backed implementations and runs the tool loop inside a Flask route.
 from __future__ import annotations
 
 import json
+from uuid import UUID
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -62,7 +64,7 @@ TOOL_SCHEMAS: list[dict] = [
             "description": (
                 "Search the paper library and return candidate papers that match "
                 "the query. Each result includes a citation number [n], the paper "
-                "title, authors, filename, and a relevant text snippet. Use this "
+                "title, authors, Paper UUID, filename, and a relevant text snippet. Use this "
                 "tool first to discover which papers are relevant before deciding "
                 "whether to read one in full."
             ),
@@ -86,7 +88,7 @@ TOOL_SCHEMAS: list[dict] = [
         "function": {
             "name": "read_paper",
             "description": (
-                "Return the FULL text of one paper given its filename (as shown "
+                "Return the FULL text of one paper given its Paper UUID (as shown "
                 "in a search_library result). Use this when you need to explain a "
                 "paper in detail, quote from it, or when a snippet from "
                 "search_library is insufficient to answer the question."
@@ -94,16 +96,15 @@ TOOL_SCHEMAS: list[dict] = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "filename": {
+                    "paper_id": {
                         "type": "string",
                         "description": (
-                            "The filename of the paper to read, exactly as it "
-                            "appeared in a search_library result (e.g. "
-                            "\"smith2023.pdf\")."
+                            "The immutable Paper UUID from a search_library result "
+                            "(for example, \"22222222-2222-4222-8222-222222222222\")."
                         ),
                     }
                 },
-                "required": ["filename"],
+                "required": ["paper_id"],
             },
         },
     },
@@ -196,24 +197,25 @@ def build_tool_schemas(include_web: bool = False,
 class SourceRegistry:
     """Assigns stable, 1-based [n] citation numbers to papers.
 
-    Registration is idempotent per filename: calling ``register`` with the
-    same filename twice always returns the same ``n``.  Each call can
+    Registration is idempotent per typed source identity. Papers use UUIDs,
+    attachments use filenames, and web sources use URLs. Each call can
     contribute additional metadata — any stored field that is currently
     empty/falsy is filled in from the new call's non-empty value, so the
     richest available info is retained.
     """
 
     def __init__(self) -> None:
-        self._by_filename: dict[str, dict] = {}  # filename -> {"n", "title", "authors", "url"}
+        self._by_identity: dict[tuple[str, str], dict] = {}
         self._counter: int = 0
 
-    def register(self, filename: str, meta: dict, is_web: bool = False) -> int | None:
-        """Register a paper and return its citation number.
+    def register(self, source_id: str, meta: dict, is_web: bool = False,
+                 is_attachment: bool = False) -> int | None:
+        """Register a typed source and return its citation number.
 
         Parameters
         ----------
-        filename:
-            The paper's filename.  Empty/falsy values are ignored and
+        source_id:
+            Paper UUID, attachment filename, or web URL. Empty values are ignored and
             ``None`` is returned so callers do not need to guard themselves.
         meta:
             Dict that may contain ``"title"``, ``"authors"``, ``"url"``.
@@ -225,48 +227,91 @@ class SourceRegistry:
         int
             The stable citation number ``n`` (1-based).
         None
-            If ``filename`` is empty/falsy.
+            If ``source_id`` is empty/falsy.
         """
-        if not filename:
+        if not source_id:
             return None
 
-        if filename in self._by_filename:
-            stored = self._by_filename[filename]
-            # Backfill any empty stored fields from the new meta.
-            for field in ("title", "authors", "url"):
-                if not stored.get(field) and meta.get(field):
-                    stored[field] = meta[field]
+        kind = "web" if is_web else "attachment" if is_attachment else "paper"
+        source_id = str(source_id)
+        if kind == "paper":
+            try:
+                source_id = str(UUID(source_id))
+            except (AttributeError, TypeError, ValueError):
+                return None
+            if (
+                type(meta.get("revision_number")) is not int
+                or not isinstance(meta.get("filename"), str)
+                or not meta.get("filename")
+            ):
+                return None
+
+        key = (kind, source_id)
+        if key in self._by_identity:
+            stored = self._by_identity[key]
+            if (
+                kind == "paper"
+                and type(meta.get("revision_number")) is int
+                and isinstance(meta.get("filename"), str)
+                and meta.get("filename")
+            ):
+                # A later trusted Paper projection may observe a revision switch
+                # during the request. Keep [n], but never retain stale display or
+                # revision metadata for the same immutable UUID.
+                stored.update({
+                    "paper_id": source_id,
+                    "revision_number": meta["revision_number"],
+                    "filename": meta["filename"],
+                    "title": meta.get("title") or meta["filename"],
+                    "authors": meta.get("authors") or "",
+                    "url": meta.get("url") or "",
+                })
+            else:
+                # Web and attachment callers can backfill missing display fields.
+                for field in (
+                    "paper_id", "revision_number", "filename", "title", "authors", "url"
+                ):
+                    if not stored.get(field) and meta.get(field):
+                        stored[field] = meta[field]
             if is_web:
                 stored["is_web"] = True
+            if is_attachment:
+                stored["is_attachment"] = True
             return stored["n"]
 
         self._counter += 1
-        self._by_filename[filename] = {
+        self._by_identity[key] = {
             "n": self._counter,
-            "filename": filename,
+            "paper_id": None if kind != "paper" else source_id,
+            "revision_number": meta.get("revision_number") if kind == "paper" else None,
+            "filename": meta.get("filename") or (str(source_id) if kind == "attachment" else ""),
             "title": meta.get("title") or "",
             "authors": meta.get("authors") or "",
             "url": meta.get("url") or "",
             "is_web": bool(is_web),
+            "is_attachment": bool(is_attachment),
         }
         return self._counter
 
     def as_citations(self) -> list[dict]:
         """Return all registered sources as dicts, sorted by ascending ``n``.
 
-        Each dict has keys: ``n``, ``filename``, ``title``, ``authors``,
-        ``url``.  ``title`` falls back to the filename when empty.
+        Paper rows include exact UUID/revision/display metadata. Attachment
+        rows retain filename identity and web rows retain URL identity.
         """
-        rows = sorted(self._by_filename.values(), key=lambda r: r["n"])
+        rows = sorted(self._by_identity.values(), key=lambda r: r["n"])
         result = []
         for r in rows:
             result.append({
                 "n": r["n"],
+                "paper_id": r["paper_id"],
+                "revision_number": r["revision_number"],
                 "filename": r["filename"],
-                "title": r["title"] or r["filename"],
+                "title": r["title"] or r["filename"] or r["url"],
                 "authors": r["authors"],
                 "url": r["url"],
                 "is_web": r.get("is_web", False),
+                "is_attachment": r.get("is_attachment", False),
             })
         return result
 
@@ -329,18 +374,30 @@ def run_tool(name: str, arguments: str | dict, registry: SourceRegistry, deps) -
 
         blocks: list[str] = []
         for c in candidates:
+            paper_id = c.get("paper_id") or ""
+            revision_number = c.get("revision_number")
             filename = c.get("filename") or ""
-            if not filename:
+            if not paper_id or type(revision_number) is not int or not filename:
                 continue
             title = c.get("title") or filename
             authors = c.get("authors") or ""
             snippet = c.get("snippet") or ""
             n = registry.register(
-                filename,
-                {"title": title, "authors": authors, "url": c.get("url") or ""},
+                paper_id,
+                {
+                    "paper_id": paper_id,
+                    "revision_number": revision_number,
+                    "filename": filename,
+                    "title": title,
+                    "authors": authors,
+                    "url": c.get("url") or "",
+                },
             )
+            if n is None:
+                continue
             blocks.append(
-                f"[{n}] {title} — {authors} (filename: {filename})\n{snippet}"
+                f"[{n}] {title} — {authors} "
+                f"(paper_id: {paper_id}; filename: {filename})\n{snippet}"
             )
         if not blocks:
             return (
@@ -350,49 +407,95 @@ def run_tool(name: str, arguments: str | dict, registry: SourceRegistry, deps) -
         return "\n\n".join(blocks)
 
     if name == "read_paper":
-        filename = str(args.get("filename") or "").strip()
-        if not filename:
+        paper_id = str(args.get("paper_id") or "").strip()
+        if not paper_id:
             return (
-                "Error: read_paper requires a non-empty 'filename' argument. "
-                "Use search_library first to find a paper and get its filename."
+                "Error: read_paper requires a non-empty 'paper_id' argument. "
+                "Use search_library first to find a Paper UUID."
             )
 
         try:
-            text = deps.full_text(filename)
-        except Exception as exc:
+            paper_id = str(UUID(paper_id))
+        except (AttributeError, TypeError, ValueError):
             return (
-                f"Error: could not read '{filename}' ({exc}). "
-                "Try search_library to find a valid filename."
+                f"Error: '{paper_id}' is not a valid Paper UUID. "
+                "Use search_library first to find a Paper UUID."
             )
 
-        if not isinstance(text, str):
-            text = ""
-        if not text.strip():
-            return (
-                f"Error: no indexed text found for \"{filename}\". "
-                "The file may not exist or has not been indexed. "
-                "Try search_library to find the correct filename."
-            )
+        # The dependency methods are separate calls, so bracket the text read
+        # with current metadata. A revision switch invalidates that attempt;
+        # retrying prevents text from one revision being labelled as another.
+        for _attempt in range(3):
+            try:
+                before = deps.paper_meta(paper_id) or {}
+                before_id = str(UUID(str(before.get("paper_id") or "")))
+                before_revision = before.get("revision_number")
+                before_filename = before.get("filename")
+                if (
+                    before_id != paper_id
+                    or type(before_revision) is not int
+                    or not isinstance(before_filename, str)
+                    or not before_filename
+                ):
+                    return f"Error: current metadata is unavailable for Paper '{paper_id}'."
 
-        try:
-            meta = deps.paper_meta(filename) or {}
-            url = deps.paper_url(filename)
-        except Exception as exc:
-            return (
-                f"Error: could not read '{filename}' ({exc}). "
-                "Try search_library to find a valid filename."
-            )
+                url = deps.paper_url(paper_id)
+                text = deps.full_text(paper_id)
+                after = deps.paper_meta(paper_id) or {}
+                after_id = str(UUID(str(after.get("paper_id") or "")))
+                after_revision = after.get("revision_number")
+                after_filename = after.get("filename")
+            except (AttributeError, TypeError, ValueError):
+                return f"Error: current metadata is unavailable for Paper '{paper_id}'."
+            except Exception as exc:
+                return (
+                    f"Error: could not read Paper '{paper_id}' ({exc}). "
+                    "Try search_library to find a valid Paper UUID."
+                )
 
-        title = meta.get("title") or filename
-        n = registry.register(
-            filename,
-            {"title": title, "authors": meta.get("authors", ""), "url": url or ""},
+            if (
+                after_id != paper_id
+                or type(after_revision) is not int
+                or not isinstance(after_filename, str)
+                or not after_filename
+            ):
+                return f"Error: current metadata is unavailable for Paper '{paper_id}'."
+            if before_revision != after_revision:
+                continue
+
+            if not isinstance(text, str):
+                text = ""
+            if not text.strip():
+                return (
+                    f"Error: no indexed text found for Paper \"{paper_id}\". "
+                    "The file may not exist or has not been indexed. "
+                    "Try search_library to find the correct Paper UUID."
+                )
+
+            title = after.get("title") or after_filename
+            n = registry.register(
+                paper_id,
+                {
+                    "paper_id": paper_id,
+                    "revision_number": after_revision,
+                    "filename": after_filename,
+                    "title": title,
+                    "authors": after.get("authors", ""),
+                    "url": url or "",
+                },
+            )
+            if n is None:
+                return f"Error: current metadata is unavailable for Paper '{paper_id}'."
+
+            if len(text) > PAPER_TEXT_CHAR_CAP:
+                text = text[:PAPER_TEXT_CHAR_CAP] + "[truncated]"
+
+            return f"Source [{n}]: {title}\n\n{text}"
+
+        return (
+            f"Error: Paper '{paper_id}' changed while it was being read. "
+            "Try read_paper again."
         )
-
-        if len(text) > PAPER_TEXT_CHAR_CAP:
-            text = text[:PAPER_TEXT_CHAR_CAP] + "[truncated]"
-
-        return f"Source [{n}]: {title}\n\n{text}"
 
     if name == "web_search":
         query = str(args.get("query") or "").strip()
@@ -452,7 +555,11 @@ def run_tool(name: str, arguments: str | dict, registry: SourceRegistry, deps) -
             return f"Error: could not read attachment '{filename}' ({exc})."
         if not isinstance(text, str) or not text.strip():
             return f"Error: no text found for attachment \"{filename}\"."
-        n = registry.register(filename, {"title": filename, "authors": "", "url": ""})
+        n = registry.register(
+            filename,
+            {"filename": filename, "title": filename, "authors": "", "url": ""},
+            is_attachment=True,
+        )
         if len(text) > PAPER_TEXT_CHAR_CAP:
             text = text[:PAPER_TEXT_CHAR_CAP] + "[truncated]"
         return f"Attachment [{n}]: {filename}\n\n{text}"

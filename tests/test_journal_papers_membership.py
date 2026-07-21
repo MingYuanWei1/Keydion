@@ -43,8 +43,8 @@ class JournalPapersMembershipTest(unittest.TestCase):
     def test_picker_renders_all_papers_with_member_checked(self):
         html = self.render_edit(
             all_papers=[
-                {"paper_id": "00000000-0000-4000-8000-000000000901", "row_version": 4, "filename": "a.pdf", "title": "Alpha", "author_name": "Ann", "journal": "IB EE"},
-                {"paper_id": "00000000-0000-4000-8000-000000000902", "row_version": 5, "filename": "b.pdf", "title": "Beta", "author_name": "Bob", "journal": ""},
+                {"paper_id": "00000000-0000-4000-8000-000000000901", "revision_number": 2, "row_version": 4, "filename": "a.pdf", "title": "Alpha", "author_name": "Ann", "journal": "IB EE"},
+                {"paper_id": "00000000-0000-4000-8000-000000000902", "revision_number": 3, "row_version": 5, "filename": "b.pdf", "title": "Beta", "author_name": "Bob", "journal": ""},
             ],
             member_ids=["00000000-0000-4000-8000-000000000901"],
         )

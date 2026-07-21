@@ -38,14 +38,14 @@ class PathTraversalContractTest(unittest.TestCase):
         self.assertNotIn(".rename(", src)
         self.assertNotIn("set_pdf_metadata(", src)
 
-    def test_lib_full_text_verifies_live_alias_and_current_storage_before_read(self):
+    def test_lib_full_text_verifies_uuid_and_current_storage_before_read(self):
         src = support.source_of("_lib_full_text")
         live = support.source_of("_live_paper_document")
         verified = support.source_of("_verified_pdf")
 
         self.assertTrue(_before(src, "_live_paper_document(", "db_session()"))
-        self.assertIn("resolve_alias(filename)", live)
-        self.assertIn("current_pdf(record.paper_id)", live)
+        self.assertNotIn("resolve_alias", live)
+        self.assertIn("current_pdf(paper_id)", live)
         self.assertIn("verify_revision(", verified)
 
     def test_upload_validates_draft_id_ownership(self):

@@ -5,6 +5,8 @@ pdf_text.extract_pdf_text with max_ocr_pages=50 and the language-derived
 ocr_langs string."""
 import os
 import unittest
+from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
@@ -38,25 +40,23 @@ class IndexOcrLangsHelper(unittest.TestCase):
 
 class RagPaperTextBehavior(unittest.TestCase):
     def _call_rag_paper_text(self, language):
+        paper_id = "11111111-1111-4111-8111-111111111111"
         fake_bytes = b"%PDF-fake"
-        with mock.patch.object(
-            ask_module,
-            "_visible_paper_by_filename",
-            return_value={
-                "paper_id": "11111111-1111-4111-8111-111111111111",
-                "current_revision": 2,
-                "language": language,
-                "filename": "test.pdf",
-            },
+        library = mock.Mock()
+        library.current_pdf.return_value = SimpleNamespace(
+            paper=SimpleNamespace(language=language),
+            path=Path("/safe/2.pdf"),
+        )
+        with app_module.app.app_context(), mock.patch.dict(
+            app_module.app.extensions, {"paper_library": library}
         ), mock.patch.object(
             ask_module.pdf_text, "extract_pdf_text",
             return_value="extracted text",
-        ) as mock_extract, mock.patch.object(
-            ask_module,
-            "_revision_path",
-            return_value=mock.Mock(read_bytes=mock.Mock(return_value=fake_bytes)),
+        ) as mock_extract, mock.patch(
+            "pathlib.Path.read_bytes", return_value=fake_bytes
         ):
-            result = app_module._rag_paper_text("test.pdf")
+            result = app_module._rag_paper_text(paper_id)
+        library.current_pdf.assert_called_once_with(paper_id)
         return mock_extract, result
 
     def test_en_paper_uses_eng_and_50_page_cap(self):
