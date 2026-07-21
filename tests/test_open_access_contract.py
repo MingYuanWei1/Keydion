@@ -35,10 +35,11 @@ class OpenAccessContractTest(unittest.TestCase):
         self.assertIn("if not OPEN_ACCESS:", src)
         self.assertIn("require_login()", src)
 
-    def test_download_gate_is_conditional(self):
-        src = self._function_source("download")
+    def test_download_uses_the_guarded_canonical_file_route(self):
+        src = self._function_source("paper_file")
         self.assertIn("if not OPEN_ACCESS:", src)
         self.assertIn("require_login()", src)
+        self.assertIn('request.args.get("download") == "1"', src)
 
     def test_preview_serves_full_pdf_when_open_access(self):
         src = self._function_source("preview_paper")
@@ -63,14 +64,21 @@ class OpenAccessContractTest(unittest.TestCase):
         env.globals["csrf_token"] = lambda: ""
         template = env.get_template("search.html")
         records = [{
+            "paper_id": "00000000-0000-4000-8000-000000000901",
             "filename": "p.pdf", "title": "T", "category": "History",
             "author_name": "Jane", "author_school": "S",
             "published_at": "2026-05-21", "abstract": "", "is_ib_sample": "",
         }]
+        def url_for(endpoint, **kwargs):
+            if endpoint == "paper_file":
+                url = f"/paper/{kwargs['paper_id']}/pdf"
+                return url + ("?download=1" if kwargs.get("download") == 1 else "")
+            return f"/{endpoint}"
+
         return template.render(
             _=lambda value, **kwargs: value % kwargs if kwargs else value,
             ngettext=lambda s, p, n, **k: s if n == 1 else p,
-            url_for=lambda endpoint, **kwargs: f"/{endpoint}",
+            url_for=url_for,
             get_flashed_messages=lambda with_categories=False: [],
             request=SimpleNamespace(full_path="/search", args={}),
             session={}, current_locale="en", current_year=2026, ms_enabled=False,
@@ -86,7 +94,10 @@ class OpenAccessContractTest(unittest.TestCase):
     def test_search_shows_download_for_guest_when_open(self):
         html = self._render_search(is_guest=True, open_access=True)
         self.assertNotIn("Sign in to Download", html)
-        self.assertIn("/download", html)
+        self.assertIn(
+            "/paper/00000000-0000-4000-8000-000000000901/pdf?download=1",
+            html,
+        )
 
     def test_search_shows_signin_for_guest_when_closed(self):
         html = self._render_search(is_guest=True, open_access=False)

@@ -35,7 +35,7 @@
     {% if is_guest and not open_access %}
     <a class="btn btn-outline-primary btn-sm" href="{{ url_for('index', login=1) }}">{{ _('Sign in to download') }}</a>
     {% else %}
-    <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('paper_file', filename=paper.filename) }}"
+    <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('paper_file', paper_id=paper.paper_id) }}"
       target="_blank">
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
         class="bi bi-box-arrow-up-right me-1" viewBox="0 0 16 16" style="vertical-align: -2px;">
@@ -46,7 +46,7 @@
       </svg>
       {{ _('Open in new tab') }}
     </a>
-    <a class="btn btn-primary btn-sm fw-medium" href="{{ url_for('download', filename=paper.filename) }}">
+    <a class="btn btn-primary btn-sm fw-medium" href="{{ url_for('paper_file', paper_id=paper.paper_id, download=1) }}">
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-download me-1"
         viewBox="0 0 16 16" style="vertical-align: -2px;">
         <path
@@ -468,7 +468,7 @@
             <div class="d-flex flex-column gap-3">
               {% for rp in related_papers %}
               <div>
-                <a href="{{ url_for('preview_paper', filename=rp.filename, q=source_query, page=source_page) }}"
+                <a href="{{ url_for('preview_paper', paper_id=rp.paper_id, q=source_query, page=source_page) }}"
                   class="text-decoration-none text-brand fw-medium d-block pb-1" style="line-height: 1.3;">
                   {{ rp.title or _('Untitled Paper') }}
                 </a>

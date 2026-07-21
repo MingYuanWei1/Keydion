@@ -11,15 +11,18 @@ from tests.support import source_of, all_sources
 ROOT = Path(__file__).resolve().parents[1]
 
 SAMPLE = [
-    {"filename": "a.pdf", "title": "Alpha", "category": "Science",
+    {"paper_id": "00000000-0000-4000-8000-000000000911",
+     "filename": "a.pdf", "title": "Alpha", "category": "Science",
      "keywords": "x,y", "abstract": "aa", "author_name": "Ann",
      "author_email": "", "author_school": "", "published_at": "2026-01-01",
      "journal": "IB EE", "paper_type": "Extended Essay"},
-    {"filename": "b.pdf", "title": "Beta", "category": "Math",
+    {"paper_id": "00000000-0000-4000-8000-000000000912",
+     "filename": "b.pdf", "title": "Beta", "category": "Math",
      "keywords": "", "abstract": "", "author_name": "Bob",
      "author_email": "", "author_school": "", "published_at": "2026-02-01",
      "journal": "", "paper_type": "Community Project"},
-    {"filename": "c.pdf", "title": "Gamma", "category": "",
+    {"paper_id": "00000000-0000-4000-8000-000000000913",
+     "filename": "c.pdf", "title": "Gamma", "category": "",
      "keywords": "", "abstract": "", "author_name": "",
      "author_email": "", "author_school": "", "published_at": "",
      "journal": "", "paper_type": "Independent Research"},
@@ -72,11 +75,17 @@ class PaperManageTemplateContract(unittest.TestCase):
 class PaperManageRouteContract(unittest.TestCase):
     def test_route_derives_paper_type_and_passes_journals(self):
         src = source_of("paper_manage")
+        template = (ROOT / "templates" / "paper_manage.html").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("gather_paper_records(_paper_library())", src)
         self.assertIn('"paper_type"', src)
         self.assertIn("Community Project", src)
         self.assertIn("Extended Essay", src)
-        self.assertIn('"journal"', src)
         self.assertIn("journals=get_journal_names()", src)
+        self.assertIn("p.journal", template)
+        self.assertIn("paper_id=p.paper_id", template)
 
 
 class PaperBulkEndpointContract(unittest.TestCase):

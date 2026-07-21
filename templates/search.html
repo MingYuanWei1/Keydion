@@ -212,7 +212,7 @@
             {% if paper.get('cp_global_context') %}{{ paper.cp_global_context }}{% else %}{{ paper.category or _('Uncategorized') }}{% endif %}
           </div>
           <h3 class="fs-5 fw-normal mb-2" style="font-family: 'Source Serif 4', Georgia, serif; line-height: 1.4;">
-            <a href="{{ url_for('preview_paper', filename=paper.filename, q=query, page=pagination.page) }}"
+            <a href="{{ url_for('preview_paper', paper_id=paper.paper_id, q=query, page=pagination.page) }}"
               class="text-decoration-none" style="color: #2b457a;">
               {{ paper.title or _('Untitled Paper') }}
             </a>
@@ -285,7 +285,7 @@
             {{ _('Sign in to Download') }}
           </a>
           {% else %}
-          <a href="{{ url_for('download', filename=paper.filename) }}"
+          <a href="{{ url_for('paper_file', paper_id=paper.paper_id, download=1) }}"
             class="btn btn-danger btn-sm w-100 fw-medium shadow-none text-start d-flex align-items-center justify-content-center gap-1 rounded-0"
             style="background-color: #a4101e; border-color: #a4101e; font-size: 13px;">
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-download"
@@ -297,7 +297,7 @@
             </svg>
             {{ _('Download') }}
           </a>
-          <a href="{{ url_for('preview_paper', filename=paper.filename, q=query, page=pagination.page) }}"
+          <a href="{{ url_for('preview_paper', paper_id=paper.paper_id, q=query, page=pagination.page) }}"
             class="btn btn-outline-secondary btn-sm w-100 fw-medium shadow-none text-start d-flex align-items-center justify-content-center gap-1 rounded-0 bg-light"
             style="font-size: 13px;">
             {{ _('View') }}

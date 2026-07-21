@@ -195,9 +195,10 @@ def create_app() -> Flask:
     init_db()
     configure_rag()
     from services import publishing_wiring
-    app.extensions["publishing_lifecycle"] = (
-        publishing_wiring.build_publishing_lifecycle()
-    )
+    publishing_services = publishing_wiring.build_publishing_services()
+    app.extensions["publishing_services"] = publishing_services
+    app.extensions["publishing_lifecycle"] = publishing_services.lifecycle
+    app.extensions["paper_library"] = publishing_services.library
     babel.init_app(app, locale_selector=select_locale)
 
     from flask_wtf import CSRFProtect
@@ -282,7 +283,11 @@ def create_app() -> Flask:
                 session.clear()
         latest_news = load_news_articles(status="published")[:4]
         return render_template("landing.html", ms_enabled=is_ms_configured(),
-                               latest_news=latest_news, recent_journals=get_recent_journals(4))
+                               latest_news=latest_news,
+                               recent_journals=get_recent_journals(
+                                   4,
+                                   library=app.extensions["paper_library"],
+                               ))
 
     @app.route("/faq")
     def faq():

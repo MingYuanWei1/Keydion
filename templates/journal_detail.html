@@ -182,7 +182,7 @@
                         {% if pyear == year %}
                         <div class="paper-entry">
                             <div class="paper-entry-title">
-                                <a href="{{ url_for('preview_paper', filename=paper.filename) }}">{{ paper.title or
+                                <a href="{{ url_for('preview_paper', paper_id=paper.paper_id) }}">{{ paper.title or
                                     paper.filename }}</a>
                             </div>
                             <div class="paper-entry-meta">
@@ -216,7 +216,7 @@
                         {% for paper in no_year_papers %}
                         <div class="paper-entry">
                             <div class="paper-entry-title">
-                                <a href="{{ url_for('preview_paper', filename=paper.filename) }}">{{ paper.title or
+                                <a href="{{ url_for('preview_paper', paper_id=paper.paper_id) }}">{{ paper.title or
                                     paper.filename }}</a>
                             </div>
                             <div class="paper-entry-meta">{% if not paper.get('is_anonymous') %}{% if paper.get('is_ib_sample') %}IB SAMPLE{% else %}{{ paper.author_name or _('Unknown') }}{% endif %}{% endif %}</div>

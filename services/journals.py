@@ -113,22 +113,21 @@ def ensure_journal_slugs() -> None:
         save_journals(journals)
 
 
-def get_journal_paper_counts() -> dict:
-    """Return a dict mapping journal name -> number of published papers."""
-    from services.papers import load_paper_metadata
+def get_journal_paper_counts(library) -> dict:
+    """Count only Papers in an explicitly injected visible inventory."""
     counts: dict = {}
-    for row in load_paper_metadata():
-        jn = (row.get("journal") or "").strip()
+    for paper in library.list_visible():
+        jn = (paper.journal or "").strip()
         if jn:
             counts[jn] = counts.get(jn, 0) + 1
     return counts
 
 
-def get_recent_journals(limit: int = 4) -> list:
+def get_recent_journals(limit: int = 4, *, library) -> list:
     """Most-recently-created journals, each annotated with `paper_count`."""
     journals = sorted(load_journals(),
                       key=lambda j: j.get("created_at") or "", reverse=True)[:limit]
-    counts = get_journal_paper_counts()
+    counts = get_journal_paper_counts(library)
     for j in journals:
         j["paper_count"] = counts.get(j["name"], 0)
     return journals

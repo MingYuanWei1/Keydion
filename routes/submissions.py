@@ -21,6 +21,7 @@ from config import (
     PENDING_PAPERS_DIR,
 )
 from services.auth import require_login
+from services.publishing_contracts import NotFound
 from services.papers import (
     _build_safe_paper_filename,
     resolve_contained,
@@ -95,14 +96,19 @@ def register_routes(app):
             if pending_path.exists():
                 pdf_url = url_for("my_submission_file", sub_id=sub_id)
         elif sub.get("status") == "accepted":
-            filename = sub.get("filename", "")
-            publish_path = PAPERS_DIR / filename
-            if not publish_path.exists():
-                # Try with sub_id prefix (collision avoidance)
-                filename = f"{sub_id}_{sub.get('filename', '')}"
-                publish_path = PAPERS_DIR / filename
-            if publish_path.exists():
-                pdf_url = url_for("paper_file", filename=filename)
+            paper_id = sub.get("paper_id")
+            if paper_id:
+                try:
+                    document = app.extensions["paper_library"].current_pdf(
+                        paper_id
+                    )
+                except NotFound:
+                    pass
+                else:
+                    pdf_url = url_for(
+                        "paper_file",
+                        paper_id=document.paper.paper_id,
+                    )
         # rejected: file deleted, pdf_url stays None
 
         return render_template("submission_detail.html", user=user, submission=sub, pdf_url=pdf_url)

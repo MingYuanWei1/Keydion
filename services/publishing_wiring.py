@@ -7,8 +7,10 @@ import random
 import stat
 import time
 import uuid
+from dataclasses import dataclass
 from pathlib import Path
 
+from services.paper_library import PaperLibrary
 from services.paper_storage import PaperStorage, StorageError
 from services.publishing import PublishingLifecycle
 from services.publishing_jobs import PublishingWorker
@@ -21,6 +23,15 @@ _PARENT_DIRECTORY_FLAGS = (
     | getattr(os, "O_CLOEXEC", 0)
 )
 _DIRECTORY_FLAGS = _PARENT_DIRECTORY_FLAGS | getattr(os, "O_NOFOLLOW", 0)
+
+
+@dataclass(frozen=True)
+class WebPublishingServices:
+    """App-owned services sharing one caller-owned PaperStorage instance."""
+
+    storage: PaperStorage
+    lifecycle: PublishingLifecycle
+    library: PaperLibrary
 
 
 def _same_inode(left: os.stat_result, right: os.stat_result) -> bool:
@@ -164,20 +175,25 @@ def _prepare_private_storage_root(path: Path) -> Path:
     return absolute
 
 
-def _build_lifecycle(session_factory):
+def _build_storage() -> PaperStorage:
     from config import (
         PAPERS_DIR,
         PENDING_PAPERS_DIR,
-        PUBLISHING_INLINE_INDEX_TIMEOUT_SECONDS,
     )
-    from services.publishing_time import utc_now_db
 
     _validate_storage_root_topology(PAPERS_DIR, PENDING_PAPERS_DIR)
     papers_root = _prepare_private_storage_root(PAPERS_DIR)
     pending_root = _prepare_private_storage_root(PENDING_PAPERS_DIR)
+    return PaperStorage(papers_root, pending_root)
+
+
+def _build_lifecycle(session_factory, *, storage=None):
+    from config import PUBLISHING_INLINE_INDEX_TIMEOUT_SECONDS
+    from services.publishing_time import utc_now_db
+
     return PublishingLifecycle(
         session_factory=session_factory,
-        storage=PaperStorage(papers_root, pending_root),
+        storage=storage if storage is not None else _build_storage(),
         indexer=StrictRagAdapter(),
         clock=utc_now_db,
         monotonic_clock=time.monotonic,
@@ -185,6 +201,30 @@ def _build_lifecycle(session_factory):
         jitter=random.random,
         inline_index_timeout_seconds=PUBLISHING_INLINE_INDEX_TIMEOUT_SECONDS,
     )
+
+
+def _build_web_services(session_factory) -> WebPublishingServices:
+    storage = _build_storage()
+    try:
+        lifecycle = _build_lifecycle(session_factory, storage=storage)
+        library = PaperLibrary(
+            session_factory=session_factory,
+            storage=storage,
+        )
+        return WebPublishingServices(
+            storage=storage,
+            lifecycle=lifecycle,
+            library=library,
+        )
+    except Exception:
+        storage.close()
+        raise
+
+
+def build_publishing_services() -> WebPublishingServices:
+    from db import get_session_factory
+
+    return _build_web_services(get_session_factory())
 
 
 def build_publishing_lifecycle():

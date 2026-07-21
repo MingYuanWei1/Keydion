@@ -8,6 +8,7 @@ loop through the test client when a database is available.
 import json
 import os
 import sys
+import types
 import unittest
 from unittest import mock
 
@@ -188,14 +189,26 @@ class AgenticLoopStreaming(unittest.TestCase):
         self.client = _make_client()
 
     def test_loop_emits_status_and_citations(self):
-        hit = {"filename": "lee2020.pdf", "title": "Photosynthesis in Algae",
+        paper_id = "00000000-0000-4000-8000-000000000921"
+        hit = {"paper_id": paper_id, "revision_number": 1,
+               "filename": "lee2020.pdf", "title": "Photosynthesis in Algae",
                "content": "Algae convert light into energy.", "author_name": "Lee"}
         deps = mock.Mock()
         deps.full_text.return_value = "Full text of the algae paper."
         deps.paper_meta.return_value = {"title": "Photosynthesis in Algae", "authors": "Lee"}
         deps.paper_url.return_value = "/preview/lee2020.pdf"
 
+        library = self.client.application.extensions["paper_library"]
         with mock.patch.dict(os.environ, {"LLM_API_KEY": "k"}, clear=False), \
+             mock.patch("routes.ai.OPEN_ACCESS", True), \
+             mock.patch.object(
+                 library,
+                 "list_visible",
+                 return_value=[types.SimpleNamespace(
+                     paper_id=paper_id,
+                     current_revision=1,
+                 )],
+             ), \
              mock.patch.object(app_module.llm_client, "build_client",
                                return_value=_FakeClient()), \
              mock.patch.object(app_module.rag_index, "retrieve", return_value=[hit]), \

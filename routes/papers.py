@@ -1,20 +1,21 @@
 """Paper search, preview, serving, modify/delete, and manage routes."""
 import json
-from pathlib import Path
+from dataclasses import asdict
 
 from flask import (
     abort,
+    current_app,
     flash,
     jsonify,
     redirect,
     render_template,
     request,
     send_file,
-    send_from_directory,
     session,
     url_for,
 )
 from flask_babel import gettext as _
+from werkzeug.routing import PathConverter
 
 import llm_client
 import rag_index
@@ -42,7 +43,6 @@ from services.papers import (
     build_cp_data_from_form,
     build_ia_data_from_form,
     build_ib_ee_data_from_form,
-    build_paper_record,
     build_preview_pdf,
     count_papers_using_ee_subject,
     count_papers_using_ia_subject,
@@ -63,9 +63,55 @@ from services.papers import (
     upsert_paper_metadata,
 )
 from services.search import _hybrid_search_records
+from services.publishing_contracts import NotFound
+
+
+class _LegacyPaperPathConverter(PathConverter):
+    """Keep UUID-shaped identities out of filename compatibility rules."""
+
+    _uuid = (
+        r"[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-"
+        r"[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}"
+    )
+    regex = rf"(?!(?:{_uuid})(?=(?:/(?:info|modify|delete))?$)).+?"
+
+
+def _paper_library():
+    return current_app.extensions["paper_library"]
+
+
+def _current_paper_pdf(paper_id):
+    try:
+        return _paper_library().current_pdf(str(paper_id))
+    except NotFound:
+        abort(404)
+
+
+def _paper_record_payload(record):
+    payload = asdict(record)
+    payload.pop("row_version", None)
+    return payload
+
+
+def _legacy_paper_document(filename):
+    try:
+        record = _paper_library().resolve_alias(filename)
+        return _paper_library().current_pdf(record.paper_id)
+    except NotFound:
+        abort(404)
 
 
 def register_routes(app):
+    def legacy_paper_path_route(rule, **options):
+        def decorate(view):
+            original_path_converter = app.url_map.converters["path"]
+            app.url_map.converters["path"] = _LegacyPaperPathConverter
+            try:
+                return app.route(rule, **options)(view)
+            finally:
+                app.url_map.converters["path"] = original_path_converter
+
+        return decorate
 
     # ==================== PAPERS / SEARCH ROUTES ====================
 
@@ -113,8 +159,18 @@ def register_routes(app):
         per_page = 20
         filtered = bool(query) or bool(category_filter) or bool(language_filter) or bool(date_filter) or bool(author_filter) or bool(title_filter) or bool(start_year) or bool(end_year) or bool(journal_filter) or bool(paper_type_filter) or bool(ee_subject_filter) or bool(cp_context_filter) or bool(ia_subject_filter)
 
-        # Only run full text search if 'q' is actually present
-        record_pool = _hybrid_search_records(query) if bool(query) else gather_paper_records()
+        visible_records = gather_paper_records(_paper_library())
+        if query:
+            visible_by_id = {
+                record["paper_id"]: record for record in visible_records
+            }
+            record_pool = [
+                visible_by_id[record["paper_id"]]
+                for record in _hybrid_search_records(query)
+                if record.get("paper_id") in visible_by_id
+            ]
+        else:
+            record_pool = visible_records
 
         # Apply additional filters
         if category_filter:
@@ -236,35 +292,17 @@ def register_routes(app):
             target = url_for("login") if not session.get("user") else url_for("dashboard")
             return redirect(target)
 
-        # Build list of papers with metadata
-        meta_rows = load_paper_metadata()
-        meta_map = {r["filename"]: r for r in meta_rows}
-
-        pdf_files = sorted(p.name for p in PAPERS_DIR.glob("*.pdf"))
-        papers = []
-        for fname in pdf_files:
-            m = meta_map.get(fname, {})
-            if _is_cp_paper(m):
+        papers = gather_paper_records(_paper_library())
+        for paper in papers:
+            if _is_cp_paper(paper):
                 paper_type = "Community Project"
-            elif _is_ee_paper(m):
+            elif _is_ee_paper(paper):
                 paper_type = "Extended Essay"
-            elif _is_ia_paper(m):
+            elif _is_ia_paper(paper):
                 paper_type = "Internal Assessment"
             else:
                 paper_type = "Independent Research"
-            papers.append({
-                "filename": fname,
-                "title": m.get("title", "") or fname,
-                "category": m.get("category", ""),
-                "keywords": m.get("keywords", ""),
-                "abstract": m.get("abstract", ""),
-                "author_name": m.get("author_name", ""),
-                "author_email": m.get("author_email", ""),
-                "author_school": m.get("author_school", ""),
-                "published_at": m.get("published_at", ""),
-                "journal": m.get("journal", ""),
-                "paper_type": paper_type,
-            })
+            paper["paper_type"] = paper_type
 
         return render_template("paper_manage.html", user=user,
                                papers=papers, journals=get_journal_names(),
@@ -307,40 +345,176 @@ def register_routes(app):
             return jsonify({"updated": updated, "count": len(updated)})
         return jsonify({"error": "Unsupported operation"}), 400
 
-    @app.route("/paper/<path:filename>/info")
-    def paper_info(filename):
-        """Return paper metadata as JSON for the preview modal."""
+    @app.route("/paper/<uuid:paper_id>")
+    def preview_paper(paper_id):
+        document = _current_paper_pdf(paper_id)
+        paper = _paper_record_payload(document.paper)
+        user = get_active_user()
+        is_guest = user is None
+        source_query = request.args.get("q", "").strip()
+        source_page = request.args.get("page", "").strip()
+
+        related_pairs = []
+        try:
+            if llm_client.llm_enabled():
+                related_pairs = rag_index.related_papers(
+                    document.paper.paper_id,
+                    k=5,
+                )
+        except Exception:  # never break the page on a ranking failure
+            app.logger.warning("related-paper ranking failed")
+
+        related_papers = []
+        if related_pairs:
+            for related_id, _score in related_pairs:
+                try:
+                    related_document = _paper_library().current_pdf(
+                        str(related_id)
+                    )
+                except NotFound:
+                    continue
+                if related_document.paper.paper_id == document.paper.paper_id:
+                    continue
+                related_papers.append(
+                    _paper_record_payload(related_document.paper)
+                )
+        elif document.paper.category:
+            related_papers = [
+                _paper_record_payload(record)
+                for record in _paper_library().list_visible()
+                if record.category == document.paper.category
+                and record.paper_id != document.paper.paper_id
+            ][:5]
+
+        pdf_url = url_for(
+            "paper_file"
+            if (not is_guest or OPEN_ACCESS)
+            else "paper_preview",
+            paper_id=document.paper.paper_id,
+        )
+
+        names = document.paper.author_name.split(", ")
+        emails = document.paper.author_email.split(", ")
+        schools = document.paper.author_school.split(", ")
+        parsed_authors = []
+        for index, name in enumerate(names):
+            if name.strip():
+                parsed_authors.append(
+                    {
+                        "name": name.strip(),
+                        "email": (
+                            emails[index].strip()
+                            if index < len(emails)
+                            else ""
+                        ),
+                        "school": (
+                            schools[index].strip()
+                            if index < len(schools)
+                            else ""
+                        ),
+                    }
+                )
+
+        unique_schools = []
+        for school in schools:
+            cleaned = school.strip()
+            if cleaned and cleaned not in unique_schools:
+                unique_schools.append(cleaned)
+
+        def parsed_json(value):
+            if not value:
+                return None
+            try:
+                return json.loads(value)
+            except (json.JSONDecodeError, TypeError):
+                return None
+
+        return render_template(
+            "preview.html",
+            user=user,
+            paper=paper,
+            parsed_authors=parsed_authors,
+            unique_schools_str=", ".join(unique_schools),
+            related_papers=related_papers,
+            source_query=source_query,
+            source_page=source_page,
+            is_guest=is_guest,
+            pdf_url=pdf_url,
+            journal_id_map=get_journal_id_map(),
+            journal_slug_map=get_journal_slug_map(),
+            ib_ee_info=parsed_json(document.paper.ib_ee_data),
+            cp_info=parsed_json(document.paper.cp_data),
+            ia_info=parsed_json(document.paper.ia_data),
+        )
+
+    @app.route("/paper/<uuid:paper_id>/pdf")
+    def paper_file(paper_id):
+        if not OPEN_ACCESS:
+            user = require_login()
+            if not user:
+                return redirect(url_for("login"))
+        document = _current_paper_pdf(paper_id)
+        return send_file(
+            document.path,
+            mimetype="application/pdf",
+            as_attachment=request.args.get("download") == "1",
+            download_name=document.paper.filename,
+        )
+
+    @app.route("/paper/<uuid:paper_id>/preview.pdf")
+    def paper_preview(paper_id):
+        document = _current_paper_pdf(paper_id)
+        if OPEN_ACCESS or get_active_user() is not None:
+            return send_file(
+                document.path,
+                mimetype="application/pdf",
+                as_attachment=False,
+                download_name=document.paper.filename,
+            )
+        preview_stream = build_preview_pdf(document.path, max_pages=2)
+        return send_file(
+            preview_stream,
+            mimetype="application/pdf",
+            as_attachment=False,
+            download_name=document.paper.filename,
+        )
+
+    @app.route("/paper/<uuid:paper_id>/info")
+    def paper_info(paper_id):
         user = require_login(level=3)
         if not user:
             return jsonify({"error": "Unauthorized"}), 401
-        meta_rows = load_paper_metadata()
-        meta = {}
-        for r in meta_rows:
-            if r.get("filename") == filename:
-                meta = r
-                break
-        if not meta:
-            return jsonify({"error": "Not found"}), 404
-        return jsonify({
-            "filename": filename,
-            "title": meta.get("title", "") or filename,
-            "category": meta.get("category", ""),
-            "keywords": meta.get("keywords", ""),
-            "abstract": meta.get("abstract", ""),
-            "author_name": meta.get("author_name", ""),
-            "author_email": meta.get("author_email", ""),
-            "author_school": meta.get("author_school", ""),
-            "published_at": meta.get("published_at", ""),
-            "pdf_url": url_for("paper_file", filename=filename),
-        })
+        document = _current_paper_pdf(paper_id)
+        payload = _paper_record_payload(document.paper)
+        payload["pdf_url"] = url_for(
+            "paper_file",
+            paper_id=document.paper.paper_id,
+        )
+        return jsonify(payload)
 
-    @app.route("/dashboard/paper/<path:filename>/modify", methods=["GET", "POST"])
+    @legacy_paper_path_route("/paper/<path:filename>/info")
+    def paper_info_legacy(filename):
+        user = require_login(level=3)
+        if not user:
+            return jsonify({"error": "Unauthorized"}), 401
+        document = _legacy_paper_document(filename)
+        return redirect(
+            url_for("paper_info", paper_id=document.paper.paper_id),
+            code=301,
+        )
+
+    @legacy_paper_path_route(
+        "/dashboard/paper/<path:filename>/modify",
+        methods=["GET", "POST"],
+    )
     def paper_modify(filename):
         user = require_login(level=3)
         if not user:
             target = url_for("login") if not session.get("user") else url_for("dashboard")
             return redirect(target)
 
+        document = _legacy_paper_document(filename)
+        paper_id = document.paper.paper_id
         paper_path = resolve_contained(PAPERS_DIR, filename, must_exist=True)
         if paper_path is None:
             flash(_("Paper not found."), "warning")
@@ -375,6 +549,7 @@ def register_routes(app):
                 "paper_modify.html",
                 user=user,
                 filename=filename,
+                paper_id=paper_id,
                 meta=meta_row,
                 parsed_authors=parsed_authors_from_meta(meta_row),
                 categories=load_paper_categories(),
@@ -502,11 +677,17 @@ def register_routes(app):
 
         return render_modify_form(meta)
 
-    @app.route("/paper/<path:filename>/modify", endpoint="paper_modify_legacy")
+    @legacy_paper_path_route(
+        "/paper/<path:filename>/modify",
+        endpoint="paper_modify_legacy",
+    )
     def paper_modify_legacy(filename):
         return redirect(url_for("paper_modify", filename=filename), code=301)
 
-    @app.route("/dashboard/paper/<path:filename>/delete", methods=["POST"])
+    @legacy_paper_path_route(
+        "/dashboard/paper/<path:filename>/delete",
+        methods=["POST"],
+    )
     def paper_delete(filename):
         user = require_login(level=3)
         if not user:
@@ -527,129 +708,56 @@ def register_routes(app):
         return redirect(url_for("paper_manage"))
 
     @app.route("/preview/<path:filename>")
-    def preview_paper(filename: str):
-        user = get_active_user()
-        is_guest = user is None
-        pdf_path = resolve_contained(PAPERS_DIR, filename, must_exist=True)
-        if pdf_path is None:
-            flash(_("Paper not found."), "danger")
-            return redirect(url_for("search"))
-        paper = build_paper_record(filename)
-        source_query = request.args.get("q", "").strip()
-        source_page = request.args.get("page", "").strip()
-        related_papers = []
-        related = []
-        try:
-            if llm_client.llm_enabled():
-                related = rag_index.related_papers(filename, k=5)
-        except Exception as exc:  # never break the page on a ranking failure
-            print(f"related-papers semantic ranking failed: {exc}")
-        if related:
-            index = {row["filename"]: row for row in load_paper_metadata()}
-            related_papers = [build_paper_record(fn, index) for fn, _ in related
-                              if (PAPERS_DIR / fn).exists()]
-        elif paper.get("category"):
-            all_papers = gather_paper_records()
-            related_papers = [
-                p for p in all_papers
-                if p.get("category") == paper.get("category") and p.get("filename") != filename
-            ][:5]
-
-        pdf_url = url_for("paper_file", filename=filename) if (not is_guest or OPEN_ACCESS) else url_for("paper_preview", filename=filename)
-
-        # Parse authors
-        names = paper.get("author_name", "").split(", ")
-        emails = paper.get("author_email", "").split(", ")
-        schools = paper.get("author_school", "").split(", ")
-        parsed_authors = []
-        for i, name in enumerate(names):
-            if name.strip():
-                parsed_authors.append({
-                    "name": name.strip(),
-                    "email": emails[i].strip() if i < len(emails) else "",
-                    "school": schools[i].strip() if i < len(schools) else ""
-                })
-
-        # Deduplicate schools
-        unique_schools = []
-        for s in schools:
-            s_clean = s.strip()
-            if s_clean and s_clean not in unique_schools:
-                unique_schools.append(s_clean)
-        unique_schools_str = ", ".join(unique_schools) if unique_schools else ""
-
-        # Parse IB EE data if present
-        ib_ee_info = None
-        raw_ib = paper.get("ib_ee_data", "")
-        if raw_ib:
-            try:
-                ib_ee_info = json.loads(raw_ib)
-            except (json.JSONDecodeError, TypeError):
-                pass
-
-        # Parse CP data if present
-        cp_info = None
-        raw_cp = paper.get("cp_data", "")
-        if raw_cp:
-            try:
-                cp_info = json.loads(raw_cp)
-            except (json.JSONDecodeError, TypeError):
-                pass
-
-        # Parse IA data if present
-        ia_info = None
-        raw_ia = paper.get("ia_data", "")
-        if raw_ia:
-            try:
-                ia_info = json.loads(raw_ia)
-            except (json.JSONDecodeError, TypeError):
-                pass
-
-        return render_template(
-            "preview.html",
-            user=user,
-            paper=paper,
-            parsed_authors=parsed_authors,
-            unique_schools_str=unique_schools_str,
-            related_papers=related_papers,
-            source_query=source_query,
-            source_page=source_page,
-            is_guest=is_guest,
-            pdf_url=pdf_url,
-            journal_id_map=get_journal_id_map(),
-            journal_slug_map=get_journal_slug_map(),
-            ib_ee_info=ib_ee_info,
-            cp_info=cp_info,
-            ia_info=ia_info,
+    def preview_paper_legacy(filename: str):
+        document = _legacy_paper_document(filename)
+        values = {"paper_id": document.paper.paper_id}
+        for parameter in ("q", "page"):
+            value = request.args.get(parameter, "").strip()
+            if value:
+                values[parameter] = value
+        return redirect(
+            url_for("preview_paper", **values),
+            code=301,
         )
 
     @app.route("/papers/preview/<path:filename>")
-    def paper_preview(filename: str):
-        pdf_path = resolve_contained(PAPERS_DIR, filename, must_exist=True)
-        if pdf_path is None:
-            abort(404)
-        preview_stream = build_preview_pdf(pdf_path, max_pages=2)
-        return send_file(preview_stream, mimetype="application/pdf", download_name=Path(filename).name)
+    def paper_preview_legacy(filename: str):
+        document = _legacy_paper_document(filename)
+        return redirect(
+            url_for(
+                "paper_preview",
+                paper_id=document.paper.paper_id,
+            ),
+            code=301,
+        )
 
     @app.route("/papers/raw/<path:filename>")
-    def paper_file(filename: str):
+    def paper_file_legacy(filename: str):
         if not OPEN_ACCESS:
             user = require_login()
             if not user:
                 return redirect(url_for("login"))
-        if resolve_contained(PAPERS_DIR, filename, must_exist=True) is None:
-            abort(404)
-        return send_from_directory(PAPERS_DIR, filename, as_attachment=False)
+        document = _legacy_paper_document(filename)
+        return redirect(
+            url_for("paper_file", paper_id=document.paper.paper_id),
+            code=301,
+        )
 
     @app.route("/papers/<path:filename>")
-    def download(filename: str):
+    def download_legacy(filename: str):
         if not OPEN_ACCESS:
             user = require_login()
             if not user:
                 return redirect(url_for("login"))
-        if resolve_contained(PAPERS_DIR, filename, must_exist=True) is None:
-            abort(404)
-        return send_from_directory(PAPERS_DIR, filename, as_attachment=True)
+        document = _legacy_paper_document(filename)
+        return redirect(
+            url_for(
+                "paper_file",
+                paper_id=document.paper.paper_id,
+                download=1,
+            ),
+            code=301,
+        )
 
     # ---------- EE subjects management ----------
     @app.route("/dashboard/admin/ee-subjects", endpoint="ee_subjects_manage")

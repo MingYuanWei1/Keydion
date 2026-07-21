@@ -1,5 +1,6 @@
 """Papers: metadata, records, EE/CP form data, PDF utilities, categories."""
 import json
+from dataclasses import asdict
 from io import BytesIO
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -56,13 +57,13 @@ def build_paper_record(filename: str, metadata_index: Optional[Dict[str, Dict[st
     return record
 
 
-def gather_paper_records() -> List[Dict[str, str]]:
-    metadata_rows = load_paper_metadata()
-    metadata_index = {row["filename"]: row for row in metadata_rows}
-    records: List[Dict[str, str]] = []
-    for pdf_path in sorted(PAPERS_DIR.glob("*.pdf"), key=lambda item: item.name.lower()):
-        records.append(build_paper_record(pdf_path.name, metadata_index))
-    records.sort(key=lambda row: (row.get("published_at") or "", row.get("title") or row["filename"]), reverse=True)
+def gather_paper_records(library) -> List[Dict[str, str]]:
+    """Project an explicitly injected PaperLibrary's visible inventory."""
+    records = []
+    for paper in library.list_visible():
+        record = asdict(paper)
+        record.pop("row_version", None)
+        records.append(record)
     return records
 
 

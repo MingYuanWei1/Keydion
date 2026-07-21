@@ -6,7 +6,7 @@ import types
 
 import numpy as np
 
-from flask import session, url_for
+from flask import current_app, session, url_for
 from flask_babel import gettext as _
 
 import llm_client
@@ -23,7 +23,7 @@ from models import (
     RagIndexMetaModel,
 )
 from services.paper_storage import PaperStorage
-from services.papers import resolve_contained
+from services.publishing_contracts import NotFound
 
 logger = logging.getLogger(__name__)
 
@@ -205,6 +205,17 @@ def configure_rag():
 # library_tools.run_tool requires.  The agentic loop (a later task) will call
 # _build_library_deps() and pass the result as `deps`.
 
+
+def _live_paper_document(filename: str):
+    """Resolve one alias only when its exact current PDF is still available."""
+    library = current_app.extensions["paper_library"]
+    try:
+        record = library.resolve_alias(filename)
+        return library.current_pdf(record.paper_id)
+    except NotFound:
+        return None
+
+
 def _lib_full_text(filename: str) -> str:
     """Return the full text of a paper by reassembling its stored chunks.
 
@@ -214,31 +225,17 @@ def _lib_full_text(filename: str) -> str:
     paper); that path can be slow and may fail — errors are logged and "" is
     returned so the caller is never disrupted.
     """
-    # Security (H5): filename is model/request-supplied (read_paper tool). Route it
-    # through the shared containment resolver so it cannot traverse out of PAPERS_DIR
-    # via the disk fallback; the DB-key lookup uses the resolved basename.
-    resolved = resolve_contained(PAPERS_DIR, filename, must_exist=False)
-    if resolved is None:
-        return ""
-    safe = resolved.name
     try:
+        document = _live_paper_document(filename)
+        if document is None:
+            return ""
         with db_session() as db:
-            paper = (
-                db.query(PaperMetadataModel)
-                .filter(
-                    PaperMetadataModel.filename == safe,
-                    PaperMetadataModel.lifecycle_state == "published",
-                    PaperMetadataModel.current_revision.isnot(None),
-                )
-                .one_or_none()
-            )
-            if paper is None:
-                return ""
             rows = (
                 db.query(PaperChunkModel)
                 .filter(
-                    PaperChunkModel.paper_id == paper.id,
-                    PaperChunkModel.revision_number == paper.current_revision,
+                    PaperChunkModel.paper_id == document.paper.paper_id,
+                    PaperChunkModel.revision_number
+                    == document.paper.current_revision,
                 )
                 .order_by(PaperChunkModel.chunk_index)
                 .all()
@@ -248,13 +245,39 @@ def _lib_full_text(filename: str) -> str:
             return rag_index.reassemble(contents)
         # No stored chunks — try live extraction as a last resort.
         try:
-            return _rag_paper_text(safe)
+            return _rag_paper_text(document.paper.filename)
         except Exception:
             logger.exception("_lib_full_text fallback failed for %s", filename)
             return ""
     except Exception:
         logger.exception("_lib_full_text failed for %s", filename)
         return ""
+
+
+def _filter_available_grounding_hits(hits, library) -> list:
+    """Keep attachments and live library hits without changing their rank."""
+    current_revision_by_id = {
+        str(record.paper_id): record.current_revision
+        for record in library.list_visible()
+    }
+    return [
+        hit
+        for hit in hits
+        if hit.get("is_attachment") is True
+        or (
+            hit.get("paper_id") is not None
+            and type(hit.get("revision_number")) is int
+            and current_revision_by_id.get(str(hit["paper_id"]))
+            == hit["revision_number"]
+        )
+    ]
+
+
+def _prepare_available_grounding_hits(hits, library) -> list:
+    """Filter exact live revisions before merging same-Paper chunks."""
+    return _dedupe_hits_by_paper(
+        _filter_available_grounding_hits(hits, library)
+    )
 
 
 def _lib_search(query: str) -> list:
@@ -264,13 +287,20 @@ def _lib_search(query: str) -> list:
     """
     try:
         hits = rag_index.retrieve(query)
-        hits = _dedupe_hits_by_paper(hits)
+        hits = _prepare_available_grounding_hits(
+            hits,
+            current_app.extensions["paper_library"],
+        )
         return [
             {
                 "filename": h["filename"],
                 "title": h.get("title") or h["filename"],
                 "authors": h.get("author_name", ""),
-                "url": url_for("preview_paper", filename=h["filename"]),
+                "url": (
+                    url_for("preview_paper", paper_id=h["paper_id"])
+                    if h.get("paper_id")
+                    else None
+                ),
                 "snippet": (h.get("content") or "")[:400],
             }
             for h in hits
@@ -281,12 +311,21 @@ def _lib_search(query: str) -> list:
 
 
 def _lib_paper_meta(filename: str) -> dict:
-    rec = _visible_paper_by_filename(filename) or {}
-    return {"title": rec.get("title") or filename, "authors": rec.get("author_name", "")}
+    document = _live_paper_document(filename)
+    if document is None:
+        return {}
+    record = document.paper
+    return {
+        "title": record.title or record.filename,
+        "authors": record.author_name,
+    }
 
 
-def _lib_paper_url(filename: str) -> str:
-    return url_for("preview_paper", filename=filename)
+def _lib_paper_url(filename: str) -> str | None:
+    document = _live_paper_document(filename)
+    if document is None:
+        return None
+    return url_for("preview_paper", paper_id=document.paper.paper_id)
 
 
 def _build_library_deps(conv_db_id=None):

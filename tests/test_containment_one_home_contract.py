@@ -6,13 +6,14 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 import support
 
-# Every sink that previously hand-rolled resolve()+is_relative_to() (or relied on
-# send_from_directory alone) now routes through resolve_contained().
+# Filename/path sinks still route through the one shared containment resolver.
+# Canonical UUID delivery routes are intentionally absent: PaperLibrary and
+# PaperStorage validate their UUID/revision paths instead. The retired
+# ``download`` endpoint is likewise absent; downloads use ``paper_file``.
 MIGRATED_SINKS = [
-    "preview_paper", "paper_preview", "paper_file", "download",
     "paper_delete", "paper_modify", "papers_bulk_action",
     "pending_paper_file", "delete_submission", "review_reject",
-    "my_submission_file", "upload", "_lib_full_text",
+    "my_submission_file", "upload",
 ]
 
 

@@ -35,9 +35,9 @@ from services.ai import (
     _build_agentic_ask_prompt,
     _build_ask_prompt,
     _build_library_deps,
-    _dedupe_hits_by_paper,
     _filter_cited,
     _forced_grounding,
+    _prepare_available_grounding_hits,
     _tool_status_text,
 )
 from services.auth import get_active_user, is_ms_configured, require_login
@@ -205,8 +205,22 @@ def register_routes(app):
         if blocked:
             return blocked
         q = (request.args.get("q") or "").strip()
-        records = search_papers(q) if q else gather_paper_records()
+        visible_records = gather_paper_records(
+            app.extensions["paper_library"]
+        )
+        if q:
+            visible_by_id = {
+                record["paper_id"]: record for record in visible_records
+            }
+            records = [
+                visible_by_id[record["paper_id"]]
+                for record in search_papers(q)
+                if record.get("paper_id") in visible_by_id
+            ]
+        else:
+            records = visible_records
         items = [{
+            "paper_id": r["paper_id"],
             "filename": r["filename"],
             "title": r.get("title") or r["filename"],
             "authors": r.get("author_name", ""),
@@ -391,9 +405,11 @@ def register_routes(app):
                 lib_hits = _forced_grounding(question, forced)
             else:
                 lib_hits = rag_index.retrieve(question)
-            # Dedupe by paper first: retrieval is chunk-level, so one paper can
-            # fill several slots and otherwise be cited as multiple sources.
-            hits = _dedupe_hits_by_paper(attach_hits + lib_hits)[:6]
+            # Reject stale revisions before merging chunk-level retrieval hits.
+            hits = _prepare_available_grounding_hits(
+                attach_hits + lib_hits,
+                app.extensions["paper_library"],
+            )[:6]
         except Exception:
             app.logger.exception("retrieval failed")
             hits = []
@@ -403,7 +419,7 @@ def register_routes(app):
             {"n": i + 1, "filename": h["filename"], "title": h["title"],
              "authors": h.get("author_name", ""),
              "url": (None if h.get("is_attachment")
-                     else url_for("preview_paper", filename=h["filename"]))}
+                     else url_for("preview_paper", paper_id=h["paper_id"]))}
             for i, h in enumerate(hits)
         ]
         web_results = []
@@ -465,7 +481,7 @@ def register_routes(app):
                         "title": h.get("title") or h["filename"],
                         "authors": h.get("author_name", ""),
                         "url": (None if h.get("is_attachment")
-                                else url_for("preview_paper", filename=h["filename"])),
+                                else url_for("preview_paper", paper_id=h["paper_id"])),
                     })
                     candidates.append({
                         "n": n,

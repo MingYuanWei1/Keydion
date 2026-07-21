@@ -14,12 +14,16 @@ def _before(src, guard, op):
 class PathTraversalContractTest(unittest.TestCase):
     def test_paper_preview_contained_but_still_guest_reachable(self):
         src = support.source_of("paper_preview")
-        self.assertIn("resolve_contained(", src)
+        self.assertIn("_current_paper_pdf(paper_id)", src)
+        self.assertIn("verify_revision(", support.source_of("_verified_pdf"))
+        self.assertIn("_opened_regular(", support.source_of("verify_revision"))
         self.assertNotIn("require_login", src, "paper_preview must stay guest-reachable")
 
     def test_preview_paper_contained(self):
         src = support.source_of("preview_paper")
-        self.assertIn("resolve_contained(", src)
+        self.assertIn("_current_paper_pdf(paper_id)", src)
+        self.assertIn("_canonical_id(paper_id)", support.source_of("current_pdf"))
+        self.assertIn("verify_revision(", support.source_of("_verified_pdf"))
 
     def test_paper_delete_guard_precedes_unlink(self):
         src = support.source_of("paper_delete")
@@ -31,12 +35,15 @@ class PathTraversalContractTest(unittest.TestCase):
         self.assertTrue(src.index("resolve_contained(") < src.index(".rename("))
         self.assertTrue(src.index("resolve_contained(") < src.index("set_pdf_metadata("))
 
-    def test_lib_full_text_neutralizes_traversal_before_read(self):
-        # The read_paper boundary routes the model-supplied filename through the
-        # shared resolver before the DB query / disk fallback.
+    def test_lib_full_text_verifies_live_alias_and_current_storage_before_read(self):
         src = support.source_of("_lib_full_text")
-        self.assertIn("resolve_contained(", src)
-        self.assertTrue(_before(src, "resolve_contained(", "_rag_paper_text("))
+        live = support.source_of("_live_paper_document")
+        verified = support.source_of("_verified_pdf")
+
+        self.assertTrue(_before(src, "_live_paper_document(", "db_session()"))
+        self.assertIn("resolve_alias(filename)", live)
+        self.assertIn("current_pdf(record.paper_id)", live)
+        self.assertIn("verify_revision(", verified)
 
     def test_upload_validates_draft_id_ownership(self):
         src = support.source_of("upload")

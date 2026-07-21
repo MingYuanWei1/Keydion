@@ -425,7 +425,7 @@
                 <h5 class="mb-0">{{ _('Paper Preview') }}</h5>
             </div>
             <div class="card-body p-0">
-                <iframe src="{{ url_for('paper_file', filename=filename) }}#view=FitH"
+                <iframe src="{{ url_for('paper_file', paper_id=paper_id) }}#view=FitH"
                     style="width: 100%; height: 80vh; border: none;"></iframe>
             </div>
         </div>

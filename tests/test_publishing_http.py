@@ -590,7 +590,81 @@ class PublishingConstructionTest(unittest.TestCase):
         self.assertEqual(prepare.call_args_list, [mock.call(papers), mock.call(pending)])
         storage_factory.assert_called_once_with(prepared_papers, prepared_pending)
 
-    def test_app_factory_starts_with_private_roots_and_one_lifecycle_per_app(self):
+    def test_web_services_share_exactly_one_caller_owned_storage(self):
+        from services import publishing_wiring
+
+        storage = mock.sentinel.storage
+        lifecycle = mock.sentinel.lifecycle
+        library = mock.sentinel.library
+        session_factory = mock.sentinel.session_factory
+
+        with mock.patch.object(
+            publishing_wiring,
+            "_build_storage",
+            return_value=storage,
+        ) as build_storage, mock.patch.object(
+            publishing_wiring,
+            "_build_lifecycle",
+            return_value=lifecycle,
+        ) as build_lifecycle, mock.patch.object(
+            publishing_wiring,
+            "PaperLibrary",
+            return_value=library,
+        ) as library_factory:
+            services = publishing_wiring._build_web_services(session_factory)
+
+        build_storage.assert_called_once_with()
+        build_lifecycle.assert_called_once_with(
+            session_factory,
+            storage=storage,
+        )
+        library_factory.assert_called_once_with(
+            session_factory=session_factory,
+            storage=storage,
+        )
+        self.assertIs(services.storage, storage)
+        self.assertIs(services.lifecycle, lifecycle)
+        self.assertIs(services.library, library)
+
+    def test_web_services_close_new_storage_if_construction_fails(self):
+        from services import publishing_wiring
+
+        for failing_dependency in ("lifecycle", "library"):
+            with self.subTest(failing_dependency=failing_dependency):
+                storage = mock.Mock(name="new app storage")
+                lifecycle_error = (
+                    RuntimeError("lifecycle failed")
+                    if failing_dependency == "lifecycle"
+                    else None
+                )
+                library_error = (
+                    RuntimeError("library failed")
+                    if failing_dependency == "library"
+                    else None
+                )
+                with mock.patch.object(
+                    publishing_wiring,
+                    "_build_storage",
+                    return_value=storage,
+                ), mock.patch.object(
+                    publishing_wiring,
+                    "_build_lifecycle",
+                    side_effect=lifecycle_error,
+                    return_value=mock.sentinel.lifecycle,
+                ), mock.patch.object(
+                    publishing_wiring,
+                    "PaperLibrary",
+                    side_effect=library_error,
+                    return_value=mock.sentinel.library,
+                ):
+                    with self.assertRaises(RuntimeError):
+                        publishing_wiring._build_web_services(
+                            mock.sentinel.session_factory
+                        )
+
+                storage.close.assert_called_once_with()
+
+    def test_app_factory_starts_with_one_shared_web_service_bundle_per_app(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             env = os.environ.copy()
@@ -606,6 +680,7 @@ class PublishingConstructionTest(unittest.TestCase):
             )
             script = """
 import stat
+from types import SimpleNamespace
 from unittest import mock
 
 import app as app_module
@@ -613,27 +688,40 @@ from config import PAPERS_DIR, PENDING_PAPERS_DIR
 from services import publishing_wiring
 
 assert "publishing_lifecycle" in app_module.app.extensions
+assert "paper_library" in app_module.app.extensions
+assert "publishing_services" in app_module.app.extensions
+installed = app_module.app.extensions["publishing_services"]
+assert app_module.app.extensions["publishing_lifecycle"] is installed.lifecycle
+assert app_module.app.extensions["paper_library"] is installed.library
+assert installed.storage is installed.lifecycle._storage
+assert installed.storage is installed.library._storage
 assert stat.S_IMODE(PAPERS_DIR.stat().st_mode) == 0o700
 assert stat.S_IMODE(PENDING_PAPERS_DIR.stat().st_mode) == 0o700
 
 events = []
-lifecycles = []
-def build_lifecycle():
+bundles = []
+def build_services():
     events.append("build")
-    lifecycle = object()
-    lifecycles.append(lifecycle)
-    return lifecycle
+    services = SimpleNamespace(
+        storage=object(),
+        lifecycle=object(),
+        library=object(),
+    )
+    bundles.append(services)
+    return services
 
 with mock.patch.object(app_module, "init_db", side_effect=lambda: events.append("db")), \
      mock.patch.object(app_module, "configure_rag", side_effect=lambda: events.append("rag")), \
-     mock.patch.object(publishing_wiring, "build_publishing_lifecycle", side_effect=build_lifecycle):
+     mock.patch.object(publishing_wiring, "build_publishing_services", side_effect=build_services):
     first = app_module.create_app()
     second = app_module.create_app()
 
 assert events == ["db", "rag", "build", "db", "rag", "build"], events
-assert first.extensions["publishing_lifecycle"] is lifecycles[0]
-assert second.extensions["publishing_lifecycle"] is lifecycles[1]
-assert lifecycles[0] is not lifecycles[1]
+for flask_app, services in zip((first, second), bundles):
+    assert flask_app.extensions["publishing_services"] is services
+    assert flask_app.extensions["publishing_lifecycle"] is services.lifecycle
+    assert flask_app.extensions["paper_library"] is services.library
+assert bundles[0] is not bundles[1]
 """
 
             completed = subprocess.run(
@@ -662,7 +750,10 @@ assert lifecycles[0] is not lifecycles[1]
         self.assertNotIn("build_publishing_worker", create_source)
         self.assertNotIn("Thread", create_source)
         self.assertNotIn(".start(", create_source)
+        self.assertIn("build_publishing_services", create_source)
+        self.assertIn('app.extensions["publishing_services"]', create_source)
         self.assertIn('app.extensions["publishing_lifecycle"]', create_source)
+        self.assertIn('app.extensions["paper_library"]', create_source)
 
 
 class GunicornPublishingSafetyTest(unittest.TestCase):

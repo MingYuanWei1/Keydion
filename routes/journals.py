@@ -90,7 +90,7 @@ def register_routes(app):
             target = url_for("login") if not session.get("user") else url_for("dashboard")
             return redirect(target)
         journals = load_journals()
-        counts = get_journal_paper_counts()
+        counts = get_journal_paper_counts(app.extensions["paper_library"])
         for j in journals:
             j["paper_count"] = counts.get(j["name"], 0)
         return render_template("journal_manage.html", user=user, journals=journals)
@@ -140,7 +140,7 @@ def register_routes(app):
             return redirect(url_for("admin_journal_edit", journal_id=journal_id))
 
         # GET: load papers belonging to this journal + the full pool for the picker
-        all_papers = gather_paper_records()
+        all_papers = gather_paper_records(app.extensions["paper_library"])
         journal_papers = [p for p in all_papers if p.get("journal") == journal["name"]]
         journal_papers.sort(key=lambda r: r.get("published_at") or "", reverse=True)
         journal_paper_filenames = [p.get("filename") for p in journal_papers]
@@ -181,7 +181,7 @@ def register_routes(app):
     @app.route("/journals")
     def journal_list_page():
         journals = load_journals()
-        counts = get_journal_paper_counts()
+        counts = get_journal_paper_counts(app.extensions["paper_library"])
         for j in journals:
             j["paper_count"] = counts.get(j["name"], 0)
         return render_template("journal_list.html", journals=journals)
@@ -193,7 +193,7 @@ def register_routes(app):
             flash(_("Journal not found."), "warning")
             return redirect(url_for("journal_list_page"))
         # Get papers in this journal
-        all_papers = gather_paper_records()
+        all_papers = gather_paper_records(app.extensions["paper_library"])
         journal_papers = [p for p in all_papers if p.get("journal") == journal["name"]]
         journal_papers.sort(key=lambda r: r.get("published_at") or "", reverse=True)
 

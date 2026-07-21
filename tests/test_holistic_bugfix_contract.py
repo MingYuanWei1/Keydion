@@ -40,9 +40,13 @@ class AdminUsersTemplateContextTest(_SourceTest):
 
 
 class PaperInfoNotFoundTest(_SourceTest):
-    def test_paper_info_returns_404_for_unknown_filename(self):
-        s = self.func_source("paper_info")
-        self.assertIn("404", s)
+    def test_paper_info_returns_404_for_unavailable_uuid(self):
+        route = self.func_source("paper_info")
+        boundary = self.func_source("_current_paper_pdf")
+
+        self.assertIn("_current_paper_pdf(paper_id)", route)
+        self.assertIn("except NotFound:", boundary)
+        self.assertIn("abort(404)", boundary)
 
 
 class GuidePublishedCheckboxTest(unittest.TestCase):

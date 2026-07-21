@@ -349,7 +349,7 @@
           <td><span class="td-meta">{{ p.published_at or '—' }}</span></td>
           <td class="text-end">
             <div class="td-actions">
-              <a class="kp-row-icon" href="{{ url_for('paper_file', filename=p.filename) }}" target="_blank" rel="noopener" title="{{ _('Open PDF') }}">
+              <a class="kp-row-icon" href="{{ url_for('paper_file', paper_id=p.paper_id) }}" target="_blank" rel="noopener" title="{{ _('Open PDF') }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
               </a>
               <a class="kp-row-icon" href="{{ url_for('paper_modify', filename=p.filename) }}" title="{{ _('Modify') }}">
