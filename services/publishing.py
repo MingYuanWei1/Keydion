@@ -52,6 +52,8 @@ from services.publishing_contracts import (
     IndexingState,
     InvalidInput,
     JobLease,
+    JobProgress,
+    JobState,
     MetadataPatch,
     NormalizedPaperMetadata,
     NotFound,
@@ -72,7 +74,6 @@ from services.publishing_contracts import (
 
 _RESERVATION_TTL = timedelta(hours=1)
 _REQUEST_LEASE_TTL = timedelta(seconds=1800)
-_FIRST_RETRY_DELAY = timedelta(seconds=60)
 _METADATA_STRING_LIMITS = {
     "filename": 255,
     "title": 255,
@@ -1002,13 +1003,15 @@ class PublishingLifecycle:
     @staticmethod
     def _lease_matches(job, paper, lease: JobLease) -> bool:
         return bool(
-            job is not None
+            isinstance(lease, JobLease)
+            and job is not None
             and paper is not None
             and job.id == lease.job_id
             and job.kind == lease.kind == "index_revision"
             and job.paper_id == paper.id == lease.paper_id
             and job.revision_number == lease.revision
             and job.state == "running"
+            and job.attempts == lease.attempts
             and job.lease_token == lease.lease_token
             and job.lease_expires_at is not None
             and paper.lifecycle_state == "published"
@@ -1035,10 +1038,28 @@ class PublishingLifecycle:
                     .with_for_update()
                     .one_or_none()
                 )
+                exact_job = bool(
+                    isinstance(lease, JobLease)
+                    and job is not None
+                    and job.id == lease.job_id
+                    and job.kind == lease.kind == "index_revision"
+                    and job.paper_id == lease.paper_id
+                    and job.revision_number == lease.revision
+                    and job.state == "running"
+                    and job.attempts == lease.attempts
+                    and job.lease_token == lease.lease_token
+                    and job.lease_expires_at is not None
+                )
+                if not exact_job or job.lease_expires_at <= self._clock():
+                    return False
                 if (
-                    not self._lease_matches(job, paper, lease)
-                    or job.lease_expires_at <= self._clock()
+                    paper is None
+                    or paper.id != lease.paper_id
+                    or paper.lifecycle_state != "published"
+                    or paper.current_revision != lease.revision
                 ):
+                    session.delete(job)
+                    session.commit()
                     return False
                 session.query(PaperChunkModel).filter(
                     PaperChunkModel.paper_id == lease.paper_id
@@ -1070,16 +1091,87 @@ class PublishingLifecycle:
 
     @staticmethod
     def _redacted_index_error(error: Exception) -> str:
-        if isinstance(error, IndexDeadlineExceeded):
-            return "index deadline exceeded"
-        return f"{type(error).__name__}: indexing failed"[:255]
+        from services.publishing_jobs import redact_job_error
+
+        return redact_job_error(error)
 
     def _mark_index_failure(self, lease: JobLease, error: Exception) -> IndexingOutcome:
-        retry_at = self._clock() + _FIRST_RETRY_DELAY + timedelta(
-            seconds=max(0.0, min(1.0, float(self._jitter()))) * 30.0
-        )
-        redacted = self._redacted_index_error(error)
+        from services.publishing_jobs import release_failed_job
+
         try:
+            progress = release_failed_job(
+                self._session_factory,
+                lease,
+                error,
+                self._clock(),
+                jitter=float(self._jitter()),
+            )
+            if progress is not None and progress.state == JobState.PENDING:
+                return IndexingOutcome(
+                    IndexingState.FAILED,
+                    job_id=progress.job_id,
+                    next_retry_at=progress.next_retry_at,
+                )
+            with self._session() as session:
+                paper = session.get(PaperMetadataModel, lease.paper_id)
+                if paper is None:
+                    return IndexingOutcome(IndexingState.PENDING)
+                return self._indexing_outcome(session, paper)
+        except Exception:
+            # The durable running lease remains recoverable if releasing it fails.
+            return IndexingOutcome(IndexingState.PENDING, job_id=lease.job_id)
+
+    @staticmethod
+    def _lease_progress(lease: JobLease) -> JobProgress:
+        return JobProgress(
+            job_id=lease.job_id,
+            paper_id=lease.paper_id,
+            revision=lease.revision,
+            state=JobState.RUNNING,
+            attempts=lease.attempts,
+        )
+
+    def _current_job_progress(self, lease: JobLease) -> JobProgress:
+        with self._session() as session:
+            job = session.get(PublishingJobModel, lease.job_id)
+            if job is None:
+                return self._lease_progress(lease)
+            return JobProgress(
+                job_id=job.id,
+                paper_id=job.paper_id,
+                revision=job.revision_number,
+                state=JobState(job.state),
+                attempts=job.attempts,
+                next_retry_at=(job.available_at if job.state == "pending" else None),
+            )
+
+    def _recover_claimed(
+        self,
+        lease: JobLease,
+        monotonic_deadline: float,
+    ) -> JobProgress:
+        """Dispatch one committed lease through the same request/worker seam."""
+        if lease.kind == "delete_paper":
+            self._run_delete_job(lease)
+            return self._current_job_progress(lease)
+        if lease.kind != "index_revision":
+            from services.publishing_jobs import release_failed_job
+
+            try:
+                progress = release_failed_job(
+                    self._session_factory,
+                    lease,
+                    ValueError(f"unknown publishing job kind: {lease.kind}"),
+                    self._clock(),
+                    jitter=float(self._jitter()),
+                )
+                return progress or self._current_job_progress(lease)
+            except Exception:
+                return self._current_job_progress(lease)
+
+        try:
+            if self._monotonic_clock() >= monotonic_deadline:
+                raise IndexDeadlineExceeded()
             with self._session() as session:
                 paper = (
                     session.query(PaperMetadataModel)
@@ -1093,31 +1185,62 @@ class PublishingLifecycle:
                     .with_for_update()
                     .one_or_none()
                 )
-                if (
-                    not self._lease_matches(job, paper, lease)
-                    or job.lease_expires_at <= self._clock()
-                ):
-                    if paper is None:
-                        return IndexingOutcome(IndexingState.PENDING)
-                    return self._indexing_outcome(session, paper)
-                job.state = "pending"
-                job.available_at = retry_at
-                job.lease_token = None
-                job.lease_expires_at = None
-                job.last_error = redacted
-                job.updated_at = self._clock()
-                paper.index_status = "failed"
-                paper.indexed_revision = None
-                paper.index_error = redacted
-                session.commit()
-                return IndexingOutcome(
-                    IndexingState.FAILED,
-                    job_id=job.id,
-                    next_retry_at=retry_at,
+                exact_job = bool(
+                    job is not None
+                    and job.id == lease.job_id
+                    and job.kind == lease.kind == "index_revision"
+                    and job.paper_id == lease.paper_id
+                    and job.revision_number == lease.revision
+                    and job.state == "running"
+                    and job.attempts == lease.attempts
+                    and job.lease_token == lease.lease_token
+                    and job.lease_expires_at is not None
                 )
-        except Exception:
-            # The durable running lease remains recoverable if releasing it fails.
-            return IndexingOutcome(IndexingState.PENDING, job_id=lease.job_id)
+                if not exact_job or job.lease_expires_at <= self._clock():
+                    if job is None:
+                        return self._lease_progress(lease)
+                    return JobProgress(
+                        job_id=job.id,
+                        paper_id=job.paper_id,
+                        revision=job.revision_number,
+                        state=JobState(job.state),
+                        attempts=job.attempts,
+                        next_retry_at=(
+                            job.available_at if job.state == "pending" else None
+                        ),
+                    )
+                if (
+                    paper is None
+                    or paper.lifecycle_state != "published"
+                    or paper.current_revision != lease.revision
+                ):
+                    session.delete(job)
+                    session.commit()
+                    return self._lease_progress(lease)
+                language = paper.language or ""
+
+            pdf_path = self._storage.open_revision(lease.paper_id, lease.revision)
+            pdf_bytes = pdf_path.read_bytes()
+            prepared = self._indexer.prepare(
+                paper_id=lease.paper_id,
+                revision_number=lease.revision,
+                pdf_bytes=pdf_bytes,
+                language=language,
+                deadline=monotonic_deadline,
+            )
+            if (
+                not isinstance(prepared, PreparedRevisionIndex)
+                or prepared.paper_id != lease.paper_id
+                or prepared.revision != lease.revision
+            ):
+                raise ValueError("indexer prepared the wrong Paper revision")
+            if self._monotonic_clock() >= monotonic_deadline:
+                raise IndexDeadlineExceeded()
+            self._complete_index(lease, prepared)
+            return self._current_job_progress(lease)
+        except Exception as exc:
+            self._mark_index_failure(lease, exc)
+            return self._current_job_progress(lease)
 
     @staticmethod
     def _indexing_outcome(session, paper) -> IndexingOutcome:
@@ -1146,40 +1269,12 @@ class PublishingLifecycle:
         return IndexingOutcome(IndexingState.PENDING, job_id=job.id)
 
     def _run_inline_index(self, paper_id: str, lease: JobLease, deadline: float):
-        try:
-            if self._monotonic_clock() >= deadline:
-                raise IndexDeadlineExceeded()
-            pdf_path = self._storage.open_revision(paper_id, lease.revision)
-            pdf_bytes = pdf_path.read_bytes()
-            with self._session() as session:
-                paper = session.get(PaperMetadataModel, paper_id)
-                if paper is None:
-                    return IndexingOutcome(IndexingState.PENDING, job_id=lease.job_id)
-                language = paper.language or ""
-            prepared = self._indexer.prepare(
-                paper_id=paper_id,
-                revision_number=lease.revision,
-                pdf_bytes=pdf_bytes,
-                language=language,
-                deadline=deadline,
-            )
-            if (
-                not isinstance(prepared, PreparedRevisionIndex)
-                or prepared.paper_id != lease.paper_id
-                or prepared.revision != lease.revision
-            ):
-                raise ValueError("indexer prepared the wrong Paper revision")
-            if self._monotonic_clock() >= deadline:
-                raise IndexDeadlineExceeded()
-            if self._complete_index(lease, prepared):
-                return IndexingOutcome(IndexingState.INDEXED)
-            with self._session() as session:
-                paper = session.get(PaperMetadataModel, paper_id)
-                if paper is None:
-                    return IndexingOutcome(IndexingState.PENDING, job_id=lease.job_id)
-                return self._indexing_outcome(session, paper)
-        except Exception as exc:
-            return self._mark_index_failure(lease, exc)
+        self._recover_claimed(lease, deadline)
+        with self._session() as session:
+            paper = session.get(PaperMetadataModel, paper_id)
+            if paper is None:
+                return IndexingOutcome(IndexingState.PENDING, job_id=lease.job_id)
+            return self._indexing_outcome(session, paper)
 
     def publish_direct(self, intent: DirectPublish) -> Published:
         """Publish a validated PDF; RAG failure never rolls back visibility."""
@@ -1299,6 +1394,8 @@ class PublishingLifecycle:
         self,
         submission_id: str,
         pending_filename: str,
+        *,
+        raise_on_error: bool = False,
     ) -> bool:
         """Clean accepted bytes only while the accepted row remains locked."""
         try:
@@ -1334,6 +1431,8 @@ class PublishingLifecycle:
                 session.commit()
             return had_cleanup_work
         except Exception:
+            if raise_on_error:
+                raise
             return False
 
     def _submission_trash_authority(
@@ -1847,7 +1946,11 @@ class PublishingLifecycle:
             expected_owner=intent.actor.user_id,
         )
 
-    def reconcile_submissions(self) -> int:
+    def reconcile_submissions(
+        self,
+        *,
+        on_error: Callable[[str, BaseException], None] | None = None,
+    ) -> int:
         """Finish stale cancellation and deterministic pending-trash recovery."""
         cutoff = self._clock() - _RESERVATION_TTL
         try:
@@ -1862,16 +1965,39 @@ class PublishingLifecycle:
                     .order_by(SubmissionModel.id)
                     .all()
                 ]
-                accepted = [
-                    (row.id, row.pending_filename)
-                    for row in session.query(SubmissionModel)
+                accepted = (
+                    session.query(
+                        SubmissionModel.id,
+                        SubmissionModel.pending_filename,
+                        SubmissionModel.paper_id,
+                        SubmissionModel.decision_idempotency_key,
+                        SubmissionModel.decision_payload_hash,
+                        PaperMetadataModel.lifecycle_state,
+                        PaperMetadataModel.current_revision,
+                        PaperRevisionModel.sha256,
+                        PaperRevisionModel.size_bytes,
+                    )
+                    .outerjoin(
+                        PaperMetadataModel,
+                        PaperMetadataModel.id == SubmissionModel.paper_id,
+                    )
+                    .outerjoin(
+                        PaperRevisionModel,
+                        (
+                            PaperRevisionModel.paper_id == PaperMetadataModel.id
+                        )
+                        & (
+                            PaperRevisionModel.revision_number
+                            == PaperMetadataModel.current_revision
+                        ),
+                    )
                     .filter(
                         SubmissionModel.status == "accepted",
                         SubmissionModel.reviewed_at <= cutoff,
                     )
                     .order_by(SubmissionModel.id)
                     .all()
-                ]
+                )
                 pending_origin_ids = [
                     row.id
                     for row in session.query(SubmissionModel)
@@ -1890,152 +2016,226 @@ class PublishingLifecycle:
                 ]
             reconciled = 0
             for submission_id in pending_origin_ids:
-                with self._session() as session:
-                    submission = self._submission_by_id(
-                        session, submission_id, locked=True,
-                    )
-                    if submission is None or submission.status != "pending":
-                        continue
-                    reservation = (
-                        session.query(PaperMetadataModel)
-                        .filter(
-                            PaperMetadataModel.origin_submission_id == submission_id
+                try:
+                    with self._session() as session:
+                        submission = self._submission_by_id(
+                            session, submission_id, locked=True,
                         )
-                        .with_for_update()
-                        .one_or_none()
-                    )
-                    if reservation is None or not self._remove_expired_reservation_locked(
-                        session,
-                        reservation,
+                        if submission is None or submission.status != "pending":
+                            continue
+                        reservation = (
+                            session.query(PaperMetadataModel)
+                            .filter(
+                                PaperMetadataModel.origin_submission_id
+                                == submission_id
+                            )
+                            .with_for_update()
+                            .one_or_none()
+                        )
+                        if (
+                            reservation is None
+                            or not self._remove_expired_reservation_locked(
+                                session,
+                                reservation,
+                            )
+                        ):
+                            continue
+                        submission.paper_id = None
+                        submission.reviewed_at = None
+                        submission.reviewer = None
+                        submission.comment = None
+                        submission.decision_idempotency_key = None
+                        submission.decision_payload_hash = None
+                        session.commit()
+                        reconciled += 1
+                except Exception as exc:
+                    if on_error is None:
+                        raise
+                    on_error(f"submission:{submission_id}", exc)
+            for submission_id in cancelling_ids:
+                try:
+                    self._finish_cancellation(submission_id, expected_owner=None)
+                    reconciled += 1
+                except Exception as exc:
+                    if on_error is None:
+                        raise
+                    on_error(f"submission:{submission_id}", exc)
+            for (
+                submission_id,
+                pending_filename,
+                paper_id,
+                decision_key,
+                decision_hash,
+                paper_state,
+                current_revision,
+                revision_sha256,
+                revision_size_bytes,
+            ) in accepted:
+                try:
+                    if paper_id is None:
+                        if decision_key is None or decision_hash is None:
+                            # Unresolved migrated acceptances have no lifecycle
+                            # proof that a public durable copy ever existed.
+                            continue
+                    elif (
+                        paper_state != "published"
+                        or current_revision is None
+                        or revision_sha256 is None
+                        or revision_size_bytes is None
                     ):
                         continue
-                    submission.paper_id = None
-                    submission.reviewed_at = None
-                    submission.reviewer = None
-                    submission.comment = None
-                    submission.decision_idempotency_key = None
-                    submission.decision_payload_hash = None
-                    session.commit()
-                    reconciled += 1
-            for submission_id in cancelling_ids:
-                self._finish_cancellation(submission_id, expected_owner=None)
-                reconciled += 1
-            for submission_id, pending_filename in accepted:
-                if self._cleanup_accepted_pending(submission_id, pending_filename):
-                    reconciled += 1
+                    else:
+                        self._storage.verify_revision(
+                            paper_id,
+                            current_revision,
+                            sha256=revision_sha256,
+                            size_bytes=revision_size_bytes,
+                        )
+                    if self._cleanup_accepted_pending(
+                        submission_id,
+                        pending_filename,
+                        raise_on_error=on_error is not None,
+                    ):
+                        reconciled += 1
+                except Exception as exc:
+                    if on_error is None:
+                        raise
+                    on_error(f"submission:{submission_id}", exc)
 
             for record in self._storage.stale_submission_trash(cutoff):
-                with self._session() as session:
-                    lock_submission_creation_fence(session)
-                    submission = self._submission_by_id(
-                        session, record.submission_id, locked=True,
-                    )
-                    fresh = self._storage.submission_trash_record(
-                        record.submission_id
-                    )
-                    if fresh != record:
-                        raise StorageError(
-                            "Submission trash changed after inventory audit"
+                try:
+                    with self._session() as session:
+                        lock_submission_creation_fence(session)
+                        submission = self._submission_by_id(
+                            session, record.submission_id, locked=True,
                         )
-                    legacy_exists = self._storage.legacy_submission_trash_exists(
-                        submission.pending_filename if submission is not None else None,
-                        record.submission_id,
-                    )
-                    if legacy_exists:
-                        raise StorageError(
-                            "Submission trash has dual current and legacy authority"
-                        )
-                    if submission is None:
-                        token = self._storage.rehydrate_submission_trash(
+                        fresh = self._storage.submission_trash_record(
                             record.submission_id
                         )
-                        if token is not None:
+                        if fresh != record:
+                            raise StorageError(
+                                "Submission trash changed after inventory audit"
+                            )
+                        legacy_exists = (
+                            self._storage.legacy_submission_trash_exists(
+                                submission.pending_filename
+                                if submission is not None
+                                else None,
+                                record.submission_id,
+                            )
+                        )
+                        if legacy_exists:
+                            raise StorageError(
+                                "Submission trash has dual current and legacy authority"
+                            )
+                        if submission is None:
+                            token = self._storage.rehydrate_submission_trash(
+                                record.submission_id
+                            )
+                            if token is not None:
+                                token = self._storage.commit_pending_trash(token)
+                                self._storage.discard_pending_trash(token)
+                            else:
+                                self._storage.discard_empty_submission_trash(record)
+                            session.commit()
+                            reconciled += 1
+                            continue
+                        if record.original_name != submission.pending_filename:
+                            raise StorageError(
+                                "Submission trash conflicts with SQL provenance"
+                            )
+                        if submission.status not in {
+                            "pending",
+                            "rejected",
+                            "accepted",
+                        }:
+                            continue
+                        token = self._storage.rehydrate_submission_trash(
+                            submission.id,
+                            submission.pending_filename,
+                        )
+                        if token is None:
+                            self._storage.discard_empty_submission_trash(record)
+                            session.commit()
+                            reconciled += 1
+                        elif submission.status in {"pending", "rejected"}:
+                            self._storage.restore_pending(token)
+                            session.commit()
+                            reconciled += 1
+                        elif submission.status == "accepted":
                             token = self._storage.commit_pending_trash(token)
                             self._storage.discard_pending_trash(token)
-                        else:
-                            self._storage.discard_empty_submission_trash(record)
-                        session.commit()
-                        reconciled += 1
-                        continue
-                    if record.original_name != submission.pending_filename:
-                        raise StorageError(
-                            "Submission trash conflicts with SQL provenance"
-                        )
-                    if submission.status not in {"pending", "rejected", "accepted"}:
-                        continue
-                    token = self._storage.rehydrate_submission_trash(
-                        submission.id,
-                        submission.pending_filename,
-                    )
-                    if token is None:
-                        self._storage.discard_empty_submission_trash(record)
-                        session.commit()
-                        reconciled += 1
-                    elif submission.status in {"pending", "rejected"}:
-                        self._storage.restore_pending(token)
-                        session.commit()
-                        reconciled += 1
-                    elif submission.status == "accepted":
-                        token = self._storage.commit_pending_trash(token)
-                        self._storage.discard_pending_trash(token)
-                        session.commit()
-                        reconciled += 1
-                    # Cancelling rows are completed through _finish_cancellation.
-
-            for operation_id in self._storage.stale_pending_trash(cutoff):
-                with self._session() as session:
-                    lock_submission_creation_fence(session)
-                    submission = self._submission_by_id(
-                        session, operation_id, locked=True,
-                    )
-                    if (
-                        submission is not None
-                        and submission.status
-                        not in {"pending", "rejected", "accepted"}
-                    ):
-                        continue
-                    current = self._storage.submission_trash_record(operation_id)
-                    token = self._storage.resolve_legacy_submission_trash(
-                        submission.pending_filename if submission is not None else None,
-                        operation_id,
-                    )
-                    if current is not None and token is not None:
-                        raise StorageError(
-                            "Submission trash has dual current and legacy authority"
-                        )
-                    ambiguous = self._storage.is_ambiguous_legacy_submission_operation(
-                        operation_id
-                    )
-                    if current is not None:
-                        if ambiguous:
                             session.commit()
                             reconciled += 1
-                        continue
-                    if submission is None:
-                        if token is not None:
+                        # Cancelling rows are completed through _finish_cancellation.
+                except Exception as exc:
+                    if on_error is None:
+                        raise
+                    on_error(f"submission-trash:{record.submission_id}", exc)
+
+            for operation_id in self._storage.stale_pending_trash(cutoff):
+                try:
+                    with self._session() as session:
+                        lock_submission_creation_fence(session)
+                        submission = self._submission_by_id(
+                            session, operation_id, locked=True,
+                        )
+                        if (
+                            submission is not None
+                            and submission.status
+                            not in {"pending", "rejected", "accepted"}
+                        ):
+                            continue
+                        current = self._storage.submission_trash_record(operation_id)
+                        token = self._storage.resolve_legacy_submission_trash(
+                            submission.pending_filename
+                            if submission is not None
+                            else None,
+                            operation_id,
+                        )
+                        if current is not None and token is not None:
+                            raise StorageError(
+                                "Submission trash has dual current and legacy authority"
+                            )
+                        ambiguous = (
+                            self._storage.is_ambiguous_legacy_submission_operation(
+                                operation_id
+                            )
+                        )
+                        if current is not None:
+                            if ambiguous:
+                                session.commit()
+                                reconciled += 1
+                            continue
+                        if submission is None:
+                            if token is not None:
+                                self._storage.discard_pending_trash(token)
+                                session.commit()
+                                reconciled += 1
+                            elif ambiguous:
+                                session.commit()
+                                reconciled += 1
+                            continue
+                        if token is None:
+                            if ambiguous:
+                                session.commit()
+                                reconciled += 1
+                            continue
+                        if submission.status in {"pending", "rejected"}:
+                            self._storage.restore_pending(token)
+                            session.commit()
+                            reconciled += 1
+                        elif submission.status == "accepted":
+                            token = self._storage.commit_pending_trash(token)
                             self._storage.discard_pending_trash(token)
                             session.commit()
                             reconciled += 1
-                        elif ambiguous:
-                            session.commit()
-                            reconciled += 1
-                        continue
-                    if token is None:
-                        if ambiguous:
-                            session.commit()
-                            reconciled += 1
-                        continue
-                    if submission.status in {"pending", "rejected"}:
-                        self._storage.restore_pending(token)
-                        session.commit()
-                        reconciled += 1
-                    elif submission.status == "accepted":
-                        token = self._storage.commit_pending_trash(token)
-                        self._storage.discard_pending_trash(token)
-                        session.commit()
-                        reconciled += 1
-                    # A still-cancelling row is retained for the next attempt;
-                    # its deterministic trash is never generically removed.
+                        # A still-cancelling row is retained for the next attempt;
+                        # its deterministic trash is never generically removed.
+                except Exception as exc:
+                    if on_error is None:
+                        raise
+                    on_error(f"legacy-submission-trash:{operation_id}", exc)
             return reconciled
         except (StorageFailed, PersistenceFailed):
             raise
@@ -2587,6 +2787,145 @@ class PublishingLifecycle:
         except Exception as exc:
             raise PersistenceFailed("could not update Papers in bulk") from exc
 
+    def ensure_index_job(
+        self,
+        paper_id: str,
+        revision: int | None = None,
+    ) -> IndexingOutcome:
+        """Ensure exactly one durable rebuild job for the visible current revision."""
+        try:
+            canonical = validate_paper_id(paper_id)
+        except (AttributeError, TypeError, ValueError) as exc:
+            raise InvalidInput({"paper_id": "must be a canonical Paper UUID"}) from exc
+        forced = revision is not None
+        if revision is not None and (
+            isinstance(revision, bool)
+            or not isinstance(revision, int)
+            or revision <= 0
+        ):
+            raise InvalidInput({"revision": "must be a positive integer"})
+
+        try:
+            with self._session() as session:
+                paper = (
+                    session.query(PaperMetadataModel)
+                    .filter(PaperMetadataModel.id == canonical)
+                    .with_for_update()
+                    .one_or_none()
+                )
+                if paper is None or paper.lifecycle_state != "published":
+                    raise NotFound("Paper not found")
+                target = paper.current_revision if revision is None else revision
+                if target != paper.current_revision:
+                    raise NotFound("Paper revision is not current")
+                revision_row = session.get(PaperRevisionModel, (paper.id, target))
+                if revision_row is None:
+                    raise NotFound("Paper revision not found")
+                if not bool(self._indexer.enabled()):
+                    return IndexingOutcome(IndexingState.NOT_REQUIRED)
+
+                dedupe_key = f"index:{paper.id}:{target}"
+                existing = (
+                    session.query(PublishingJobModel)
+                    .filter(PublishingJobModel.dedupe_key == dedupe_key)
+                    .with_for_update()
+                    .one_or_none()
+                )
+                if existing is not None:
+                    return self._indexing_outcome(session, paper)
+                if (
+                    not forced
+                    and paper.index_status == "ready"
+                    and paper.indexed_revision == target
+                ):
+                    return IndexingOutcome(IndexingState.INDEXED)
+
+                now = self._clock()
+                job = PublishingJobModel(
+                    id=self._uuid_factory(),
+                    kind="index_revision",
+                    paper_id=paper.id,
+                    revision_number=target,
+                    dedupe_key=dedupe_key,
+                    state="pending",
+                    attempts=0,
+                    available_at=now,
+                    lease_token=None,
+                    lease_expires_at=None,
+                    last_error=paper.index_error,
+                    created_at=now,
+                    updated_at=now,
+                )
+                session.add(job)
+                if paper.index_status == "ready":
+                    paper.index_status = "pending"
+                    self._bump_rag_version(session)
+                result_state = (
+                    IndexingState.FAILED
+                    if paper.index_status == "failed"
+                    else IndexingState.PENDING
+                )
+                session.commit()
+                return IndexingOutcome(
+                    result_state,
+                    job_id=job.id,
+                    next_retry_at=(
+                        now if result_state == IndexingState.FAILED else None
+                    ),
+                )
+        except (InvalidInput, NotFound):
+            raise
+        except IntegrityError:
+            with self._session() as session:
+                paper = session.get(PaperMetadataModel, canonical)
+                if paper is None or paper.lifecycle_state != "published":
+                    raise NotFound("Paper not found")
+                return self._indexing_outcome(session, paper)
+        except Exception as exc:
+            raise PersistenceFailed("could not ensure Paper index job") from exc
+
+    def recover_job(self, job_id: str) -> JobProgress:
+        """Claim one requested due job and recover it through the shared seam."""
+        if (
+            not isinstance(job_id, str)
+            or not job_id
+            or job_id != job_id.strip()
+        ):
+            raise InvalidInput({"job_id": "must identify a publishing job"})
+        from services.publishing_jobs import claim_job_id
+
+        try:
+            lease = claim_job_id(
+                self._session_factory,
+                job_id,
+                self._clock(),
+                int(_REQUEST_LEASE_TTL.total_seconds()),
+                lease_token_factory=self._uuid_factory,
+            )
+            if lease is not None:
+                return self._recover_claimed(
+                    lease,
+                    self._monotonic_clock() + self._inline_index_timeout_seconds,
+                )
+            with self._session() as session:
+                job = session.get(PublishingJobModel, job_id)
+                if job is None:
+                    raise NotFound("publishing job not found")
+                return JobProgress(
+                    job_id=job.id,
+                    paper_id=job.paper_id,
+                    revision=job.revision_number,
+                    state=JobState(job.state),
+                    attempts=job.attempts,
+                    next_retry_at=(
+                        job.available_at if job.state == "pending" else None
+                    ),
+                )
+        except (InvalidInput, NotFound):
+            raise
+        except Exception as exc:
+            raise PersistenceFailed("could not recover publishing job") from exc
+
     def _enqueue_delete_job(self, session, paper_id: str) -> JobLease:
         now = self._clock()
         lease_token = self._uuid_factory()
@@ -2638,47 +2977,32 @@ class PublishingLifecycle:
 
     @staticmethod
     def _redacted_delete_error(error: Exception) -> str:
-        return f"{type(error).__name__}: deletion cleanup failed"[:255]
+        from services.publishing_jobs import redact_job_error
+
+        return redact_job_error(error)
 
     def _release_delete_failure(
         self,
         lease: JobLease,
         error: Exception,
     ) -> DeletionProgress:
-        retry_at = self._clock() + _FIRST_RETRY_DELAY + timedelta(
-            seconds=max(0.0, min(1.0, float(self._jitter()))) * 30.0
-        )
+        from services.publishing_jobs import release_failed_job
+
         try:
-            with self._session() as session:
-                paper = (
-                    session.query(PaperMetadataModel)
-                    .filter(PaperMetadataModel.id == lease.paper_id)
-                    .with_for_update()
-                    .one_or_none()
-                )
-                if paper is None:
-                    return DeletionProgress(lease.paper_id, DeletionState.DELETED)
-                job = (
-                    session.query(PublishingJobModel)
-                    .filter(PublishingJobModel.id == lease.job_id)
-                    .with_for_update()
-                    .one_or_none()
-                )
-                if (
-                    not self._delete_lease_matches(job, paper, lease)
-                    or job.lease_expires_at <= self._clock()
-                ):
-                    return DeletionProgress(lease.paper_id, DeletionState.DELETING)
-                job.state = "pending"
-                job.available_at = retry_at
-                job.lease_token = None
-                job.lease_expires_at = None
-                job.last_error = self._redacted_delete_error(error)
-                job.updated_at = self._clock()
-                session.commit()
+            release_failed_job(
+                self._session_factory,
+                lease,
+                error,
+                self._clock(),
+                jitter=float(self._jitter()),
+            )
         except Exception:
             # A still-running durable lease becomes retryable when it expires.
             pass
+        with self._session() as session:
+            paper = session.get(PaperMetadataModel, lease.paper_id)
+            if paper is None:
+                return DeletionProgress(lease.paper_id, DeletionState.DELETED)
         return DeletionProgress(lease.paper_id, DeletionState.DELETING)
 
     def _run_delete_job(self, lease: JobLease) -> DeletionProgress:
