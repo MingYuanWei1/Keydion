@@ -4,7 +4,7 @@ import threading
 import time
 import unittest
 from contextlib import contextmanager
-from datetime import timedelta
+from datetime import timedelta, timezone
 from pathlib import Path
 from unittest import mock
 
@@ -1436,6 +1436,110 @@ class SubmissionPublishingTests(PublishingLifecycleTestCase, unittest.TestCase):
         self.assertEqual(self.submission().status, "pending")
         self.assertTrue((self.storage.pending_dir / self.pending_name()).exists())
         self.assertFalse((self.storage.trash_dir / "submission-1.pdf").exists())
+
+    def test_v2_inventory_isolates_unsafe_entry_and_cleans_later_safe_entry(self):
+        unsafe_entry = self.storage.submission_trash_dir / ("0" * 64)
+        unsafe_entry.mkdir(mode=0o700)
+        unsafe_payload = unsafe_entry / "payload.pdf"
+        unsafe_bytes = self.valid_pdf_bytes("unsafe-v2-trash")
+        unsafe_payload.write_bytes(unsafe_bytes)
+        unsafe_payload.chmod(0o600)
+        unsafe_entry.chmod(0o755)
+
+        safe_id = "z-safe-unowned-v2"
+        safe_pending = self.storage.pending_dir / "safe-unowned-v2.pdf"
+        safe_pending.write_bytes(self.valid_pdf_bytes(safe_id))
+        safe_pending.chmod(0o600)
+        self.storage.trash_submission_pending(safe_pending.name, safe_id)
+        safe_entry = self.lifecycle_trash_path(safe_id).parent
+        old = (self.now - timedelta(hours=2)).replace(tzinfo=timezone.utc).timestamp()
+        for path in (
+            unsafe_payload,
+            unsafe_entry,
+            safe_entry / "owner.json",
+            safe_entry / "payload.pdf",
+            safe_entry,
+        ):
+            os.utime(path, (old, old))
+        self.replace_storage()
+        errors = []
+
+        try:
+            reconciled = self.lifecycle.reconcile_submissions(
+                on_error=lambda candidate, error: errors.append(
+                    (candidate, str(error))
+                )
+            )
+        except StorageFailed as exc:
+            self.fail(f"V2 inventory suppressed a later safe candidate: {exc}")
+
+        self.assertEqual(reconciled, 1)
+        self.assertEqual(unsafe_payload.read_bytes(), unsafe_bytes)
+        self.assertFalse(safe_entry.exists())
+        self.assertTrue(
+            any("submission-trash:" + ("0" * 64) in candidate for candidate, _ in errors)
+        )
+
+    def test_legacy_inventory_isolates_unsafe_entry_and_cleans_later_safe_entry(self):
+        unsafe = self.storage.trash_dir / "a-unsafe.pdf"
+        unsafe_bytes = self.valid_pdf_bytes("unsafe-legacy-trash")
+        unsafe.write_bytes(unsafe_bytes)
+        unsafe.chmod(0o644)
+
+        safe_id = "z-safe-unowned-legacy"
+        safe_pending = self.storage.pending_dir / "safe-unowned-legacy.pdf"
+        safe_pending.write_bytes(self.valid_pdf_bytes(safe_id))
+        safe_pending.chmod(0o600)
+        self.storage.trash_pending(safe_pending.name, safe_id)
+        safe_trash = self.storage.trash_dir / f"{safe_id}.pdf"
+        old = (self.now - timedelta(hours=2)).replace(tzinfo=timezone.utc).timestamp()
+        os.utime(unsafe, (old, old))
+        os.utime(safe_trash, (old, old))
+        self.replace_storage()
+        errors = []
+
+        try:
+            reconciled = self.lifecycle.reconcile_submissions(
+                on_error=lambda candidate, error: errors.append(
+                    (candidate, str(error))
+                )
+            )
+        except StorageFailed as exc:
+            self.fail(f"legacy inventory suppressed a later safe candidate: {exc}")
+
+        self.assertEqual(reconciled, 1)
+        self.assertEqual(unsafe.read_bytes(), unsafe_bytes)
+        self.assertFalse(safe_trash.exists())
+        self.assertTrue(
+            any("legacy-submission-trash:a-unsafe" in candidate for candidate, _ in errors)
+        )
+
+    def test_v2_inventory_without_error_callback_remains_fail_closed(self):
+        unsafe_entry = self.storage.submission_trash_dir / ("f" * 64)
+        unsafe_entry.mkdir(mode=0o700)
+        unsafe_payload = unsafe_entry / "payload.pdf"
+        unsafe_bytes = self.valid_pdf_bytes("default-v2-fail-closed")
+        unsafe_payload.write_bytes(unsafe_bytes)
+        unsafe_payload.chmod(0o600)
+        unsafe_entry.chmod(0o755)
+        self.replace_storage()
+
+        with self.assertRaises(StorageFailed):
+            self.lifecycle.reconcile_submissions()
+
+        self.assertEqual(unsafe_payload.read_bytes(), unsafe_bytes)
+
+    def test_legacy_inventory_without_error_callback_remains_fail_closed(self):
+        unsafe = self.storage.trash_dir / "default-unsafe.pdf"
+        unsafe_bytes = self.valid_pdf_bytes("default-legacy-fail-closed")
+        unsafe.write_bytes(unsafe_bytes)
+        unsafe.chmod(0o644)
+        self.replace_storage()
+
+        with self.assertRaises(StorageFailed):
+            self.lifecycle.reconcile_submissions()
+
+        self.assertEqual(unsafe.read_bytes(), unsafe_bytes)
 
     def test_generic_storage_reconciliation_never_deletes_submission_trash(self):
         self.storage.trash_pending(self.pending_name(), "submission-1")

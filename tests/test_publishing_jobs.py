@@ -372,6 +372,72 @@ class PublishingJobTests(PublishingLifecycleTestCase, unittest.TestCase):
             self.assertNotIn(secret, redacted)
         self.assertGreaterEqual(redacted.count("[REDACTED]"), len(secrets))
 
+    def test_redaction_removes_entire_authorization_and_oauth_key_values(self):
+        cases = (
+            ("Authorization: OAuth oauth-header-secret", "oauth-header-secret"),
+            ("AUTHORIZATION: Basic basic-header-secret", "basic-header-secret"),
+            ('authorization="OAuth quoted-header-secret"', "quoted-header-secret"),
+            ("oauth_token=oauth-assignment-secret", "oauth-assignment-secret"),
+            (
+                '{"oauth_token":"json-oauth-secret"}',
+                "json-oauth-secret",
+            ),
+            (
+                '"OaUtH_ToKeN_SeCrEt": "quoted-mixed-secret"',
+                "quoted-mixed-secret",
+            ),
+        )
+
+        for rendered_error, secret in cases:
+            with self.subTest(rendered_error=rendered_error):
+                redacted = redact_job_error(rendered_error + ("x" * 600))
+                self.assertLessEqual(len(redacted), 500)
+                self.assertNotIn(secret, redacted)
+                self.assertIn("[REDACTED]", redacted)
+
+    def test_oauth_credentials_never_reach_persistence_or_log_metadata(self):
+        paper_id = self.seed_paper()
+        seeded = self.seed_job(paper_id=paper_id)
+        lease = self.claim()
+        secrets = (
+            "persisted-header-secret",
+            "persisted-json-secret",
+            "persisted-token-secret",
+        )
+        error = RuntimeError(
+            "Authorization: OAuth persisted-header-secret; "
+            '{"oauth_token":"persisted-json-secret"}; '
+            "OAuth_Token_Secret='persisted-token-secret' "
+            + ("tail" * 200)
+        )
+        handler = _ListHandler()
+        logger = logging.getLogger(f"{__name__}.oauth-persistence")
+        logger.handlers = [handler]
+        logger.propagate = False
+
+        release_failed_job(
+            self.session_factory,
+            lease,
+            error,
+            self.now,
+            jitter=0.0,
+            logger=logger,
+        )
+
+        persisted = self.job(seeded.id)
+        paper = self.paper(paper_id)
+        rendered_log = "\n".join(handler.messages)
+        self.assertLessEqual(len(persisted.last_error), 500)
+        self.assertLessEqual(len(paper.index_error), 500)
+        for secret in secrets:
+            self.assertNotIn(secret, persisted.last_error)
+            self.assertNotIn(secret, paper.index_error)
+            self.assertNotIn(secret, rendered_log)
+        for record in handler.records:
+            self.assertIsNone(record.exc_info)
+            self.assertIsNone(record.exc_text)
+            self.assertFalse(any(isinstance(value, BaseException) for value in record.args))
+
     def test_release_requires_exact_unexpired_id_token_and_attempt(self):
         seeded = self.seed_job()
         first = self.claim()
@@ -1303,6 +1369,39 @@ class PublishingJobTests(PublishingLifecycleTestCase, unittest.TestCase):
 
         rendered = "\n".join(handler.messages)
         self.assertNotIn("stage-secret", rendered)
+        self.assertIn("[REDACTED]", rendered)
+
+    def test_reconcile_redacts_oauth_credentials_in_candidate_names(self):
+        unsafe_candidates = (
+            (
+                "Authorization: OAuth header-candidate-secret.pdf",
+                "header-candidate-secret",
+            ),
+            (
+                "OaUtH_ToKeN_SeCrEt=assignment-candidate-secret.pdf",
+                "assignment-candidate-secret",
+            ),
+        )
+        old = time.time() - 7200
+        for filename, _secret in unsafe_candidates:
+            path = self.storage.staging_dir / filename
+            path.write_bytes(self.valid_pdf_bytes(filename))
+            path.chmod(0o644)
+            os.utime(path, (old, old))
+        handler = _ListHandler()
+        logger = logging.getLogger(f"{__name__}.unsafe-oauth-stage-name")
+        logger.handlers = [handler]
+        logger.propagate = False
+
+        reconcile_stale_publications(
+            self.lifecycle,
+            grace_seconds=3600,
+            logger=logger,
+        )
+
+        rendered = "\n".join(handler.messages)
+        for _filename, secret in unsafe_candidates:
+            self.assertNotIn(secret, rendered)
         self.assertIn("[REDACTED]", rendered)
 
     def test_publishing_worker_uses_injected_monotonic_clock_for_deadline(self):

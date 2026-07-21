@@ -2171,7 +2171,10 @@ class PublishingLifecycle:
                         raise
                     on_error(f"submission:{submission_id}", exc)
 
-            for record in self._storage.stale_submission_trash(cutoff):
+            for record in self._storage.stale_submission_trash(
+                cutoff,
+                on_error=on_error,
+            ):
                 try:
                     with self._session() as session:
                         lock_submission_creation_fence(session)
@@ -2242,7 +2245,10 @@ class PublishingLifecycle:
                         raise
                     on_error(f"submission-trash:{record.submission_id}", exc)
 
-            for operation_id in self._storage.stale_pending_trash(cutoff):
+            for operation_id in self._storage.stale_pending_trash(
+                cutoff,
+                on_error=on_error,
+            ):
                 try:
                     with self._session() as session:
                         lock_submission_creation_fence(session)

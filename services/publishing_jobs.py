@@ -23,6 +23,16 @@ from services.publishing_time import require_db_utc
 
 _LOG = logging.getLogger(__name__)
 _ERROR_LIMIT = 500
+_AUTHORIZATION_CREDENTIAL = re.compile(
+    r"(?ix)(?<![A-Za-z0-9_])"
+    r"(?P<key>[\"']?authorization[\"']?)"
+    r"(?![A-Za-z0-9_])\s*[:=]\s*"
+    r"(?:"
+    r'"(?:\\.|[^"\\])*"'
+    r"|'(?:\\.|[^'\\])*'"
+    r"|[^\r\n}\]]+"
+    r")"
+)
 _BEARER_CREDENTIAL = re.compile(
     r"(?ix)\bbearer\s+(?:"
     r'"(?:\\.|[^"\\])*"'
@@ -34,7 +44,7 @@ _ASSIGNED_CREDENTIAL = re.compile(
     r"(?ix)(?<![A-Za-z0-9_])"
     r"(?P<key>[\"']?(?:"
     r"api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|"
-    r"authorization|secret|token|password"
+    r"oauth[_-]?token(?:[_-]?secret)?|authorization|secret|token|password"
     r")[\"']?)"
     r"(?![A-Za-z0-9_])\s*[:=]\s*"
     r"(?:"
@@ -69,6 +79,10 @@ def redact_job_error(error: BaseException | str) -> str:
         rendered = f"{type(error).__name__}: {detail}"
     else:
         rendered = str(error)
+    rendered = _AUTHORIZATION_CREDENTIAL.sub(
+        lambda match: f"{match.group('key')}=[REDACTED]",
+        rendered,
+    )
     rendered = _BEARER_CREDENTIAL.sub("[REDACTED]", rendered)
     rendered = _ASSIGNED_CREDENTIAL.sub(
         lambda match: f"{match.group('key')}=[REDACTED]",

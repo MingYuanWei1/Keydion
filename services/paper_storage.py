@@ -2176,102 +2176,129 @@ class PaperStorage:
         except OSError as exc:
             raise StorageError("Submission trash could not be rehydrated") from exc
 
+    def _stale_submission_trash_candidate(
+        self,
+        entry_name: str,
+        cutoff_timestamp: float,
+    ) -> SubmissionTrashRecord | None:
+        if _SUBMISSION_TRASH_ENTRY.fullmatch(entry_name) is None:
+            raise StorageError("Submission trash contains an unknown entry")
+        entry_fd, entry_stat = self._open_submission_trash_entry(entry_name)
+        try:
+            names = set(os.listdir(entry_fd))
+            if not names.issubset(
+                {_SUBMISSION_TRASH_OWNER, _SUBMISSION_TRASH_PAYLOAD}
+            ):
+                raise StorageError("Submission trash entry contains unknown data")
+            if not names:
+                if entry_stat.st_mtime < cutoff_timestamp:
+                    os.close(entry_fd)
+                    entry_fd = -1
+                    self._remove_payload_free_submission_trash_residue(
+                        entry_name,
+                        entry_stat,
+                    )
+                return None
+            if _SUBMISSION_TRASH_OWNER not in names:
+                raise StorageError("Submission trash payload has no owner provenance")
+            owner_fd = os.open(
+                _SUBMISSION_TRASH_OWNER,
+                _READ_FLAGS,
+                dir_fd=entry_fd,
+            )
+            try:
+                owner_bytes = os.read(owner_fd, 4097)
+            finally:
+                os.close(owner_fd)
+            try:
+                owner = json.loads(owner_bytes.decode("utf-8"))
+                submission_id = owner["submission_id"]
+            except (
+                KeyError,
+                TypeError,
+                UnicodeDecodeError,
+                json.JSONDecodeError,
+            ) as exc:
+                if (
+                    _SUBMISSION_TRASH_PAYLOAD not in names
+                    and entry_stat.st_mtime < cutoff_timestamp
+                ):
+                    os.close(entry_fd)
+                    entry_fd = -1
+                    self._remove_payload_free_submission_trash_residue(
+                        entry_name,
+                        entry_stat,
+                    )
+                    return None
+                if _SUBMISSION_TRASH_PAYLOAD not in names:
+                    return None
+                raise StorageError(
+                    "Submission trash owner descriptor is invalid"
+                ) from exc
+        finally:
+            if entry_fd >= 0:
+                os.close(entry_fd)
+
+        try:
+            owner_entry_name = self._submission_trash_entry_name(submission_id)
+        except StorageError:
+            owner_entry_name = None
+        if owner_entry_name != entry_name:
+            if (
+                _SUBMISSION_TRASH_PAYLOAD not in names
+                and entry_stat.st_mtime < cutoff_timestamp
+            ):
+                self._remove_payload_free_submission_trash_residue(
+                    entry_name,
+                    entry_stat,
+                )
+                return None
+            if _SUBMISSION_TRASH_PAYLOAD not in names:
+                return None
+            raise StorageError("Submission trash owner hashes to another entry")
+        record = self._submission_trash_record_unlocked(
+            submission_id,
+            missing_ok=False,
+        )
+        if record is not None and record.modified_at < cutoff_timestamp:
+            return record
+        return None
+
     @_serialized
     def stale_submission_trash(
         self,
         cutoff: datetime | float | int,
+        *,
+        on_error: Callable[[str, BaseException], None] | None = None,
     ) -> tuple[SubmissionTrashRecord, ...]:
         cutoff_timestamp = self._cutoff_timestamp(cutoff)
-        records: list[SubmissionTrashRecord] = []
         try:
-            for entry_name in os.listdir(self._submission_trash_fd):
-                if _SUBMISSION_TRASH_ENTRY.fullmatch(entry_name) is None:
-                    raise StorageError("Submission trash contains an unknown entry")
-                entry_fd, entry_stat = self._open_submission_trash_entry(entry_name)
-                try:
-                    names = set(os.listdir(entry_fd))
-                    if not names.issubset(
-                        {_SUBMISSION_TRASH_OWNER, _SUBMISSION_TRASH_PAYLOAD}
-                    ):
-                        raise StorageError(
-                            "Submission trash entry contains unknown data"
-                        )
-                    if not names:
-                        if entry_stat.st_mtime < cutoff_timestamp:
-                            os.close(entry_fd)
-                            entry_fd = -1
-                            self._remove_payload_free_submission_trash_residue(
-                                entry_name,
-                                entry_stat,
-                            )
-                        continue
-                    if _SUBMISSION_TRASH_OWNER not in names:
-                        raise StorageError(
-                            "Submission trash payload has no owner provenance"
-                        )
-                    owner_fd = os.open(_SUBMISSION_TRASH_OWNER, _READ_FLAGS, dir_fd=entry_fd)
-                    try:
-                        owner_bytes = os.read(owner_fd, 4097)
-                    finally:
-                        os.close(owner_fd)
-                    try:
-                        owner = json.loads(owner_bytes.decode("utf-8"))
-                        submission_id = owner["submission_id"]
-                    except (
-                        KeyError,
-                        TypeError,
-                        UnicodeDecodeError,
-                        json.JSONDecodeError,
-                    ) as exc:
-                        if (
-                            _SUBMISSION_TRASH_PAYLOAD not in names
-                            and entry_stat.st_mtime < cutoff_timestamp
-                        ):
-                            os.close(entry_fd)
-                            entry_fd = -1
-                            self._remove_payload_free_submission_trash_residue(
-                                entry_name,
-                                entry_stat,
-                            )
-                            continue
-                        if _SUBMISSION_TRASH_PAYLOAD not in names:
-                            continue
-                        raise StorageError(
-                            "Submission trash owner descriptor is invalid"
-                        ) from exc
-                finally:
-                    if entry_fd >= 0:
-                        os.close(entry_fd)
-                try:
-                    owner_entry_name = self._submission_trash_entry_name(submission_id)
-                except StorageError:
-                    owner_entry_name = None
-                if owner_entry_name != entry_name:
-                    if (
-                        _SUBMISSION_TRASH_PAYLOAD not in names
-                        and entry_stat.st_mtime < cutoff_timestamp
-                    ):
-                        self._remove_payload_free_submission_trash_residue(
-                            entry_name,
-                            entry_stat,
-                        )
-                        continue
-                    if _SUBMISSION_TRASH_PAYLOAD not in names:
-                        continue
-                    raise StorageError("Submission trash owner hashes to another entry")
-                record = self._submission_trash_record_unlocked(
-                    submission_id,
-                    missing_ok=False,
-                )
-                if record is None:
-                    continue
-                if record.modified_at < cutoff_timestamp:
-                    records.append(record)
-            return tuple(sorted(records, key=lambda record: record.submission_id))
-        except StorageError:
-            raise
+            entry_names = tuple(sorted(os.listdir(self._submission_trash_fd)))
         except OSError as exc:
             raise StorageError("Submission trash could not be audited") from exc
+
+        records: list[SubmissionTrashRecord] = []
+        for entry_name in entry_names:
+            candidate = f"submission-trash:{entry_name}"
+            try:
+                record = self._stale_submission_trash_candidate(
+                    entry_name,
+                    cutoff_timestamp,
+                )
+            except StorageError as exc:
+                if on_error is None:
+                    raise
+                on_error(candidate, exc)
+                continue
+            except OSError as exc:
+                error = StorageError("Submission trash could not be audited")
+                if on_error is None:
+                    raise error from exc
+                on_error(candidate, error)
+                continue
+            if record is not None:
+                records.append(record)
+        return tuple(sorted(records, key=lambda record: record.submission_id))
 
     @_serialized
     def discard_empty_submission_trash(
@@ -2906,51 +2933,80 @@ class PaperStorage:
             if payload_removed:
                 self._consume_pending_trash_tokens(token)
 
+    def _stale_pending_trash_candidate(
+        self,
+        name: str,
+        directory: os.stat_result,
+        cutoff_timestamp: float,
+    ) -> str | None:
+        if name in {
+            _SUBMISSION_TRASH_DIRECTORY,
+            _SUBMISSION_TRASH_QUARANTINE_DIRECTORY,
+        }:
+            expected = (
+                self._submission_trash_stat
+                if name == _SUBMISSION_TRASH_DIRECTORY
+                else self._submission_trash_quarantine_stat
+            )
+            self._verify_reserved_directory(self._trash_fd, name, expected)
+            return None
+        if not name.endswith(".pdf"):
+            raise StorageError("reserved trash contains an unknown entry")
+        operation_id = name[:-4]
+        _valid_operation_id(operation_id)
+        entry = os.stat(name, dir_fd=self._trash_fd, follow_symlinks=False)
+        if (
+            not stat.S_ISREG(entry.st_mode)
+            or not _private_mode(entry, 0o600)
+            or entry.st_nlink not in {1, 2}
+            or entry.st_dev != directory.st_dev
+        ):
+            raise StorageError("reserved trash contains an unsafe entry")
+        resolved = resolve_contained(self.trash_dir, name, must_exist=True)
+        if resolved is None:
+            raise StorageError("reserved trash entry is not contained")
+        if entry.st_mtime < cutoff_timestamp:
+            return operation_id
+        return None
+
     @_serialized
-    def stale_pending_trash(self, cutoff: datetime | float | int) -> tuple[str, ...]:
+    def stale_pending_trash(
+        self,
+        cutoff: datetime | float | int,
+        *,
+        on_error: Callable[[str, BaseException], None] | None = None,
+    ) -> tuple[str, ...]:
         """List only descriptor-audited deterministic trash older than cutoff."""
         cutoff_timestamp = self._cutoff_timestamp(cutoff)
-        operation_ids: list[str] = []
         try:
             directory = os.fstat(self._trash_fd)
-            for name in os.listdir(self._trash_fd):
-                if name in {
-                    _SUBMISSION_TRASH_DIRECTORY,
-                    _SUBMISSION_TRASH_QUARANTINE_DIRECTORY,
-                }:
-                    expected = (
-                        self._submission_trash_stat
-                        if name == _SUBMISSION_TRASH_DIRECTORY
-                        else self._submission_trash_quarantine_stat
-                    )
-                    self._verify_reserved_directory(
-                        self._trash_fd,
-                        name,
-                        expected,
-                    )
-                    continue
-                if not name.endswith(".pdf"):
-                    raise StorageError("reserved trash contains an unknown entry")
-                operation_id = name[:-4]
-                _valid_operation_id(operation_id)
-                entry = os.stat(name, dir_fd=self._trash_fd, follow_symlinks=False)
-                if (
-                    not stat.S_ISREG(entry.st_mode)
-                    or not _private_mode(entry, 0o600)
-                    or entry.st_nlink not in {1, 2}
-                    or entry.st_dev != directory.st_dev
-                ):
-                    raise StorageError("reserved trash contains an unsafe entry")
-                resolved = resolve_contained(self.trash_dir, name, must_exist=True)
-                if resolved is None:
-                    raise StorageError("reserved trash entry is not contained")
-                if entry.st_mtime < cutoff_timestamp:
-                    operation_ids.append(operation_id)
-            return tuple(sorted(operation_ids))
-        except StorageError:
-            raise
+            names = tuple(sorted(os.listdir(self._trash_fd)))
         except (OSError, RuntimeError, ValueError) as exc:
             raise StorageError("pending trash could not be audited") from exc
+
+        operation_ids: list[str] = []
+        for name in names:
+            candidate = f"legacy-submission-trash:{name}"
+            try:
+                operation_id = self._stale_pending_trash_candidate(
+                    name,
+                    directory,
+                    cutoff_timestamp,
+                )
+            except StorageError as exc:
+                if on_error is None:
+                    raise
+                on_error(candidate, exc)
+                continue
+            except (OSError, RuntimeError, ValueError) as exc:
+                error = StorageError("pending trash could not be audited")
+                if on_error is None:
+                    raise error from exc
+                on_error(candidate, error)
+                continue
+            if operation_id is not None:
+                operation_ids.append(operation_id)
+        return tuple(sorted(operation_ids))
 
     @staticmethod
     def _cutoff_timestamp(cutoff: datetime | float | int) -> float:
