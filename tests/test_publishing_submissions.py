@@ -947,6 +947,15 @@ class SubmissionPublishingTests(PublishingLifecycleTestCase, unittest.TestCase):
         owner_pending = self.storage.pending_dir / self.pending_name(owner_id)
         owner_bytes = owner_pending.read_bytes()
         self.storage.trash_pending(owner_pending.name, ambiguous_id)
+        stale_timestamp = (
+            self.now - timedelta(hours=2)
+        ).replace(tzinfo=timezone.utc).timestamp()
+        os.utime(
+            f"{ambiguous_id}.pdf",
+            (stale_timestamp, stale_timestamp),
+            dir_fd=self.storage._trash_fd,
+            follow_symlinks=False,
+        )
 
         self.seed_submission(
             ambiguous_id,

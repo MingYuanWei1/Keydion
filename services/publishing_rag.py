@@ -57,6 +57,20 @@ class StrictRagAdapter:
         if deadline is not None and self._monotonic() >= float(deadline):
             raise IndexDeadlineExceeded()
 
+    def _run_stage(self, deadline: float | None, callback):
+        """Run one stage and make an exhausted deadline authoritative on error."""
+        self._check_deadline(deadline)
+        try:
+            result = callback()
+        except IndexDeadlineExceeded:
+            raise
+        except Exception as exc:
+            if deadline is not None and self._monotonic() >= float(deadline):
+                raise IndexDeadlineExceeded() from exc
+            raise
+        self._check_deadline(deadline)
+        return result
+
     @staticmethod
     def _embed_with_provider(texts, *, deadline=None):
         return rag_index.embed_texts(
@@ -101,22 +115,25 @@ class StrictRagAdapter:
                 deadline=deadline,
                 strict=True,
             )
-        text = self._extract_text(
-            pdf_bytes,
-            ocr_langs=_index_ocr_languages(language),
-            max_ocr_pages=50,
-            vision_fallback=vision_fallback,
-            deadline=deadline,
-            strict=True,
+        text = self._run_stage(
+            deadline,
+            lambda: self._extract_text(
+                pdf_bytes,
+                ocr_langs=_index_ocr_languages(language),
+                max_ocr_pages=50,
+                vision_fallback=vision_fallback,
+                deadline=deadline,
+                strict=True,
+            ),
         )
-        self._check_deadline(deadline)
-        chunks = tuple(self._chunker(text))
+        chunks = self._run_stage(deadline, lambda: tuple(self._chunker(text)))
         if not chunks:
             raise ValueError("PDF produced no indexable text")
 
-        self._check_deadline(deadline)
-        raw_vectors = list(self._embed_texts(list(chunks), deadline=deadline))
-        self._check_deadline(deadline)
+        raw_vectors = self._run_stage(
+            deadline,
+            lambda: list(self._embed_texts(list(chunks), deadline=deadline)),
+        )
         if len(raw_vectors) != len(chunks):
             raise ValueError("embedding result count does not match chunks")
 

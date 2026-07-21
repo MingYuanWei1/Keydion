@@ -70,12 +70,30 @@ def _remaining_timeout(deadline: float | None) -> float | None:
     return remaining
 
 
+def _raise_deadline_if_expired(deadline: float | None, error: Exception) -> None:
+    if deadline is not None and time.monotonic() >= float(deadline):
+        raise IndexDeadlineExceeded() from error
+
+
 def _new_client(api_key: str, base_url, *, deadline: float | None = None):
-    from openai import OpenAI  # imported lazily so import errors surface at call time
+    _remaining_timeout(deadline)
+    try:
+        from openai import OpenAI  # imported lazily so import errors surface at call time
+    except Exception as exc:
+        _raise_deadline_if_expired(deadline, exc)
+        raise
     kwargs = {"api_key": api_key, "base_url": base_url}
     if deadline is not None:
         kwargs.update(timeout=_remaining_timeout(deadline), max_retries=0)
-    return OpenAI(**kwargs)
+    try:
+        client = OpenAI(**kwargs)
+    except IndexDeadlineExceeded:
+        raise
+    except Exception as exc:
+        _raise_deadline_if_expired(deadline, exc)
+        raise
+    _remaining_timeout(deadline)
+    return client
 
 
 def build_client(*, deadline: float | None = None):

@@ -67,6 +67,11 @@ def _check_deadline(deadline: float | None) -> None:
     _remaining_timeout(deadline)
 
 
+def _raise_deadline_if_expired(deadline: float | None, error: Exception) -> None:
+    if deadline is not None and time.monotonic() >= float(deadline):
+        raise IndexDeadlineExceeded() from error
+
+
 def _pypdf_text(
     file_bytes: bytes,
     *,
@@ -77,8 +82,21 @@ def _pypdf_text(
     try:
         reader = PdfReader(io.BytesIO(file_bytes))
     except PdfReadError as exc:
+        _raise_deadline_if_expired(deadline, exc)
         raise PdfTextError("corrupt") from exc
-    if reader.is_encrypted:
+    except IndexDeadlineExceeded:
+        raise
+    except Exception as exc:
+        _raise_deadline_if_expired(deadline, exc)
+        raise
+    _check_deadline(deadline)
+    try:
+        encrypted = reader.is_encrypted
+    except Exception as exc:
+        _raise_deadline_if_expired(deadline, exc)
+        raise
+    _check_deadline(deadline)
+    if encrypted:
         raise PdfTextError("encrypted")
     parts = []
     for page in reader.pages:
@@ -87,7 +105,8 @@ def _pypdf_text(
             parts.append(page.extract_text() or "")
         except IndexDeadlineExceeded:
             raise
-        except Exception:
+        except Exception as exc:
+            _raise_deadline_if_expired(deadline, exc)
             if strict:
                 raise
             # PyPDF2 can throw a variety on odd pages. Interactive callers
@@ -168,7 +187,8 @@ def _ocr_pdf(
         import fitz                       # PyMuPDF
         import pytesseract
         from PIL import Image
-    except Exception:
+    except Exception as exc:
+        _raise_deadline_if_expired(deadline, exc)
         if strict:
             raise
         _log.warning("OCR dependencies unavailable; skipping OCR fallback", exc_info=True)
@@ -179,7 +199,8 @@ def _ocr_pdf(
         _check_deadline(deadline)
     except IndexDeadlineExceeded:
         raise
-    except Exception:
+    except Exception as exc:
+        _raise_deadline_if_expired(deadline, exc)
         if strict:
             raise
         _log.warning("PyMuPDF could not open PDF for OCR", exc_info=True)
@@ -200,14 +221,16 @@ def _ocr_pdf(
                     _check_deadline(deadline)
                 except IndexDeadlineExceeded:
                     raise
-                except Exception:
+                except Exception as exc:
+                    _raise_deadline_if_expired(deadline, exc)
                     if strict:
                         raise
                     _log.warning("OCR render failed on page %d", i, exc_info=True)
                     pngs.append(_SENTINEL)
         except IndexDeadlineExceeded:
             raise
-        except Exception:
+        except Exception as exc:
+            _raise_deadline_if_expired(deadline, exc)
             if strict:
                 raise
             _log.warning("OCR failed during page iteration", exc_info=True)
@@ -217,6 +240,8 @@ def _ocr_pdf(
             doc.close()
         except Exception:
             pass
+
+    _check_deadline(deadline)
 
     if not pngs:
         return ""
@@ -228,6 +253,7 @@ def _ocr_pdf(
         try:
             timeout = _remaining_timeout(deadline)
             img = Image.open(io.BytesIO(png))
+            _check_deadline(deadline)
             text = pytesseract.image_to_string(
                 img,
                 lang=langs,
@@ -241,15 +267,22 @@ def _ocr_pdf(
             return text
         except IndexDeadlineExceeded:
             raise
-        except Exception:
+        except Exception as exc:
+            _raise_deadline_if_expired(deadline, exc)
             if strict:
                 raise
             _log.warning("OCR failed on a page", exc_info=True)
             return ""
 
     workers = min(_ocr_pool_size(), len(pngs))
-    with ThreadPoolExecutor(max_workers=workers) as pool:
-        parts = list(pool.map(_ocr_page, pngs))
+    try:
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            parts = list(pool.map(_ocr_page, pngs))
+    except IndexDeadlineExceeded:
+        raise
+    except Exception as exc:
+        _raise_deadline_if_expired(deadline, exc)
+        raise
     _check_deadline(deadline)
 
     if parts:
@@ -274,7 +307,8 @@ def render_pdf_pages(
     _check_deadline(deadline)
     try:
         import fitz                       # PyMuPDF
-    except Exception:
+    except Exception as exc:
+        _raise_deadline_if_expired(deadline, exc)
         if strict:
             raise
         _log.warning("PyMuPDF unavailable; cannot render PDF pages", exc_info=True)
@@ -285,7 +319,8 @@ def render_pdf_pages(
         _check_deadline(deadline)
     except IndexDeadlineExceeded:
         raise
-    except Exception:
+    except Exception as exc:
+        _raise_deadline_if_expired(deadline, exc)
         if strict:
             raise
         _log.warning("PyMuPDF could not open PDF for rendering", exc_info=True)
@@ -304,13 +339,15 @@ def render_pdf_pages(
                     _check_deadline(deadline)
                 except IndexDeadlineExceeded:
                     raise
-                except Exception:
+                except Exception as exc:
+                    _raise_deadline_if_expired(deadline, exc)
                     if strict:
                         raise
                     _log.warning("render failed on page %d", i, exc_info=True)
         except IndexDeadlineExceeded:
             raise
-        except Exception:
+        except Exception as exc:
+            _raise_deadline_if_expired(deadline, exc)
             if strict:
                 raise
             _log.warning("render failed during page iteration", exc_info=True)
@@ -320,6 +357,7 @@ def render_pdf_pages(
             doc.close()
         except Exception:
             pass
+    _check_deadline(deadline)
     return pngs
 
 
@@ -343,16 +381,22 @@ def extract_pdf_text(file_bytes: bytes, *, ocr_langs: str = DEFAULT_OCR_LANGS,
     _check_deadline(deadline)
     if _meaningful_len(text) >= MIN_TEXT_CHARS:
         return text
-    if vision_fallback is not None:
-        scanned_text = vision_fallback(file_bytes, max_ocr_pages)
-    else:
-        scanned_text = _ocr_pdf(
-            file_bytes,
-            ocr_langs,
-            max_ocr_pages,
-            deadline=deadline,
-            strict=strict,
-        )
+    try:
+        if vision_fallback is not None:
+            scanned_text = vision_fallback(file_bytes, max_ocr_pages)
+        else:
+            scanned_text = _ocr_pdf(
+                file_bytes,
+                ocr_langs,
+                max_ocr_pages,
+                deadline=deadline,
+                strict=strict,
+            )
+    except IndexDeadlineExceeded:
+        raise
+    except Exception as exc:
+        _raise_deadline_if_expired(deadline, exc)
+        raise
     _check_deadline(deadline)
     if strict and not scanned_text.strip():
         raise ValueError("PDF fallback produced no indexable text")

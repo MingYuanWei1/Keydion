@@ -153,6 +153,11 @@ def _remaining_timeout(deadline: float | None) -> float | None:
     return remaining
 
 
+def _raise_deadline_if_expired(deadline: float | None, error: Exception) -> None:
+    if deadline is not None and time.monotonic() >= float(deadline):
+        raise IndexDeadlineExceeded() from error
+
+
 def embed_texts(
     texts: list[str],
     *,
@@ -173,18 +178,32 @@ def embed_texts(
     builder = build_embed_client or _DEPS["build_embed_client"]
     model_getter = embed_model or _DEPS["embed_model"]
     batch_size_getter = embed_batch_size or _DEPS.get("embed_batch_size")
-    client = builder() if deadline is None else builder(deadline=deadline)
-    model = model_getter()
-    getter = batch_size_getter
-    size = max(1, int(getter())) if getter else 10
+    try:
+        client = builder() if deadline is None else builder(deadline=deadline)
+        model = model_getter()
+        getter = batch_size_getter
+        size = max(1, int(getter())) if getter else 10
+    except IndexDeadlineExceeded:
+        raise
+    except Exception as exc:
+        _raise_deadline_if_expired(deadline, exc)
+        raise
+    _remaining_timeout(deadline)
     out: list[list[float]] = []
     for start in range(0, len(texts), size):
         batch = texts[start:start + size]
         kwargs = {"model": model, "input": batch}
         if deadline is not None:
             kwargs["timeout"] = _remaining_timeout(deadline)
-        resp = client.embeddings.create(**kwargs)
-        data = list(resp.data)
+        try:
+            resp = client.embeddings.create(**kwargs)
+            data = list(resp.data)
+        except IndexDeadlineExceeded:
+            raise
+        except Exception as exc:
+            _raise_deadline_if_expired(deadline, exc)
+            raise
+        _remaining_timeout(deadline)
         if len(data) != len(batch):
             raise ValueError("embedding provider returned the wrong result count")
         out.extend(item.embedding for item in data)

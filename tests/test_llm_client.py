@@ -113,6 +113,32 @@ class LlmClientEmbedConfig(unittest.TestCase):
                 llm_client._new_client("key", None, deadline=10.0)
         openai.assert_not_called()
 
+    def test_client_construction_failure_after_deadline_becomes_deadline_error(self):
+        now = [1.0]
+        failure = TimeoutError("client construction timed out")
+
+        def openai(**_kwargs):
+            now[0] = 10.0
+            raise failure
+
+        fake_module = types.SimpleNamespace(OpenAI=openai)
+        with mock.patch.dict(sys.modules, {"openai": fake_module}), \
+             mock.patch.object(
+                 llm_client.time, "monotonic", side_effect=lambda: now[0]
+             ):
+            with self.assertRaises(IndexDeadlineExceeded) as raised:
+                llm_client._new_client("key", None, deadline=10.0)
+        self.assertIs(raised.exception.__cause__, failure)
+
+    def test_client_construction_failure_with_time_remaining_is_preserved(self):
+        failure = RuntimeError("client construction failed early")
+        fake_module = types.SimpleNamespace(OpenAI=mock.Mock(side_effect=failure))
+        with mock.patch.dict(sys.modules, {"openai": fake_module}), \
+             mock.patch.object(llm_client.time, "monotonic", return_value=1.0):
+            with self.assertRaises(RuntimeError) as raised:
+                llm_client._new_client("key", None, deadline=10.0)
+        self.assertIs(raised.exception, failure)
+
 
 class LlmClientVisionConfig(unittest.TestCase):
     def test_vision_model_defaults_empty_when_unset(self):

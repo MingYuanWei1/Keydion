@@ -135,6 +135,32 @@ class ExtractWithVisionFailureTest(unittest.TestCase):
         render.assert_called_once_with(b"%PDF", max_pages=10, deadline=10.0)
         self.assertEqual(client.calls[0]["timeout"], 6.0)
 
+    def test_provider_failure_after_consuming_deadline_becomes_deadline_error(self):
+        now = [1.0]
+        failure = RuntimeError("vision provider timed out")
+        client = _CapturingClient()
+
+        def fail(**kwargs):
+            client.calls.append(kwargs)
+            now[0] = 10.0
+            raise failure
+
+        client.chat.completions.create = fail
+        with mock.patch.object(
+            vision_read.llm_client, "build_vision_client", return_value=client
+        ), mock.patch.object(
+            vision_read.llm_client, "vision_model", return_value="vmodel"
+        ), mock.patch.object(
+            vision_read.pdf_text, "render_pdf_pages", return_value=[b"PNG"]
+        ), mock.patch.object(
+            vision_read.time, "monotonic", side_effect=lambda: now[0]
+        ):
+            with self.assertRaises(IndexDeadlineExceeded) as raised:
+                vision_read.extract_with_vision(
+                    b"%PDF", "P", deadline=10.0
+                )
+        self.assertIs(raised.exception.__cause__, failure)
+
 
 class TranscribePdfTest(unittest.TestCase):
     def test_returns_concatenated_text(self):
@@ -219,6 +245,76 @@ class TranscribePdfTest(unittest.TestCase):
         ):
             with self.assertRaises(IndexDeadlineExceeded):
                 vision_read.transcribe_pdf(b"%PDF", deadline=10.0)
+
+    def test_provider_failure_after_deadline_becomes_deadline_in_both_modes(self):
+        for strict in (False, True):
+            with self.subTest(strict=strict):
+                now = [1.0]
+                failure = RuntimeError("vision provider timed out")
+                client = _CapturingClient()
+
+                def fail(**kwargs):
+                    client.calls.append(kwargs)
+                    now[0] = 10.0
+                    raise failure
+
+                client.chat.completions.create = fail
+                with mock.patch.object(
+                    vision_read.llm_client,
+                    "build_vision_client",
+                    return_value=client,
+                ), mock.patch.object(
+                    vision_read.llm_client,
+                    "vision_model",
+                    return_value="vmodel",
+                ), mock.patch.object(
+                    vision_read.pdf_text,
+                    "render_pdf_pages",
+                    return_value=[b"PNG"],
+                ), mock.patch.object(
+                    vision_read.time,
+                    "monotonic",
+                    side_effect=lambda: now[0],
+                ):
+                    with self.assertRaises(IndexDeadlineExceeded) as raised:
+                        vision_read.transcribe_pdf(
+                            b"%PDF", deadline=10.0, strict=strict
+                        )
+                self.assertIs(raised.exception.__cause__, failure)
+
+    def test_provider_failure_with_time_remaining_preserves_both_modes(self):
+        for strict in (False, True):
+            with self.subTest(strict=strict):
+                failure = RuntimeError("vision provider failed early")
+                client = _CapturingClient(error=failure)
+                with mock.patch.object(
+                    vision_read.llm_client,
+                    "build_vision_client",
+                    return_value=client,
+                ), mock.patch.object(
+                    vision_read.llm_client,
+                    "vision_model",
+                    return_value="vmodel",
+                ), mock.patch.object(
+                    vision_read.pdf_text,
+                    "render_pdf_pages",
+                    return_value=[b"PNG"],
+                ), mock.patch.object(
+                    vision_read.time, "monotonic", return_value=1.0
+                ):
+                    if strict:
+                        with self.assertRaises(VisionError) as raised:
+                            vision_read.transcribe_pdf(
+                                b"%PDF", deadline=10.0, strict=True
+                            )
+                        self.assertIs(raised.exception.__cause__, failure)
+                    else:
+                        self.assertEqual(
+                            vision_read.transcribe_pdf(
+                                b"%PDF", deadline=10.0
+                            ),
+                            "",
+                        )
 
 
 if __name__ == "__main__":

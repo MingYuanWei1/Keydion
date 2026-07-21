@@ -67,6 +67,27 @@ class PypdfPassTest(unittest.TestCase):
                 extract_pdf_text(b"%PDF-fake", strict=True)
         self.assertIs(raised.exception, failure)
 
+    def test_page_failure_after_consuming_deadline_becomes_deadline_error(self):
+        now = [1.0]
+        failure = RuntimeError("page extraction failed late")
+        page = mock.Mock()
+
+        def fail():
+            now[0] = 10.0
+            raise failure
+
+        page.extract_text.side_effect = fail
+        with mock.patch.object(
+            pdf_text, "PdfReader", return_value=_StubReader(pages=[page])
+        ), mock.patch.object(
+            pdf_text.time, "monotonic", side_effect=lambda: now[0]
+        ):
+            with self.assertRaises(IndexDeadlineExceeded) as raised:
+                extract_pdf_text(
+                    b"%PDF-fake", deadline=10.0, strict=True
+                )
+        self.assertIs(raised.exception.__cause__, failure)
+
 
 def _fake_ocr_modules(call_log, page_count):
     """Return a dict of fake fitz / pytesseract / PIL modules for sys.modules."""
@@ -261,6 +282,61 @@ class OcrFallbackTest(unittest.TestCase):
                     10,
                     deadline=10.0,
                 )
+
+    def test_ocr_failure_after_consuming_deadline_becomes_deadline_error(self):
+        for strict in (False, True):
+            with self.subTest(strict=strict):
+                now = [1.0]
+                failure = TimeoutError("tesseract timed out")
+                modules = _fake_ocr_modules([], page_count=1)
+
+                def fail(*_args, **_kwargs):
+                    now[0] = 10.0
+                    raise failure
+
+                modules["pytesseract"].image_to_string.side_effect = fail
+                with mock.patch.dict(sys.modules, modules), mock.patch.object(
+                    pdf_text.time, "monotonic", side_effect=lambda: now[0]
+                ):
+                    with self.assertRaises(IndexDeadlineExceeded) as raised:
+                        pdf_text._ocr_pdf(
+                            b"%PDF-fake",
+                            "eng",
+                            10,
+                            deadline=10.0,
+                            strict=strict,
+                        )
+                self.assertIs(raised.exception.__cause__, failure)
+
+    def test_ocr_failure_with_time_remaining_preserves_both_modes(self):
+        for strict in (False, True):
+            with self.subTest(strict=strict):
+                failure = RuntimeError("tesseract failed early")
+                modules = _fake_ocr_modules([], page_count=1)
+                modules["pytesseract"].image_to_string.side_effect = failure
+                with mock.patch.dict(sys.modules, modules), mock.patch.object(
+                    pdf_text.time, "monotonic", return_value=1.0
+                ):
+                    if strict:
+                        with self.assertRaises(RuntimeError) as raised:
+                            pdf_text._ocr_pdf(
+                                b"%PDF-fake",
+                                "eng",
+                                10,
+                                deadline=10.0,
+                                strict=True,
+                            )
+                        self.assertIs(raised.exception, failure)
+                    else:
+                        self.assertEqual(
+                            pdf_text._ocr_pdf(
+                                b"%PDF-fake",
+                                "eng",
+                                10,
+                                deadline=10.0,
+                            ),
+                            "",
+                        )
 
 
     def test_parallel_ocr_preserves_page_order(self):
@@ -504,6 +580,73 @@ class RenderPdfPagesTest(unittest.TestCase):
             with self.assertRaises(IndexDeadlineExceeded):
                 pdf_text.render_pdf_pages(b"%PDF", deadline=5.0)
 
+    def test_render_failure_after_consuming_deadline_becomes_deadline_error(self):
+        for strict in (False, True):
+            with self.subTest(strict=strict):
+                now = [1.0]
+                failure = RuntimeError("render failed late")
+
+                class _Page:
+                    @property
+                    def rect(self):
+                        return type("Rect", (), {"width": 100, "height": 100})()
+
+                    def get_pixmap(self, **_kwargs):
+                        now[0] = 10.0
+                        raise failure
+
+                class _Doc:
+                    def __iter__(self):
+                        return iter([_Page()])
+
+                    def close(self):
+                        pass
+
+                fitz = mock.Mock()
+                fitz.Matrix.side_effect = lambda *_args: object()
+                fitz.open.return_value = _Doc()
+                with mock.patch.dict(sys.modules, {"fitz": fitz}), mock.patch.object(
+                    pdf_text.time, "monotonic", side_effect=lambda: now[0]
+                ):
+                    with self.assertRaises(IndexDeadlineExceeded) as raised:
+                        pdf_text.render_pdf_pages(
+                            b"%PDF", deadline=10.0, strict=strict
+                        )
+                self.assertIs(raised.exception.__cause__, failure)
+
+    def test_render_failure_with_time_remaining_preserves_both_modes(self):
+        for strict in (False, True):
+            with self.subTest(strict=strict):
+                failure = RuntimeError("render failed early")
+
+                class _Page:
+                    def get_pixmap(self, **_kwargs):
+                        raise failure
+
+                class _Doc:
+                    def __iter__(self):
+                        return iter([_Page()])
+
+                    def close(self):
+                        pass
+
+                fitz = mock.Mock()
+                fitz.open.return_value = _Doc()
+                with mock.patch.dict(sys.modules, {"fitz": fitz}), mock.patch.object(
+                    pdf_text.time, "monotonic", return_value=1.0
+                ):
+                    if strict:
+                        with self.assertRaises(RuntimeError) as raised:
+                            pdf_text.render_pdf_pages(
+                                b"%PDF", deadline=10.0, strict=True
+                            )
+                        self.assertIs(raised.exception, failure)
+                    else:
+                        self.assertEqual(
+                            pdf_text.render_pdf_pages(b"%PDF", deadline=10.0),
+                            [],
+                        )
+
 
 class VisionFallbackTest(unittest.TestCase):
     def test_thin_text_uses_injected_vision_fallback(self):
@@ -556,6 +699,29 @@ class VisionFallbackTest(unittest.TestCase):
         with mock.patch.object(pdf_text.time, "monotonic", return_value=20.0):
             with self.assertRaises(IndexDeadlineExceeded):
                 extract_pdf_text(b"%PDF-fake", deadline=20.0)
+
+    def test_vision_fallback_failure_after_deadline_becomes_deadline_error(self):
+        now = [1.0]
+        failure = RuntimeError("vision fallback failed late")
+        stub = _StubReader(pages=[_StubPage("")])
+
+        def fail(_bytes, _max_pages):
+            now[0] = 20.0
+            raise failure
+
+        with mock.patch.object(
+            pdf_text, "PdfReader", return_value=stub
+        ), mock.patch.object(
+            pdf_text.time, "monotonic", side_effect=lambda: now[0]
+        ):
+            with self.assertRaises(IndexDeadlineExceeded) as raised:
+                extract_pdf_text(
+                    b"%PDF-fake",
+                    vision_fallback=fail,
+                    deadline=20.0,
+                    strict=True,
+                )
+        self.assertIs(raised.exception.__cause__, failure)
 
 
 if __name__ == "__main__":

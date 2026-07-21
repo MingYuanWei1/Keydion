@@ -381,6 +381,47 @@ class EmbedBatchTest(unittest.TestCase):
                 rag_index.embed_texts(["a"], deadline=10.0)
         build_client.assert_not_called()
 
+    def test_embedding_failure_after_consuming_deadline_becomes_deadline_error(self):
+        now = [1.0]
+        failure = TimeoutError("embedding request timed out")
+
+        class _FailingClient:
+            def __init__(self):
+                self.embeddings = self
+
+            def create(self, **_kwargs):
+                now[0] = 10.0
+                raise failure
+
+        rag_index.configure(
+            build_embed_client=lambda *, deadline=None: _FailingClient(),
+            embed_model=lambda: "m",
+            embed_batch_size=lambda: 10,
+        )
+        with mock.patch.object(rag_index.time, "monotonic", side_effect=lambda: now[0]):
+            with self.assertRaises(IndexDeadlineExceeded) as raised:
+                rag_index.embed_texts(["a"], deadline=10.0)
+        self.assertIs(raised.exception.__cause__, failure)
+
+    def test_embedding_failure_with_time_remaining_is_preserved(self):
+        failure = RuntimeError("provider failed early")
+
+        class _FailingClient:
+            def __init__(self):
+                self.embeddings = self
+
+            def create(self, **_kwargs):
+                raise failure
+
+        rag_index.configure(
+            build_embed_client=lambda *, deadline=None: _FailingClient(),
+            embed_model=lambda: "m",
+        )
+        with mock.patch.object(rag_index.time, "monotonic", return_value=1.0):
+            with self.assertRaises(RuntimeError) as raised:
+                rag_index.embed_texts(["a"], deadline=10.0)
+        self.assertIs(raised.exception, failure)
+
 
 class Reassemble(unittest.TestCase):
     def test_constants_exist_with_correct_values(self):

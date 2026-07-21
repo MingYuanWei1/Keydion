@@ -77,6 +77,11 @@ def _remaining_timeout(deadline: float | None) -> float | None:
     return remaining
 
 
+def _raise_deadline_if_expired(deadline: float | None, error: Exception) -> None:
+    if deadline is not None and time.monotonic() >= float(deadline):
+        raise IndexDeadlineExceeded() from error
+
+
 def extract_with_vision(file_bytes: bytes, system_prompt: str, *,
                         max_pages: int = 10, language: str = "en",
                         deadline: float | None = None) -> dict:
@@ -84,18 +89,31 @@ def extract_with_vision(file_bytes: bytes, system_prompt: str, *,
     _remaining_timeout(deadline)
     if not llm_client.vision_model():
         raise VisionError("Vision model is not configured.")
-    client = (
-        llm_client.build_vision_client()
-        if deadline is None
-        else llm_client.build_vision_client(deadline=deadline)
-    )
+    try:
+        client = (
+            llm_client.build_vision_client()
+            if deadline is None
+            else llm_client.build_vision_client(deadline=deadline)
+        )
+    except IndexDeadlineExceeded:
+        raise
+    except Exception as exc:
+        _raise_deadline_if_expired(deadline, exc)
+        raise
+    _remaining_timeout(deadline)
     if client is None:
         raise VisionError("Vision model is not configured.")
 
     render_kwargs = {"max_pages": max_pages}
     if deadline is not None:
         render_kwargs["deadline"] = deadline
-    pages = pdf_text.render_pdf_pages(file_bytes, **render_kwargs)
+    try:
+        pages = pdf_text.render_pdf_pages(file_bytes, **render_kwargs)
+    except IndexDeadlineExceeded:
+        raise
+    except Exception as exc:
+        _raise_deadline_if_expired(deadline, exc)
+        raise
     _remaining_timeout(deadline)
     if not pages:
         raise VisionError("Could not render any PDF pages.")
@@ -115,15 +133,18 @@ def extract_with_vision(file_bytes: bytes, system_prompt: str, *,
     except IndexDeadlineExceeded:
         raise
     except Exception as exc:  # network/auth/rate-limit from any provider
+        _raise_deadline_if_expired(deadline, exc)
         _log.exception("Vision request failed")
         raise VisionError("Vision request failed.") from exc
 
     try:
         text = (resp.choices[0].message.content or "").strip()
     except (AttributeError, IndexError, TypeError) as exc:
+        _raise_deadline_if_expired(deadline, exc)
         raise VisionError("The vision response could not be parsed.") from exc
 
     data = _parse_json(text)
+    _remaining_timeout(deadline)
     if not isinstance(data, dict):
         raise VisionError("The vision response could not be parsed.")
     return data
@@ -152,6 +173,7 @@ def transcribe_pdf(file_bytes: bytes, *, max_pages: int = 50,
             if deadline is None
             else llm_client.build_vision_client(deadline=deadline)
         )
+        _remaining_timeout(deadline)
         if client is None:
             if strict:
                 raise VisionError("Vision model is not configured.")
@@ -179,14 +201,17 @@ def transcribe_pdf(file_bytes: bytes, *, max_pages: int = 50,
         resp = client.chat.completions.create(**request)
         _remaining_timeout(deadline)
         text = (resp.choices[0].message.content or "").strip()
+        _remaining_timeout(deadline)
         if strict and not text:
             raise VisionError("Vision transcription was empty.")
         return text
     except IndexDeadlineExceeded:
         raise
-    except VisionError:
+    except VisionError as exc:
+        _raise_deadline_if_expired(deadline, exc)
         raise
     except Exception as exc:  # transcription is best-effort unless strict
+        _raise_deadline_if_expired(deadline, exc)
         _log.exception("Vision transcription failed")
         if strict:
             raise VisionError("Vision transcription failed.") from exc

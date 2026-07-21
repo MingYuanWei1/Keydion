@@ -145,6 +145,35 @@ class StrictRagAdapterTest(unittest.TestCase):
             )
         self.assertIs(embedding.exception, embedding_error)
 
+    def test_stage_failure_that_consumes_deadline_becomes_deadline_error(self):
+        for stage in ("extract", "embed"):
+            with self.subTest(stage=stage):
+                now = [1.0]
+                failure = TimeoutError(f"{stage} timed out")
+
+                def fail(*_args, **_kwargs):
+                    now[0] = 10.0
+                    raise failure
+
+                overrides = {
+                    "monotonic": lambda: now[0],
+                    "extract_text": fail if stage == "extract" else (
+                        lambda _pdf, **_kwargs: "cold indexed text"
+                    ),
+                    "embed_texts": fail if stage == "embed" else (
+                        lambda texts, **_kwargs: [[1.0, 0.0] for _ in texts]
+                    ),
+                }
+                with self.assertRaises(IndexDeadlineExceeded) as raised:
+                    self.adapter(**overrides).prepare(
+                        paper_id=PAPER_A,
+                        revision_number=1,
+                        pdf_bytes=b"pdf",
+                        language="en",
+                        deadline=10.0,
+                    )
+                self.assertIs(raised.exception.__cause__, failure)
+
     def test_empty_extraction_is_a_strict_failure(self):
         with self.assertRaisesRegex(ValueError, "indexable text"):
             self.adapter(extract_text=lambda _pdf, **_kwargs: "  ").prepare(
