@@ -6,7 +6,7 @@ import hashlib
 import json
 from contextlib import contextmanager
 from dataclasses import asdict
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Callable, Iterator, Protocol
 
@@ -1018,7 +1018,15 @@ class PublishingLifecycle:
             and paper.current_revision == lease.revision
         )
 
-    def _complete_index(self, lease: JobLease, prepared: PreparedRevisionIndex) -> bool:
+    def _complete_index(
+        self,
+        lease: JobLease,
+        prepared: PreparedRevisionIndex,
+        *,
+        expected_sha256: str | None = None,
+        expected_size_bytes: int | None = None,
+        clock: Callable[[], datetime] | None = None,
+    ) -> bool:
         if (
             prepared.paper_id != lease.paper_id
             or prepared.revision != lease.revision
@@ -1038,6 +1046,15 @@ class PublishingLifecycle:
                     .with_for_update()
                     .one_or_none()
                 )
+                revision_row = (
+                    session.query(PaperRevisionModel)
+                    .filter(
+                        PaperRevisionModel.paper_id == lease.paper_id,
+                        PaperRevisionModel.revision_number == lease.revision,
+                    )
+                    .with_for_update()
+                    .one_or_none()
+                )
                 exact_job = bool(
                     isinstance(lease, JobLease)
                     and job is not None
@@ -1050,13 +1067,23 @@ class PublishingLifecycle:
                     and job.lease_token == lease.lease_token
                     and job.lease_expires_at is not None
                 )
-                if not exact_job or job.lease_expires_at <= self._clock():
+                current_time = (clock or self._clock)()
+                if not exact_job or job.lease_expires_at <= current_time:
                     return False
                 if (
                     paper is None
                     or paper.id != lease.paper_id
                     or paper.lifecycle_state != "published"
                     or paper.current_revision != lease.revision
+                    or revision_row is None
+                    or (
+                        expected_sha256 is not None
+                        and revision_row.sha256 != expected_sha256
+                    )
+                    or (
+                        expected_size_bytes is not None
+                        and revision_row.size_bytes != expected_size_bytes
+                    )
                 ):
                     session.delete(job)
                     session.commit()
@@ -1095,7 +1122,14 @@ class PublishingLifecycle:
 
         return redact_job_error(error)
 
-    def _mark_index_failure(self, lease: JobLease, error: Exception) -> IndexingOutcome:
+    def _mark_index_failure(
+        self,
+        lease: JobLease,
+        error: Exception,
+        *,
+        clock: Callable[[], datetime] | None = None,
+        jitter: Callable[[], float] | None = None,
+    ) -> IndexingOutcome:
         from services.publishing_jobs import release_failed_job
 
         try:
@@ -1103,8 +1137,8 @@ class PublishingLifecycle:
                 self._session_factory,
                 lease,
                 error,
-                self._clock(),
-                jitter=float(self._jitter()),
+                (clock or self._clock)(),
+                jitter=float((jitter or self._jitter)()),
             )
             if progress is not None and progress.state == JobState.PENDING:
                 return IndexingOutcome(
@@ -1149,10 +1183,17 @@ class PublishingLifecycle:
         self,
         lease: JobLease,
         monotonic_deadline: float,
+        *,
+        clock: Callable[[], datetime] | None = None,
+        monotonic_clock: Callable[[], float] | None = None,
+        jitter: Callable[[], float] | None = None,
     ) -> JobProgress:
         """Dispatch one committed lease through the same request/worker seam."""
+        clock = clock or self._clock
+        monotonic_clock = monotonic_clock or self._monotonic_clock
+        jitter = jitter or self._jitter
         if lease.kind == "delete_paper":
-            self._run_delete_job(lease)
+            self._run_delete_job(lease, clock=clock, jitter=jitter)
             return self._current_job_progress(lease)
         if lease.kind != "index_revision":
             from services.publishing_jobs import release_failed_job
@@ -1162,15 +1203,15 @@ class PublishingLifecycle:
                     self._session_factory,
                     lease,
                     ValueError(f"unknown publishing job kind: {lease.kind}"),
-                    self._clock(),
-                    jitter=float(self._jitter()),
+                    clock(),
+                    jitter=float(jitter()),
                 )
                 return progress or self._current_job_progress(lease)
             except Exception:
                 return self._current_job_progress(lease)
 
         try:
-            if self._monotonic_clock() >= monotonic_deadline:
+            if monotonic_clock() >= monotonic_deadline:
                 raise IndexDeadlineExceeded()
             with self._session() as session:
                 paper = (
@@ -1185,6 +1226,15 @@ class PublishingLifecycle:
                     .with_for_update()
                     .one_or_none()
                 )
+                revision_row = (
+                    session.query(PaperRevisionModel)
+                    .filter(
+                        PaperRevisionModel.paper_id == lease.paper_id,
+                        PaperRevisionModel.revision_number == lease.revision,
+                    )
+                    .with_for_update()
+                    .one_or_none()
+                )
                 exact_job = bool(
                     job is not None
                     and job.id == lease.job_id
@@ -1196,7 +1246,7 @@ class PublishingLifecycle:
                     and job.lease_token == lease.lease_token
                     and job.lease_expires_at is not None
                 )
-                if not exact_job or job.lease_expires_at <= self._clock():
+                if not exact_job or job.lease_expires_at <= clock():
                     if job is None:
                         return self._lease_progress(lease)
                     return JobProgress(
@@ -1213,14 +1263,22 @@ class PublishingLifecycle:
                     paper is None
                     or paper.lifecycle_state != "published"
                     or paper.current_revision != lease.revision
+                    or revision_row is None
                 ):
                     session.delete(job)
                     session.commit()
                     return self._lease_progress(lease)
                 language = paper.language or ""
+                revision_sha256 = revision_row.sha256
+                revision_size_bytes = revision_row.size_bytes
 
-            pdf_path = self._storage.open_revision(lease.paper_id, lease.revision)
-            pdf_bytes = pdf_path.read_bytes()
+            verified = self._storage.verify_revision(
+                lease.paper_id,
+                lease.revision,
+                sha256=revision_sha256,
+                size_bytes=revision_size_bytes,
+            )
+            pdf_bytes = verified.path.read_bytes()
             prepared = self._indexer.prepare(
                 paper_id=lease.paper_id,
                 revision_number=lease.revision,
@@ -1234,12 +1292,23 @@ class PublishingLifecycle:
                 or prepared.revision != lease.revision
             ):
                 raise ValueError("indexer prepared the wrong Paper revision")
-            if self._monotonic_clock() >= monotonic_deadline:
+            if monotonic_clock() >= monotonic_deadline:
                 raise IndexDeadlineExceeded()
-            self._complete_index(lease, prepared)
+            self._complete_index(
+                lease,
+                prepared,
+                expected_sha256=revision_sha256,
+                expected_size_bytes=revision_size_bytes,
+                clock=clock,
+            )
             return self._current_job_progress(lease)
         except Exception as exc:
-            self._mark_index_failure(lease, exc)
+            self._mark_index_failure(
+                lease,
+                exc,
+                clock=clock,
+                jitter=jitter,
+            )
             return self._current_job_progress(lease)
 
     @staticmethod
@@ -2985,6 +3054,9 @@ class PublishingLifecycle:
         self,
         lease: JobLease,
         error: Exception,
+        *,
+        clock: Callable[[], datetime] | None = None,
+        jitter: Callable[[], float] | None = None,
     ) -> DeletionProgress:
         from services.publishing_jobs import release_failed_job
 
@@ -2993,8 +3065,8 @@ class PublishingLifecycle:
                 self._session_factory,
                 lease,
                 error,
-                self._clock(),
-                jitter=float(self._jitter()),
+                (clock or self._clock)(),
+                jitter=float((jitter or self._jitter)()),
             )
         except Exception:
             # A still-running durable lease becomes retryable when it expires.
@@ -3005,8 +3077,16 @@ class PublishingLifecycle:
                 return DeletionProgress(lease.paper_id, DeletionState.DELETED)
         return DeletionProgress(lease.paper_id, DeletionState.DELETING)
 
-    def _run_delete_job(self, lease: JobLease) -> DeletionProgress:
+    def _run_delete_job(
+        self,
+        lease: JobLease,
+        *,
+        clock: Callable[[], datetime] | None = None,
+        jitter: Callable[[], float] | None = None,
+    ) -> DeletionProgress:
         """Run one exact deletion lease; stale leases never touch storage."""
+        clock = clock or self._clock
+        jitter = jitter or self._jitter
         try:
             with self._session() as session:
                 paper = (
@@ -3025,7 +3105,7 @@ class PublishingLifecycle:
                 )
                 if (
                     not self._delete_lease_matches(job, paper, lease)
-                    or job.lease_expires_at <= self._clock()
+                    or job.lease_expires_at <= clock()
                 ):
                     return DeletionProgress(lease.paper_id, DeletionState.DELETING)
 
@@ -3064,7 +3144,12 @@ class PublishingLifecycle:
                 session.commit()
                 return DeletionProgress(lease.paper_id, DeletionState.DELETED)
         except Exception as exc:
-            return self._release_delete_failure(lease, exc)
+            return self._release_delete_failure(
+                lease,
+                exc,
+                clock=clock,
+                jitter=jitter,
+            )
 
     def delete_paper(self, intent: DeletePaper) -> DeletionProgress:
         """Hide a Paper transactionally, then attempt exact cleanup once."""

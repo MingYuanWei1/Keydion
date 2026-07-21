@@ -23,13 +23,27 @@ from services.publishing_time import require_db_utc
 
 _LOG = logging.getLogger(__name__)
 _ERROR_LIMIT = 500
-_CREDENTIAL_PATTERNS = (
-    re.compile(r"(?i)\bbearer\s+[^\s,;]+"),
-    re.compile(
-        r"(?i)\b(api[_-]?key|secret|token|password)\s*[:=]\s*[^\s,;]+"
-    ),
-    re.compile(r"(?i)\bsk-[A-Za-z0-9_-]+"),
+_BEARER_CREDENTIAL = re.compile(
+    r"(?ix)\bbearer\s+(?:"
+    r'"(?:\\.|[^"\\])*"'
+    r"|'(?:\\.|[^'\\])*'"
+    r"|[^\s,;}\]\"']+"
+    r")"
 )
+_ASSIGNED_CREDENTIAL = re.compile(
+    r"(?ix)(?<![A-Za-z0-9_])"
+    r"(?P<key>[\"']?(?:"
+    r"api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|"
+    r"authorization|secret|token|password"
+    r")[\"']?)"
+    r"(?![A-Za-z0-9_])\s*[:=]\s*"
+    r"(?:"
+    r'"(?:\\.|[^"\\])*"'
+    r"|'(?:\\.|[^'\\])*'"
+    r"|[^\s,;}\]]+"
+    r")"
+)
+_SECRET_TOKEN = re.compile(r"(?i)\bsk-[A-Za-z0-9_-]+")
 
 
 @dataclass(frozen=True)
@@ -55,15 +69,12 @@ def redact_job_error(error: BaseException | str) -> str:
         rendered = f"{type(error).__name__}: {detail}"
     else:
         rendered = str(error)
-    for pattern in _CREDENTIAL_PATTERNS:
-        rendered = pattern.sub(
-            lambda match: (
-                f"{match.group(1)}=[REDACTED]"
-                if match.lastindex
-                else "[REDACTED]"
-            ),
-            rendered,
-        )
+    rendered = _BEARER_CREDENTIAL.sub("[REDACTED]", rendered)
+    rendered = _ASSIGNED_CREDENTIAL.sub(
+        lambda match: f"{match.group('key')}=[REDACTED]",
+        rendered,
+    )
+    rendered = _SECRET_TOKEN.sub("[REDACTED]", rendered)
     return rendered[:_ERROR_LIMIT]
 
 
@@ -239,6 +250,17 @@ def release_failed_job(
             .with_for_update()
             .one_or_none()
         )
+        revision_row = None
+        if lease.kind == "index_revision":
+            revision_row = (
+                session.query(PaperRevisionModel)
+                .filter(
+                    PaperRevisionModel.paper_id == lease.paper_id,
+                    PaperRevisionModel.revision_number == lease.revision,
+                )
+                .with_for_update()
+                .one_or_none()
+            )
         if (
             not _job_matches_lease(job, lease)
             or job.lease_expires_at <= now
@@ -250,6 +272,7 @@ def release_failed_job(
             paper is None
             or paper.lifecycle_state != "published"
             or paper.current_revision != lease.revision
+            or revision_row is None
         ):
             session.delete(job)
             session.commit()
@@ -333,19 +356,25 @@ def run_one_due_job(
     *,
     lease_seconds: int,
     lease_token_factory: Callable[[], str] | None = None,
+    clock: Callable[[], datetime] | None = None,
+    monotonic_clock: Callable[[], float] | None = None,
+    jitter: Callable[[], float] | None = None,
     logger: logging.Logger | None = None,
 ) -> JobProgress | None:
     """Claim, commit, then dispatch at most one lifecycle job."""
     logger = logger or _LOG
+    clock = clock or lifecycle._clock
+    monotonic_clock = monotonic_clock or lifecycle._monotonic_clock
+    jitter = jitter or lifecycle._jitter
     lease = claim_one_due(
         lifecycle._session_factory,
-        lifecycle._clock(),
+        clock(),
         lease_seconds,
         lease_token_factory or lifecycle._uuid_factory,
     )
     if lease is None:
         return None
-    if job_warning_due(lease, lifecycle._clock()):
+    if job_warning_due(lease, clock()):
         logger.warning(
             "publishing job delayed job_id=%s paper_id=%s revision=%s attempts=%s",
             lease.job_id,
@@ -355,7 +384,10 @@ def run_one_due_job(
         )
     return lifecycle._recover_claimed(
         lease,
-        lifecycle._monotonic_clock() + lease_seconds,
+        monotonic_clock() + lease_seconds,
+        clock=clock,
+        monotonic_clock=monotonic_clock,
+        jitter=jitter,
     )
 
 
@@ -367,7 +399,7 @@ def _log_reconcile_error(
 ) -> None:
     logger.warning(
         "publishing reconciliation failed candidate=%s error=%s",
-        candidate,
+        redact_job_error(candidate),
         redact_job_error(error),
     )
 
@@ -456,21 +488,54 @@ def reconcile_stale_publications(
         _log_reconcile_error(logger, candidate="submissions", error=exc)
 
     try:
-        with lifecycle._session() as session:
-            referenced = tuple(
-                session.query(
-                    PaperRevisionModel.paper_id,
-                    PaperRevisionModel.revision_number,
-                )
-                .order_by(
-                    PaperRevisionModel.paper_id,
-                    PaperRevisionModel.revision_number,
-                )
-                .all()
-            )
-        reconciled += lifecycle._storage.reconcile_expired(cutoff, referenced)
+        reconciled += lifecycle._storage.reconcile_staging_expired(
+            cutoff,
+            on_error=lambda candidate, error: _log_reconcile_error(
+                logger,
+                candidate=candidate,
+                error=error,
+            ),
+        )
     except Exception as exc:
-        _log_reconcile_error(logger, candidate="paper-storage", error=exc)
+        _log_reconcile_error(logger, candidate="staging", error=exc)
+
+    try:
+        paper_ids = lifecycle._storage.reconciliation_paper_ids()
+    except Exception as exc:
+        _log_reconcile_error(logger, candidate="paper-storage-inventory", error=exc)
+        paper_ids = ()
+
+    for paper_id in paper_ids:
+        try:
+            with lifecycle._session() as session:
+                paper = (
+                    session.query(PaperMetadataModel)
+                    .filter(PaperMetadataModel.id == paper_id)
+                    .with_for_update()
+                    .one_or_none()
+                )
+                revisions = (
+                    session.query(PaperRevisionModel)
+                    .filter(PaperRevisionModel.paper_id == paper_id)
+                    .order_by(PaperRevisionModel.revision_number)
+                    .with_for_update()
+                    .all()
+                )
+                referenced = {row.revision_number for row in revisions}
+                if paper is not None and paper.current_revision is not None:
+                    referenced.add(paper.current_revision)
+                reconciled += lifecycle._storage.reconcile_paper_expired(
+                    paper_id,
+                    cutoff,
+                    referenced,
+                )
+                session.rollback()
+        except Exception as exc:
+            _log_reconcile_error(
+                logger,
+                candidate=f"paper-storage:{paper_id}",
+                error=exc,
+            )
     return reconciled
 
 
@@ -518,6 +583,9 @@ class PublishingWorker:
             self.lifecycle,
             lease_seconds=self.lease_seconds,
             lease_token_factory=self.lease_token_factory,
+            clock=self.clock,
+            monotonic_clock=self.monotonic_clock,
+            jitter=self.jitter,
             logger=self.logger,
         )
 

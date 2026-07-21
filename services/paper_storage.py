@@ -19,7 +19,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import BinaryIO, Iterable, Iterator
+from typing import BinaryIO, Callable, Iterable, Iterator
 
 from PyPDF2 import PdfReader, PdfWriter
 
@@ -2968,69 +2968,6 @@ class PaperStorage:
             raise StorageError("invalid reconciliation cutoff")
         return timestamp
 
-    def _stale_entries(
-        self,
-        directory: Path,
-        directory_fd: int,
-        cutoff: float,
-        publication_links: set[tuple[int, int]],
-    ) -> dict[str, os.stat_result]:
-        stale: dict[str, os.stat_result] = {}
-        entries: dict[str, os.stat_result] = {}
-        directory_stat = os.fstat(directory_fd)
-        for name in os.listdir(directory_fd):
-            entry = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
-            if (
-                not stat.S_ISREG(entry.st_mode)
-                or not _private_mode(entry, 0o600)
-                or entry.st_dev != directory_stat.st_dev
-            ):
-                raise StorageError("reserved storage contains an unsafe entry")
-            entries[name] = entry
-
-        for name, entry in entries.items():
-            if entry.st_nlink != 1:
-                allowed_internal_link = False
-                if directory_fd == self._staging_fd and entry.st_nlink == 2:
-                    backup_match = _METADATA_BACKUP.fullmatch(name)
-                    if backup_match is not None:
-                        partner_name = f"{backup_match.group('operation')}.pdf"
-                        partner = entries.get(partner_name)
-                        allowed_internal_link = (
-                            partner is not None
-                            and partner.st_nlink == 2
-                            and _same_inode(entry, partner)
-                        )
-                    elif name.endswith(".pdf") and _OPERATION_ID.fullmatch(name[:-4]):
-                        partners = [
-                            other
-                            for other_name, other in entries.items()
-                            if _METADATA_BACKUP.fullmatch(other_name)
-                            and _METADATA_BACKUP.fullmatch(other_name).group("operation")
-                            == name[:-4]
-                            and _same_inode(entry, other)
-                        ]
-                        allowed_internal_link = (
-                            len(partners) == 1
-                            or (entry.st_dev, entry.st_ino) in publication_links
-                        )
-                elif directory_fd == self._trash_fd and entry.st_nlink == 2:
-                    allowed_internal_link = (
-                        name.endswith(".pdf")
-                        and _OPERATION_ID.fullmatch(name[:-4]) is not None
-                    )
-                if not allowed_internal_link:
-                    raise StorageError("reserved storage contains an unknown hard link")
-            try:
-                resolved = resolve_contained(directory, name, must_exist=True)
-            except (OSError, RuntimeError, ValueError):
-                resolved = None
-            if resolved is None:
-                raise StorageError("reserved storage entry is not contained")
-            if entry.st_mtime < cutoff:
-                stale[name] = entry
-        return stale
-
     def _publication_link_identities(self) -> set[tuple[int, int]]:
         """Recognize only exact stage/final pairs left by committed promotion."""
         staged: dict[tuple[int, int], int] = {}
@@ -3081,60 +3018,272 @@ class PaperStorage:
             if count == 1 and finals.get(key) == 1
         }
 
-    def _revision_namespace(
-        self,
-        publication_links: set[tuple[int, int]],
-    ) -> dict[str, tuple[os.stat_result, dict[str, os.stat_result]]]:
-        namespace: dict[str, tuple[os.stat_result, dict[str, os.stat_result]]] = {}
-        for paper_id in os.listdir(self._papers_fd):
-            try:
-                if _canonical_paper_id(paper_id) != paper_id:
+    @staticmethod
+    def _report_reconciliation_error(
+        on_error: Callable[[str, BaseException], None] | None,
+        candidate: str,
+        error: BaseException,
+    ) -> None:
+        if on_error is None:
+            raise error
+        on_error(candidate, error)
+
+    @_serialized
+    def reconciliation_paper_ids(self) -> tuple[str, ...]:
+        """Return canonical storage namespaces without auditing their contents."""
+        try:
+            paper_ids = []
+            for name in os.listdir(self._papers_fd):
+                try:
+                    if _canonical_paper_id(name) == name:
+                        paper_ids.append(name)
+                except StorageError:
                     continue
-            except StorageError:
-                continue
+            return tuple(sorted(paper_ids))
+        except OSError as exc:
+            raise StorageError("Paper revision namespaces could not be listed") from exc
+
+    @_serialized
+    def reconcile_staging_expired(
+        self,
+        cutoff: datetime | float | int,
+        *,
+        on_error: Callable[[str, BaseException], None] | None = None,
+    ) -> int:
+        """Remove old staging entries while isolating unsafe candidates."""
+        cutoff_timestamp = self._cutoff_timestamp(cutoff)
+        try:
+            names = tuple(sorted(os.listdir(self._staging_fd)))
+        except OSError as exc:
+            raise StorageError("staging storage could not be listed") from exc
+
+        try:
+            publication_links = self._publication_link_identities()
+        except Exception as exc:
+            error = StorageError("publication links could not be audited")
+            error.__cause__ = exc
+            self._report_reconciliation_error(
+                on_error,
+                "staging:publication-links",
+                error,
+            )
+            publication_links = set()
+
+        directory_stat = os.fstat(self._staging_fd)
+        entries: dict[str, os.stat_result] = {}
+        errors: list[tuple[str, BaseException]] = []
+        for name in names:
+            try:
+                entry = os.stat(
+                    name,
+                    dir_fd=self._staging_fd,
+                    follow_symlinks=False,
+                )
+                if (
+                    not stat.S_ISREG(entry.st_mode)
+                    or not _private_mode(entry, 0o600)
+                    or entry.st_dev != directory_stat.st_dev
+                ):
+                    raise StorageError("staging entry is unsafe")
+                entries[name] = entry
+            except Exception as exc:
+                errors.append((f"staging:{name}", exc))
+
+        eligible: dict[str, os.stat_result] = {}
+        for name, entry in entries.items():
+            try:
+                if entry.st_nlink != 1:
+                    allowed_internal_link = False
+                    if entry.st_nlink == 2:
+                        backup_match = _METADATA_BACKUP.fullmatch(name)
+                        if backup_match is not None:
+                            partner_name = f"{backup_match.group('operation')}.pdf"
+                            partner = entries.get(partner_name)
+                            allowed_internal_link = (
+                                partner is not None
+                                and partner.st_nlink == 2
+                                and _same_inode(entry, partner)
+                            )
+                        elif (
+                            name.endswith(".pdf")
+                            and _OPERATION_ID.fullmatch(name[:-4]) is not None
+                        ):
+                            partners = [
+                                other
+                                for other_name, other in entries.items()
+                                if (
+                                    (match := _METADATA_BACKUP.fullmatch(other_name))
+                                    is not None
+                                    and match.group("operation") == name[:-4]
+                                    and _same_inode(entry, other)
+                                )
+                            ]
+                            allowed_internal_link = (
+                                len(partners) == 1
+                                or (entry.st_dev, entry.st_ino) in publication_links
+                            )
+                    if not allowed_internal_link:
+                        raise StorageError("staging entry has an unknown hard link")
+                try:
+                    resolved = resolve_contained(
+                        self.staging_dir,
+                        name,
+                        must_exist=True,
+                    )
+                except (OSError, RuntimeError, ValueError):
+                    resolved = None
+                if resolved is None:
+                    raise StorageError("staging entry is not contained")
+                if entry.st_mtime < cutoff_timestamp:
+                    eligible[name] = entry
+            except Exception as exc:
+                errors.append((f"staging:{name}", exc))
+
+        if on_error is None and errors:
+            raise errors[0][1]
+        for candidate, error in errors:
+            self._report_reconciliation_error(on_error, candidate, error)
+
+        removed = 0
+        for name, expected in eligible.items():
+            try:
+                if not self._unlink_if_matching(self._staging_fd, name, expected):
+                    raise StorageError("staging entry changed before removal")
+                removed += 1
+            except Exception as exc:
+                self._report_reconciliation_error(
+                    on_error,
+                    f"staging:{name}",
+                    exc,
+                )
+        if removed:
+            _fsync_directory_fd(self._staging_fd)
+        return removed
+
+    def _paper_revision_namespace(
+        self,
+        paper_id: str,
+        publication_links: set[tuple[int, int]],
+    ) -> tuple[os.stat_result, dict[str, os.stat_result]] | None:
+        try:
             directory = os.stat(
                 paper_id,
                 dir_fd=self._papers_fd,
                 follow_symlinks=False,
             )
-            if (
-                not stat.S_ISDIR(directory.st_mode)
-                or not _private_mode(directory, 0o700)
-                or directory.st_dev != self._papers_stat.st_dev
-            ):
-                raise StorageError("Paper revision namespace is unsafe")
-            paper_fd = os.open(paper_id, _DIRECTORY_FLAGS, dir_fd=self._papers_fd)
+        except FileNotFoundError:
+            return None
+        if (
+            not stat.S_ISDIR(directory.st_mode)
+            or not _private_mode(directory, 0o700)
+            or directory.st_dev != self._papers_stat.st_dev
+        ):
+            raise StorageError("Paper revision namespace is unsafe")
+        paper_fd = os.open(paper_id, _DIRECTORY_FLAGS, dir_fd=self._papers_fd)
+        try:
+            opened = os.fstat(paper_fd)
+            if not _same_inode(directory, opened):
+                raise StorageError("Paper revision directory changed")
+            revisions: dict[str, os.stat_result] = {}
+            for filename in os.listdir(paper_fd):
+                entry = os.stat(
+                    filename,
+                    dir_fd=paper_fd,
+                    follow_symlinks=False,
+                )
+                if stat.S_ISDIR(entry.st_mode):
+                    raise StorageError("Paper revision layout contains a directory")
+                if not stat.S_ISREG(entry.st_mode):
+                    raise StorageError("Paper revision layout contains a special entry")
+                if _REVISION_FILENAME.fullmatch(filename) is None:
+                    continue
+                if (
+                    not _private_mode(entry, 0o600)
+                    or entry.st_dev != opened.st_dev
+                    or (
+                        entry.st_nlink != 1
+                        and (entry.st_dev, entry.st_ino) not in publication_links
+                    )
+                ):
+                    raise StorageError("Paper revision file is unsafe")
+                revisions[filename] = entry
+            return directory, revisions
+        finally:
+            os.close(paper_fd)
+
+    @_serialized
+    def reconcile_paper_expired(
+        self,
+        paper_id: str,
+        cutoff: datetime | float | int,
+        referenced_revisions: Iterable[int],
+    ) -> int:
+        """Remove old unowned finals from one Paper namespace only."""
+        canonical = _canonical_paper_id(paper_id)
+        cutoff_timestamp = self._cutoff_timestamp(cutoff)
+        referenced = {_valid_revision(value) for value in referenced_revisions}
+        try:
+            publication_links = self._publication_link_identities()
+            namespace = self._paper_revision_namespace(canonical, publication_links)
+            if namespace is None:
+                return 0
+            expected_directory, revisions = namespace
+            paper_fd = os.open(canonical, _DIRECTORY_FLAGS, dir_fd=self._papers_fd)
             try:
                 opened = os.fstat(paper_fd)
-                if not _same_inode(directory, opened):
-                    raise StorageError("Paper revision directory changed")
-                revisions: dict[str, os.stat_result] = {}
-                for filename in os.listdir(paper_fd):
-                    entry = os.stat(
-                        filename,
-                        dir_fd=paper_fd,
-                        follow_symlinks=False,
-                    )
-                    if stat.S_ISDIR(entry.st_mode):
-                        raise StorageError("Paper revision layout contains a directory")
-                    if not stat.S_ISREG(entry.st_mode):
-                        raise StorageError("Paper revision layout contains a special entry")
-                    if _REVISION_FILENAME.fullmatch(filename) is None:
+                if not _same_inode(expected_directory, opened):
+                    raise StorageError("Paper directory changed before reconciliation")
+                removed = 0
+                for filename, expected in revisions.items():
+                    revision = int(filename[:-4])
+                    if revision in referenced or expected.st_mtime >= cutoff_timestamp:
                         continue
-                    if (
-                        not _private_mode(entry, 0o600)
-                        or entry.st_dev != opened.st_dev
-                        or (
-                            entry.st_nlink != 1
-                            and (entry.st_dev, entry.st_ino) not in publication_links
+                    try:
+                        resolved = resolve_contained(
+                            self.papers_dir,
+                            f"{canonical}/{filename}",
+                            must_exist=True,
                         )
-                    ):
-                        raise StorageError("Paper revision file is unsafe")
-                    revisions[filename] = entry
-                namespace[paper_id] = (directory, revisions)
+                    except (OSError, RuntimeError, ValueError):
+                        resolved = None
+                    if resolved is None:
+                        raise StorageError("revision escaped containment before removal")
+                    if not self._unlink_if_matching(paper_fd, filename, expected):
+                        raise StorageError("revision changed before reconciliation")
+                    removed += 1
+                if removed:
+                    _fsync_directory_fd(paper_fd)
             finally:
                 os.close(paper_fd)
-        return namespace
+
+            try:
+                check_fd = os.open(
+                    canonical,
+                    _DIRECTORY_FLAGS,
+                    dir_fd=self._papers_fd,
+                )
+            except FileNotFoundError:
+                remaining = None
+            else:
+                try:
+                    remaining = os.listdir(check_fd)
+                finally:
+                    os.close(check_fd)
+            if remaining == []:
+                current_directory = os.stat(
+                    canonical,
+                    dir_fd=self._papers_fd,
+                    follow_symlinks=False,
+                )
+                if not _same_inode(expected_directory, current_directory):
+                    raise StorageError("Paper directory changed before reconciliation")
+                os.rmdir(canonical, dir_fd=self._papers_fd)
+                _fsync_directory_fd(self._papers_fd)
+            return removed
+        except StorageError:
+            raise
+        except OSError as exc:
+            raise StorageError("Paper storage reconciliation failed") from exc
 
     @_serialized
     def reconcile_expired(
@@ -3147,79 +3296,15 @@ class PaperStorage:
         for paper_id, revision in referenced_revisions:
             referenced.add((_canonical_paper_id(paper_id), _valid_revision(revision)))
 
-        publication_links = self._publication_link_identities()
-        staging_stale = self._stale_entries(
-            self.staging_dir,
-            self._staging_fd,
-            cutoff_timestamp,
-            publication_links,
-        )
-        namespace = self._revision_namespace(publication_links)
-        removed = 0
-        try:
-            staging_removed = 0
-            for name, expected in staging_stale.items():
-                if not self._unlink_if_matching(self._staging_fd, name, expected):
-                    raise StorageError("stale storage entry changed before removal")
-                removed += 1
-                staging_removed += 1
-            if staging_removed:
-                _fsync_directory_fd(self._staging_fd)
+        by_paper: dict[str, set[int]] = {}
+        for paper_id, revision in referenced:
+            by_paper.setdefault(paper_id, set()).add(revision)
 
-            for paper_id, (expected_directory, revisions) in namespace.items():
-                paper_fd = os.open(paper_id, _DIRECTORY_FLAGS, dir_fd=self._papers_fd)
-                try:
-                    opened = os.fstat(paper_fd)
-                    if not _same_inode(expected_directory, opened):
-                        raise StorageError("Paper directory changed before reconciliation")
-                    paper_removed = 0
-                    for filename, expected in revisions.items():
-                        revision = int(filename[:-4])
-                        if (paper_id, revision) in referenced:
-                            continue
-                        try:
-                            resolved = resolve_contained(
-                                self.papers_dir,
-                                f"{paper_id}/{filename}",
-                                must_exist=True,
-                            )
-                        except (OSError, RuntimeError, ValueError):
-                            resolved = None
-                        if resolved is None:
-                            raise StorageError("revision escaped containment before removal")
-                        if not self._unlink_if_matching(paper_fd, filename, expected):
-                            raise StorageError("revision changed before reconciliation")
-                        removed += 1
-                        paper_removed += 1
-                    if paper_removed:
-                        _fsync_directory_fd(paper_fd)
-                finally:
-                    os.close(paper_fd)
-                try:
-                    check_fd = os.open(
-                        paper_id,
-                        _DIRECTORY_FLAGS,
-                        dir_fd=self._papers_fd,
-                    )
-                except FileNotFoundError:
-                    remaining = None
-                else:
-                    try:
-                        remaining = os.listdir(check_fd)
-                    finally:
-                        os.close(check_fd)
-                if remaining == []:
-                    current_directory = os.stat(
-                        paper_id,
-                        dir_fd=self._papers_fd,
-                        follow_symlinks=False,
-                    )
-                    if not _same_inode(expected_directory, current_directory):
-                        raise StorageError("Paper directory changed before reconciliation")
-                    os.rmdir(paper_id, dir_fd=self._papers_fd)
-                    _fsync_directory_fd(self._papers_fd)
-            return removed
-        except StorageError:
-            raise
-        except OSError as exc:
-            raise StorageError("storage reconciliation failed") from exc
+        removed = self.reconcile_staging_expired(cutoff_timestamp)
+        for paper_id in self.reconciliation_paper_ids():
+            removed += self.reconcile_paper_expired(
+                paper_id,
+                cutoff_timestamp,
+                by_paper.get(paper_id, set()),
+            )
+        return removed

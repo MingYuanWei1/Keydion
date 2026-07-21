@@ -1319,7 +1319,7 @@ class PaperStorageTests(unittest.TestCase):
         referenced = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-ref")
         self.storage.promote(referenced, PAPER_ID, 1)
         unreferenced = self.storage.stage(self.valid_pdf_upload("b.pdf"), "op-unref")
-        self.storage.promote(unreferenced, PAPER_ID, 2)
+        unreferenced_final = self.storage.promote(unreferenced, PAPER_ID, 2)
         old_stage = self.storage.stage(self.valid_pdf_upload("c.pdf"), "op-old")
         new_stage = self.storage.stage(self.valid_pdf_upload("d.pdf"), "op-new")
         pending = self.write_pending_pdf("trash.pdf")
@@ -1327,6 +1327,7 @@ class PaperStorageTests(unittest.TestCase):
         old_trash = self.storage.trash_dir / "op-trash.pdf"
         old = time.time() - 120
         os.utime(old_stage.path, (old, old))
+        os.utime(unreferenced_final.path, (old, old))
         os.utime(old_trash, (old, old))
         cutoff = time.time() - 60
 
@@ -1338,6 +1339,15 @@ class PaperStorageTests(unittest.TestCase):
         self.assertTrue(old_trash.exists())
         self.assertTrue(self.storage.revision_path(PAPER_ID, 1).exists())
         self.assertFalse(self.storage.revision_path(PAPER_ID, 2).exists())
+
+    def test_reconcile_expired_never_removes_recent_unreferenced_final(self):
+        staged = self.storage.stage(self.valid_pdf_upload("recent.pdf"), "op-recent")
+        stored = self.storage.promote(staged, PAPER_ID, 1)
+
+        removed = self.storage.reconcile_expired(time.time() - 60, set())
+
+        self.assertEqual(removed, 0)
+        self.assertTrue(stored.path.exists())
 
     def test_reconcile_rejects_non_finite_cutoff_before_mutation(self):
         for index, cutoff in enumerate((math.nan, math.inf, -math.inf)):

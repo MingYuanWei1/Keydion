@@ -6,14 +6,19 @@ import hashlib
 import io
 import logging
 import os
+import threading
 import time
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import get_type_hints
 from unittest import mock
 
+from sqlalchemy import event
+from sqlalchemy.orm import Query
+
 from models import (
+    PaperChunkModel,
     PaperMetadataModel,
     PaperRevisionModel,
     PublishingJobModel,
@@ -31,7 +36,10 @@ from services.publishing_contracts import (
     NormalizedPaperMetadata,
     NotFound,
     PdfUpload,
+    PreparedChunk,
+    PreparedRevisionIndex,
     PublishingLifecyclePort,
+    RevisePdf,
     StorageFailed,
 )
 from services.publishing_jobs import (
@@ -53,8 +61,10 @@ class _ListHandler(logging.Handler):
     def __init__(self):
         super().__init__()
         self.messages: list[str] = []
+        self.records: list[logging.LogRecord] = []
 
     def emit(self, record):
+        self.records.append(record)
         self.messages.append(record.getMessage())
 
 
@@ -336,6 +346,32 @@ class PublishingJobTests(PublishingLifecycleTestCase, unittest.TestCase):
         ):
             self.assertNotIn(secret, redacted)
 
+    def test_redaction_removes_json_quoted_and_oauth_credentials(self):
+        secrets = (
+            "json-provider-secret",
+            "oauth-access-secret",
+            "oauth-refresh-secret",
+            "quoted-client-secret",
+            "quoted-bearer-secret",
+            "json-bearer-secret",
+        )
+        error = RuntimeError(
+            '{"api_key":"json-provider-secret", '
+            '"access_token": "oauth-access-secret", '
+            '"refresh-token":"oauth-refresh-secret", '
+            '"client_secret" = \'quoted-client-secret\', '
+            '"authorization":"Bearer json-bearer-secret"} '
+            'Authorization: Bearer "quoted-bearer-secret" '
+            + ("tail" * 200)
+        )
+
+        redacted = redact_job_error(error)
+
+        self.assertLessEqual(len(redacted), 500)
+        for secret in secrets:
+            self.assertNotIn(secret, redacted)
+        self.assertGreaterEqual(redacted.count("[REDACTED]"), len(secrets))
+
     def test_release_requires_exact_unexpired_id_token_and_attempt(self):
         seeded = self.seed_job()
         first = self.claim()
@@ -454,6 +490,11 @@ class PublishingJobTests(PublishingLifecycleTestCase, unittest.TestCase):
         self.assertNotIn("sk-secret-value", rendered)
         self.assertIn(lease.job_id, rendered)
         self.assertIn(lease.paper_id, rendered)
+        self.assertTrue(handler.records)
+        for record in handler.records:
+            self.assertIsNone(record.exc_info)
+            self.assertIsNone(record.exc_text)
+            self.assertFalse(any(isinstance(value, BaseException) for value in record.args))
 
     def test_warning_thresholds_are_attempt_age_and_hour_bucket_based(self):
         base = self.seed_job(
@@ -603,6 +644,92 @@ class PublishingJobTests(PublishingLifecycleTestCase, unittest.TestCase):
         self.assertEqual(self.paper(published.paper_id).index_status, "ready")
         self.assertEqual(len(indexer.calls), 1)
 
+    def test_missing_exact_revision_is_owned_noop_before_index_adapter(self):
+        published = self.publish_without_job()
+        indexer = FakeRevisionIndexer()
+        lifecycle = self.new_lifecycle(indexer)
+        queued = lifecycle.ensure_index_job(published.paper_id)
+        before_stamp = self.stamp()
+        with self.session_factory() as session:
+            revision = session.get(
+                PaperRevisionModel,
+                (published.paper_id, published.revision),
+            )
+            session.delete(revision)
+            session.commit()
+
+        progress = run_one_due_job(lifecycle, lease_seconds=1800)
+
+        self.assertEqual(progress.job_id, queued.job_id)
+        self.assertIsNone(self.job(queued.job_id))
+        self.assertEqual(indexer.calls, [])
+        self.assertEqual(self.paper(published.paper_id).index_status, "pending")
+        self.assertEqual(self.stamp(), before_stamp)
+        with self.session_factory() as session:
+            self.assertEqual(session.query(PaperChunkModel).count(), 0)
+
+    def test_revision_removed_during_prepare_cannot_mark_index_ready(self):
+        published = self.publish_without_job()
+
+        class RemovingRevisionIndexer(FakeRevisionIndexer):
+            def prepare(inner, **kwargs):
+                prepared = super(RemovingRevisionIndexer, inner).prepare(**kwargs)
+                with self.session_factory() as session:
+                    revision = session.get(
+                        PaperRevisionModel,
+                        (kwargs["paper_id"], kwargs["revision_number"]),
+                    )
+                    session.delete(revision)
+                    session.commit()
+                return prepared
+
+        indexer = RemovingRevisionIndexer()
+        lifecycle = self.new_lifecycle(indexer)
+        queued = lifecycle.ensure_index_job(published.paper_id)
+        before_stamp = self.stamp()
+
+        run_one_due_job(lifecycle, lease_seconds=1800)
+
+        self.assertEqual(len(indexer.calls), 1)
+        self.assertIsNone(self.job(queued.job_id))
+        self.assertEqual(self.paper(published.paper_id).index_status, "pending")
+        self.assertEqual(self.stamp(), before_stamp)
+        with self.session_factory() as session:
+            self.assertEqual(session.query(PaperChunkModel).count(), 0)
+
+    def test_revision_fingerprint_changed_during_prepare_cannot_write_chunks(self):
+        published = self.publish_without_job()
+
+        class MutatingRevisionIndexer(FakeRevisionIndexer):
+            def prepare(inner, **kwargs):
+                super(MutatingRevisionIndexer, inner).prepare(**kwargs)
+                with self.session_factory() as session:
+                    revision = session.get(
+                        PaperRevisionModel,
+                        (kwargs["paper_id"], kwargs["revision_number"]),
+                    )
+                    revision.sha256 = "0" * 64
+                    revision.size_bytes += 1
+                    session.commit()
+                return PreparedRevisionIndex(
+                    paper_id=kwargs["paper_id"],
+                    revision=kwargs["revision_number"],
+                    chunks=(PreparedChunk(0, "stale chunk", (1.0,), "en"),),
+                )
+
+        indexer = MutatingRevisionIndexer()
+        lifecycle = self.new_lifecycle(indexer)
+        queued = lifecycle.ensure_index_job(published.paper_id)
+        before_stamp = self.stamp()
+
+        run_one_due_job(lifecycle, lease_seconds=1800)
+
+        self.assertIsNone(self.job(queued.job_id))
+        self.assertEqual(self.paper(published.paper_id).index_status, "pending")
+        self.assertEqual(self.stamp(), before_stamp)
+        with self.session_factory() as session:
+            self.assertEqual(session.query(PaperChunkModel).count(), 0)
+
     def test_obsolete_index_target_is_owned_success_noop_and_job_is_removed(self):
         paper_id = self.seed_paper(current_revision=2)
         job = self.seed_job(paper_id=paper_id, revision=1)
@@ -612,6 +739,27 @@ class PublishingJobTests(PublishingLifecycleTestCase, unittest.TestCase):
         self.assertEqual(progress.job_id, job.id)
         self.assertIsNone(self.job(job.id))
         self.assertEqual(indexer.calls, [])
+        self.assertEqual(self.paper(paper_id).index_status, "pending")
+
+    def test_missing_exact_revision_is_obsolete_during_failure_release(self):
+        paper_id = self.seed_paper()
+        seeded = self.seed_job(paper_id=paper_id)
+        lease = self.claim()
+        with self.session_factory() as session:
+            revision = session.get(PaperRevisionModel, (paper_id, 1))
+            session.delete(revision)
+            session.commit()
+
+        progress = release_failed_job(
+            self.session_factory,
+            lease,
+            RuntimeError("provider unavailable"),
+            self.now,
+            jitter=0.0,
+        )
+
+        self.assertEqual(progress.job_id, seeded.id)
+        self.assertIsNone(self.job(seeded.id))
         self.assertEqual(self.paper(paper_id).index_status, "pending")
 
     def test_index_failure_releases_pending_with_redacted_error(self):
@@ -931,6 +1079,278 @@ class PublishingJobTests(PublishingLifecycleTestCase, unittest.TestCase):
         self.assertTrue(self.storage.revision_path(published, 2).exists())
         self.assertTrue(self.storage.revision_path(deleting, 1).exists())
         self.assertFalse((self.storage.papers_dir / orphan / "1.pdf").exists())
+
+    def test_reconcile_preserves_revision_promoted_before_its_sql_commit(self):
+        published = self.publish_without_job()
+        lifecycle = self.new_lifecycle(FakeRevisionIndexer(enabled=False))
+        promoted = threading.Event()
+        allow_commit = threading.Event()
+        revision_snapshot = threading.Event()
+        thread_errors = []
+        real_verify = self.storage.verify_revision
+
+        def pause_after_promotion(paper_id, revision, *, sha256, size_bytes):
+            stored = real_verify(
+                paper_id,
+                revision,
+                sha256=sha256,
+                size_bytes=size_bytes,
+            )
+            if paper_id == published.paper_id and revision == 2:
+                promoted_at = self.now.replace(tzinfo=timezone.utc).timestamp()
+                os.utime(stored.path, (promoted_at, promoted_at))
+                promoted.set()
+                if not allow_commit.wait(5):
+                    raise RuntimeError("test timed out before append commit")
+            return stored
+
+        def observe_revision_snapshot(
+            _connection,
+            _cursor,
+            statement,
+            _parameters,
+            _context,
+            _executemany,
+        ):
+            if (
+                threading.current_thread().name == "task10-reconcile"
+                and "SELECT paper_revisions.paper_id AS" in statement
+                and "paper_revisions.revision_number AS" in statement
+            ):
+                revision_snapshot.set()
+
+        intent = RevisePdf(
+            actor=Actor("contributor", 2),
+            paper_id=published.paper_id,
+            expected_row_version=published.row_version,
+            pdf=PdfUpload(
+                "replacement.pdf",
+                io.BytesIO(self.valid_pdf_bytes("concurrent-revision")),
+            ),
+        )
+
+        def append_revision():
+            try:
+                lifecycle.change_paper(intent)
+            except BaseException as exc:
+                thread_errors.append(exc)
+
+        def reconcile():
+            try:
+                reconcile_stale_publications(lifecycle, grace_seconds=3600)
+            except BaseException as exc:
+                thread_errors.append(exc)
+
+        event.listen(
+            self.engine,
+            "before_cursor_execute",
+            observe_revision_snapshot,
+        )
+        try:
+            with mock.patch.object(
+                self.storage,
+                "verify_revision",
+                side_effect=pause_after_promotion,
+            ):
+                append_thread = threading.Thread(
+                    target=append_revision,
+                    name="task10-append",
+                )
+                append_thread.start()
+                self.assertTrue(promoted.wait(5), "append never promoted revision 2")
+                reconcile_thread = threading.Thread(
+                    target=reconcile,
+                    name="task10-reconcile",
+                )
+                reconcile_thread.start()
+                self.assertTrue(
+                    revision_snapshot.wait(5),
+                    "reconciliation never snapshotted Paper revisions",
+                )
+                allow_commit.set()
+                append_thread.join(5)
+                reconcile_thread.join(5)
+                self.assertFalse(append_thread.is_alive())
+                self.assertFalse(reconcile_thread.is_alive())
+        finally:
+            allow_commit.set()
+            event.remove(
+                self.engine,
+                "before_cursor_execute",
+                observe_revision_snapshot,
+            )
+
+        self.assertEqual(thread_errors, [])
+        with self.session_factory() as session:
+            revision = session.get(PaperRevisionModel, (published.paper_id, 2))
+            self.assertIsNotNone(revision)
+            self.storage.verify_revision(
+                published.paper_id,
+                2,
+                sha256=revision.sha256,
+                size_bytes=revision.size_bytes,
+            )
+
+    def test_reconcile_locks_paper_then_revisions_before_storage_cleanup(self):
+        paper_id = self.seed_paper(current_revision=1)
+        directory = self.storage.papers_dir / paper_id
+        directory.mkdir(mode=0o700)
+        path = directory / "1.pdf"
+        path.write_bytes(self.valid_pdf_bytes("locked-reconcile"))
+        path.chmod(0o600)
+        old = time.time() - 7200
+        os.utime(path, (old, old))
+        order = []
+        real_with_for_update = Query.with_for_update
+
+        def record_lock(query, *args, **kwargs):
+            entity = query.column_descriptions[0].get("entity")
+            if entity is PaperMetadataModel:
+                order.append("paper-lock")
+            elif entity is PaperRevisionModel:
+                order.append("revision-lock")
+            return real_with_for_update(query, *args, **kwargs)
+
+        def record_cleanup(target, _cutoff, _referenced):
+            self.assertEqual(target, paper_id)
+            order.append("storage-cleanup")
+            return 0
+
+        with mock.patch.object(Query, "with_for_update", new=record_lock):
+            with mock.patch.object(
+                self.storage,
+                "reconcile_paper_expired",
+                create=True,
+                side_effect=record_cleanup,
+            ):
+                reconcile_stale_publications(self.lifecycle, grace_seconds=3600)
+
+        self.assertIn(
+            ["paper-lock", "revision-lock", "storage-cleanup"],
+            [order[index : index + 3] for index in range(len(order) - 2)],
+        )
+
+    def test_reconcile_unsafe_paper_does_not_suppress_later_old_orphan(self):
+        unsafe_id = "00000000-0000-4000-8000-100000000001"
+        orphan_id = "00000000-0000-4000-8000-200000000002"
+        unsafe_directory = self.storage.papers_dir / unsafe_id
+        unsafe_directory.mkdir(mode=0o700)
+        unsafe_directory.chmod(0o755)
+        orphan_directory = self.storage.papers_dir / orphan_id
+        orphan_directory.mkdir(mode=0o700)
+        orphan = orphan_directory / "1.pdf"
+        orphan.write_bytes(self.valid_pdf_bytes("later-orphan"))
+        orphan.chmod(0o600)
+        old = time.time() - 7200
+        os.utime(orphan, (old, old))
+        handler = _ListHandler()
+        logger = logging.getLogger(f"{__name__}.unsafe-paper")
+        logger.handlers = [handler]
+        logger.propagate = False
+
+        reconcile_stale_publications(
+            self.lifecycle,
+            grace_seconds=3600,
+            logger=logger,
+        )
+
+        self.assertTrue(unsafe_directory.exists())
+        self.assertFalse(orphan.exists())
+        self.assertTrue(any(unsafe_id in message for message in handler.messages))
+
+    def test_reconcile_unsafe_stage_does_not_suppress_later_valid_stage(self):
+        unsafe = self.storage.staging_dir / "a-unsafe.pdf"
+        unsafe.write_bytes(self.valid_pdf_bytes("unsafe-stage"))
+        unsafe.chmod(0o644)
+        valid = self.storage.stage(
+            PdfUpload("valid.pdf", io.BytesIO(self.valid_pdf_bytes("valid-stage"))),
+            "z-valid",
+        )
+        old = time.time() - 7200
+        os.utime(unsafe, (old, old))
+        os.utime(valid.path, (old, old))
+        handler = _ListHandler()
+        logger = logging.getLogger(f"{__name__}.unsafe-stage")
+        logger.handlers = [handler]
+        logger.propagate = False
+
+        reconcile_stale_publications(
+            self.lifecycle,
+            grace_seconds=3600,
+            logger=logger,
+        )
+
+        self.assertTrue(unsafe.exists())
+        self.assertFalse(valid.path.exists())
+        self.assertTrue(any("a-unsafe.pdf" in message for message in handler.messages))
+
+    def test_reconcile_redacts_credentials_embedded_in_candidate_names(self):
+        unsafe = self.storage.staging_dir / "api_key=stage-secret.pdf"
+        unsafe.write_bytes(self.valid_pdf_bytes("unsafe-stage-name"))
+        unsafe.chmod(0o644)
+        old = time.time() - 7200
+        os.utime(unsafe, (old, old))
+        handler = _ListHandler()
+        logger = logging.getLogger(f"{__name__}.unsafe-stage-name")
+        logger.handlers = [handler]
+        logger.propagate = False
+
+        reconcile_stale_publications(
+            self.lifecycle,
+            grace_seconds=3600,
+            logger=logger,
+        )
+
+        rendered = "\n".join(handler.messages)
+        self.assertNotIn("stage-secret", rendered)
+        self.assertIn("[REDACTED]", rendered)
+
+    def test_publishing_worker_uses_injected_monotonic_clock_for_deadline(self):
+        published = self.publish_without_job()
+        indexer = FakeRevisionIndexer()
+        lifecycle = self.new_lifecycle(indexer)
+        lifecycle.ensure_index_job(published.paper_id)
+        worker_monotonic = 12_345.0
+        worker = PublishingWorker(
+            lifecycle=lifecycle,
+            session_factory=self.session_factory,
+            clock=lambda: self.now,
+            monotonic_clock=lambda: worker_monotonic,
+            lease_token_factory=lambda: self.lease_token(13),
+            jitter=lambda: 0.0,
+            lease_seconds=1800,
+            reservation_grace_seconds=3600,
+            poll_seconds=5,
+        )
+
+        worker.run_one()
+
+        self.assertEqual(len(indexer.calls), 1)
+        self.assertEqual(indexer.calls[0][3], worker_monotonic + 1800)
+
+    def test_publishing_worker_uses_injected_jitter_for_failure_release(self):
+        published = self.publish_without_job()
+        lifecycle = self.new_lifecycle(
+            FakeRevisionIndexer(RuntimeError("provider unavailable"))
+        )
+        queued = lifecycle.ensure_index_job(published.paper_id)
+        worker = PublishingWorker(
+            lifecycle=lifecycle,
+            session_factory=self.session_factory,
+            clock=lambda: self.now,
+            monotonic_clock=lambda: 20_000.0,
+            lease_token_factory=lambda: self.lease_token(14),
+            jitter=lambda: 0.1,
+            lease_seconds=1800,
+            reservation_grace_seconds=3600,
+            poll_seconds=5,
+        )
+
+        worker.run_one()
+
+        persisted = self.job(queued.job_id)
+        self.assertEqual(persisted.state, "pending")
+        self.assertEqual(persisted.available_at, self.now + timedelta(seconds=33))
 
     def test_publishing_worker_reconcile_failure_never_suppresses_job_recovery(self):
         published = self.publish_without_job()
