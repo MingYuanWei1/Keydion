@@ -2,8 +2,11 @@ import json
 import os
 import re
 import tempfile
+import threading
+import time
 import unittest
 import uuid
+from contextlib import contextmanager
 from pathlib import Path
 from unittest import mock
 
@@ -18,6 +21,7 @@ from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine import make_url
+from sqlalchemy.orm import sessionmaker
 
 from config import RAG_EMBED_DIM
 from models import BASE
@@ -91,7 +95,7 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
             "papers_metadata", "papers_chunks", "submissions",
             "paper_revisions", "paper_filename_aliases", "publishing_jobs",
             "publishing_migration_journal", "publishing_migration_state",
-            "publishing_migration_issues",
+            "publishing_migration_issues", "submission_identity_fence",
         }
         for table in BASE.metadata.sorted_tables:
             if table.name not in excluded:
@@ -263,43 +267,66 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
                     FROM information_schema.COLUMNS
                     WHERE TABLE_SCHEMA=DATABASE()
                       AND TABLE_NAME='papers_metadata'
-                      AND COLUMN_NAME IN ('filename', 'direct_idempotency_key')
+                      AND COLUMN_NAME IN (
+                          'filename', 'direct_idempotency_key',
+                          'origin_submission_id'
+                      )
                 """)).all())
 
-        def decision_collation():
+        def submission_collations():
             with self.engine.connect() as conn:
-                return conn.execute(text("""
-                    SELECT COLLATION_NAME
+                return dict(conn.execute(text("""
+                    SELECT COLUMN_NAME, COLLATION_NAME
                     FROM information_schema.COLUMNS
                     WHERE TABLE_SCHEMA=DATABASE()
                       AND TABLE_NAME='submissions'
-                      AND COLUMN_NAME='decision_idempotency_key'
-                """)).scalar_one()
+                      AND COLUMN_NAME IN ('id', 'decision_idempotency_key')
+                """)).all())
 
         self.assertEqual(
             paper_collations(),
             {
                 "filename": "utf8mb4_bin",
                 "direct_idempotency_key": "utf8mb4_bin",
+                "origin_submission_id": "utf8mb4_bin",
             },
         )
-        self.assertEqual(decision_collation(), "utf8mb4_bin")
+        self.assertEqual(
+            submission_collations(),
+            {
+                "id": "utf8mb4_bin",
+                "decision_idempotency_key": "utf8mb4_bin",
+            },
+        )
         with self.engine.begin() as conn:
             conn.execute(text("""
                 ALTER TABLE submissions
+                    MODIFY COLUMN id VARCHAR(255)
+                        CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
                     MODIFY COLUMN decision_idempotency_key VARCHAR(255)
                         CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL
             """))
-        self.assertEqual(decision_collation(), "utf8mb4_unicode_ci")
+            conn.execute(text("""
+                ALTER TABLE papers_metadata
+                    MODIFY COLUMN origin_submission_id VARCHAR(255)
+                        CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL
+            """))
         command.upgrade(config, "head")
         self.assertEqual(
             paper_collations(),
             {
                 "filename": "utf8mb4_bin",
                 "direct_idempotency_key": "utf8mb4_bin",
+                "origin_submission_id": "utf8mb4_bin",
             },
         )
-        self.assertEqual(decision_collation(), "utf8mb4_bin")
+        self.assertEqual(
+            submission_collations(),
+            {
+                "id": "utf8mb4_bin",
+                "decision_idempotency_key": "utf8mb4_bin",
+            },
+        )
         with self.engine.begin() as conn:
             conn.execute(text("""
                 INSERT INTO papers_metadata (
@@ -313,8 +340,15 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
             """))
             conn.execute(text("""
                 INSERT INTO submissions (id, decision_idempotency_key) VALUES
-                    ('submission-case-upper', 'Decision-Key'),
-                    ('submission-case-lower', 'decision-key')
+                    ('Case-Submission', 'Decision-Key'),
+                    ('case-submission', 'decision-key')
+            """))
+            conn.execute(text("""
+                UPDATE papers_metadata
+                SET origin_submission_id = CASE filename
+                    WHEN 'Case.pdf' THEN 'Case-Submission'
+                    ELSE 'case-submission'
+                END
             """))
         with self.engine.connect() as conn:
             self.assertEqual(
@@ -332,6 +366,70 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
                 """)).scalar_one(),
                 2,
             )
+            self.assertEqual(
+                conn.execute(text("""
+                    SELECT COUNT(*) FROM papers_metadata
+                    WHERE origin_submission_id
+                        IN ('Case-Submission', 'case-submission')
+                """)).scalar_one(),
+                2,
+            )
+
+    def test_submission_creation_waits_for_global_identity_fence(self):
+        from services.submissions import _save_submission
+
+        config = self._config()
+        command.stamp(config, "0000_legacy_baseline")
+        command.upgrade(config, "head")
+        session_factory = sessionmaker(bind=self.engine, expire_on_commit=False)
+
+        @contextmanager
+        def test_db_session():
+            session = session_factory()
+            try:
+                yield session
+            finally:
+                session.close()
+
+        started = threading.Event()
+        finished = threading.Event()
+        errors = []
+
+        def create_submission():
+            started.set()
+            try:
+                _save_submission({"id": "mysql-fenced-submission"})
+            except Exception as exc:  # pragma: no cover - surfaced below
+                errors.append(exc)
+            finally:
+                finished.set()
+
+        with self.engine.connect() as holder:
+            transaction = holder.begin()
+            holder.execute(text("""
+                UPDATE submission_identity_fence
+                SET generation = generation + 1
+                WHERE name = 'global'
+            """))
+            with mock.patch("services.submissions.db_session", test_db_session):
+                worker = threading.Thread(target=create_submission)
+                worker.start()
+                self.assertTrue(started.wait(1))
+                time.sleep(0.2)
+                self.assertFalse(finished.is_set())
+                transaction.commit()
+                worker.join(5)
+
+        self.assertFalse(worker.is_alive())
+        self.assertEqual(errors, [])
+        with self.engine.connect() as conn:
+            self.assertEqual(
+                conn.execute(text("""
+                    SELECT COUNT(*) FROM submissions
+                    WHERE id = 'mysql-fenced-submission'
+                """)).scalar_one(),
+                1,
+            )
 
     def test_expanded_preflight_rejects_nonbinary_raw_identity_collations(self):
         config = self._config()
@@ -343,10 +441,14 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
                     MODIFY COLUMN filename VARCHAR(255)
                         CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
                     MODIFY COLUMN direct_idempotency_key VARCHAR(255)
+                        CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                    MODIFY COLUMN origin_submission_id VARCHAR(255)
                         CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL
             """))
             conn.execute(text("""
                 ALTER TABLE submissions
+                    MODIFY COLUMN id VARCHAR(255)
+                        CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
                     MODIFY COLUMN decision_idempotency_key VARCHAR(255)
                         CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL
             """))
@@ -361,6 +463,14 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
         )
         self.assertIn(
             ("unexpected_legacy_schema", "papers_metadata.direct_idempotency_key"),
+            blocker_keys,
+        )
+        self.assertIn(
+            ("unexpected_legacy_schema", "papers_metadata.origin_submission_id"),
+            blocker_keys,
+        )
+        self.assertIn(
+            ("unexpected_legacy_schema", "submissions.id"),
             blocker_keys,
         )
         self.assertIn(

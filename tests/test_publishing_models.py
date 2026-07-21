@@ -47,6 +47,15 @@ class PublishingModelTests(unittest.TestCase):
             decision_type.dialect_impl(dialect).collation,
             "utf8mb4_bin",
         )
+        self.assertEqual(
+            SubmissionModel.id.type.dialect_impl(dialect).collation,
+            "utf8mb4_bin",
+        )
+        self.assertEqual(
+            PaperMetadataModel.origin_submission_id.type
+            .dialect_impl(dialect).collation,
+            "utf8mb4_bin",
+        )
 
     def test_migration_journal_has_stable_identity_and_checkpoint(self):
         self.assertTrue(PublishingMigrationJournalModel.legacy_key.primary_key)

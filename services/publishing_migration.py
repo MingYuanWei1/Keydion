@@ -77,7 +77,7 @@ _EXPANDED_SUBMISSION_COLUMNS = _LEGACY_SUBMISSION_COLUMNS | frozenset({
 _EXPANDED_TABLES = frozenset({
     "paper_revisions", "paper_filename_aliases", "publishing_jobs",
     "publishing_migration_journal", "publishing_migration_state",
-    "publishing_migration_issues",
+    "publishing_migration_issues", "submission_identity_fence",
 })
 _EXPANDED_TABLE_COLUMNS = {
     "paper_revisions": frozenset({
@@ -101,6 +101,7 @@ _EXPANDED_TABLE_COLUMNS = {
         "name", "paper_count", "submission_count", "chunk_count", "vector_count",
         "ddl_phase", "captured_at",
     }),
+    "submission_identity_fence": frozenset({"name", "generation"}),
     "publishing_migration_issues": frozenset({
         "id", "kind", "legacy_key", "paper_id", "details", "blocking",
         "resolved_at", "created_at", "updated_at",
@@ -157,6 +158,10 @@ _EXPANDED_MYSQL_COLUMN_DEFINITIONS = {
         "vector_count": ("int", "NO"),
         "ddl_phase": ("varchar(32)", "NO"),
         "captured_at": ("datetime", "NO"),
+    },
+    "submission_identity_fence": {
+        "name": ("varchar(32)", "NO"),
+        "generation": ("bigint", "NO"),
     },
     "publishing_migration_issues": {
         "id": ("varchar(36)", "NO"),
@@ -306,12 +311,19 @@ def publishing_schema_phase(engine: Engine) -> str:
         "publishing_migration_journal": ["legacy_key"],
         "publishing_migration_state": ["name"],
         "publishing_migration_issues": ["id"],
+        "submission_identity_fence": ["name"],
     }
     if any(
         inspector.get_pk_constraint(table_name).get("constrained_columns")
         != expected_key
         for table_name, expected_key in expected_primary_keys.items()
     ):
+        return "unexpected"
+    with engine.connect() as connection:
+        fence_rows = connection.execute(text("""
+            SELECT name FROM submission_identity_fence ORDER BY name
+        """)).scalars().all()
+    if fence_rows != ["global"]:
         return "unexpected"
     return "expanded"
 
@@ -638,7 +650,8 @@ def _mysql_preflight_issues(
           AND TABLE_NAME IN (
               'rag_index_meta', 'paper_revisions', 'paper_filename_aliases',
               'publishing_jobs', 'publishing_migration_journal',
-              'publishing_migration_state', 'publishing_migration_issues'
+              'publishing_migration_state', 'publishing_migration_issues',
+              'submission_identity_fence'
           )
     """)
     expanded_definitions = {
@@ -749,6 +762,7 @@ def _mysql_preflight_issues(
             "publishing_migration_journal": ["legacy_key"],
             "publishing_migration_state": ["name"],
             "publishing_migration_issues": ["id"],
+            "submission_identity_fence": ["name"],
         }
         for table_name, expected_key in infrastructure_primary_keys.items():
             actual_key = inspector.get_pk_constraint(table_name).get("constrained_columns")
@@ -757,6 +771,24 @@ def _mysql_preflight_issues(
                     "unexpected_legacy_schema", table_name,
                     f"expanded primary key must be {expected_key!r}, found {actual_key!r}",
                 ))
+
+        fence_rows = _rows(engine, """
+            SELECT name, generation
+            FROM submission_identity_fence
+            ORDER BY name
+        """)
+        fence_valid = len(fence_rows) == 1 and fence_rows[0]["name"] == "global"
+        if fence_valid:
+            try:
+                fence_valid = int(fence_rows[0]["generation"]) >= 0
+            except (TypeError, ValueError):
+                fence_valid = False
+        if not fence_valid:
+            issues.append(_issue(
+                "unexpected_legacy_schema",
+                "submission_identity_fence",
+                "expanded Submission identity fence must contain exactly the global singleton",
+            ))
 
         required_indexes = {
             "papers_metadata": {
@@ -888,40 +920,47 @@ def _mysql_preflight_issues(
                 "unexpected_legacy_schema", "paper_filename_aliases.lookup_key",
                 f"expanded alias lookup collation must be utf8mb4_bin, found {alias_lookup_collation!r}",
             ))
-        for column_name in ("filename", "direct_idempotency_key"):
+        for column_name in (
+            "filename", "direct_idempotency_key", "origin_submission_id",
+        ):
             collation = str(_scalar(engine, """
                 SELECT COLLATION_NAME FROM information_schema.COLUMNS
                 WHERE TABLE_SCHEMA = DATABASE()
                   AND TABLE_NAME = 'papers_metadata'
                   AND COLUMN_NAME = :column_name
             """, {"column_name": column_name}, default="")).casefold()
-            if collation != "utf8mb4_bin":
+            recoverable_origin_collation = (
+                allow_contract_recovery
+                and column_name == "origin_submission_id"
+                and collation.startswith("utf8mb4_")
+            )
+            if collation != "utf8mb4_bin" and not recoverable_origin_collation:
                 issues.append(_issue(
                     "unexpected_legacy_schema",
                     f"papers_metadata.{column_name}",
                     "expanded opaque identity collation must be utf8mb4_bin, "
                     f"found {collation!r}",
                 ))
-        decision_collation = str(_scalar(engine, """
-            SELECT COLLATION_NAME FROM information_schema.COLUMNS
-            WHERE TABLE_SCHEMA = DATABASE()
-              AND TABLE_NAME = 'submissions'
-              AND COLUMN_NAME = 'decision_idempotency_key'
-        """, default="")).casefold()
-        recoverable_legacy_decision_collation = (
-            allow_contract_recovery
-            and decision_collation.startswith("utf8mb4_")
-        )
-        if (
-            decision_collation != "utf8mb4_bin"
-            and not recoverable_legacy_decision_collation
-        ):
-            issues.append(_issue(
-                "unexpected_legacy_schema",
-                "submissions.decision_idempotency_key",
-                "expanded opaque identity collation must be utf8mb4_bin, "
-                f"found {decision_collation!r}",
-            ))
+        for column_name in ("id", "decision_idempotency_key"):
+            collation = str(_scalar(engine, """
+                SELECT COLLATION_NAME FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'submissions'
+                  AND COLUMN_NAME = :column_name
+            """, {"column_name": column_name}, default="")).casefold()
+            recoverable_legacy_collation = (
+                allow_contract_recovery and collation.startswith("utf8mb4_")
+            )
+            if (
+                collation != "utf8mb4_bin"
+                and not recoverable_legacy_collation
+            ):
+                issues.append(_issue(
+                    "unexpected_legacy_schema",
+                    f"submissions.{column_name}",
+                    "expanded opaque identity collation must be utf8mb4_bin, "
+                    f"found {collation!r}",
+                ))
 
     expected_primary_keys = {
         "papers_metadata": ["filename"],

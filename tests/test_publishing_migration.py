@@ -153,6 +153,15 @@ class PublishingMigrationTests(unittest.TestCase):
                 )
             """))
             conn.execute(text("""
+                CREATE TABLE submission_identity_fence (
+                    name VARCHAR(32) PRIMARY KEY, generation BIGINT NOT NULL
+                )
+            """))
+            conn.execute(text("""
+                INSERT INTO submission_identity_fence (name, generation)
+                VALUES ('global', 0)
+            """))
+            conn.execute(text("""
                 CREATE TABLE publishing_migration_issues (
                     id VARCHAR(36) PRIMARY KEY, kind VARCHAR(32) NOT NULL,
                     legacy_key VARCHAR(255), paper_id VARCHAR(36), details TEXT NOT NULL,
@@ -1067,6 +1076,40 @@ class PublishingMigrationTests(unittest.TestCase):
         self.assertIn("ddl_phase", columns)
         self.assertFalse(columns["ddl_phase"]["nullable"])
 
+    def test_expanded_schema_phase_requires_fence_singleton(self):
+        self.assertEqual(
+            publishing_migration.publishing_schema_phase(self.engine),
+            "expanded",
+        )
+        with self.engine.begin() as connection:
+            connection.execute(text(
+                "DELETE FROM submission_identity_fence WHERE name = 'global'"
+            ))
+
+        self.assertEqual(
+            publishing_migration.publishing_schema_phase(self.engine),
+            "unexpected",
+        )
+
+    def test_expanded_schema_phase_requires_fence_primary_key(self):
+        with self.engine.begin() as connection:
+            connection.execute(text("DROP TABLE submission_identity_fence"))
+            connection.execute(text("""
+                CREATE TABLE submission_identity_fence (
+                    name VARCHAR(32) NOT NULL,
+                    generation BIGINT NOT NULL
+                )
+            """))
+            connection.execute(text("""
+                INSERT INTO submission_identity_fence (name, generation)
+                VALUES ('global', 0)
+            """))
+
+        self.assertEqual(
+            publishing_migration.publishing_schema_phase(self.engine),
+            "unexpected",
+        )
+
     def test_contract_refuses_persisted_issue_except_two_submission_kinds(self):
         self.write_legacy("paper.pdf")
         backfill_all(self.engine, self.papers)
@@ -1294,6 +1337,14 @@ class PublishingMigrationTests(unittest.TestCase):
             ["filename"],
         )
         self.assertIn("id", {column["name"] for column in inspect(engine).get_columns("papers_metadata")})
+        with engine.connect() as connection:
+            self.assertEqual(
+                connection.execute(text("""
+                    SELECT generation FROM submission_identity_fence
+                    WHERE name = 'global'
+                """)).scalar_one(),
+                0,
+            )
 
     def test_exact_expanded_shape_stamped_legacy_replays_idempotently(self):
         engine = self._legacy_engine("expand-replay.sqlite")

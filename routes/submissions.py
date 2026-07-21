@@ -27,10 +27,10 @@ from services.papers import (
     upsert_paper_metadata,
 )
 from services.submissions import (
+    _delete_submission,
     _get_submission,
     _load_submissions,
     _update_submission,
-    _write_submissions,
 )
 
 
@@ -54,20 +54,27 @@ def register_routes(app):
         if not user:
             return redirect(url_for("login"))
         username = user.get("username", "")
-        sub = _get_submission(sub_id)
-        if not sub or sub.get("submitter") != username:
-            flash(_("Submission not found."), "warning")
-            return redirect(url_for("my_submissions"))
-        # Remove pending PDF file if it exists
-        pending_file = sub.get("pending_filename", "")
-        if pending_file:
-            pending_path = resolve_contained(PENDING_PAPERS_DIR, pending_file, must_exist=True)
+
+        def remove_pending(pending_file):
+            if not pending_file:
+                return
+            pending_path = resolve_contained(
+                PENDING_PAPERS_DIR,
+                pending_file,
+                must_exist=True,
+            )
             if pending_path is not None:
                 pending_path.unlink()
-        # Remove submission record
-        subs = _load_submissions()
-        subs = [s for s in subs if s.get("id") != sub_id]
-        _write_submissions(subs)
+
+        # Authorization, exact row identity, and file cleanup all happen while
+        # the shared creation fence and row lock exclude same-ID replacement.
+        if not _delete_submission(
+            sub_id,
+            expected_submitter=username,
+            pending_cleanup=remove_pending,
+        ):
+            flash(_("Submission not found."), "warning")
+            return redirect(url_for("my_submissions"))
         flash(_("Submission deleted."), "success")
         return redirect(url_for("my_submissions"))
 

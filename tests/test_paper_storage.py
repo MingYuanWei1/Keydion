@@ -1235,6 +1235,68 @@ class PaperStorageTests(unittest.TestCase):
         with self.assertRaises(StorageError):
             self.storage.restore_pending(token)
 
+    def test_discard_fsync_failure_after_unlink_revokes_token(self):
+        source = self.write_pending_pdf("discard-fsync-after.pdf")
+        token = self.storage.trash_pending(source.name, "op-discard-fsync-after")
+        trashed = self.storage.trash_dir / "op-discard-fsync-after.pdf"
+        trash_identity = (
+            os.fstat(self.storage._trash_fd).st_dev,
+            os.fstat(self.storage._trash_fd).st_ino,
+        )
+        real_fsync = storage_module._fsync_directory_fd
+
+        def fail_trash_fsync(directory_fd):
+            info = os.fstat(directory_fd)
+            if (info.st_dev, info.st_ino) == trash_identity:
+                raise OSError("injected discard fsync failure")
+            return real_fsync(directory_fd)
+
+        with mock.patch(
+            "services.paper_storage._fsync_directory_fd",
+            side_effect=fail_trash_fsync,
+        ):
+            with self.assertRaises(StorageError):
+                self.storage.discard_pending_trash(token)
+
+        self.assertFalse(trashed.exists())
+        self.assertNotIn(token._capability, self.storage._trash_tokens)
+
+    def test_submission_discard_metadata_failure_revokes_token(self):
+        source = self.write_pending_pdf("discard-metadata-after.pdf")
+        token = self.storage.trash_submission_pending(
+            source.name,
+            "submission-discard-metadata-after",
+        )
+
+        with mock.patch.object(
+            self.storage,
+            "_remove_submission_trash_metadata",
+            side_effect=StorageError("injected metadata cleanup failure"),
+        ):
+            with self.assertRaises(StorageError):
+                self.storage.discard_pending_trash(token)
+
+        self.assertFalse(source.exists())
+        self.assertNotIn(token._capability, self.storage._trash_tokens)
+
+    def test_submission_restore_metadata_failure_revokes_token(self):
+        source = self.write_pending_pdf("restore-metadata-after.pdf")
+        token = self.storage.trash_submission_pending(
+            source.name,
+            "submission-restore-metadata-after",
+        )
+
+        with mock.patch.object(
+            self.storage,
+            "_remove_submission_trash_metadata",
+            side_effect=StorageError("injected metadata cleanup failure"),
+        ):
+            with self.assertRaises(StorageError):
+                self.storage.restore_pending(token)
+
+        self.assertTrue(source.exists())
+        self.assertNotIn(token._capability, self.storage._trash_tokens)
+
     def test_copy_revision_rewrites_metadata_into_new_immutable_revision(self):
         first = self.storage.stage(self.valid_pdf_upload("a.pdf"), "op-1")
         self.storage.promote(first, PAPER_ID, 1)

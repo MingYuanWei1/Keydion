@@ -18,6 +18,7 @@ from models import (
     PaperFilenameAliasModel,
     PaperMetadataModel,
     PublishingJobModel,
+    SubmissionIdentityFenceModel,
     VectorType,
 )
 from services.paper_storage import PaperStorage
@@ -68,6 +69,9 @@ class PublishingLifecycleTestCase:
 
         BASE.metadata.create_all(self.engine)
         self.session_factory = sessionmaker(bind=self.engine, expire_on_commit=False)
+        with self.session_factory() as session:
+            session.add(SubmissionIdentityFenceModel(name="global", generation=0))
+            session.commit()
         self.storage = PaperStorage(root / "papers", root / "pending")
         self.now = datetime(2026, 7, 21, 9, 30)
         self.monotonic_now = 1000.0

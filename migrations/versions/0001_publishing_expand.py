@@ -58,6 +58,13 @@ def _upgrade_unfenced():
             type_=sa.String(255, collation="utf8mb4_bin"),
             existing_nullable=False,
         )
+        op.alter_column(
+            "submissions",
+            "id",
+            existing_type=sa.String(255),
+            type_=sa.String(255, collation="utf8mb4_bin"),
+            existing_nullable=False,
+        )
     # Keep filename as the legacy primary key throughout expand/backfill.  Every
     # added column is nullable until the contract validator proves it populated.
     for column in (
@@ -76,7 +83,13 @@ def _upgrade_unfenced():
             nullable=True,
         ),
         sa.Column("direct_payload_hash", sa.String(64), nullable=True),
-        sa.Column("origin_submission_id", sa.String(255), nullable=True),
+        sa.Column(
+            "origin_submission_id",
+            sa.String(255).with_variant(
+                sa.String(255, collation="utf8mb4_bin"), "mysql",
+            ),
+            nullable=True,
+        ),
         sa.Column("reservation_expires_at", sa.DateTime(), nullable=True),
     ):
         op.add_column("papers_metadata", column)
@@ -201,6 +214,16 @@ def _upgrade_unfenced():
         sa.Column("ddl_phase", sa.String(32), nullable=False),
         sa.Column("captured_at", sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint("name"),
+    )
+    submission_identity_fence = op.create_table(
+        "submission_identity_fence",
+        sa.Column("name", sa.String(32), nullable=False),
+        sa.Column("generation", sa.BigInteger(), nullable=False),
+        sa.PrimaryKeyConstraint("name"),
+    )
+    op.bulk_insert(
+        submission_identity_fence,
+        [{"name": "global", "generation": 0}],
     )
     op.create_table(
         "publishing_migration_issues",

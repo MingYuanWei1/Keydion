@@ -22,7 +22,13 @@ from models import (
     SubmissionModel,
 )
 from services.paper_identity import normalize_alias_key
-from services.paper_storage import PaperStorage, StorageError
+from services.paper_storage import (
+    PaperStorage,
+    PendingTrash,
+    StorageError,
+    SubmissionTrashRecord,
+)
+from services.submission_fence import lock_submission_creation_fence
 from services.publishing_contracts import (
     Actor,
     AcceptSubmission,
@@ -233,6 +239,18 @@ class PublishingLifecycle:
         ):
             raise InvalidInput({"submission_id": "must identify a Submission"})
 
+    @staticmethod
+    def _submission_by_id(session, submission_id: str, *, locked: bool = False):
+        query = session.query(SubmissionModel).filter(
+            SubmissionModel.id == submission_id
+        )
+        if locked:
+            query = query.with_for_update()
+        submission = query.one_or_none()
+        if submission is not None and submission.id != submission_id:
+            return None
+        return submission
+
     def _validate_acceptance(self, intent: AcceptSubmission) -> None:
         if not isinstance(intent, AcceptSubmission):
             raise InvalidInput({"intent": "must be a Submission review record"})
@@ -343,11 +361,9 @@ class PublishingLifecycle:
     ) -> tuple[str, _SubmissionDecision | None]:
         try:
             with self._session() as session:
-                submission = (
-                    session.query(SubmissionModel)
-                    .filter(SubmissionModel.id == intent.submission_id)
-                    .with_for_update()
-                    .one_or_none()
+                lock_submission_creation_fence(session)
+                submission = self._submission_by_id(
+                    session, intent.submission_id, locked=True,
                 )
                 if submission is None:
                     raise NotFound("Submission not found")
@@ -376,11 +392,8 @@ class PublishingLifecycle:
         payload_hash: str,
     ):
         with self._session() as session:
-            submission = (
-                session.query(SubmissionModel)
-                .filter(SubmissionModel.id == intent.submission_id)
-                .with_for_update()
-                .one_or_none()
+            submission = self._submission_by_id(
+                session, intent.submission_id, locked=True,
             )
             if submission is None:
                 raise NotFound("Submission not found")
@@ -457,11 +470,8 @@ class PublishingLifecycle:
         reservation_id = str(reservation.id)
         try:
             with self._session() as session:
-                submission = (
-                    session.query(SubmissionModel)
-                    .filter(SubmissionModel.id == intent.submission_id)
-                    .with_for_update()
-                    .one_or_none()
+                submission = self._submission_by_id(
+                    session, intent.submission_id, locked=True,
                 )
                 if submission is None:
                     raise NotFound("Submission not found")
@@ -792,11 +802,8 @@ class PublishingLifecycle:
             submission = None
             if submission_decision is not None:
                 decision_key, decision_hash, comment = submission_decision
-                submission = (
-                    session.query(SubmissionModel)
-                    .filter(SubmissionModel.id == intent.submission_id)
-                    .with_for_update()
-                    .one_or_none()
+                submission = self._submission_by_id(
+                    session, intent.submission_id, locked=True,
                 )
                 if submission is None:
                     raise NotFound("Submission not found")
@@ -917,7 +924,7 @@ class PublishingLifecycle:
         payload_hash: str,
     ) -> _SubmissionDecision | None:
         with self._session() as session:
-            submission = session.get(SubmissionModel, submission_id)
+            submission = self._submission_by_id(session, submission_id)
             if submission is None or submission.status != "accepted":
                 return None
             return self._reconstruct_decision_locked(
@@ -935,7 +942,7 @@ class PublishingLifecycle:
         payload_hash: str,
     ) -> _SubmissionDecision | None:
         with self._session() as session:
-            submission = session.get(SubmissionModel, submission_id)
+            submission = self._submission_by_id(session, submission_id)
             if submission is None or submission.status != "rejected":
                 return None
             return self._reconstruct_decision_locked(
@@ -1268,22 +1275,88 @@ class PublishingLifecycle:
         submission_id: str,
         pending_filename: str,
     ) -> bool:
-        """Best-effort cleanup after the acceptance transaction is permanent."""
-        operation_id = _submission_trash_operation_id(submission_id)
+        """Clean accepted bytes only while the accepted row remains locked."""
         try:
-            token = self._storage.rehydrate_pending_trash(
-                pending_filename,
-                operation_id,
-            )
-            if token is not None:
-                token = self._storage.commit_pending_trash(token)
-                self._storage.discard_pending_trash(token)
-            if self._storage.pending_exists(pending_filename):
-                token = self._storage.trash_pending(pending_filename, operation_id)
-                self._storage.discard_pending_trash(token)
-            return True
-        except StorageError:
+            with self._session() as session:
+                lock_submission_creation_fence(session)
+                submission = self._submission_by_id(
+                    session, submission_id, locked=True,
+                )
+                if (
+                    submission is None
+                    or submission.id != submission_id
+                    or submission.status != "accepted"
+                    or submission.pending_filename != pending_filename
+                ):
+                    return False
+                current = self._storage.submission_trash_record(submission_id)
+                had_cleanup_work = (
+                    current is not None
+                    or self._storage.legacy_submission_trash_entry_present(
+                        submission_id
+                    )
+                )
+                if not had_cleanup_work:
+                    had_cleanup_work = self._storage.pending_exists(
+                        pending_filename
+                    )
+                token = self._prepare_submission_trash_for_discard(
+                    submission_id,
+                    pending_filename,
+                )
+                if token is not None:
+                    self._storage.discard_pending_trash(token)
+                session.commit()
+            return had_cleanup_work
+        except Exception:
             return False
+
+    def _submission_trash_authority(
+        self,
+        submission_id: str,
+        pending_filename: str,
+    ) -> tuple[SubmissionTrashRecord | None, PendingTrash | None]:
+        current = self._storage.submission_trash_record(submission_id)
+        if current is not None:
+            if self._storage.legacy_submission_trash_exists(
+                pending_filename,
+                submission_id,
+            ):
+                raise StorageError(
+                    "Submission trash has dual current and legacy authority"
+                )
+            if current.original_name != pending_filename:
+                raise StorageError("Submission trash conflicts with SQL provenance")
+            token = self._storage.rehydrate_submission_trash(
+                submission_id,
+                pending_filename,
+            )
+            return current, token
+        legacy = self._storage.resolve_legacy_submission_trash(
+            pending_filename,
+            submission_id,
+        )
+        return None, legacy
+
+    def _prepare_submission_trash_for_discard(
+        self,
+        submission_id: str,
+        pending_filename: str,
+    ) -> PendingTrash | None:
+        current, token = self._submission_trash_authority(
+            submission_id,
+            pending_filename,
+        )
+        if token is not None:
+            return self._storage.commit_pending_trash(token)
+        if current is not None:
+            self._storage.discard_empty_submission_trash(current)
+        if self._storage.pending_exists(pending_filename):
+            return self._storage.trash_submission_pending(
+                pending_filename,
+                submission_id,
+            )
+        return None
 
     def _review_acceptance(self, intent: AcceptSubmission) -> _SubmissionDecision:
         self._validate_acceptance(intent)
@@ -1447,11 +1520,8 @@ class PublishingLifecycle:
         )
         try:
             with self._session() as session:
-                submission = (
-                    session.query(SubmissionModel)
-                    .filter(SubmissionModel.id == intent.submission_id)
-                    .with_for_update()
-                    .one_or_none()
+                submission = self._submission_by_id(
+                    session, intent.submission_id, locked=True,
                 )
                 if submission is None:
                     raise NotFound("Submission not found")
@@ -1546,157 +1616,163 @@ class PublishingLifecycle:
     def reject_submission(self, intent: RejectSubmission) -> _SubmissionDecision:
         return self.review_submission(intent)
 
-    def _restore_cancellation_status(self, submission_id: str) -> None:
-        try:
-            with self._session() as session:
-                submission = (
-                    session.query(SubmissionModel)
-                    .filter(SubmissionModel.id == submission_id)
-                    .with_for_update()
-                    .one_or_none()
-                )
-                if submission is not None and submission.status == "cancelling":
-                    submission.status = "pending"
-                    submission.reviewed_at = None
-                    session.commit()
-        except Exception as exc:
-            raise PersistenceFailed("could not restore pending Submission state") from exc
-
     def _finish_cancellation(
         self,
         submission_id: str,
         *,
         expected_owner: str | None,
-        trash_operation_id: str | None = None,
     ) -> SubmissionCancelled:
-        operation_id = trash_operation_id or _submission_trash_operation_id(submission_id)
-        with self._session() as session:
-            submission = (
-                session.query(SubmissionModel)
-                .filter(SubmissionModel.id == submission_id)
-                .with_for_update()
-                .one_or_none()
-            )
-            if submission is None:
-                return SubmissionCancelled(submission_id=submission_id)
-            if expected_owner is not None and submission.submitted_by != expected_owner:
-                raise Forbidden("only the submitting Reader may cancel")
-            if submission.status != "cancelling":
-                raise SubmissionNotPending("Submission is not cancelling")
-            pending_filename = submission.pending_filename
-
         token = None
-        try:
-            token = self._storage.rehydrate_pending_trash(
-                pending_filename,
-                operation_id,
-            )
-            if token is None and self._storage.pending_exists(pending_filename):
-                token = self._storage.trash_pending(pending_filename, operation_id)
-            if token is not None:
-                token = self._storage.commit_pending_trash(token)
-        except StorageError as exc:
-            pdf_restored_or_present = False
-            try:
-                audit = self._storage.rehydrate_pending_trash(
-                    None,
-                    operation_id,
-                )
-                if audit is not None:
-                    recoverable = self._storage.rehydrate_pending_trash(
-                        pending_filename,
-                        operation_id,
-                    )
-                    self._storage.restore_pending(recoverable)
-                    pdf_restored_or_present = True
-                else:
-                    pdf_restored_or_present = self._storage.pending_exists(
-                        pending_filename
-                    )
-            except StorageError:
-                pass
-            if pdf_restored_or_present:
-                try:
-                    self._restore_cancellation_status(submission_id)
-                except PersistenceFailed:
-                    pass
-            raise StorageFailed("pending Submission PDF could not be trashed") from exc
-
+        pending_filename = ""
         try:
             with self._session() as session:
-                submission = (
-                    session.query(SubmissionModel)
-                    .filter(SubmissionModel.id == submission_id)
+                lock_submission_creation_fence(session)
+                submission = self._submission_by_id(
+                    session, submission_id, locked=True,
+                )
+                if submission is None:
+                    return SubmissionCancelled(submission_id=submission_id)
+                if expected_owner is not None and submission.submitted_by != expected_owner:
+                    raise Forbidden("only the submitting Reader may cancel")
+                if submission.status != "cancelling":
+                    raise SubmissionNotPending("Submission is not cancelling")
+                pending_filename = submission.pending_filename
+                token = self._prepare_submission_trash_for_discard(
+                    submission_id,
+                    pending_filename,
+                )
+                reservation = (
+                    session.query(PaperMetadataModel)
+                    .filter(PaperMetadataModel.origin_submission_id == submission_id)
                     .with_for_update()
                     .one_or_none()
                 )
-                if submission is None:
-                    committed = True
-                else:
-                    committed = False
-                    if expected_owner is not None and submission.submitted_by != expected_owner:
-                        raise Forbidden("only the submitting Reader may cancel")
-                    if submission.status != "cancelling":
-                        raise SubmissionNotPending("Submission is not cancelling")
-                    reservation = (
-                        session.query(PaperMetadataModel)
-                        .filter(PaperMetadataModel.origin_submission_id == submission_id)
-                        .with_for_update()
-                        .one_or_none()
+                if reservation is not None:
+                    raise SubmissionNotPending(
+                        "Submission acceptance reservation prevents cancellation"
                     )
-                    if reservation is not None:
-                        raise SubmissionNotPending(
-                            "Submission acceptance reservation prevents cancellation"
-                        )
-                    session.delete(submission)
-                    session.commit()
-                    committed = True
+                session.delete(submission)
+                session.commit()
+                committed = True
+        except StorageError as exc:
+            self._restore_cancellation_after_failure(submission_id, expected_owner)
+            raise StorageFailed("pending Submission PDF could not be trashed") from exc
         except (Forbidden, SubmissionNotPending):
-            if token is not None:
-                self._storage.restore_pending(token)
-            self._restore_cancellation_status(submission_id)
+            self._restore_cancellation_after_failure(submission_id, expected_owner)
             raise
         except Exception as exc:
             with self._session() as session:
-                row_survives = session.get(SubmissionModel, submission_id) is not None
-            if not row_survives:
-                committed = True
-            else:
-                pdf_restored = False
-                if token is not None:
+                lock_submission_creation_fence(session)
+                surviving = self._submission_by_id(
+                    session, submission_id, locked=True,
+                )
+                if surviving is None:
+                    committed = True
+                else:
                     try:
-                        self._storage.restore_pending(token)
+                        self._restore_submission_bytes_locked(surviving)
                     except StorageError as restore_exc:
                         raise StorageFailed(
                             "cancellation transaction failed and PDF restore failed"
                         ) from restore_exc
-                    pdf_restored = True
-                else:
-                    try:
-                        pdf_restored = self._storage.pending_exists(pending_filename)
-                    except StorageError:
-                        pdf_restored = False
-                if pdf_restored:
-                    self._restore_cancellation_status(submission_id)
-                raise PersistenceFailed("could not delete cancelling Submission") from exc
+                    session.commit()
+                    raise PersistenceFailed(
+                        "could not delete cancelling Submission"
+                    ) from exc
 
         if committed and token is not None:
             try:
-                self._storage.discard_pending_trash(token)
-            except StorageError:
+                with self._session() as session:
+                    lock_submission_creation_fence(session)
+                    surviving = self._submission_by_id(
+                        session, submission_id, locked=True,
+                    )
+                    if surviving is not None:
+                        raise StorageError(
+                            "Submission row reappeared before trash discard"
+                        )
+                    current = self._storage.submission_trash_record(submission_id)
+                    legacy = None
+                    if current is not None:
+                        if self._storage.legacy_submission_trash_exists(
+                            pending_filename,
+                            submission_id,
+                        ):
+                            raise StorageError(
+                                "Submission trash has dual current and legacy authority"
+                            )
+                    else:
+                        legacy = self._storage.resolve_legacy_submission_trash(
+                            pending_filename,
+                            submission_id,
+                        )
+                    if token.namespace == "submission-v2":
+                        if current is None or legacy is not None:
+                            raise StorageError(
+                                "current Submission trash authority changed"
+                            )
+                    elif (
+                        token.namespace != "legacy"
+                        or current is not None
+                        or legacy is None
+                        or (legacy.device, legacy.inode)
+                        != (token.device, token.inode)
+                    ):
+                        raise StorageError(
+                            "legacy Submission trash authority changed"
+                        )
+                    self._storage.discard_pending_trash(token)
+                    session.commit()
+            except Exception:
                 pass
         return SubmissionCancelled(submission_id=submission_id)
 
-    def cancel_submission(self, intent: CancelSubmission) -> SubmissionCancelled:
-        self._validate_cancellation(intent)
-        trash_operation_id = _submission_trash_operation_id(intent.submission_id)
+    def _restore_submission_bytes_locked(self, submission) -> bool:
+        """Restore only after the caller has transactionally locked the row."""
+        current, token = self._submission_trash_authority(
+            submission.id,
+            submission.pending_filename,
+        )
+        if token is not None:
+            self._storage.restore_pending(token)
+            restored = True
+        else:
+            if current is not None:
+                self._storage.discard_empty_submission_trash(current)
+            restored = self._storage.pending_exists(submission.pending_filename)
+        if restored and submission.status == "cancelling":
+            submission.status = "pending"
+            submission.reviewed_at = None
+        return restored
+
+    def _restore_cancellation_after_failure(
+        self,
+        submission_id: str,
+        expected_owner: str | None,
+    ) -> None:
         try:
             with self._session() as session:
-                submission = (
-                    session.query(SubmissionModel)
-                    .filter(SubmissionModel.id == intent.submission_id)
-                    .with_for_update()
-                    .one_or_none()
+                lock_submission_creation_fence(session)
+                submission = self._submission_by_id(
+                    session, submission_id, locked=True,
+                )
+                if submission is None or (
+                    expected_owner is not None
+                    and submission.submitted_by != expected_owner
+                ):
+                    return
+                if self._restore_submission_bytes_locked(submission):
+                    session.commit()
+        except Exception:
+            pass
+
+    def cancel_submission(self, intent: CancelSubmission) -> SubmissionCancelled:
+        self._validate_cancellation(intent)
+        try:
+            with self._session() as session:
+                lock_submission_creation_fence(session)
+                submission = self._submission_by_id(
+                    session, intent.submission_id, locked=True,
                 )
                 if submission is None:
                     raise NotFound("Submission not found")
@@ -1744,7 +1820,6 @@ class PublishingLifecycle:
         return self._finish_cancellation(
             intent.submission_id,
             expected_owner=intent.actor.user_id,
-            trash_operation_id=trash_operation_id,
         )
 
     def reconcile_submissions(self) -> int:
@@ -1788,18 +1863,11 @@ class PublishingLifecycle:
                     .order_by(SubmissionModel.id)
                     .all()
                 ]
-                trash_submission_ids = {
-                    _submission_trash_operation_id(row.id): row.id
-                    for row in session.query(SubmissionModel.id).all()
-                }
             reconciled = 0
             for submission_id in pending_origin_ids:
                 with self._session() as session:
-                    submission = (
-                        session.query(SubmissionModel)
-                        .filter(SubmissionModel.id == submission_id)
-                        .with_for_update()
-                        .one_or_none()
+                    submission = self._submission_by_id(
+                        session, submission_id, locked=True,
                     )
                     if submission is None or submission.status != "pending":
                         continue
@@ -1831,32 +1899,115 @@ class PublishingLifecycle:
                 if self._cleanup_accepted_pending(submission_id, pending_filename):
                     reconciled += 1
 
-            for operation_id in self._storage.stale_pending_trash(cutoff):
-                submission_id = trash_submission_ids.get(operation_id, operation_id)
+            for record in self._storage.stale_submission_trash(cutoff):
                 with self._session() as session:
-                    submission = (
-                        session.query(SubmissionModel)
-                        .filter(SubmissionModel.id == submission_id)
-                        .with_for_update()
-                        .one_or_none()
+                    lock_submission_creation_fence(session)
+                    submission = self._submission_by_id(
+                        session, record.submission_id, locked=True,
                     )
+                    fresh = self._storage.submission_trash_record(
+                        record.submission_id
+                    )
+                    if fresh != record:
+                        raise StorageError(
+                            "Submission trash changed after inventory audit"
+                        )
+                    legacy_exists = self._storage.legacy_submission_trash_exists(
+                        submission.pending_filename if submission is not None else None,
+                        record.submission_id,
+                    )
+                    if legacy_exists:
+                        raise StorageError(
+                            "Submission trash has dual current and legacy authority"
+                        )
                     if submission is None:
-                        token = self._storage.rehydrate_pending_trash(None, operation_id)
+                        token = self._storage.rehydrate_submission_trash(
+                            record.submission_id
+                        )
                         if token is not None:
+                            token = self._storage.commit_pending_trash(token)
                             self._storage.discard_pending_trash(token)
-                            reconciled += 1
+                        else:
+                            self._storage.discard_empty_submission_trash(record)
+                        session.commit()
+                        reconciled += 1
                         continue
-                    token = self._storage.rehydrate_pending_trash(
+                    if record.original_name != submission.pending_filename:
+                        raise StorageError(
+                            "Submission trash conflicts with SQL provenance"
+                        )
+                    if submission.status not in {"pending", "rejected", "accepted"}:
+                        continue
+                    token = self._storage.rehydrate_submission_trash(
+                        submission.id,
                         submission.pending_filename,
-                        operation_id,
                     )
                     if token is None:
+                        self._storage.discard_empty_submission_trash(record)
+                        session.commit()
+                        reconciled += 1
+                    elif submission.status in {"pending", "rejected"}:
+                        self._storage.restore_pending(token)
+                        session.commit()
+                        reconciled += 1
+                    elif submission.status == "accepted":
+                        token = self._storage.commit_pending_trash(token)
+                        self._storage.discard_pending_trash(token)
+                        session.commit()
+                        reconciled += 1
+                    # Cancelling rows are completed through _finish_cancellation.
+
+            for operation_id in self._storage.stale_pending_trash(cutoff):
+                with self._session() as session:
+                    lock_submission_creation_fence(session)
+                    submission = self._submission_by_id(
+                        session, operation_id, locked=True,
+                    )
+                    if (
+                        submission is not None
+                        and submission.status
+                        not in {"pending", "rejected", "accepted"}
+                    ):
+                        continue
+                    current = self._storage.submission_trash_record(operation_id)
+                    token = self._storage.resolve_legacy_submission_trash(
+                        submission.pending_filename if submission is not None else None,
+                        operation_id,
+                    )
+                    if current is not None and token is not None:
+                        raise StorageError(
+                            "Submission trash has dual current and legacy authority"
+                        )
+                    ambiguous = self._storage.is_ambiguous_legacy_submission_operation(
+                        operation_id
+                    )
+                    if current is not None:
+                        if ambiguous:
+                            session.commit()
+                            reconciled += 1
+                        continue
+                    if submission is None:
+                        if token is not None:
+                            self._storage.discard_pending_trash(token)
+                            session.commit()
+                            reconciled += 1
+                        elif ambiguous:
+                            session.commit()
+                            reconciled += 1
+                        continue
+                    if token is None:
+                        if ambiguous:
+                            session.commit()
+                            reconciled += 1
                         continue
                     if submission.status in {"pending", "rejected"}:
                         self._storage.restore_pending(token)
+                        session.commit()
                         reconciled += 1
                     elif submission.status == "accepted":
+                        token = self._storage.commit_pending_trash(token)
                         self._storage.discard_pending_trash(token)
+                        session.commit()
                         reconciled += 1
                     # A still-cancelling row is retained for the next attempt;
                     # its deterministic trash is never generically removed.

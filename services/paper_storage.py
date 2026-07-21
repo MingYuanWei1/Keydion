@@ -7,6 +7,7 @@ import ctypes
 import errno
 import fcntl
 import functools
+import json
 import math
 import os
 import re
@@ -29,6 +30,15 @@ from services.publishing_contracts import PdfUpload
 
 _BLOCK_SIZE = 1024 * 1024
 _OPERATION_ID = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9._-]{0,127})\Z")
+_SUBMISSION_TRASH_ENTRY = re.compile(r"[0-9a-f]{64}\Z", re.ASCII)
+_FORMER_SUBMISSION_TRASH_OPERATION = re.compile(
+    r"submission-[0-9a-f]{64}\Z",
+    re.ASCII,
+)
+_SUBMISSION_TRASH_DIRECTORY = "submissions-v2"
+_SUBMISSION_TRASH_QUARANTINE_DIRECTORY = "submissions-v1-quarantine"
+_SUBMISSION_TRASH_OWNER = "owner.json"
+_SUBMISSION_TRASH_PAYLOAD = "payload.pdf"
 _REVISION_FILENAME = re.compile(r"[1-9][0-9]*\.pdf\Z", re.ASCII)
 _METADATA_BACKUP = re.compile(
     r"(?P<operation>[A-Za-z0-9](?:[A-Za-z0-9._-]{0,127}))"
@@ -88,7 +98,20 @@ class PendingTrash:
     size_bytes: int
     device: int
     inode: int
+    namespace: str
+    entry_name: str
     _capability: str = field(repr=False)
+
+
+@dataclass(frozen=True)
+class SubmissionTrashRecord:
+    """Durable exact owner provenance for one versioned Submission trash entry."""
+
+    submission_id: str
+    original_name: str
+    entry_name: str
+    has_payload: bool
+    modified_at: float
 
 
 def _fsync_directory_fd(directory_fd: int) -> None:
@@ -278,6 +301,10 @@ class PaperStorage:
         self._process_lock = _root_process_lock(self._papers_stat)
         self.staging_dir = self.papers_dir / ".staging"
         self.trash_dir = self.pending_dir / ".trash"
+        self.submission_trash_dir = self.trash_dir / _SUBMISSION_TRASH_DIRECTORY
+        self.submission_trash_quarantine_dir = (
+            self.trash_dir / _SUBMISSION_TRASH_QUARANTINE_DIRECTORY
+        )
         self._lock_fd = self._open_lock_file()
         try:
             with self._process_lock:
@@ -290,6 +317,28 @@ class PaperStorage:
                         self._trash_fd, self._trash_stat = self._open_private_directory(
                             self._pending_fd, ".trash"
                         )
+                        try:
+                            (
+                                self._submission_trash_fd,
+                                self._submission_trash_stat,
+                            ) = self._open_private_directory(
+                                self._trash_fd,
+                                _SUBMISSION_TRASH_DIRECTORY,
+                            )
+                            try:
+                                (
+                                    self._submission_trash_quarantine_fd,
+                                    self._submission_trash_quarantine_stat,
+                                ) = self._open_private_directory(
+                                    self._trash_fd,
+                                    _SUBMISSION_TRASH_QUARANTINE_DIRECTORY,
+                                )
+                            except Exception:
+                                os.close(self._submission_trash_fd)
+                                raise
+                        except Exception:
+                            os.close(self._trash_fd)
+                            raise
                     except Exception:
                         os.close(self._staging_fd)
                         raise
@@ -423,6 +472,16 @@ class PaperStorage:
                     self._papers_fd, ".staging", self._staging_stat
                 )
                 self._verify_reserved_directory(self._pending_fd, ".trash", self._trash_stat)
+                self._verify_reserved_directory(
+                    self._trash_fd,
+                    _SUBMISSION_TRASH_DIRECTORY,
+                    self._submission_trash_stat,
+                )
+                self._verify_reserved_directory(
+                    self._trash_fd,
+                    _SUBMISSION_TRASH_QUARANTINE_DIRECTORY,
+                    self._submission_trash_quarantine_stat,
+                )
                 yield
             finally:
                 self._lock_state.depth -= 1
@@ -434,6 +493,8 @@ class PaperStorage:
             return
         self._closed = True
         for name in (
+            "_submission_trash_quarantine_fd",
+            "_submission_trash_fd",
             "_trash_fd",
             "_staging_fd",
             "_lock_fd",
@@ -577,6 +638,10 @@ class PaperStorage:
                 base_fd = self._staging_fd
             elif root == self.trash_dir:
                 base_fd = self._trash_fd
+            elif root == self.submission_trash_dir:
+                base_fd = self._submission_trash_fd
+            elif root == self.submission_trash_quarantine_dir:
+                base_fd = self._submission_trash_quarantine_fd
             else:
                 raise StorageError("unknown storage root")
             directory_fds.append(os.dup(base_fd))
@@ -1390,6 +1455,528 @@ class PaperStorage:
                 raise
             raise StorageError("pending PDF move failed before commit") from exc
 
+    @staticmethod
+    def _submission_trash_entry_name(submission_id: str) -> str:
+        if (
+            not isinstance(submission_id, str)
+            or not submission_id
+            or len(submission_id) > 255
+            or "\x00" in submission_id
+        ):
+            raise StorageError("invalid Submission trash owner")
+        return hashlib.sha256(submission_id.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def _submission_owner_bytes(submission_id: str, original_name: str) -> bytes:
+        return (
+            json.dumps(
+                {
+                    "original_name": original_name,
+                    "submission_id": submission_id,
+                    "version": 2,
+                },
+                ensure_ascii=False,
+                separators=(",", ":"),
+                sort_keys=True,
+            )
+            + "\n"
+        ).encode("utf-8")
+
+    def _open_submission_trash_entry(
+        self,
+        entry_name: str,
+    ) -> tuple[int, os.stat_result]:
+        if _SUBMISSION_TRASH_ENTRY.fullmatch(entry_name) is None:
+            raise StorageError("invalid Submission trash entry")
+        try:
+            before = os.stat(
+                entry_name,
+                dir_fd=self._submission_trash_fd,
+                follow_symlinks=False,
+            )
+            if (
+                not stat.S_ISDIR(before.st_mode)
+                or not _private_mode(before, 0o700)
+                or before.st_dev != self._submission_trash_stat.st_dev
+            ):
+                raise StorageError("Submission trash entry is unsafe")
+            entry_fd = os.open(
+                entry_name,
+                _DIRECTORY_FLAGS,
+                dir_fd=self._submission_trash_fd,
+            )
+            opened = os.fstat(entry_fd)
+            if not _same_inode(before, opened):
+                raise StorageError("Submission trash entry changed while opening")
+            return entry_fd, opened
+        except StorageError:
+            raise
+        except OSError as exc:
+            raise StorageError("Submission trash entry could not be opened") from exc
+
+    def _submission_trash_record_unlocked(
+        self,
+        submission_id: str,
+        *,
+        missing_ok: bool = True,
+    ) -> SubmissionTrashRecord | None:
+        entry_name = self._submission_trash_entry_name(submission_id)
+        try:
+            try:
+                entry_fd, entry_stat = self._open_submission_trash_entry(entry_name)
+            except StorageError as exc:
+                try:
+                    os.stat(
+                        entry_name,
+                        dir_fd=self._submission_trash_fd,
+                        follow_symlinks=False,
+                    )
+                except FileNotFoundError:
+                    if missing_ok:
+                        return None
+                raise exc
+            try:
+                names = set(os.listdir(entry_fd))
+                if not names.issubset({_SUBMISSION_TRASH_OWNER, _SUBMISSION_TRASH_PAYLOAD}):
+                    raise StorageError("Submission trash entry contains unknown data")
+                if not names:
+                    os.close(entry_fd)
+                    entry_fd = -1
+                    self._remove_payload_free_submission_trash_residue(
+                        entry_name,
+                        entry_stat,
+                    )
+                    return None
+                if _SUBMISSION_TRASH_OWNER not in names:
+                    raise StorageError("Submission trash payload has no owner provenance")
+                owner_fd = os.open(_SUBMISSION_TRASH_OWNER, _READ_FLAGS, dir_fd=entry_fd)
+                try:
+                    owner_stat = os.fstat(owner_fd)
+                    if (
+                        not stat.S_ISREG(owner_stat.st_mode)
+                        or not _private_mode(owner_stat, 0o600)
+                        or owner_stat.st_nlink != 1
+                        or owner_stat.st_dev != entry_stat.st_dev
+                    ):
+                        raise StorageError("Submission trash owner descriptor is unsafe")
+                    with os.fdopen(os.dup(owner_fd), "rb") as owner_file:
+                        owner_bytes = owner_file.read(4097)
+                finally:
+                    os.close(owner_fd)
+                if len(owner_bytes) > 4096:
+                    raise StorageError("Submission trash owner descriptor is too large")
+                try:
+                    owner = json.loads(owner_bytes.decode("utf-8"))
+                    owner_valid = (
+                        isinstance(owner, dict)
+                        and set(owner) == {"version", "submission_id", "original_name"}
+                        and owner.get("version") == 2
+                        and owner.get("submission_id") == submission_id
+                        and isinstance(owner.get("original_name"), str)
+                        and owner_bytes
+                        == self._submission_owner_bytes(
+                            submission_id,
+                            owner["original_name"],
+                        )
+                    )
+                except (UnicodeDecodeError, json.JSONDecodeError):
+                    owner = None
+                    owner_valid = False
+                if owner_valid:
+                    try:
+                        self._validate_pending_recovery_name(owner["original_name"])
+                    except StorageError:
+                        owner_valid = False
+                if not owner_valid:
+                    if _SUBMISSION_TRASH_PAYLOAD in names:
+                        raise StorageError(
+                            "Submission trash payload has invalid owner provenance"
+                        )
+                    os.close(entry_fd)
+                    entry_fd = -1
+                    self._remove_payload_free_submission_trash_residue(
+                        entry_name,
+                        entry_stat,
+                    )
+                    return None
+                payload_stat = None
+                if _SUBMISSION_TRASH_PAYLOAD in names:
+                    payload_stat = os.stat(
+                        _SUBMISSION_TRASH_PAYLOAD,
+                        dir_fd=entry_fd,
+                        follow_symlinks=False,
+                    )
+                    if (
+                        not stat.S_ISREG(payload_stat.st_mode)
+                        or not _private_mode(payload_stat, 0o600)
+                        or payload_stat.st_nlink not in {1, 2}
+                        or payload_stat.st_dev != entry_stat.st_dev
+                    ):
+                        raise StorageError("Submission trash payload is unsafe")
+                modified_at = max(
+                    entry_stat.st_mtime,
+                    owner_stat.st_mtime,
+                    payload_stat.st_mtime if payload_stat is not None else 0,
+                )
+                return SubmissionTrashRecord(
+                    submission_id=submission_id,
+                    original_name=owner["original_name"],
+                    entry_name=entry_name,
+                    has_payload=payload_stat is not None,
+                    modified_at=modified_at,
+                )
+            finally:
+                if entry_fd >= 0:
+                    os.close(entry_fd)
+        except StorageError:
+            raise
+        except OSError as exc:
+            raise StorageError("Submission trash provenance could not be audited") from exc
+
+    def _remove_submission_trash_metadata(
+        self,
+        record: SubmissionTrashRecord,
+    ) -> None:
+        current = self._submission_trash_record_unlocked(
+            record.submission_id,
+            missing_ok=False,
+        )
+        if current != record or current.has_payload:
+            raise StorageError("Submission trash provenance changed before cleanup")
+        entry_fd, entry_stat = self._open_submission_trash_entry(record.entry_name)
+        try:
+            owner_stat = os.stat(
+                _SUBMISSION_TRASH_OWNER,
+                dir_fd=entry_fd,
+                follow_symlinks=False,
+            )
+            if not self._unlink_if_matching(
+                entry_fd,
+                _SUBMISSION_TRASH_OWNER,
+                owner_stat,
+            ):
+                raise StorageError("Submission trash owner changed before cleanup")
+            _fsync_directory_fd(entry_fd)
+        finally:
+            os.close(entry_fd)
+        current_dir = os.stat(
+            record.entry_name,
+            dir_fd=self._submission_trash_fd,
+            follow_symlinks=False,
+        )
+        if not _same_inode(entry_stat, current_dir):
+            raise StorageError("Submission trash entry changed before cleanup")
+        os.rmdir(record.entry_name, dir_fd=self._submission_trash_fd)
+        _fsync_directory_fd(self._submission_trash_fd)
+
+    def _remove_payload_free_submission_trash_residue(
+        self,
+        entry_name: str,
+        expected: os.stat_result,
+    ) -> None:
+        """Remove an exact construction/cleanup residue that has no payload."""
+        entry_fd, opened = self._open_submission_trash_entry(entry_name)
+        try:
+            names = set(os.listdir(entry_fd))
+            if (
+                not _same_inode(expected, opened)
+                or not names.issubset({_SUBMISSION_TRASH_OWNER})
+            ):
+                raise StorageError("payload-free Submission trash residue changed")
+            if _SUBMISSION_TRASH_OWNER in names:
+                owner = os.stat(
+                    _SUBMISSION_TRASH_OWNER,
+                    dir_fd=entry_fd,
+                    follow_symlinks=False,
+                )
+                if (
+                    not stat.S_ISREG(owner.st_mode)
+                    or not _private_mode(owner, 0o600)
+                    or owner.st_nlink != 1
+                    or owner.st_dev != opened.st_dev
+                ):
+                    raise StorageError(
+                        "payload-free Submission trash owner is unsafe"
+                    )
+                if not self._unlink_if_matching(
+                    entry_fd,
+                    _SUBMISSION_TRASH_OWNER,
+                    owner,
+                ):
+                    raise StorageError(
+                        "payload-free Submission trash owner changed"
+                    )
+                _fsync_directory_fd(entry_fd)
+        finally:
+            os.close(entry_fd)
+        current = os.stat(
+            entry_name,
+            dir_fd=self._submission_trash_fd,
+            follow_symlinks=False,
+        )
+        if not _same_inode(expected, current):
+            raise StorageError(
+                "payload-free Submission trash residue changed before removal"
+            )
+        os.rmdir(entry_name, dir_fd=self._submission_trash_fd)
+        _fsync_directory_fd(self._submission_trash_fd)
+
+    @_serialized
+    def submission_trash_record(
+        self,
+        submission_id: str,
+    ) -> SubmissionTrashRecord | None:
+        return self._submission_trash_record_unlocked(submission_id)
+
+    @_serialized
+    def trash_submission_pending(
+        self,
+        filename: str,
+        submission_id: str,
+    ) -> PendingTrash:
+        """Move pending bytes into the descriptor-owned Submission V2 namespace."""
+        entry_name = self._submission_trash_entry_name(submission_id)
+        self._validate_pending_ingress(filename)
+        created_entry = False
+        entry_fd: int | None = None
+        try:
+            os.mkdir(entry_name, mode=0o700, dir_fd=self._submission_trash_fd)
+            created_entry = True
+            _fsync_directory_fd(self._submission_trash_fd)
+            entry_fd, _entry_stat = self._open_submission_trash_entry(entry_name)
+            owner_bytes = self._submission_owner_bytes(submission_id, filename)
+            owner_fd = os.open(
+                _SUBMISSION_TRASH_OWNER,
+                _CREATE_FLAGS,
+                0o600,
+                dir_fd=entry_fd,
+            )
+            try:
+                with os.fdopen(owner_fd, "wb") as owner_file:
+                    owner_fd = -1
+                    owner_file.write(owner_bytes)
+                    owner_file.flush()
+                    os.fsync(owner_file.fileno())
+            finally:
+                if owner_fd >= 0:
+                    os.close(owner_fd)
+            _fsync_directory_fd(entry_fd)
+            with self._opened_regular(
+                self.pending_dir,
+                filename,
+                require_single_link=True,
+            ) as (
+                source_fd,
+                source_parent_fd,
+                source_name,
+                _original,
+                source_stat,
+            ):
+                os.fchmod(source_fd, 0o600)
+                source_stat = os.fstat(source_fd)
+                with os.fdopen(os.dup(source_fd), "rb") as source:
+                    source_hash, source_size = _hash_reader(source)
+                final = self._link_then_unlink(
+                    source_parent_fd,
+                    source_name,
+                    source_stat,
+                    entry_fd,
+                    _SUBMISSION_TRASH_PAYLOAD,
+                )
+            return self._issue_pending_trash_token(
+                original_name=filename,
+                operation_id=submission_id,
+                source_sha256=source_hash,
+                size_bytes=source_size,
+                device=final.st_dev,
+                inode=final.st_ino,
+                namespace="submission-v2",
+                entry_name=entry_name,
+            )
+        except FileExistsError as exc:
+            raise StorageError("Submission trash destination is occupied") from exc
+        except StorageError:
+            if created_entry:
+                try:
+                    record = self._submission_trash_record_unlocked(submission_id)
+                    if record is not None and not record.has_payload:
+                        self._remove_submission_trash_metadata(record)
+                except StorageError:
+                    pass
+            raise
+        except OSError as exc:
+            raise StorageError("pending Submission PDF could not be trashed") from exc
+        finally:
+            if entry_fd is not None:
+                os.close(entry_fd)
+
+    @_serialized
+    def rehydrate_submission_trash(
+        self,
+        submission_id: str,
+        expected_original_name: str | None = None,
+    ) -> PendingTrash | None:
+        """Re-audit exact V2 owner provenance and issue fresh local authority."""
+        record = self._submission_trash_record_unlocked(submission_id)
+        if record is None:
+            return None
+        if (
+            expected_original_name is not None
+            and record.original_name != expected_original_name
+        ):
+            raise StorageError("Submission trash owner conflicts with SQL provenance")
+        if not record.has_payload:
+            return None
+        try:
+            with self._opened_regular(
+                self.submission_trash_dir,
+                f"{record.entry_name}/{_SUBMISSION_TRASH_PAYLOAD}",
+                require_private=True,
+            ) as (source_fd, _, _, _, source_stat):
+                if source_stat.st_nlink == 2:
+                    with self._opened_regular(
+                        self.pending_dir,
+                        record.original_name,
+                        require_private=True,
+                    ) as (_, _, _, _, original_stat):
+                        if (
+                            original_stat.st_nlink != 2
+                            or not _same_inode(source_stat, original_stat)
+                        ):
+                            raise StorageError(
+                                "Submission trash is not its exact interrupted move pair"
+                            )
+                elif source_stat.st_nlink == 1:
+                    if self.pending_exists(record.original_name):
+                        raise StorageError(
+                            "Submission trash conflicts with an occupied original name"
+                        )
+                else:
+                    raise StorageError("Submission trash has an unsafe link count")
+                with os.fdopen(os.dup(source_fd), "rb") as source:
+                    source_hash, source_size = _hash_reader(source)
+                return self._issue_pending_trash_token(
+                    original_name=record.original_name,
+                    operation_id=submission_id,
+                    source_sha256=source_hash,
+                    size_bytes=source_size,
+                    device=source_stat.st_dev,
+                    inode=source_stat.st_ino,
+                    namespace="submission-v2",
+                    entry_name=record.entry_name,
+                )
+        except StorageError:
+            raise
+        except OSError as exc:
+            raise StorageError("Submission trash could not be rehydrated") from exc
+
+    @_serialized
+    def stale_submission_trash(
+        self,
+        cutoff: datetime | float | int,
+    ) -> tuple[SubmissionTrashRecord, ...]:
+        cutoff_timestamp = self._cutoff_timestamp(cutoff)
+        records: list[SubmissionTrashRecord] = []
+        try:
+            for entry_name in os.listdir(self._submission_trash_fd):
+                if _SUBMISSION_TRASH_ENTRY.fullmatch(entry_name) is None:
+                    raise StorageError("Submission trash contains an unknown entry")
+                entry_fd, entry_stat = self._open_submission_trash_entry(entry_name)
+                try:
+                    names = set(os.listdir(entry_fd))
+                    if not names.issubset(
+                        {_SUBMISSION_TRASH_OWNER, _SUBMISSION_TRASH_PAYLOAD}
+                    ):
+                        raise StorageError(
+                            "Submission trash entry contains unknown data"
+                        )
+                    if not names:
+                        if entry_stat.st_mtime < cutoff_timestamp:
+                            os.close(entry_fd)
+                            entry_fd = -1
+                            self._remove_payload_free_submission_trash_residue(
+                                entry_name,
+                                entry_stat,
+                            )
+                        continue
+                    if _SUBMISSION_TRASH_OWNER not in names:
+                        raise StorageError(
+                            "Submission trash payload has no owner provenance"
+                        )
+                    owner_fd = os.open(_SUBMISSION_TRASH_OWNER, _READ_FLAGS, dir_fd=entry_fd)
+                    try:
+                        owner_bytes = os.read(owner_fd, 4097)
+                    finally:
+                        os.close(owner_fd)
+                    try:
+                        owner = json.loads(owner_bytes.decode("utf-8"))
+                        submission_id = owner["submission_id"]
+                    except (
+                        KeyError,
+                        TypeError,
+                        UnicodeDecodeError,
+                        json.JSONDecodeError,
+                    ) as exc:
+                        if (
+                            _SUBMISSION_TRASH_PAYLOAD not in names
+                            and entry_stat.st_mtime < cutoff_timestamp
+                        ):
+                            os.close(entry_fd)
+                            entry_fd = -1
+                            self._remove_payload_free_submission_trash_residue(
+                                entry_name,
+                                entry_stat,
+                            )
+                            continue
+                        if _SUBMISSION_TRASH_PAYLOAD not in names:
+                            continue
+                        raise StorageError(
+                            "Submission trash owner descriptor is invalid"
+                        ) from exc
+                finally:
+                    if entry_fd >= 0:
+                        os.close(entry_fd)
+                try:
+                    owner_entry_name = self._submission_trash_entry_name(submission_id)
+                except StorageError:
+                    owner_entry_name = None
+                if owner_entry_name != entry_name:
+                    if (
+                        _SUBMISSION_TRASH_PAYLOAD not in names
+                        and entry_stat.st_mtime < cutoff_timestamp
+                    ):
+                        self._remove_payload_free_submission_trash_residue(
+                            entry_name,
+                            entry_stat,
+                        )
+                        continue
+                    if _SUBMISSION_TRASH_PAYLOAD not in names:
+                        continue
+                    raise StorageError("Submission trash owner hashes to another entry")
+                record = self._submission_trash_record_unlocked(
+                    submission_id,
+                    missing_ok=False,
+                )
+                if record is None:
+                    continue
+                if record.modified_at < cutoff_timestamp:
+                    records.append(record)
+            return tuple(sorted(records, key=lambda record: record.submission_id))
+        except StorageError:
+            raise
+        except OSError as exc:
+            raise StorageError("Submission trash could not be audited") from exc
+
+    @_serialized
+    def discard_empty_submission_trash(
+        self,
+        record: SubmissionTrashRecord,
+    ) -> None:
+        """Remove an exact audited provenance-only crash residue."""
+        if not isinstance(record, SubmissionTrashRecord) or record.has_payload:
+            raise StorageError("empty Submission trash cleanup requires provenance")
+        self._remove_submission_trash_metadata(record)
+
     @_serialized
     def trash_pending(self, filename: str, operation_id: str) -> PendingTrash:
         trash_name = f"{_valid_operation_id(operation_id)}.pdf"
@@ -1439,6 +2026,8 @@ class PaperStorage:
         size_bytes: int,
         device: int,
         inode: int,
+        namespace: str = "legacy",
+        entry_name: str | None = None,
     ) -> PendingTrash:
         capability = secrets.token_urlsafe(32)
         token = PendingTrash(
@@ -1448,6 +2037,8 @@ class PaperStorage:
             size_bytes=size_bytes,
             device=device,
             inode=inode,
+            namespace=namespace,
+            entry_name=entry_name or f"{operation_id}.pdf",
             _capability=capability,
         )
         self._trash_tokens[capability] = token
@@ -1457,10 +2048,40 @@ class PaperStorage:
         for capability, issued in tuple(self._trash_tokens.items()):
             if (
                 issued.operation_id == token.operation_id
+                and issued.namespace == token.namespace
+                and issued.entry_name == token.entry_name
                 and issued.device == token.device
                 and issued.inode == token.inode
             ):
                 del self._trash_tokens[capability]
+
+    def _pending_trash_location(self, token: PendingTrash) -> tuple[Path, str]:
+        if token.namespace == "legacy":
+            return self.trash_dir, f"{_valid_operation_id(token.operation_id)}.pdf"
+        if token.namespace == "submission-v2":
+            expected = self._submission_trash_entry_name(token.operation_id)
+            if token.entry_name != expected:
+                raise StorageError("Submission trash token has invalid provenance")
+            return (
+                self.submission_trash_dir,
+                f"{expected}/{_SUBMISSION_TRASH_PAYLOAD}",
+            )
+        raise StorageError("pending trash token has an unknown namespace")
+
+    def _cleanup_consumed_submission_trash(self, token: PendingTrash) -> None:
+        if token.namespace != "submission-v2":
+            return
+        record = self._submission_trash_record_unlocked(
+            token.operation_id,
+            missing_ok=False,
+        )
+        if (
+            record.original_name != token.original_name
+            or record.entry_name != token.entry_name
+            or record.has_payload
+        ):
+            raise StorageError("Submission trash provenance changed before cleanup")
+        self._remove_submission_trash_metadata(record)
 
     @_serialized
     def pending_exists(self, filename: str) -> bool:
@@ -1472,7 +2093,7 @@ class PaperStorage:
             try:
                 os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
             except FileNotFoundError:
-                return False
+                return None
             with self._opened_regular(
                 self.pending_dir,
                 filename,
@@ -1526,6 +2147,10 @@ class PaperStorage:
                             raise StorageError(
                                 "pending trash is not the exact interrupted move pair"
                             )
+                elif original_name is not None and self.pending_exists(original_name):
+                    raise StorageError(
+                        "pending trash conflicts with an occupied original name"
+                    )
                 with os.fdopen(os.dup(source_fd), "rb") as source:
                     source_hash, source_size = _hash_reader(source)
                 return self._issue_pending_trash_token(
@@ -1542,6 +2167,240 @@ class PaperStorage:
             raise StorageError("pending trash could not be rehydrated") from exc
 
     @_serialized
+    def rehydrate_legacy_submission_trash(
+        self,
+        original_name: str | None,
+        submission_id: str,
+    ) -> PendingTrash | None:
+        """Audit only the historical flat entry named by the exact Submission ID."""
+        if not isinstance(submission_id, str) or _OPERATION_ID.fullmatch(submission_id) is None:
+            return None
+        return self.rehydrate_pending_trash(original_name, submission_id)
+
+    @_serialized
+    def resolve_legacy_submission_trash(
+        self,
+        original_name: str | None,
+        submission_id: str,
+    ) -> PendingTrash | None:
+        """Resolve legacy authority without guessing an ambiguous V1 hash key.
+
+        A former-current-shaped flat name can belong either to the raw
+        Submission ID or to the hash of a different ID.  Only an exact
+        two-link interrupted move to the locked row's persisted original name
+        proves the former.  All other such entries are quarantined.
+        """
+        if not self.is_ambiguous_legacy_submission_operation(submission_id):
+            return self.rehydrate_legacy_submission_trash(
+                original_name,
+                submission_id,
+            )
+        if original_name is not None:
+            self._validate_pending_recovery_name(original_name)
+        trash_name = f"{submission_id}.pdf"
+        try:
+            try:
+                os.stat(
+                    trash_name,
+                    dir_fd=self._trash_fd,
+                    follow_symlinks=False,
+                )
+            except FileNotFoundError:
+                return None
+            try:
+                with self._opened_regular(
+                    self.trash_dir,
+                    trash_name,
+                    require_private=True,
+                ) as (_, _, _, _, source_stat):
+                    exact_pair = False
+                    if source_stat.st_nlink == 2 and original_name is not None:
+                        try:
+                            with self._opened_regular(
+                                self.pending_dir,
+                                original_name,
+                                require_private=True,
+                            ) as (_, _, _, _, original_stat):
+                                exact_pair = (
+                                    original_stat.st_nlink == 2
+                                    and _same_inode(source_stat, original_stat)
+                                )
+                        except FileNotFoundError:
+                            exact_pair = False
+                    elif source_stat.st_nlink not in {1, 2}:
+                        raise StorageError(
+                            "ambiguous Submission trash has an unsafe link count"
+                        )
+            except FileNotFoundError:
+                return None
+            if exact_pair:
+                return self.rehydrate_pending_trash(original_name, submission_id)
+            self.quarantine_ambiguous_legacy_submission_trash(submission_id)
+            return None
+        except StorageError:
+            raise
+        except OSError as exc:
+            raise StorageError(
+                "ambiguous Submission trash could not be resolved"
+            ) from exc
+
+    @_serialized
+    def legacy_submission_trash_exists(
+        self,
+        original_name: str | None,
+        submission_id: str,
+    ) -> bool:
+        """Audit exact legacy authority without retaining a capability."""
+        token = self.resolve_legacy_submission_trash(
+            original_name,
+            submission_id,
+        )
+        if token is None:
+            return False
+        self._trash_tokens.pop(token._capability, None)
+        return True
+
+    @_serialized
+    def legacy_submission_trash_entry_present(self, submission_id: str) -> bool:
+        """Audit whether an exact active flat entry exists without minting authority."""
+        if not isinstance(submission_id, str) or _OPERATION_ID.fullmatch(submission_id) is None:
+            return False
+        trash_name = f"{submission_id}.pdf"
+        try:
+            try:
+                os.stat(
+                    trash_name,
+                    dir_fd=self._trash_fd,
+                    follow_symlinks=False,
+                )
+            except FileNotFoundError:
+                return False
+            try:
+                with self._opened_regular(
+                    self.trash_dir,
+                    trash_name,
+                    require_private=True,
+                ) as (_, _, _, _, source_stat):
+                    if source_stat.st_nlink not in {1, 2, 3}:
+                        raise StorageError(
+                            "legacy Submission trash has an unsafe link count"
+                        )
+                    return True
+            except FileNotFoundError:
+                return False
+        except StorageError:
+            raise
+        except OSError as exc:
+            raise StorageError(
+                "legacy Submission trash presence could not be audited"
+            ) from exc
+
+    @staticmethod
+    def is_ambiguous_legacy_submission_operation(operation_id: str) -> bool:
+        """Identify flat keys emitted by V1 and also valid as raw legacy IDs."""
+        return (
+            isinstance(operation_id, str)
+            and _FORMER_SUBMISSION_TRASH_OPERATION.fullmatch(operation_id) is not None
+        )
+
+    @_serialized
+    def quarantine_ambiguous_legacy_submission_trash(
+        self,
+        operation_id: str,
+    ) -> bool:
+        """Move an ownerless former-current flat entry out of active recovery."""
+        if not self.is_ambiguous_legacy_submission_operation(operation_id):
+            raise StorageError("legacy Submission trash key is not ambiguous")
+        trash_name = f"{operation_id}.pdf"
+        try:
+            try:
+                os.stat(trash_name, dir_fd=self._trash_fd, follow_symlinks=False)
+            except FileNotFoundError:
+                return False
+            with self._opened_regular(
+                self.trash_dir,
+                trash_name,
+                require_private=True,
+            ) as (_, source_parent_fd, source_name, _, source_stat):
+                try:
+                    quarantined = os.stat(
+                        trash_name,
+                        follow_symlinks=False,
+                        dir_fd=self._submission_trash_quarantine_fd,
+                    )
+                    if not _same_inode(quarantined, source_stat):
+                        raise StorageError(
+                            "ambiguous Submission quarantine is occupied"
+                        )
+                    if source_stat.st_nlink not in {2, 3}:
+                        raise StorageError(
+                            "ambiguous Submission trash has an unsafe link count"
+                        )
+                    linked = False
+                except FileNotFoundError:
+                    if source_stat.st_nlink not in {1, 2}:
+                        raise StorageError(
+                            "ambiguous Submission trash has an unsafe link count"
+                        )
+                    os.link(
+                        source_name,
+                        trash_name,
+                        src_dir_fd=source_parent_fd,
+                        dst_dir_fd=self._submission_trash_quarantine_fd,
+                        follow_symlinks=False,
+                    )
+                    linked = True
+                    _fsync_directory_fd(self._submission_trash_quarantine_fd)
+                current = os.stat(
+                    source_name,
+                    dir_fd=source_parent_fd,
+                    follow_symlinks=False,
+                )
+                quarantined = os.stat(
+                    trash_name,
+                    dir_fd=self._submission_trash_quarantine_fd,
+                    follow_symlinks=False,
+                )
+                expected_links = source_stat.st_nlink + (1 if linked else 0)
+                if (
+                    not _same_inode(current, source_stat)
+                    or not _same_inode(quarantined, source_stat)
+                    or current.st_nlink != expected_links
+                    or quarantined.st_nlink != expected_links
+                ):
+                    raise StorageError(
+                        "ambiguous Submission trash changed during quarantine"
+                    )
+                if not self._unlink_if_matching(
+                    source_parent_fd,
+                    source_name,
+                    current,
+                ):
+                    raise StorageError(
+                        "ambiguous Submission trash changed before quarantine"
+                    )
+                _fsync_directory_fd(source_parent_fd)
+                final = os.stat(
+                    trash_name,
+                    dir_fd=self._submission_trash_quarantine_fd,
+                    follow_symlinks=False,
+                )
+                if (
+                    not _same_inode(final, source_stat)
+                    or final.st_nlink != expected_links - 1
+                ):
+                    raise StorageError(
+                        "ambiguous Submission quarantine did not commit exactly"
+                    )
+            return True
+        except StorageError:
+            raise
+        except OSError as exc:
+            raise StorageError(
+                "ambiguous Submission trash could not be quarantined"
+            ) from exc
+
+    @_serialized
     def commit_pending_trash(self, token: PendingTrash) -> PendingTrash:
         """Finish an audited link-before-unlink crash in the trash direction."""
         if not isinstance(token, PendingTrash):
@@ -1550,13 +2409,13 @@ class PaperStorage:
         if stored != token:
             raise StorageError("pending trash token is invalid or already consumed")
         self._validate_pending_recovery_name(token.original_name)
-        trash_name = f"{_valid_operation_id(token.operation_id)}.pdf"
+        trash_root, trash_name = self._pending_trash_location(token)
         try:
             with self._opened_regular(
-                self.trash_dir,
+                trash_root,
                 trash_name,
                 require_private=True,
-            ) as (source_fd, _, _, _, source_stat):
+            ) as (source_fd, source_parent_fd, source_name, _, source_stat):
                 with os.fdopen(os.dup(source_fd), "rb") as source:
                     source_hash, source_size = _hash_reader(source)
                 if (
@@ -1590,8 +2449,8 @@ class PaperStorage:
                         raise StorageError("pending original changed before trash commit")
                     _fsync_directory_fd(original_parent_fd)
                 final = os.stat(
-                    trash_name,
-                    dir_fd=self._trash_fd,
+                    source_name,
+                    dir_fd=source_parent_fd,
                     follow_symlinks=False,
                 )
                 if not _same_inode(final, source_stat) or final.st_nlink != 1:
@@ -1623,19 +2482,20 @@ class PaperStorage:
             raise StorageError("pending trash token is invalid or already consumed")
         self._validate_pending_recovery_name(token.original_name)
         original_relative = token.original_name
-        trash_name = f"{token.operation_id}.pdf"
+        trash_root, trash_name = self._pending_trash_location(token)
         destination_fds: list[int] = []
+        payload_moved = False
         try:
             destination_fds, destination_parent_fd, destination_name = (
                 self._open_destination_parent(original_relative)
             )
             with self._opened_regular(
-                self.trash_dir,
+                trash_root,
                 trash_name,
                 require_private=True,
             ) as (
                 source_fd,
-                _source_parent_fd,
+                source_parent_fd,
                 source_name,
                 _resolved,
                 source_stat,
@@ -1663,31 +2523,36 @@ class PaperStorage:
                                 "pending trash is not the exact interrupted move pair"
                             )
                         if not self._unlink_if_matching(
-                            self._trash_fd,
+                            source_parent_fd,
                             source_name,
                             source_stat,
                         ):
                             raise StorageError("pending trash changed before restore")
+                        payload_moved = True
                         try:
-                            _fsync_directory_fd(self._trash_fd)
+                            _fsync_directory_fd(source_parent_fd)
                         except OSError:
                             pass
                 elif source_stat.st_nlink == 1:
                     self._link_then_unlink(
-                        self._trash_fd,
+                        source_parent_fd,
                         source_name,
                         source_stat,
                         destination_parent_fd,
                         destination_name,
                     )
+                    payload_moved = True
                 else:
                     raise StorageError("pending trash has an unsafe link count")
+            self._cleanup_consumed_submission_trash(token)
             self._consume_pending_trash_tokens(token)
         except StorageError:
             raise
         except OSError as exc:
             raise StorageError("pending PDF could not be restored") from exc
         finally:
+            if payload_moved:
+                self._consume_pending_trash_tokens(token)
             for directory_fd in reversed(destination_fds):
                 os.close(directory_fd)
 
@@ -1699,14 +2564,15 @@ class PaperStorage:
         stored = self._trash_tokens.get(token._capability)
         if stored != token:
             raise StorageError("pending trash token is invalid or already consumed")
-        trash_name = f"{_valid_operation_id(token.operation_id)}.pdf"
+        trash_root, trash_name = self._pending_trash_location(token)
+        payload_removed = False
         try:
             with self._opened_regular(
-                self.trash_dir,
+                trash_root,
                 trash_name,
                 require_single_link=True,
                 require_private=True,
-            ) as (source_fd, _, source_name, _, source_stat):
+            ) as (source_fd, source_parent_fd, source_name, _, source_stat):
                 with os.fdopen(os.dup(source_fd), "rb") as source:
                     source_hash, source_size = _hash_reader(source)
                 if (
@@ -1716,14 +2582,23 @@ class PaperStorage:
                     != (token.source_sha256, token.size_bytes)
                 ):
                     raise StorageError("trashed pending PDF does not match its token")
-                if not self._unlink_if_matching(self._trash_fd, source_name, source_stat):
+                if not self._unlink_if_matching(
+                    source_parent_fd,
+                    source_name,
+                    source_stat,
+                ):
                     raise StorageError("pending trash changed before removal")
-            _fsync_directory_fd(self._trash_fd)
+                payload_removed = True
+                _fsync_directory_fd(source_parent_fd)
+            self._cleanup_consumed_submission_trash(token)
             self._consume_pending_trash_tokens(token)
         except StorageError:
             raise
         except OSError as exc:
             raise StorageError("pending trash could not be discarded") from exc
+        finally:
+            if payload_removed:
+                self._consume_pending_trash_tokens(token)
 
     @_serialized
     def stale_pending_trash(self, cutoff: datetime | float | int) -> tuple[str, ...]:
@@ -1733,6 +2608,21 @@ class PaperStorage:
         try:
             directory = os.fstat(self._trash_fd)
             for name in os.listdir(self._trash_fd):
+                if name in {
+                    _SUBMISSION_TRASH_DIRECTORY,
+                    _SUBMISSION_TRASH_QUARANTINE_DIRECTORY,
+                }:
+                    expected = (
+                        self._submission_trash_stat
+                        if name == _SUBMISSION_TRASH_DIRECTORY
+                        else self._submission_trash_quarantine_stat
+                    )
+                    self._verify_reserved_directory(
+                        self._trash_fd,
+                        name,
+                        expected,
+                    )
+                    continue
                 if not name.endswith(".pdf"):
                     raise StorageError("reserved trash contains an unknown entry")
                 operation_id = name[:-4]

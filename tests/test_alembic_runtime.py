@@ -6,9 +6,11 @@ from unittest import mock
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
 
 import db
 import models
+from services.submission_fence import lock_submission_creation_fence
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -54,6 +56,32 @@ class AlembicRuntimeTests(unittest.TestCase):
                     )
                 ).scalar(),
                 0,
+            )
+
+    def test_empty_database_seeds_submission_identity_fence(self):
+        models.ensure_schema_current(self.engine)
+
+        with self.engine.connect() as conn:
+            self.assertEqual(
+                conn.execute(text(
+                    "SELECT generation FROM submission_identity_fence "
+                    "WHERE name = 'global'"
+                )).scalar_one(),
+                0,
+            )
+
+        session_factory = sessionmaker(bind=self.engine)
+        with session_factory() as session:
+            lock_submission_creation_fence(session)
+            session.commit()
+
+        with self.engine.connect() as conn:
+            self.assertEqual(
+                conn.execute(text(
+                    "SELECT generation FROM submission_identity_fence "
+                    "WHERE name = 'global'"
+                )).scalar_one(),
+                1,
             )
 
     def test_current_database_is_accepted(self):

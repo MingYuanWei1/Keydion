@@ -315,14 +315,19 @@ def _mysql_schema_phase(engine):
             FROM information_schema.COLUMNS
             WHERE TABLE_SCHEMA=DATABASE()
               AND TABLE_NAME='papers_metadata'
-              AND COLUMN_NAME IN ('filename', 'direct_idempotency_key')
+              AND COLUMN_NAME IN (
+                  'filename', 'direct_idempotency_key', 'origin_submission_id'
+              )
         """)).all())
     if {
         name: str(paper_collations.get(name, "")).casefold()
-        for name in ("filename", "direct_idempotency_key")
+        for name in (
+            "filename", "direct_idempotency_key", "origin_submission_id",
+        )
     } != {
         "filename": "utf8mb4_bin",
         "direct_idempotency_key": "utf8mb4_bin",
+        "origin_submission_id": "utf8mb4_bin",
     }:
         _snapshot_restore_required("Paper opaque-key collations are not binary")
     checks_by_name = {
@@ -435,6 +440,8 @@ def _mysql_paper_contract_group():
                 CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
             MODIFY COLUMN direct_idempotency_key VARCHAR(255)
                 CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL,
+            MODIFY COLUMN origin_submission_id VARCHAR(255)
+                CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL,
             MODIFY COLUMN id VARCHAR(36) NOT NULL,
             MODIFY COLUMN lifecycle_state VARCHAR(16) NOT NULL,
             MODIFY COLUMN row_version INTEGER NOT NULL,
@@ -447,33 +454,72 @@ def _mysql_paper_contract_group():
     """))
 
 
-def _mysql_decision_key_collation(engine):
+def _mysql_submission_identity_collations(engine):
     with engine.connect() as connection:
-        value = connection.execute(sa.text("""
-            SELECT COLLATION_NAME
+        rows = connection.execute(sa.text("""
+            SELECT TABLE_NAME, COLUMN_NAME, COLLATION_NAME
             FROM information_schema.COLUMNS
             WHERE TABLE_SCHEMA=DATABASE()
-              AND TABLE_NAME='submissions'
-              AND COLUMN_NAME='decision_idempotency_key'
-        """)).scalar()
-    return str(value or "").casefold()
+              AND (
+                  (TABLE_NAME='submissions'
+                   AND COLUMN_NAME IN ('id', 'decision_idempotency_key'))
+                  OR
+                  (TABLE_NAME='papers_metadata'
+                   AND COLUMN_NAME='origin_submission_id')
+              )
+        """)).all()
+    return {
+        (table, column): str(collation or "").casefold()
+        for table, column, collation in rows
+    }
 
 
-def _mysql_decision_key_contract(engine):
-    collation = _mysql_decision_key_collation(engine)
-    if collation == "utf8mb4_bin":
+def _mysql_submission_identity_contract(engine):
+    expected = {
+        ("submissions", "id"),
+        ("submissions", "decision_idempotency_key"),
+        ("papers_metadata", "origin_submission_id"),
+    }
+    collations = _mysql_submission_identity_collations(engine)
+    if expected == set(collations) and all(
+        collations[key] == "utf8mb4_bin" for key in expected
+    ):
         return
-    if not collation.startswith("utf8mb4_"):
+    if expected != set(collations) or any(
+        not collations[key].startswith("utf8mb4_") for key in expected
+    ):
         _snapshot_restore_required(
-            "Submission decision-key collation is not recoverable"
+            "Submission identity collation is not recoverable"
         )
     op.execute(sa.text("""
         ALTER TABLE submissions
+            MODIFY COLUMN id VARCHAR(255)
+                CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
             MODIFY COLUMN decision_idempotency_key VARCHAR(255)
                 CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL
     """))
-    if _mysql_decision_key_collation(engine) != "utf8mb4_bin":
-        _snapshot_restore_required("Submission decision-key collation is not binary")
+    op.execute(sa.text("""
+        ALTER TABLE papers_metadata
+            MODIFY COLUMN origin_submission_id VARCHAR(255)
+                CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL
+    """))
+    collations = _mysql_submission_identity_collations(engine)
+    if expected != set(collations) or any(
+        collations[key] != "utf8mb4_bin" for key in expected
+    ):
+        _snapshot_restore_required("Submission identity collation is not binary")
+
+
+def _mysql_submission_identity_is_current(engine):
+    expected = {
+        ("submissions", "id"),
+        ("submissions", "decision_idempotency_key"),
+        ("papers_metadata", "origin_submission_id"),
+    }
+    collations = _mysql_submission_identity_collations(engine)
+    return expected == set(collations) and all(
+        collations[key] == "utf8mb4_bin" for key in expected
+    )
 
 
 def _mysql_relationship_contract_group(engine):
@@ -531,10 +577,10 @@ def _mysql_relationship_contract_group(engine):
 
 
 def _mysql_contract(engine, papers_dir):
-    phase = _reconcile_ddl_phase(engine)
-    if _mysql_decision_key_collation(engine) != "utf8mb4_bin":
+    if not _mysql_submission_identity_is_current(engine):
         validate_contract_ready(engine, papers_dir, _fenced=True)
-        _mysql_decision_key_contract(engine)
+        _mysql_submission_identity_contract(engine)
+    phase = _reconcile_ddl_phase(engine)
     if phase == "expanded":
         validate_contract_ready(engine, papers_dir, _fenced=True)
         _mysql_paper_contract_group()

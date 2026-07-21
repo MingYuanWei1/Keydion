@@ -7,7 +7,8 @@ from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
 from sqlalchemy import (
-    Boolean, CheckConstraint, Column, Date, DateTime, ForeignKey, ForeignKeyConstraint, Integer,
+    BigInteger, Boolean, CheckConstraint, Column, Date, DateTime, ForeignKey,
+    ForeignKeyConstraint, Integer,
     String, Unicode, UnicodeText, UniqueConstraint, create_engine, func, inspect,
     select,
 )
@@ -101,7 +102,12 @@ class PaperMetadataModel(BASE):
         unique=True,
     )
     direct_payload_hash = Column(Unicode(64))
-    origin_submission_id = Column(Unicode(255), unique=True)
+    origin_submission_id = Column(
+        Unicode(255).with_variant(
+            String(255, collation="utf8mb4_bin"), "mysql",
+        ),
+        unique=True,
+    )
     reservation_expires_at = Column(DateTime(timezone=False))
 
 
@@ -181,6 +187,14 @@ class PublishingMigrationStateModel(BASE):
     vector_count = Column(Integer, nullable=False)
     ddl_phase = Column(Unicode(32), nullable=False)
     captured_at = Column(DateTime(timezone=False), nullable=False)
+
+
+class SubmissionIdentityFenceModel(BASE):
+    """Singleton row serializing Submission identity creation and cleanup."""
+
+    __tablename__ = "submission_identity_fence"
+    name = Column(Unicode(32), primary_key=True)
+    generation = Column(BigInteger, nullable=False, default=0)
 
 
 class PublishingMigrationIssueModel(BASE):
@@ -327,7 +341,12 @@ class ResourceNode(BASE):
 
 class SubmissionModel(BASE):
     __tablename__ = "submissions"
-    id = Column(Unicode(255), primary_key=True)
+    id = Column(
+        Unicode(255).with_variant(
+            String(255, collation="utf8mb4_bin"), "mysql",
+        ),
+        primary_key=True,
+    )
     pdf_filename = Column(Unicode(255))
     pending_filename = Column(Unicode(255))
     title = Column(Unicode(255))
@@ -399,6 +418,16 @@ def _ensure_rag_version_row(engine, initial_value: int) -> None:
             )
 
 
+def _ensure_submission_identity_fence_row(engine) -> None:
+    table = SubmissionIdentityFenceModel.__table__
+    with engine.begin() as conn:
+        current = conn.execute(
+            select(table.c.generation).where(table.c.name == "global")
+        ).scalar_one_or_none()
+        if current is None:
+            conn.execute(table.insert().values(name="global", generation=0))
+
+
 def ensure_schema_current(engine) -> None:
     """Create a new schema or refuse any non-current existing schema."""
     user_tables = set(inspect(engine).get_table_names()) - {"alembic_version"}
@@ -406,6 +435,7 @@ def ensure_schema_current(engine) -> None:
     if not user_tables:
         BASE.metadata.create_all(engine)
         _ensure_rag_version_row(engine, initial_value=0)
+        _ensure_submission_identity_fence_row(engine)
         alembic_config = _alembic_config()
         with engine.begin() as conn:
             alembic_config.attributes["connection"] = conn
