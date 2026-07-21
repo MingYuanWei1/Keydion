@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 import unittest
 from datetime import timedelta
+from unittest import mock
 
 from sqlalchemy import event
 
@@ -525,6 +526,26 @@ class PublishingDeleteTests(PublishingLifecycleTestCase, unittest.TestCase):
             DeletionState.DELETED,
         )
 
+    def test_mysql_datetime_zero_roundtrip_keeps_delete_lease_authoritative(self):
+        published = self.publish()
+        self.now = self.now.replace(microsecond=654321)
+        self.storage.fail_delete_once = True
+        self.lifecycle.delete_paper(self.delete_intent(published))
+        lease = self.claim_delete_job(published.paper_id)
+        issued = lease.lease_expires_at
+        persisted = issued.replace(microsecond=0)
+        with self.session_factory() as session:
+            job = session.get(PublishingJobModel, lease.job_id)
+            job.lease_expires_at = persisted
+            session.commit()
+
+        progress = self.lifecycle._run_delete_job(lease)
+
+        self.assertEqual(issued.microsecond, 654321)
+        self.assertEqual(persisted.microsecond, 0)
+        self.assertEqual(progress.state, DeletionState.DELETED)
+        self.assertIsNone(self.paper_or_none(published.paper_id))
+
     def test_database_failure_after_storage_cleanup_is_retryable(self):
         published = self.publish()
         failing_factory = _CommitFailingFactory(self.session_factory, 2)
@@ -596,6 +617,50 @@ class PublishingDeleteTests(PublishingLifecycleTestCase, unittest.TestCase):
         self.assertEqual(self.paper_or_none(published.paper_id).lifecycle_state, "deleting")
         self.assertTrue(outside.exists())
         self.assertTrue(escaped.is_symlink())
+
+    def test_retained_file_appearing_during_uuid_unlink_preserves_retry_authority(self):
+        published = self.publish()
+        appeared = self.storage.papers_dir / "appeared-during-delete.pdf"
+        with self.session_factory() as session:
+            session.add(
+                PaperFilenameAliasModel(
+                    lookup_key=normalize_alias_key(appeared.name),
+                    filename=appeared.name,
+                    paper_id=published.paper_id,
+                    created_at=self.now,
+                )
+            )
+            session.commit()
+
+        real_unlink = self._raw_storage._unlink_if_matching
+        injected = False
+
+        def create_retained_file_during_revision_unlink(directory_fd, name, expected):
+            nonlocal injected
+            if not injected and name == "1.pdf":
+                appeared.write_bytes(b"new, unaudited flat bytes")
+                appeared.chmod(0o600)
+                injected = True
+            return real_unlink(directory_fd, name, expected)
+
+        with mock.patch.object(
+            self._raw_storage,
+            "_unlink_if_matching",
+            side_effect=create_retained_file_during_revision_unlink,
+        ):
+            progress = self.lifecycle.delete_paper(self.delete_intent(published))
+
+        self.assertTrue(injected)
+        self.assertEqual(progress.state, DeletionState.DELETING)
+        self.assertEqual(appeared.read_bytes(), b"new, unaudited flat bytes")
+        self.assertEqual(
+            self.paper_or_none(published.paper_id).lifecycle_state,
+            "deleting",
+        )
+        self.assertIsNotNone(self.alias(appeared.name))
+        jobs = self.jobs(published.paper_id)
+        self.assertEqual(len(jobs), 1)
+        self.assertEqual((jobs[0].kind, jobs[0].state), ("delete_paper", "pending"))
 
 
 if __name__ == "__main__":

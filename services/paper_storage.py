@@ -1648,11 +1648,21 @@ class PaperStorage:
                 os.rmdir(canonical, dir_fd=root_fd)
                 _fsync_directory_fd(root_fd)
             for filename, expected in legacy_entries.items():
-                if expected is not None and not self._unlink_if_matching(
-                    root_fd,
-                    filename,
-                    expected,
-                ):
+                try:
+                    current = os.stat(
+                        filename,
+                        dir_fd=root_fd,
+                        follow_symlinks=False,
+                    )
+                except FileNotFoundError:
+                    current = None
+                if expected is None:
+                    if current is not None:
+                        raise StorageError("legacy PDF appeared during deletion")
+                    continue
+                if current is None or not _same_inode(expected, current):
+                    raise StorageError("legacy PDF changed during deletion")
+                if not self._unlink_if_matching(root_fd, filename, expected):
                     raise StorageError("legacy PDF changed during deletion")
             _fsync_directory_fd(root_fd)
         except StorageError:

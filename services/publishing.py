@@ -2632,7 +2632,7 @@ class PublishingLifecycle:
             and job.state == "running"
             and job.attempts == lease.attempts
             and job.lease_token == lease.lease_token
-            and job.lease_expires_at == lease.lease_expires_at
+            and job.lease_expires_at is not None
             and paper.lifecycle_state == "deleting"
         )
 
@@ -2664,7 +2664,10 @@ class PublishingLifecycle:
                     .with_for_update()
                     .one_or_none()
                 )
-                if not self._delete_lease_matches(job, paper, lease):
+                if (
+                    not self._delete_lease_matches(job, paper, lease)
+                    or job.lease_expires_at <= self._clock()
+                ):
                     return DeletionProgress(lease.paper_id, DeletionState.DELETING)
                 job.state = "pending"
                 job.available_at = retry_at
