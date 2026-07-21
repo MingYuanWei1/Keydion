@@ -1480,6 +1480,96 @@ class SubmissionPublishingTests(PublishingLifecycleTestCase, unittest.TestCase):
             any("submission-trash:" + ("0" * 64) in candidate for candidate, _ in errors)
         )
 
+    def test_v2_inventory_isolates_surrogate_owner_and_cleans_later_safe_entry(self):
+        unsafe_entry_name = "0" * 64
+        unsafe_entry = self.storage.submission_trash_dir / unsafe_entry_name
+        unsafe_entry.mkdir(mode=0o700)
+        unsafe_owner = unsafe_entry / "owner.json"
+        unsafe_owner_bytes = (
+            b'{"original_name":"unsafe-surrogate.pdf",'
+            b'"submission_id":"\\ud800","version":2}\n'
+        )
+        unsafe_owner.write_bytes(unsafe_owner_bytes)
+        unsafe_owner.chmod(0o600)
+        unsafe_payload = unsafe_entry / "payload.pdf"
+        unsafe_payload_bytes = self.valid_pdf_bytes("unsafe-surrogate-owner")
+        unsafe_payload.write_bytes(unsafe_payload_bytes)
+        unsafe_payload.chmod(0o600)
+
+        safe_id = "z-safe-after-surrogate-owner"
+        safe_pending = self.storage.pending_dir / "safe-after-surrogate-owner.pdf"
+        safe_pending.write_bytes(self.valid_pdf_bytes(safe_id))
+        safe_pending.chmod(0o600)
+        self.storage.trash_submission_pending(safe_pending.name, safe_id)
+        safe_entry = self.lifecycle_trash_path(safe_id).parent
+        old = (self.now - timedelta(hours=2)).replace(tzinfo=timezone.utc).timestamp()
+        for path in (
+            unsafe_owner,
+            unsafe_payload,
+            unsafe_entry,
+            safe_entry / "owner.json",
+            safe_entry / "payload.pdf",
+            safe_entry,
+        ):
+            os.utime(path, (old, old))
+        self.replace_storage()
+        errors = []
+        failure = None
+
+        try:
+            reconciled = self.lifecycle.reconcile_submissions(
+                on_error=lambda candidate, error: errors.append(
+                    (candidate, str(error))
+                )
+            )
+        except Exception as exc:
+            failure = exc
+            reconciled = None
+
+        self.assertIsNone(failure, f"surrogate owner escaped inventory: {failure!r}")
+        self.assertEqual(reconciled, 1)
+        self.assertEqual(unsafe_owner.read_bytes(), unsafe_owner_bytes)
+        self.assertEqual(unsafe_payload.read_bytes(), unsafe_payload_bytes)
+        self.assertFalse(safe_entry.exists())
+        self.assertEqual(
+            errors,
+            [
+                (
+                    f"submission-trash:{unsafe_entry_name}",
+                    "Submission trash could not be audited",
+                )
+            ],
+        )
+
+    def test_v2_surrogate_owner_without_error_callback_remains_fail_closed(self):
+        unsafe_entry = self.storage.submission_trash_dir / ("1" * 64)
+        unsafe_entry.mkdir(mode=0o700)
+        unsafe_owner = unsafe_entry / "owner.json"
+        unsafe_owner_bytes = (
+            b'{"original_name":"unsafe-surrogate.pdf",'
+            b'"submission_id":"\\ud800","version":2}\n'
+        )
+        unsafe_owner.write_bytes(unsafe_owner_bytes)
+        unsafe_owner.chmod(0o600)
+        unsafe_payload = unsafe_entry / "payload.pdf"
+        unsafe_payload_bytes = self.valid_pdf_bytes("default-surrogate-fail-closed")
+        unsafe_payload.write_bytes(unsafe_payload_bytes)
+        unsafe_payload.chmod(0o600)
+        old = (self.now - timedelta(hours=2)).replace(tzinfo=timezone.utc).timestamp()
+        for path in (unsafe_owner, unsafe_payload, unsafe_entry):
+            os.utime(path, (old, old))
+        self.replace_storage()
+        failure = None
+
+        try:
+            self.lifecycle.reconcile_submissions()
+        except Exception as exc:
+            failure = exc
+
+        self.assertIsInstance(failure, StorageFailed)
+        self.assertEqual(unsafe_owner.read_bytes(), unsafe_owner_bytes)
+        self.assertEqual(unsafe_payload.read_bytes(), unsafe_payload_bytes)
+
     def test_legacy_inventory_isolates_unsafe_entry_and_cleans_later_safe_entry(self):
         unsafe = self.storage.trash_dir / "a-unsafe.pdf"
         unsafe_bytes = self.valid_pdf_bytes("unsafe-legacy-trash")

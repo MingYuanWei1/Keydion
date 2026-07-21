@@ -2296,6 +2296,12 @@ class PaperStorage:
                     raise error from exc
                 on_error(candidate, error)
                 continue
+            except Exception as exc:
+                error = StorageError("Submission trash could not be audited")
+                if on_error is None:
+                    raise error from exc
+                on_error(candidate, error)
+                continue
             if record is not None:
                 records.append(record)
         return tuple(sorted(records, key=lambda record: record.submission_id))
