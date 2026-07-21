@@ -18,6 +18,8 @@ from models import (
     PaperMetadataModel,
     PaperRevisionModel,
     PublishingJobModel,
+    PublishingMigrationIssueModel,
+    PublishingMigrationJournalModel,
     RagIndexMetaModel,
     SubmissionModel,
 )
@@ -38,6 +40,9 @@ from services.publishing_contracts import (
     CancelSubmission,
     DecisionConflict,
     DecisionRecorded,
+    DeletePaper,
+    DeletionProgress,
+    DeletionState,
     DirectPublish,
     EditMetadata,
     Forbidden,
@@ -343,6 +348,17 @@ class PublishingLifecycle:
             return _SubmissionDecision(
                 submission_id=submission.id,
                 accepted=False,
+                paper_id=None,
+                replayed=True,
+                indexing=None,
+            )
+        if submission.paper_id is None:
+            # A decided acceptance is permanent even after its Paper is hidden
+            # and deleted.  Exact decision key/hash validation above prevents a
+            # migrated unresolved acceptance from being mistaken for this replay.
+            return _SubmissionDecision(
+                submission_id=submission.id,
+                accepted=True,
                 paper_id=None,
                 replayed=True,
                 indexing=None,
@@ -1007,15 +1023,15 @@ class PublishingLifecycle:
             return False
         try:
             with self._session() as session:
-                job = (
-                    session.query(PublishingJobModel)
-                    .filter(PublishingJobModel.id == lease.job_id)
-                    .with_for_update()
-                    .one_or_none()
-                )
                 paper = (
                     session.query(PaperMetadataModel)
                     .filter(PaperMetadataModel.id == lease.paper_id)
+                    .with_for_update()
+                    .one_or_none()
+                )
+                job = (
+                    session.query(PublishingJobModel)
+                    .filter(PublishingJobModel.id == lease.job_id)
                     .with_for_update()
                     .one_or_none()
                 )
@@ -1065,15 +1081,15 @@ class PublishingLifecycle:
         redacted = self._redacted_index_error(error)
         try:
             with self._session() as session:
-                job = (
-                    session.query(PublishingJobModel)
-                    .filter(PublishingJobModel.id == lease.job_id)
-                    .with_for_update()
-                    .one_or_none()
-                )
                 paper = (
                     session.query(PaperMetadataModel)
                     .filter(PaperMetadataModel.id == lease.paper_id)
+                    .with_for_update()
+                    .one_or_none()
+                )
+                job = (
+                    session.query(PublishingJobModel)
+                    .filter(PublishingJobModel.id == lease.job_id)
                     .with_for_update()
                     .one_or_none()
                 )
@@ -2570,3 +2586,214 @@ class PublishingLifecycle:
             raise
         except Exception as exc:
             raise PersistenceFailed("could not update Papers in bulk") from exc
+
+    def _enqueue_delete_job(self, session, paper_id: str) -> JobLease:
+        now = self._clock()
+        lease_token = self._uuid_factory()
+        lease_expires_at = now + _REQUEST_LEASE_TTL
+        job = PublishingJobModel(
+            id=self._uuid_factory(),
+            kind="delete_paper",
+            paper_id=paper_id,
+            revision_number=0,
+            dedupe_key=f"delete:{paper_id}",
+            state="running",
+            attempts=1,
+            available_at=now,
+            lease_token=lease_token,
+            lease_expires_at=lease_expires_at,
+            last_error=None,
+            created_at=now,
+            updated_at=now,
+        )
+        session.add(job)
+        return JobLease(
+            job_id=job.id,
+            paper_id=paper_id,
+            revision=0,
+            kind="delete_paper",
+            attempts=1,
+            lease_token=lease_token,
+            lease_expires_at=lease_expires_at,
+            created_at=now,
+            previous_updated_at=now,
+        )
+
+    @staticmethod
+    def _delete_lease_matches(job, paper, lease: JobLease) -> bool:
+        return bool(
+            isinstance(lease, JobLease)
+            and job is not None
+            and paper is not None
+            and job.id == lease.job_id
+            and job.kind == lease.kind == "delete_paper"
+            and job.paper_id == paper.id == lease.paper_id
+            and job.revision_number == lease.revision == 0
+            and job.state == "running"
+            and job.attempts == lease.attempts
+            and job.lease_token == lease.lease_token
+            and job.lease_expires_at == lease.lease_expires_at
+            and paper.lifecycle_state == "deleting"
+        )
+
+    @staticmethod
+    def _redacted_delete_error(error: Exception) -> str:
+        return f"{type(error).__name__}: deletion cleanup failed"[:255]
+
+    def _release_delete_failure(
+        self,
+        lease: JobLease,
+        error: Exception,
+    ) -> DeletionProgress:
+        retry_at = self._clock() + _FIRST_RETRY_DELAY + timedelta(
+            seconds=max(0.0, min(1.0, float(self._jitter()))) * 30.0
+        )
+        try:
+            with self._session() as session:
+                paper = (
+                    session.query(PaperMetadataModel)
+                    .filter(PaperMetadataModel.id == lease.paper_id)
+                    .with_for_update()
+                    .one_or_none()
+                )
+                if paper is None:
+                    return DeletionProgress(lease.paper_id, DeletionState.DELETED)
+                job = (
+                    session.query(PublishingJobModel)
+                    .filter(PublishingJobModel.id == lease.job_id)
+                    .with_for_update()
+                    .one_or_none()
+                )
+                if not self._delete_lease_matches(job, paper, lease):
+                    return DeletionProgress(lease.paper_id, DeletionState.DELETING)
+                job.state = "pending"
+                job.available_at = retry_at
+                job.lease_token = None
+                job.lease_expires_at = None
+                job.last_error = self._redacted_delete_error(error)
+                job.updated_at = self._clock()
+                session.commit()
+        except Exception:
+            # A still-running durable lease becomes retryable when it expires.
+            pass
+        return DeletionProgress(lease.paper_id, DeletionState.DELETING)
+
+    def _run_delete_job(self, lease: JobLease) -> DeletionProgress:
+        """Run one exact deletion lease; stale leases never touch storage."""
+        try:
+            with self._session() as session:
+                paper = (
+                    session.query(PaperMetadataModel)
+                    .filter(PaperMetadataModel.id == lease.paper_id)
+                    .with_for_update()
+                    .one_or_none()
+                )
+                if paper is None:
+                    return DeletionProgress(lease.paper_id, DeletionState.DELETED)
+                job = (
+                    session.query(PublishingJobModel)
+                    .filter(PublishingJobModel.id == lease.job_id)
+                    .with_for_update()
+                    .one_or_none()
+                )
+                if (
+                    not self._delete_lease_matches(job, paper, lease)
+                    or job.lease_expires_at <= self._clock()
+                ):
+                    return DeletionProgress(lease.paper_id, DeletionState.DELETING)
+
+                aliases = (
+                    session.query(PaperFilenameAliasModel)
+                    .filter(PaperFilenameAliasModel.paper_id == paper.id)
+                    .order_by(PaperFilenameAliasModel.lookup_key)
+                    .with_for_update()
+                    .all()
+                )
+                retained_filenames = tuple(
+                    sorted({paper.filename, *(alias.filename for alias in aliases)})
+                )
+                self._storage.delete_paper(paper.id, retained_filenames)
+
+                session.query(PaperChunkModel).filter(
+                    PaperChunkModel.paper_id == paper.id
+                ).delete(synchronize_session=False)
+                session.query(PaperRevisionModel).filter(
+                    PaperRevisionModel.paper_id == paper.id
+                ).delete(synchronize_session=False)
+                session.query(PaperFilenameAliasModel).filter(
+                    PaperFilenameAliasModel.paper_id == paper.id
+                ).delete(synchronize_session=False)
+                session.query(PublishingMigrationJournalModel).filter(
+                    PublishingMigrationJournalModel.paper_id == paper.id
+                ).delete(synchronize_session=False)
+                session.query(PublishingMigrationIssueModel).filter(
+                    PublishingMigrationIssueModel.paper_id == paper.id
+                ).delete(synchronize_session=False)
+                session.query(PublishingJobModel).filter(
+                    PublishingJobModel.paper_id == paper.id
+                ).delete(synchronize_session=False)
+                self._bump_rag_version(session)
+                session.delete(paper)
+                session.commit()
+                return DeletionProgress(lease.paper_id, DeletionState.DELETED)
+        except Exception as exc:
+            return self._release_delete_failure(lease, exc)
+
+    def delete_paper(self, intent: DeletePaper) -> DeletionProgress:
+        """Hide a Paper transactionally, then attempt exact cleanup once."""
+        if not isinstance(intent, DeletePaper):
+            raise InvalidInput({"intent": "must be a DeletePaper record"})
+        self._validate_change_actor(intent.actor)
+        paper_id = self._change_target(
+            intent.paper_id,
+            intent.expected_row_version,
+        )
+        try:
+            with self._session() as session:
+                paper = (
+                    session.query(PaperMetadataModel)
+                    .filter(PaperMetadataModel.id == paper_id)
+                    .with_for_update()
+                    .one_or_none()
+                )
+                if paper is None or paper.lifecycle_state == "publishing":
+                    raise NotFound("Paper not found")
+                locked_jobs = (
+                    session.query(PublishingJobModel)
+                    .filter(PublishingJobModel.paper_id == paper_id)
+                    .order_by(PublishingJobModel.id)
+                    .with_for_update()
+                    .all()
+                )
+                if paper.lifecycle_state == "deleting":
+                    matching_jobs = [
+                        job
+                        for job in locked_jobs
+                        if job.kind == "delete_paper"
+                        and job.dedupe_key == f"delete:{paper.id}"
+                    ]
+                    job = matching_jobs[0] if len(matching_jobs) == 1 else None
+                    if job is None:
+                        raise PersistenceFailed("deleting Paper has no cleanup job")
+                    return DeletionProgress(paper.id, DeletionState.DELETING)
+                if paper.lifecycle_state != "published":
+                    raise NotFound("Paper not found")
+                if paper.row_version != intent.expected_row_version:
+                    raise StaleVersion(paper.row_version)
+
+                paper.lifecycle_state = "deleting"
+                paper.row_version += 1
+                session.query(SubmissionModel).filter(
+                    SubmissionModel.paper_id == paper.id
+                ).update({SubmissionModel.paper_id: None}, synchronize_session=False)
+                session.query(PublishingJobModel).filter(
+                    PublishingJobModel.paper_id == paper.id
+                ).delete(synchronize_session=False)
+                lease = self._enqueue_delete_job(session, paper.id)
+                self._bump_rag_version(session)
+                session.commit()
+        except (Forbidden, InvalidInput, NotFound, PersistenceFailed, StaleVersion):
+            raise
+        except Exception as exc:
+            raise PersistenceFailed("could not begin Paper deletion") from exc
+        return self._run_delete_job(lease)
