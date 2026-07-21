@@ -232,10 +232,19 @@ def _lib_full_text(filename: str) -> str:
         with db_session() as db:
             rows = (
                 db.query(PaperChunkModel)
+                .join(
+                    PaperMetadataModel,
+                    PaperMetadataModel.id == PaperChunkModel.paper_id,
+                )
                 .filter(
-                    PaperChunkModel.paper_id == document.paper.paper_id,
+                    PaperMetadataModel.id == document.paper.paper_id,
+                    PaperMetadataModel.lifecycle_state == "published",
+                    PaperMetadataModel.current_revision
+                    == document.paper.current_revision,
                     PaperChunkModel.revision_number
                     == document.paper.current_revision,
+                    PaperMetadataModel.current_revision
+                    == PaperChunkModel.revision_number,
                 )
                 .order_by(PaperChunkModel.chunk_index)
                 .all()

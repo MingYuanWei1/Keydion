@@ -10,6 +10,7 @@ back-compat re-exports.
 import os
 import types
 import unittest
+from contextlib import contextmanager
 from unittest import mock
 
 from flask import Flask
@@ -17,7 +18,9 @@ from flask import Flask
 os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
 import app as app_module
 import services.ai as ask_module
+from models import PaperChunkModel, PaperMetadataModel, PaperRevisionModel
 from services.publishing_contracts import NotFound
+from tests.publishing_support import PublishingLifecycleTestCase
 
 
 PAPER_A_ID = "00000000-0000-4000-8000-000000000801"
@@ -55,9 +58,12 @@ def _app_with_live_document(
 
 
 def _make_db_cm(rows):
-    """Build a mock context manager whose db.query(...).filter(...).order_by(...).all() returns rows."""
+    """Build the mock context manager for the current-visible chunk join."""
     fake_db = mock.MagicMock()
-    fake_db.query.return_value.filter.return_value.order_by.return_value.all.return_value = rows
+    (
+        fake_db.query.return_value.join.return_value.filter.return_value
+        .order_by.return_value.all.return_value
+    ) = rows
     cm = mock.MagicMock()
     cm.__enter__.return_value = fake_db
     cm.__exit__.return_value = False
@@ -157,7 +163,10 @@ class TestLibFullText(unittest.TestCase):
     def test_chunk_query_orders_by_chunk_index(self):
         chunk = types.SimpleNamespace(content="only chunk")
         fake_db = mock.MagicMock()
-        fake_db.query.return_value.filter.return_value.order_by.return_value.all.return_value = [chunk]
+        (
+            fake_db.query.return_value.join.return_value.filter.return_value
+            .order_by.return_value.all.return_value
+        ) = [chunk]
         cm = mock.MagicMock()
         cm.__enter__.return_value = fake_db
         cm.__exit__.return_value = False
@@ -166,11 +175,31 @@ class TestLibFullText(unittest.TestCase):
              mock.patch.object(ask_module, "db_session", return_value=cm), \
              mock.patch.object(ask_module, "_rag_paper_text"):
             app_module._lib_full_text("paper.pdf")
-        filters = fake_db.query.return_value.filter.call_args.args
+        join_args = fake_db.query.return_value.join.call_args.args
+        self.assertIs(join_args[0], app_module.PaperMetadataModel)
+        self.assertTrue(
+            join_args[1].compare(
+                app_module.PaperMetadataModel.id
+                == app_module.PaperChunkModel.paper_id,
+            )
+        )
+        filters = (
+            fake_db.query.return_value.join.return_value.filter.call_args.args
+        )
+        self.assertEqual(len(filters), 5)
         self.assertEqual(filters[0].right.value, PAPER_A_ID)
-        self.assertEqual(filters[1].right.value, 2)
-        fake_db.query.return_value.filter.return_value.order_by.assert_called_once_with(
-            app_module.PaperChunkModel.chunk_index
+        self.assertEqual(filters[1].right.value, "published")
+        self.assertEqual(filters[2].right.value, 2)
+        self.assertEqual(filters[3].right.value, 2)
+        self.assertTrue(
+            filters[4].compare(
+                app_module.PaperMetadataModel.current_revision
+                == app_module.PaperChunkModel.revision_number,
+            )
+        )
+        (
+            fake_db.query.return_value.join.return_value.filter.return_value
+            .order_by.assert_called_once_with(app_module.PaperChunkModel.chunk_index)
         )
 
     def test_db_error_returns_empty_string(self):
@@ -218,6 +247,130 @@ class TestLibFullText(unittest.TestCase):
         # Single chunk with None content — reassemble([""])
         self.assertEqual(result, app_module.rag_index.reassemble([""]))
         mock_fallback.assert_not_called()
+
+
+class TestLibFullTextVisibilityRace(PublishingLifecycleTestCase, unittest.TestCase):
+    """The chunk read must repeat visibility after current-PDF verification."""
+
+    paper_id = "00000000-0000-4000-8000-000000000806"
+
+    def setUp(self):
+        super().setUp()
+        with self.session_factory() as db:
+            db.add(
+                PaperMetadataModel(
+                    id=self.paper_id,
+                    filename="racing-paper.pdf",
+                    lifecycle_state="published",
+                    current_revision=1,
+                    row_version=1,
+                    index_status="ready",
+                )
+            )
+            db.commit()
+            db.add(
+                PaperRevisionModel(
+                    paper_id=self.paper_id,
+                    revision_number=1,
+                    sha256="a" * 64,
+                    size_bytes=100,
+                    created_at=self.now,
+                    created_by="contributor",
+                )
+            )
+            db.commit()
+            db.add(
+                PaperChunkModel(
+                    paper_id=self.paper_id,
+                    revision_number=1,
+                    chunk_index=0,
+                    content="stale indexed secret",
+                )
+            )
+            db.commit()
+
+    @contextmanager
+    def _db_session(self):
+        db = self.session_factory()
+        try:
+            yield db
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
+    def _read_after_verified_document_becomes_stale(self, mutate, fallback_text):
+        record = types.SimpleNamespace(
+            paper_id=self.paper_id,
+            current_revision=1,
+            filename="racing-paper.pdf",
+        )
+
+        class RacingLibrary:
+            def resolve_alias(inner_self, filename):
+                self.assertEqual(filename, record.filename)
+                return record
+
+            def current_pdf(inner_self, paper_id):
+                self.assertEqual(paper_id, record.paper_id)
+                document = types.SimpleNamespace(paper=record)
+                # The document was verified for revision 1. Change persistent
+                # visibility before _lib_full_text starts its chunk query.
+                mutate()
+                return document
+
+        app = _app_with_library(RacingLibrary())
+        with app.test_request_context(), mock.patch.object(
+            ask_module,
+            "db_session",
+            side_effect=self._db_session,
+        ), mock.patch.object(
+            ask_module,
+            "_rag_paper_text",
+            return_value=fallback_text,
+        ) as fallback:
+            result = app_module._lib_full_text(record.filename)
+
+        fallback.assert_called_once_with(record.filename)
+        self.assertEqual(result, fallback_text)
+
+    def test_revision_switch_after_verification_drops_old_revision_chunks(self):
+        with self.session_factory() as db:
+            db.add(
+                PaperRevisionModel(
+                    paper_id=self.paper_id,
+                    revision_number=2,
+                    sha256="b" * 64,
+                    size_bytes=200,
+                    created_at=self.now,
+                    created_by="contributor",
+                )
+            )
+            db.commit()
+
+        def switch_revision():
+            with self.session_factory() as db:
+                paper = db.get(PaperMetadataModel, self.paper_id)
+                paper.current_revision = 2
+                paper.row_version += 1
+                db.commit()
+
+        self._read_after_verified_document_becomes_stale(
+            switch_revision,
+            "fresh revision text",
+        )
+
+    def test_deleting_state_after_verification_drops_hidden_chunks(self):
+        def begin_deleting():
+            with self.session_factory() as db:
+                paper = db.get(PaperMetadataModel, self.paper_id)
+                paper.lifecycle_state = "deleting"
+                paper.row_version += 1
+                db.commit()
+
+        self._read_after_verified_document_becomes_stale(begin_deleting, "")
 
 
 class TestLibSearch(unittest.TestCase):
