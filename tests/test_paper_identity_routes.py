@@ -877,6 +877,49 @@ class AskCitationAvailabilityRouteTest(unittest.TestCase):
             ["Attachment content", "Current content"],
         )
 
+    def test_ask_retrieval_failure_log_omits_provider_exception_details(self):
+        sentinel = "SENTINEL_ASK_PROVIDER_SECRET_DO_NOT_LOG"
+
+        with mock.patch("routes.ai.OPEN_ACCESS", True), mock.patch(
+            "routes.ai.llm_client.llm_enabled",
+            return_value=True,
+        ), mock.patch(
+            "routes.ai._ask_rate_ok",
+            return_value=True,
+        ), mock.patch(
+            "routes.ai._attachment_grounding",
+            return_value=[],
+        ), mock.patch(
+            "routes.ai.rag_index.retrieve",
+            side_effect=RuntimeError(sentinel),
+        ), mock.patch(
+            "routes.ai.get_locale",
+            return_value="en",
+        ), mock.patch(
+            "routes.ai._attachment_filenames",
+            return_value=[],
+        ), mock.patch(
+            "routes.ai.web_search.web_search_enabled",
+            return_value=False,
+        ), mock.patch(
+            "routes.ai.llm_client.build_client",
+            return_value=self._client_answering_with_two_citations(),
+        ), self.assertLogs(self.app.logger, level="ERROR") as logs:
+            response = self.client.post(
+                "/api/ai",
+                json={"question": "What is current?", "mode": "flash"},
+            )
+            body = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('"type": "done"', body)
+        self.assertEqual(
+            [record.getMessage() for record in logs.records],
+            ["Ask library retrieval failed"],
+        )
+        self.assertTrue(all(record.exc_info is None for record in logs.records))
+        self.assertNotIn(sentinel, "\n".join(logs.output))
+
 
 class AcceptedSubmissionLinkTest(unittest.TestCase):
     def setUp(self):

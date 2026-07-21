@@ -126,6 +126,34 @@ class TestLibFullText(unittest.TestCase):
             result = app_module._lib_full_text("paper.pdf")
         self.assertEqual(result, "")
 
+    def test_fallback_failure_log_omits_provider_exception_details(self):
+        sentinel = "SENTINEL_OCR_PROVIDER_SECRET_DO_NOT_LOG"
+        cm = _make_db_cm([])
+        app, _library = _app_with_live_document()
+
+        with app.test_request_context(), mock.patch.object(
+            ask_module,
+            "db_session",
+            return_value=cm,
+        ), mock.patch.object(
+            ask_module,
+            "_rag_paper_text",
+            side_effect=RuntimeError(sentinel),
+        ), mock.patch.object(
+            ask_module.logger,
+            "disabled",
+            False,
+        ), self.assertLogs(ask_module.logger, level="ERROR") as logs:
+            result = app_module._lib_full_text("paper.pdf")
+
+        self.assertEqual(result, "")
+        self.assertEqual(
+            [record.getMessage() for record in logs.records],
+            ["library full-text OCR fallback failed"],
+        )
+        self.assertTrue(all(record.exc_info is None for record in logs.records))
+        self.assertNotIn(sentinel, "\n".join(logs.output))
+
     def test_chunk_query_orders_by_chunk_index(self):
         chunk = types.SimpleNamespace(content="only chunk")
         fake_db = mock.MagicMock()
@@ -154,6 +182,30 @@ class TestLibFullText(unittest.TestCase):
              mock.patch.object(ask_module.logger, "exception"):
             result = app_module._lib_full_text("paper.pdf")
         self.assertEqual(result, "")
+
+    def test_outer_full_text_failure_log_omits_exception_details(self):
+        sentinel = "SENTINEL_LIBRARY_PROVIDER_SECRET_DO_NOT_LOG"
+        library = mock.Mock()
+        library.resolve_alias.side_effect = RuntimeError(sentinel)
+        app = _app_with_library(library)
+
+        with app.test_request_context(), mock.patch.object(
+            ask_module.logger,
+            "disabled",
+            False,
+        ), self.assertLogs(
+            ask_module.logger,
+            level="ERROR",
+        ) as logs:
+            result = app_module._lib_full_text("paper.pdf")
+
+        self.assertEqual(result, "")
+        self.assertEqual(
+            [record.getMessage() for record in logs.records],
+            ["library full-text retrieval failed"],
+        )
+        self.assertTrue(all(record.exc_info is None for record in logs.records))
+        self.assertNotIn(sentinel, "\n".join(logs.output))
 
     def test_none_content_treated_as_empty_string(self):
         chunk = types.SimpleNamespace(content=None)
@@ -229,6 +281,28 @@ class TestLibSearch(unittest.TestCase):
              mock.patch.object(ask_module.logger, "exception"):
             results = app_module._lib_search("q")
         self.assertEqual(results, [])
+
+    def test_retrieve_error_log_omits_provider_exception_details(self):
+        sentinel = "SENTINEL_SEARCH_PROVIDER_SECRET_DO_NOT_LOG"
+
+        with mock.patch.object(
+            ask_module.rag_index,
+            "retrieve",
+            side_effect=RuntimeError(sentinel),
+        ), mock.patch.object(
+            ask_module.logger,
+            "disabled",
+            False,
+        ), self.assertLogs(ask_module.logger, level="ERROR") as logs:
+            results = app_module._lib_search("secret-bearing query")
+
+        self.assertEqual(results, [])
+        self.assertEqual(
+            [record.getMessage() for record in logs.records],
+            ["library search retrieval failed"],
+        )
+        self.assertTrue(all(record.exc_info is None for record in logs.records))
+        self.assertNotIn(sentinel, "\n".join(logs.output))
 
     def test_drops_unavailable_and_unresolved_hits_while_preserving_rank(self):
         hits = [

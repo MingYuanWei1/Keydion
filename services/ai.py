@@ -247,10 +247,10 @@ def _lib_full_text(filename: str) -> str:
         try:
             return _rag_paper_text(document.paper.filename)
         except Exception:
-            logger.exception("_lib_full_text fallback failed for %s", filename)
+            logger.error("library full-text OCR fallback failed")
             return ""
     except Exception:
-        logger.exception("_lib_full_text failed for %s", filename)
+        logger.error("library full-text retrieval failed")
         return ""
 
 
@@ -306,7 +306,7 @@ def _lib_search(query: str) -> list:
             for h in hits
         ]
     except Exception:
-        logger.exception("_lib_search failed for query: %s", query)
+        logger.error("library search retrieval failed")
         return []
 
 

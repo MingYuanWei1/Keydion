@@ -411,7 +411,7 @@ def register_routes(app):
                 app.extensions["paper_library"],
             )[:6]
         except Exception:
-            app.logger.exception("retrieval failed")
+            app.logger.error("Ask library retrieval failed")
             hits = []
 
         model = llm_client.think_model() if mode == "think" else llm_client.flash_model()
