@@ -54,4 +54,4 @@ if [[ -z "${PY_BIN}" ]]; then
   fi
 fi
 
-exec "${PY_BIN}" -m gunicorn -c gunicorn.conf.py 'app:create_app()'
+exec "${PY_BIN}" -m gunicorn -c gunicorn.conf.py 'app:app'

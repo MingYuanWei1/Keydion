@@ -20,8 +20,27 @@ from flask_babel import lazy_gettext as _l  # noqa: E402  (ROLE_OPTIONS etc. use
 # --- constants moved verbatim from app.py below this line ---
 
 BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = Path(os.environ.get("PAPERQUERY_DATA_DIR", BASE_DIR / "data")).resolve()
-PAPERS_DIR = Path(os.environ.get("PAPERQUERY_UPLOAD_DIR", BASE_DIR / "papers")).resolve()
+
+
+def _absolute_configured_path(value: str | os.PathLike[str]) -> Path:
+    """Make configured paths absolute without hiding a symlink from validation."""
+    return Path(os.path.abspath(os.fspath(value)))
+
+
+def _configured_path_value(name: str, default: Path) -> str | Path:
+    """Treat documented blank path overrides as requests for their defaults."""
+    configured = os.environ.get(name)
+    if configured is None or not configured.strip():
+        return default
+    return configured
+
+
+DATA_DIR = Path(
+    _configured_path_value("PAPERQUERY_DATA_DIR", BASE_DIR / "data")
+).resolve()
+PAPERS_DIR = _absolute_configured_path(
+    _configured_path_value("PAPERQUERY_UPLOAD_DIR", BASE_DIR / "papers")
+)
 LOCAL_USER_FIELDS = ["username", "password", "registration_date", "expiry_date", "role", "email", "first_name", "last_name", "school"]
 NEWS_FIELDS = ["id", "title", "category", "abstract", "body", "author", "image_url", "published_at", "status"]
 GUIDE_FIELDS = [
@@ -224,7 +243,9 @@ ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 NEWS_IMAGES_DIR = BASE_DIR / "static" / "uploads" / "news"
 GUIDE_IMAGES_DIR = BASE_DIR / "static" / "uploads" / "guides"
 GUIDE_IMAGE_MAX_BYTES = 5 * 1024 * 1024  # 5 MB
-RESOURCES_DIR = Path(os.environ.get("PAPERQUERY_RESOURCES_DIR", BASE_DIR / "resource_files")).resolve()
+RESOURCES_DIR = Path(
+    _configured_path_value("PAPERQUERY_RESOURCES_DIR", BASE_DIR / "resource_files")
+).resolve()
 # Resource library upload allowlist: extension -> MIME type.
 RESOURCE_ALLOWED_EXTENSIONS = {
     "pdf": "application/pdf",

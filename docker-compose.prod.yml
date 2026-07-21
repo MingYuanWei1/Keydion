@@ -7,7 +7,7 @@ services:
       - .env.prod
     environment:
       GUNICORN_BIND: "unix:/var/run/keydion/keydion.sock"
-    command: ["gunicorn", "-c", "gunicorn.conf.py", "app:create_app()"]
+    command: ["gunicorn", "-c", "gunicorn.conf.py", "app:app"]
     volumes:
       - keydion-socket:/var/run/keydion
       - ./papers:/app/papers

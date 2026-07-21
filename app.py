@@ -29,7 +29,7 @@ import web_search  # noqa: F401  -- tests patch app_module.web_search.web_search
 from config import (  # noqa: F401
     BASE_DIR, DATA_DIR, PAPERS_DIR, LOCAL_USER_FIELDS, NEWS_FIELDS, GUIDE_FIELDS,
     GUIDE_CATEGORIES_JSON, _DEFAULT_GUIDE_CATEGORIES, _DEFAULT_NEWS_CATEGORIES,
-    CATEGORIES_JSON, JOURNALS_JSON, _DEFAULT_PAPER_CATEGORIES, PENDING_PAPERS_DIR,
+    CATEGORIES_JSON, JOURNALS_JSON, _DEFAULT_PAPER_CATEGORIES,
     _EE_SUBJECTS_PATH, _EE_SUBJECTS_DEFAULT, JOURNAL_COVERS_DIR, ALLOWED_EXTENSIONS,
     ALLOWED_IMAGE_EXTENSIONS, NEWS_IMAGES_DIR, GUIDE_IMAGES_DIR, GUIDE_IMAGE_MAX_BYTES,
     RESOURCES_DIR, RESOURCE_ALLOWED_EXTENSIONS, PREVIEWABLE_MIMES, RESOURCE_MAX_BYTES,
@@ -191,11 +191,13 @@ def create_app() -> Flask:
         return resp
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    PAPERS_DIR.mkdir(parents=True, exist_ok=True)
-    PENDING_PAPERS_DIR.mkdir(parents=True, exist_ok=True)
     RESOURCES_DIR.mkdir(parents=True, exist_ok=True)
     init_db()
     configure_rag()
+    from services import publishing_wiring
+    app.extensions["publishing_lifecycle"] = (
+        publishing_wiring.build_publishing_lifecycle()
+    )
     babel.init_app(app, locale_selector=select_locale)
 
     from flask_wtf import CSRFProtect

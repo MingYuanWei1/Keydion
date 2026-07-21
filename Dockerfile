@@ -31,4 +31,4 @@ RUN mkdir -p /app/papers /app/data /app/static/uploads/news /app/static/uploads/
 
 EXPOSE 4000
 
-CMD ["gunicorn", "-c", "gunicorn.conf.py", "app:create_app()"]
+CMD ["gunicorn", "-c", "gunicorn.conf.py", "app:app"]
