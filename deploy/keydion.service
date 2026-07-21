@@ -1,0 +1,26 @@
+[Unit]
+Description=Keydion web service (gunicorn)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=keydion
+Group=keydion
+WorkingDirectory=/Keydion
+EnvironmentFile=/Keydion/.env.prod
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/Keydion/.venv/bin/python -m gunicorn -c /Keydion/gunicorn.conf.py app:app
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=60
+UMask=0027
+ReadWritePaths=/Keydion/papers /Keydion/data /Keydion/data/pending_papers /Keydion/resource_files /Keydion/static/uploads
+LogsDirectory=keydion
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

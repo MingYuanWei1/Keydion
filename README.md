@@ -14,7 +14,7 @@ Keydion is a robust, scholarly-focused web application for managing, searching, 
 ## Prerequisites
 
 - **Python 3.11+**
-- **MySQL 8.0+**
+- **MySQL 9.x** (CI pins the official `mysql:9.7.1` image)
 - **Tesseract OCR** (optional) — enables local text extraction from *scanned* PDFs (chat attachments, the abstract/keyword generator, and the papers index). Install the engine plus the Chinese language data:
   - Debian/Ubuntu: `apt-get install -y tesseract-ocr tesseract-ocr-chi-sim`
   - macOS: `brew install tesseract tesseract-lang`
@@ -25,8 +25,9 @@ Keydion is a robust, scholarly-focused web application for managing, searching, 
 
 Keydion reaches MySQL through the `PAPERQUERY_DATABASE_URL` connection string in
 your `.env` / `.env.prod`. You must create the **database** (and, typically, a
-dedicated user) before first start — the application creates and migrates all
-**tables** automatically, but it does not create the database itself.
+dedicated user) before deployment. Runtime startup validates that the database
+is already at the expected Alembic revision; it does not upgrade a non-empty
+schema or create the database itself.
 
 Connect as a MySQL admin (`mysql -u root -p`) and run:
 
@@ -45,13 +46,12 @@ Then point your `.env` at it (keep the `?charset=utf8mb4` query string):
 PAPERQUERY_DATABASE_URL="mysql+pymysql://keydion:change-me@127.0.0.1:3306/keydion?charset=utf8mb4"
 ```
 
-On first start the app connects, creates every table, and runs its idempotent
-`ALTER TABLE` migrations — there is no separate schema or migration step.
-
-> **MySQL version & RAG:** semantic search and "Ask the Library" store
-> embeddings in a binary `VECTOR` column that **requires MySQL 9.x**. On MySQL
-> 8.x the app still runs — the `VECTOR` migration is silently skipped — but the
-> RAG / semantic features stay disabled until you move to 9.x.
+For an existing installation, follow the coordinated
+[Paper publishing migration runbook](docs/deployment/paper-publishing-migration.md)
+before starting the new release. It owns preflight, backup, baseline stamping,
+Alembic upgrade, validation, smoke tests, and rollback. Semantic search and
+"Ask the Library" use MySQL 9.x binary `VECTOR` columns; unsupported MySQL or
+schema shapes fail validation instead of silently degrading the migration.
 
 ## Production Deployment (gunicorn under systemd, host nginx)
 
@@ -59,9 +59,10 @@ Production runs gunicorn directly under systemd, with the host's nginx as
 the reverse proxy. The Flask development server (and its Werkzeug debugger)
 must **never** be exposed publicly.
 
-`run_prod.sh` sources `.env.prod` and execs gunicorn with the config in
-`gunicorn.conf.py`. nginx serves `/static/*` directly from disk; PDF
-download routes (`/papers/*`) proxy through to Flask so auth checks run.
+The tracked web unit loads `/Keydion/.env.prod` and starts Gunicorn from the
+shared `/Keydion/.venv`; the publishing worker has its own independently
+enabled unit. nginx serves `/static/*` directly from disk; PDF download routes
+(`/papers/*`) proxy through to Flask so auth checks run.
 
 1. Create a `.env.prod` (gitignored) in the repo root by copying
    [`.env.example`](.env.example) and filling in the values. Use a strong
@@ -91,33 +92,33 @@ download routes (`/papers/*`) proxy through to Flask so auth checks run.
    TLS is out of scope here — terminate HTTPS in nginx itself (certbot) or
    an upstream load balancer.
 
-4. Install the systemd unit at `/etc/systemd/system/keydion.service`:
+4. Verify the host uses the `keydion` account, `/Keydion`,
+   `/Keydion/.env.prod`, and `/Keydion/.venv`, then install both tracked units:
 
-   ```ini
-   [Unit]
-   Description=Keydion (gunicorn)
-   After=network.target
-
-   [Service]
-   User=<owner of the repo>
-   WorkingDirectory=/Keydion
-   ExecStart=/Keydion/run_prod.sh
-   ExecReload=/bin/kill -HUP $MAINPID
-   Restart=on-failure
-   KillSignal=SIGTERM
-   TimeoutStopSec=30
-
-   [Install]
-   WantedBy=multi-user.target
+   ```bash
+   sudo cp deploy/keydion.service /etc/systemd/system/keydion.service
+   sudo cp deploy/keydion-publishing-worker.service \
+     /etc/systemd/system/keydion-publishing-worker.service
+   sudo systemctl daemon-reload
+   sudo systemd-analyze verify /etc/systemd/system/keydion.service \
+     /etc/systemd/system/keydion-publishing-worker.service
    ```
 
-5. Enable and start the service:
+   The web and worker use the same environment and Paper/pending storage. The
+   worker is a separate process; Gunicorn never starts it from `post_fork`.
+
+5. Enable and start the worker and web units independently:
 
    ```bash
    sudo systemctl daemon-reload
+   sudo systemctl enable --now keydion-publishing-worker
    sudo systemctl enable --now keydion
+   sudo systemctl status keydion-publishing-worker --no-pager
    sudo systemctl status keydion --no-pager
    ```
+
+   Existing databases must complete the linked migration runbook before either
+   unit starts on the new release.
 
 ### Updating the server after `git pull`
 
@@ -125,10 +126,10 @@ Match the command to what actually changed:
 
 | Change | Command |
 |---|---|
-| Python code (`app.py`, templates, etc.) | `sudo systemctl reload keydion` |
-| `requirements.txt` (new/upgraded packages) | `.venv/bin/pip install -r requirements.txt && sudo systemctl restart keydion` |
-| `gunicorn.conf.py` or `.env.prod` | `sudo systemctl restart keydion` |
-| `run_prod.sh` or the systemd unit itself | `sudo systemctl daemon-reload && sudo systemctl restart keydion` |
+| Python code (`app.py`, templates, worker/services) | `sudo systemctl restart keydion-publishing-worker && sudo systemctl reload keydion` |
+| `requirements.txt` (new/upgraded packages) | `.venv/bin/pip install -r requirements.txt && sudo systemctl restart keydion-publishing-worker keydion` |
+| `gunicorn.conf.py` or `.env.prod` | `sudo systemctl restart keydion-publishing-worker keydion` |
+| Either tracked systemd unit | `sudo systemctl daemon-reload && sudo systemctl restart keydion-publishing-worker keydion` |
 | `.po` translation source files | `.venv/bin/python tools/compile_translations.py && sudo systemctl reload keydion` |
 | Anything under `static/` | nothing — nginx serves it directly from disk |
 | `nginx` config | `sudo nginx -t && sudo systemctl reload nginx` |
@@ -140,20 +141,28 @@ dropped connections.
 Quick post-deploy check:
 
 ```bash
+sudo systemctl status keydion-publishing-worker --no-pager
 sudo systemctl status keydion --no-pager      # active (running)
+sudo journalctl -u keydion-publishing-worker -n 30 --no-pager
 sudo journalctl -u keydion -n 30 --no-pager   # look for fresh "Booting worker"
+sudo -u keydion /Keydion/.venv/bin/python -m tools.publishing_worker --status
 curl -sI https://www.keydion.com/ | head -5   # 200/302, Server: nginx
 ```
 
 If the journal shows a traceback instead of fresh worker boots, the new
 code failed to import — fix on disk and reload again.
 
-## Docker Deployment
+## Docker reference stack
 
-An alternative to the host gunicorn/systemd setup above: `docker-compose.prod.yml`
-runs the app as two containers — `web` (gunicorn) and `nginx` (reverse proxy on
-port 80). Both build the bundled [`Dockerfile`](Dockerfile) (Python 3.11 +
-Tesseract), so the OCR engine and Chinese language data come baked in.
+`docker-compose.prod.yml` is **not authoritative for production**. Production
+operations, migration, worker supervision, and rollback use the tracked host
+systemd units and the migration runbook. The unchanged Compose file runs only
+`web` (Gunicorn) and `nginx`; it does not run the required independent
+publishing worker.
+
+For an explicitly non-production reference environment, the stack builds the
+bundled [`Dockerfile`](Dockerfile) (Python 3.11 + Tesseract), so the OCR engine
+and Chinese language data come baked in.
 
 > **MySQL is not bundled.** The prod compose expects an **external MySQL 9.x**
 > (see the `VECTOR` note under [Database Setup](#database-setup)). Point

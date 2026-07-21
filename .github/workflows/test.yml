@@ -1,0 +1,96 @@
+name: Test
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  fast:
+    name: Fast contracts (Python 3.11)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: python3 -m pip install -r requirements.txt
+      - name: Run deployment, Alembic runtime, and legacy migration contracts
+        run: >-
+          python3 -m unittest
+          tests/test_publishing_deployment_contract.py
+          tests/test_alembic_runtime.py
+          tests/test_publishing_migration.py
+          -v
+      - name: Verify the single Alembic head
+        run: python3 -m alembic heads
+
+  mysql:
+    name: MySQL 9.7.1 (Python 3.11)
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:9.7.1
+        env:
+          MYSQL_ROOT_PASSWORD: test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -ptest --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    env:
+      PAPERQUERY_TEST_MYSQL_ADMIN_URL: mysql+pymysql://root:test@127.0.0.1:3306/?charset=utf8mb4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: python3 -m pip install -r requirements.txt
+      - name: Run Alembic runtime and legacy migration tests in isolation
+        run: >-
+          python3 tools/run_isolated_tests.py
+          tests/test_alembic_runtime.py
+          tests/test_publishing_migration.py
+          -v
+      - name: Run real-MySQL migration and concurrency tests in isolation
+        run: >-
+          python3 tools/run_isolated_tests.py
+          tests/test_publishing_migration_mysql.py
+          tests/test_publishing_mysql_concurrency.py
+          -v
+      - name: Run the focused publishing suite in isolation
+        run: >-
+          python3 tools/run_isolated_tests.py
+          tests/test_publishing_contracts.py
+          tests/test_publishing_models.py
+          tests/test_alembic_runtime.py
+          tests/test_publishing_migration.py
+          tests/test_paper_storage.py
+          tests/test_publishing_publish.py
+          tests/test_publishing_submissions.py
+          tests/test_publishing_revisions.py
+          tests/test_publishing_delete.py
+          tests/test_publishing_jobs.py
+          tests/test_publishing_worker.py
+          tests/test_rag_revision_identity.py
+          tests/test_publishing_http.py
+          tests/test_paper_library.py
+          tests/test_paper_identity_routes.py
+          tests/test_publishing_mutation_routes.py
+          tests/test_publishing_revision_ui.py
+          tests/test_publishing_legacy_writers.py
+          tests/test_paper_id_consumers.py
+          tests/test_publishing_i18n.py
+          tests/test_publishing_deployment_contract.py
+          -v
+      - name: Run the full unittest suite in isolation
+        run: >-
+          python3 tools/run_isolated_tests.py discover -s tests -p "test_*.py" -v

@@ -10,6 +10,14 @@ This is a glossary of terms whose meaning is specific to Keydion and easy to get
 The decisions and state changes through which a work is published directly or from an accepted Submission, revised over time, and eventually deleted. It includes Submission review when a Submission exists.
 _Avoid_: Upload flow (upload is only one entry point), Submission lifecycle (directly published Papers have no Submission).
 
+**Publishing worker**:
+The independently operated background participant that completes durable Paper indexing and deletion work after a web request has committed the lifecycle decision. Its availability can lag without changing whether the Paper was published or deleted.
+_Avoid_: Gunicorn worker (web request processes do not own this durable work), indexing thread (the work survives one process).
+
+**Publishing migration**:
+A coordinated maintenance event that assigns stable identities and revision storage to legacy Papers while treating the database, published PDFs, and pending Submission PDFs as one recoverable state. Normal application startup only validates the resulting schema; it does not perform this event.
+_Avoid_: Startup migration (maintenance is explicit and offline), database migration (filesystem state is part of the same boundary).
+
 **Paper**:
 A work available in Keydion's library, either published directly by a Contributor or created when a Curator accepts a Submission. Its lifecycle is distinct from any Submission that produced it, and changes to its title or authors do not create a new Paper.
 
