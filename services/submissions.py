@@ -104,6 +104,7 @@ def _delete_submission(
     expected_status=None,
     pending_cleanup=None,
 ):
+    pending_filename = ""
     with db_session() as db:
         lock_submission_creation_fence(db)
         submission = (
@@ -125,10 +126,28 @@ def _delete_submission(
             )
         ):
             return False
-        if pending_cleanup is not None:
-            pending_cleanup(submission.pending_filename or "")
+        pending_filename = submission.pending_filename or ""
         db.delete(submission)
+
+    if pending_cleanup is None:
         return True
+
+    # The row deletion is durable before any irreversible file unlink.  Fence
+    # the no-row check and cleanup as a second transaction so a same-ID writer
+    # either wins in the gap (and protects its namespace) or waits until the
+    # old pending object has been removed.
+    with db_session() as db:
+        lock_submission_creation_fence(db)
+        replacement = (
+            db.query(SubmissionModel)
+            .filter(SubmissionModel.id == sub_id)
+            .with_for_update()
+            .one_or_none()
+        )
+        if replacement is not None and replacement.id == sub_id:
+            return True
+        pending_cleanup(pending_filename)
+    return True
 
 
 def _get_submission(sub_id):

@@ -22,6 +22,7 @@ from services.publishing_contracts import (
     DecisionConflict,
     Forbidden,
     IndexingState,
+    InvalidInput,
     NormalizedPaperMetadata,
     NotFound,
     PdfUpload,
@@ -177,11 +178,13 @@ class SubmissionPublishingTests(PublishingLifecycleTestCase, unittest.TestCase):
         *,
         actor_id="curator",
         role=3,
+        key="reject-key",
         comment="revise methods",
     ):
         return RejectSubmission(
             actor=Actor(actor_id, role),
             submission_id=submission_id,
+            idempotency_key=key,
             feedback=comment,
         )
 
@@ -289,9 +292,10 @@ class SubmissionPublishingTests(PublishingLifecycleTestCase, unittest.TestCase):
         self.assertTrue((self.storage.pending_dir / self.pending_name()).exists())
         self.assertEqual(self.papers(), [])
 
-    def test_rejection_replay_with_different_comment_or_reviewer_conflicts(self):
+    def test_rejection_replay_with_different_token_comment_or_reviewer_conflicts(self):
         self.lifecycle.review_submission(self.reject_intent())
         for changed in (
+            self.reject_intent(key="different-key"),
             self.reject_intent(comment="different"),
             self.reject_intent(actor_id="other-curator"),
         ):
@@ -327,6 +331,14 @@ class SubmissionPublishingTests(PublishingLifecycleTestCase, unittest.TestCase):
             with self.assertRaises(Forbidden):
                 self.lifecycle.review_submission(self.reject_intent(role=2))
         stage.assert_not_called()
+        self.assertEqual(self.submission().status, "pending")
+
+    def test_rejection_requires_normalized_caller_idempotency_key(self):
+        for invalid_key in ("", " spaced", "trailing ", "x" * 256, 42):
+            with self.subTest(invalid_key=invalid_key), self.assertRaises(InvalidInput):
+                self.lifecycle.review_submission(
+                    self.reject_intent(key=invalid_key)
+                )
         self.assertEqual(self.submission().status, "pending")
 
     def test_reader_can_cancel_only_own_pending_submission(self):
@@ -1435,6 +1447,56 @@ class SubmissionPublishingTests(PublishingLifecycleTestCase, unittest.TestCase):
             self.submission().pending_filename,
             "replacement-after-delete.pdf",
         )
+
+    def test_legacy_delete_skips_cleanup_when_same_id_reappears_between_phases(self):
+        from services.submissions import _delete_submission
+
+        original = self.storage.pending_dir / self.pending_name()
+        replacement_name = "replacement-between-delete-phases.pdf"
+        phases = 0
+
+        @contextmanager
+        def db_session_with_replacement():
+            nonlocal phases
+            phases += 1
+            phase = phases
+            session = self.session_factory()
+            try:
+                yield session
+                session.commit()
+            except Exception:
+                session.rollback()
+                raise
+            finally:
+                session.close()
+            if phase == 1:
+                with self.session_factory() as replacement_session:
+                    replacement_session.add(
+                        SubmissionModel(
+                            id="submission-1",
+                            pending_filename=replacement_name,
+                            status="pending",
+                            submitted_by="replacement-reader",
+                        )
+                    )
+                    replacement_session.commit()
+
+        cleanup = mock.Mock()
+        with mock.patch(
+            "services.submissions.db_session",
+            side_effect=db_session_with_replacement,
+        ):
+            deleted = _delete_submission(
+                "submission-1",
+                expected_submitter="reader",
+                pending_cleanup=cleanup,
+            )
+
+        self.assertTrue(deleted)
+        self.assertEqual(phases, 2)
+        cleanup.assert_not_called()
+        self.assertTrue(original.exists())
+        self.assertEqual(self.submission().pending_filename, replacement_name)
 
     def test_reconciliation_restores_trash_referenced_by_surviving_pending_row(self):
         self.storage.trash_pending(self.pending_name(), "submission-1")

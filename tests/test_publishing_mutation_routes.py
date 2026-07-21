@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 import tempfile
 import unittest
+from contextlib import contextmanager
 from pathlib import Path
 from unittest import mock
 
@@ -14,6 +15,8 @@ from flask_wtf.csrf import CSRFProtect
 
 from routes.upload import register_routes as register_upload_routes
 from routes.submissions import register_routes as register_submission_routes
+from models import SubmissionModel
+from services import submissions as submission_service
 from services.publishing_contracts import (
     Actor,
     AcceptSubmission,
@@ -27,6 +30,7 @@ from services.publishing_contracts import (
     RejectSubmission,
     SubmissionCancelled,
 )
+from tests.publishing_support import PublishingLifecycleTestCase
 
 
 class RecordingLifecycle:
@@ -70,6 +74,21 @@ class RecordingLifecycle:
                 IndexingOutcome(self.review_indexing_state) if accepted else None
             ),
         )
+
+
+class DelegatingReviewLifecycle:
+    """Record real lifecycle outcomes while preserving the production behavior."""
+
+    def __init__(self, lifecycle):
+        self.lifecycle = lifecycle
+        self.intents = []
+        self.outcomes = []
+
+    def review_submission(self, intent):
+        self.intents.append(intent)
+        outcome = self.lifecycle.review_submission(intent)
+        self.outcomes.append(outcome)
+        return outcome
 
 
 class DirectPublicationRouteTest(unittest.TestCase):
@@ -423,12 +442,78 @@ class SubmissionCancellationRouteTest(unittest.TestCase):
             self.lifecycle.reviewed,
             [
                 RejectSubmission(
-                    Actor("curator@example.test", 3),
-                    "submission-review",
-                    "Needs revision.",
+                    actor=Actor("curator@example.test", 3),
+                    submission_id="submission-review",
+                    idempotency_key="decision-request-2",
+                    feedback="Needs revision.",
                 )
             ],
         )
+
+    def test_decided_review_detail_prunes_obsolete_cookie_key(self):
+        user = {"username": "curator@example.test", "role": "3"}
+        rejected = {
+            **self._pending_submission(),
+            "status": "rejected",
+            "decision_idempotency_key": "persisted-decision",
+        }
+        with self.client.session_transaction() as flask_session:
+            flask_session["user"] = dict(user)
+            flask_session["publishing_decision_keys"] = {
+                "submission-review": "obsolete-cookie-key",
+                "another-submission": "keep-me",
+            }
+        captured = {}
+        with mock.patch(
+            "routes.submissions.require_login", return_value=user
+        ), mock.patch(
+            "routes.submissions._get_submission", return_value=rejected
+        ), mock.patch(
+            "routes.submissions.render_template",
+            side_effect=lambda _template, **context: captured.update(context) or "review",
+        ):
+            response = self.client.get("/dashboard/review/submission-review")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(captured["decision_idempotency_key"], "")
+        with self.client.session_transaction() as flask_session:
+            self.assertEqual(
+                flask_session["publishing_decision_keys"],
+                {"another-submission": "keep-me"},
+            )
+
+    def test_pending_review_detail_reuses_durable_decision_key(self):
+        user = {"username": "curator@example.test", "role": "3"}
+        pending = {
+            **self._pending_submission(),
+            "decision_idempotency_key": "durable-reservation-key",
+        }
+        with self.client.session_transaction() as flask_session:
+            flask_session["user"] = dict(user)
+            flask_session["publishing_decision_keys"] = {
+                "submission-review": "stale-cookie-key",
+            }
+        captured = {}
+        with mock.patch(
+            "routes.submissions.require_login", return_value=user
+        ), mock.patch(
+            "routes.submissions._get_submission", return_value=pending
+        ), mock.patch(
+            "routes.submissions.render_template",
+            side_effect=lambda _template, **context: captured.update(context) or "review",
+        ):
+            response = self.client.get("/dashboard/review/submission-review")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            captured["decision_idempotency_key"],
+            "durable-reservation-key",
+        )
+        with self.client.session_transaction() as flask_session:
+            self.assertEqual(
+                flask_session["publishing_decision_keys"]["submission-review"],
+                "durable-reservation-key",
+            )
 
     def test_accept_failed_index_uses_exact_success_warning(self):
         self.lifecycle.review_indexing_state = IndexingState.FAILED
@@ -609,6 +694,208 @@ class MutationCsrfTest(unittest.TestCase):
         self.assertEqual(lifecycle.published, [])
         self.assertEqual(lifecycle.reviewed, [])
         self.assertEqual(lifecycle.cancelled, [])
+
+
+class SubmissionDecisionReplayRouteTest(
+    PublishingLifecycleTestCase,
+    unittest.TestCase,
+):
+    """Exercise Flask retry mapping against the real publishing lifecycle."""
+
+    def setUp(self):
+        super().setUp()
+        self.app = Flask(__name__)
+        self.app.testing = True
+        self.app.secret_key = "task-14-decision-replay"
+        Babel(self.app)
+
+        @self.app.get("/login")
+        def login():
+            return "login"
+
+        @self.app.get("/dashboard")
+        def dashboard():
+            return "dashboard"
+
+        register_submission_routes(self.app)
+        self.recording_lifecycle = DelegatingReviewLifecycle(self.lifecycle)
+        self.app.extensions["publishing_lifecycle"] = self.recording_lifecycle
+        self.client = self.app.test_client()
+        self.curator = {"username": "curator@example.test", "role": "3"}
+        with self.client.session_transaction() as flask_session:
+            flask_session["user"] = dict(self.curator)
+
+        self.require_login = mock.patch(
+            "routes.submissions.require_login", return_value=self.curator
+        )
+        self.lookup = mock.patch.object(
+            submission_service,
+            "db_session",
+            side_effect=self._real_db_session,
+        )
+        self.today = mock.patch(
+            "routes.submissions._utc_today", return_value="2026-07-21"
+        )
+        self.require_login.start()
+        self.lookup.start()
+        self.today.start()
+        self.addCleanup(self.require_login.stop)
+        self.addCleanup(self.lookup.stop)
+        self.addCleanup(self.today.stop)
+
+    @contextmanager
+    def _real_db_session(self):
+        session = self.session_factory()
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def _seed_submission(self, submission_id):
+        pending_filename = f"pending-{submission_id}.pdf"
+        (self.storage.pending_dir / pending_filename).write_bytes(
+            self.valid_pdf_bytes(submission_id)
+        )
+        with self.session_factory() as session:
+            session.add(
+                SubmissionModel(
+                    id=submission_id,
+                    pdf_filename=f"{submission_id}.pdf",
+                    pending_filename=pending_filename,
+                    title="Reviewed Paper",
+                    author_name="Reader",
+                    author_email="reader@example.test",
+                    author_school="Example School",
+                    status="pending",
+                    submitted_at="2026-07-21",
+                    abstract="Review abstract",
+                    keywords="review",
+                    journal="",
+                    category="science",
+                    language="en",
+                    submitted_by="reader@example.test",
+                    original_filename="original.pdf",
+                    ib_ee_data="",
+                    is_ib_sample="",
+                    is_anonymous="",
+                    cp_data="",
+                    ia_data="",
+                    submitter_name="Reader",
+                )
+            )
+            session.commit()
+
+    def _last_flash(self):
+        with self.client.session_transaction() as flask_session:
+            return flask_session["_flashes"][-1]
+
+    def test_lost_accept_response_retries_through_lifecycle_and_conflicts_stay_strict(self):
+        submission_id = "route-accept-replay"
+        self._seed_submission(submission_id)
+        form = {"decision_idempotency_key": "accept-form-token"}
+
+        first = self.client.post(
+            f"/dashboard/review/{submission_id}/accept", data=form
+        )
+        replay = self.client.post(
+            f"/dashboard/review/{submission_id}/accept", data=form
+        )
+
+        self.assertEqual((first.status_code, replay.status_code), (302, 302))
+        self.assertEqual(
+            [outcome.replayed for outcome in self.recording_lifecycle.outcomes],
+            [False, True],
+        )
+        self.assertEqual(self._last_flash(), ("success", "Paper accepted and published."))
+        with self.session_factory() as session:
+            row = session.get(SubmissionModel, submission_id)
+            self.assertEqual(row.decision_idempotency_key, "accept-form-token")
+
+        different_token = self.client.post(
+            f"/dashboard/review/{submission_id}/accept",
+            data={"decision_idempotency_key": "different-accept-token"},
+        )
+        different_decision = self.client.post(
+            f"/dashboard/review/{submission_id}/reject",
+            data={
+                "decision_idempotency_key": "accept-form-token",
+                "comment": "No longer accept.",
+            },
+        )
+        self.assertEqual(
+            (different_token.status_code, different_decision.status_code),
+            (303, 303),
+        )
+
+    def test_lost_reject_response_retries_exact_form_intent_and_conflicts_stay_strict(self):
+        submission_id = "route-reject-replay"
+        self._seed_submission(submission_id)
+        form = {
+            "decision_idempotency_key": "reject-form-token",
+            "comment": "Needs revision.",
+        }
+
+        first = self.client.post(
+            f"/dashboard/review/{submission_id}/reject", data=form
+        )
+        replay = self.client.post(
+            f"/dashboard/review/{submission_id}/reject", data=form
+        )
+
+        self.assertEqual((first.status_code, replay.status_code), (302, 302))
+        self.assertEqual(
+            [outcome.replayed for outcome in self.recording_lifecycle.outcomes],
+            [False, True],
+        )
+        self.assertEqual(self._last_flash(), ("info", "Paper rejected."))
+        first_intent = self.recording_lifecycle.intents[0]
+        self.assertEqual(
+            (
+                first_intent.idempotency_key,
+                first_intent.feedback,
+                first_intent.actor,
+            ),
+            (
+                "reject-form-token",
+                "Needs revision.",
+                Actor("curator@example.test", 3),
+            ),
+        )
+        with self.session_factory() as session:
+            row = session.get(SubmissionModel, submission_id)
+            self.assertEqual(row.decision_idempotency_key, "reject-form-token")
+
+        different_token = self.client.post(
+            f"/dashboard/review/{submission_id}/reject",
+            data={
+                "decision_idempotency_key": "different-reject-token",
+                "comment": "Needs revision.",
+            },
+        )
+        different_comment = self.client.post(
+            f"/dashboard/review/{submission_id}/reject",
+            data={
+                "decision_idempotency_key": "reject-form-token",
+                "comment": "Different feedback.",
+            },
+        )
+        different_decision = self.client.post(
+            f"/dashboard/review/{submission_id}/accept",
+            data={"decision_idempotency_key": "reject-form-token"},
+        )
+        self.assertEqual(
+            (
+                different_token.status_code,
+                different_comment.status_code,
+                different_decision.status_code,
+            ),
+            (303, 303, 303),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

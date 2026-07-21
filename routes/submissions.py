@@ -59,7 +59,10 @@ def register_routes(app):
     def clear_decision_key(sub_id):
         keys = dict(session.get("publishing_decision_keys", {}))
         keys.pop(sub_id, None)
-        session["publishing_decision_keys"] = keys
+        if keys:
+            session["publishing_decision_keys"] = keys
+        else:
+            session.pop("publishing_decision_keys", None)
 
     # ---- Submission review routes ----
 
@@ -115,8 +118,8 @@ def register_routes(app):
             if pending_path is not None:
                 pending_path.unlink()
 
-        # Authorization, exact row identity, and file cleanup all happen while
-        # the shared creation fence and row lock exclude same-ID replacement.
+        # The targeted delete commits before file cleanup. A second creation
+        # fence protects the no-replacement check and irreversible unlink.
         if not _delete_submission(
             sub_id,
             expected_submitter=username,
@@ -220,10 +223,14 @@ def register_routes(app):
         if not sub:
             flash(_("Submission not found."), "warning")
             return redirect(url_for("review_list"))
-        decision_idempotency_key = stable_decision_key(
-            sub_id,
-            sub.get("decision_idempotency_key") or "",
-        )
+        if sub.get("status") == "pending":
+            decision_idempotency_key = stable_decision_key(
+                sub_id,
+                sub.get("decision_idempotency_key") or "",
+            )
+        else:
+            clear_decision_key(sub_id)
+            decision_idempotency_key = ""
         pdf_url = url_for("pending_paper_file", filename=sub.get("pending_filename", ""))
         return render_template(
             "review_paper.html",
@@ -239,7 +246,7 @@ def register_routes(app):
         if not user:
             return redirect(url_for("login"))
         sub = _get_submission(sub_id)
-        if not sub or sub.get("status") != "pending":
+        if not sub:
             flash(_("Submission not found or already reviewed."), "warning")
             return redirect(url_for("review_list"))
 
@@ -254,7 +261,9 @@ def register_routes(app):
             submission_id=sub_id,
             idempotency_key=stable_decision_key(
                 sub_id,
-                request.form.get("decision_idempotency_key", "").strip(),
+                request.form.get("decision_idempotency_key", "").strip()
+                or sub.get("decision_idempotency_key")
+                or "",
             ),
             metadata=NormalizedPaperMetadata(
                 filename=filename,
@@ -304,13 +313,19 @@ def register_routes(app):
         if not user:
             return redirect(url_for("login"))
         sub = _get_submission(sub_id)
-        if not sub or sub.get("status") != "pending":
+        if not sub:
             flash(_("Submission not found or already reviewed."), "warning")
             return redirect(url_for("review_list"))
 
         intent = RejectSubmission(
             actor=actor_from_session(),
             submission_id=sub_id,
+            idempotency_key=stable_decision_key(
+                sub_id,
+                request.form.get("decision_idempotency_key", "").strip()
+                or sub.get("decision_idempotency_key")
+                or "",
+            ),
             feedback=request.form.get("comment", "").strip(),
         )
         try:

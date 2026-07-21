@@ -71,11 +71,11 @@ class PaperManageTemplateContract(unittest.TestCase):
         html = _render(SAMPLE, [])
         self.assertIn("/dashboard/admin/papers/bulk", html)
 
-    def test_bulk_delete_distinguishes_deleted_and_deleting_toasts(self):
+    def test_bulk_delete_formats_all_outcome_groups(self):
         html = _render(SAMPLE, [])
-        self.assertIn("deleting_count", html)
-        self.assertIn("if (deletedCount > 0)", html)
-        self.assertIn("if (deletingCount > 0)", html)
+        self.assertIn("KeydionPaperBulkResults.formatDeleteResult", html)
+        self.assertIn("changed while deleting", html)
+        self.assertIn("were not found", html)
 
 
 class PaperManageRouteContract(unittest.TestCase):

@@ -65,6 +65,7 @@ from services.publishing_contracts import (
     DeletionState,
     EditMetadata,
     BulkEditMetadata,
+    IndexingState,
     InvalidInput,
     LifecycleError,
     MetadataPatch,
@@ -936,7 +937,7 @@ def register_routes(app):
                     ),
                 )
             try:
-                lifecycle_from_app().change_paper(intent)
+                outcome = lifecycle_from_app().change_paper(intent)
             except LifecycleError as error:
                 return lifecycle_error_response(
                     error,
@@ -950,7 +951,16 @@ def register_routes(app):
                     ),
                 )
             if replacement and replacement.filename:
-                flash(_("Paper PDF revised."), "success")
+                if (
+                    outcome.indexing
+                    and outcome.indexing.state is IndexingState.FAILED
+                ):
+                    flash(
+                        _("Paper PDF revised, but RAG indexing failed."),
+                        "warning",
+                    )
+                else:
+                    flash(_("Paper PDF revised."), "success")
             else:
                 flash(_("Paper information updated."), "success")
             return redirect(url_for(return_endpoint))
@@ -1081,7 +1091,7 @@ def register_routes(app):
                 redirect_endpoint=return_endpoint,
             )
         try:
-            lifecycle_from_app().change_paper(
+            outcome = lifecycle_from_app().change_paper(
                 RestoreRevision(
                     actor=actor_from_session(),
                     paper_id=str(paper_id),
@@ -1094,7 +1104,13 @@ def register_routes(app):
                 error,
                 redirect_endpoint=return_endpoint,
             )
-        flash(_("Paper revision restored."), "success")
+        if outcome.indexing and outcome.indexing.state is IndexingState.FAILED:
+            flash(
+                _("Paper revision restored, but RAG indexing failed."),
+                "warning",
+            )
+        else:
+            flash(_("Paper revision restored."), "success")
         return redirect(url_for(return_endpoint))
 
     @app.route("/preview/<path:filename>")

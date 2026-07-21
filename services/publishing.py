@@ -285,6 +285,15 @@ class PublishingLifecycle:
             raise InvalidInput({"intent": "must be a Submission review record"})
         self._validate_submission_actor(intent.actor, role=3)
         self._validate_submission_id(intent.submission_id)
+        if (
+            not isinstance(intent.idempotency_key, str)
+            or not intent.idempotency_key
+            or intent.idempotency_key != intent.idempotency_key.strip()
+            or len(intent.idempotency_key) > 255
+        ):
+            raise InvalidInput(
+                {"idempotency_key": "must be between 1 and 255 characters"}
+            )
         if not isinstance(intent.feedback, str):
             raise InvalidInput({"comment": "must be a string"})
 
@@ -313,11 +322,6 @@ class PublishingLifecycle:
             separators=(",", ":"),
         ).encode("utf-8")
         return hashlib.sha256(canonical).hexdigest()
-
-    @staticmethod
-    def _rejection_key(submission_id: str, reviewer: str) -> str:
-        canonical = f"{submission_id}\x00{reviewer}".encode("utf-8")
-        return f"reject:{hashlib.sha256(canonical).hexdigest()}"
 
     @staticmethod
     def _metadata_matches(paper, metadata: NormalizedPaperMetadata) -> bool:
@@ -1706,7 +1710,7 @@ class PublishingLifecycle:
     def _review_rejection(self, intent: RejectSubmission) -> _SubmissionDecision:
         self._validate_rejection(intent)
         comment = intent.feedback
-        decision_key = self._rejection_key(intent.submission_id, intent.actor.user_id)
+        decision_key = intent.idempotency_key
         payload_hash = self._decision_payload_hash(
             intent.submission_id,
             "rejected",

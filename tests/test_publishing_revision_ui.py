@@ -22,6 +22,8 @@ from services.publishing_contracts import (
     BulkPapersChanged,
     BulkEditMetadata,
     InvalidInput,
+    IndexingOutcome,
+    IndexingState,
     PaperChanged,
     NotFound,
     RestoreRevision,
@@ -40,12 +42,19 @@ class RecordingLifecycle:
         self.bulk_changes = []
         self.delete_state = DeletionState.DELETED
         self.change_error = None
+        self.change_indexing = None
 
     def change_paper(self, intent):
         self.changes.append(intent)
         if self.change_error is not None:
             raise self.change_error
-        return PaperChanged(PAPER_ID, "paper.pdf", 2, 8)
+        return PaperChanged(
+            PAPER_ID,
+            "paper.pdf",
+            2,
+            8,
+            indexing=self.change_indexing,
+        )
 
     def delete_paper(self, intent):
         self.deletions.append(intent)
@@ -186,6 +195,46 @@ class PaperMutationRouteTest(unittest.TestCase):
         self.assertIsInstance(self.lifecycle.changes[0], RevisePdf)
         self.assertEqual(self.lifecycle.changes[0].expected_row_version, 7)
 
+    def test_uuid_replacement_index_failure_uses_exact_success_warning(self):
+        self.lifecycle.change_indexing = IndexingOutcome(IndexingState.FAILED)
+        form = self._unchanged_metadata_form()
+        form["replacement_pdf"] = (
+            io.BytesIO(b"%PDF-1.4\nreplacement\n%%EOF\n"),
+            "replacement.pdf",
+        )
+        with self._route_patches() as patched:
+            patched["require_login"].return_value = self.user
+            patched["_current_paper_pdf"].return_value = self.document
+            response = self.client.post(
+                f"/dashboard/paper/{PAPER_ID}/modify",
+                data=form,
+                content_type="multipart/form-data",
+            )
+
+        self.assertEqual(response.status_code, 302)
+        with self.client.session_transaction() as flask_session:
+            self.assertEqual(
+                flask_session["_flashes"][-1],
+                ("warning", "Paper PDF revised, but RAG indexing failed."),
+            )
+
+    def test_metadata_edit_keeps_normal_success_when_change_outcome_has_indexing(self):
+        self.lifecycle.change_indexing = IndexingOutcome(IndexingState.FAILED)
+        with self._route_patches() as patched:
+            patched["require_login"].return_value = self.user
+            patched["_current_paper_pdf"].return_value = self.document
+            response = self.client.post(
+                f"/dashboard/paper/{PAPER_ID}/modify",
+                data=self._metadata_form(),
+            )
+
+        self.assertEqual(response.status_code, 302)
+        with self.client.session_transaction() as flask_session:
+            self.assertEqual(
+                flask_session["_flashes"][-1],
+                ("success", "Paper information updated."),
+            )
+
     def test_uuid_replacement_rejects_simultaneous_metadata_edits(self):
         form = self._metadata_form()
         form["replacement_pdf"] = (
@@ -276,6 +325,21 @@ class PaperMutationRouteTest(unittest.TestCase):
             self.lifecycle.deletions,
             [DeletePaper(Actor("contributor@example.test", 2), PAPER_ID, 8)],
         )
+
+    def test_uuid_restore_index_failure_uses_exact_success_warning(self):
+        self.lifecycle.change_indexing = IndexingOutcome(IndexingState.FAILED)
+        with mock.patch("routes.papers.require_login", return_value=self.user):
+            response = self.client.post(
+                f"/dashboard/paper/{PAPER_ID}/restore/1",
+                data={"row_version": "7"},
+            )
+
+        self.assertEqual(response.status_code, 302)
+        with self.client.session_transaction() as flask_session:
+            self.assertEqual(
+                flask_session["_flashes"][-1],
+                ("warning", "Paper revision restored, but RAG indexing failed."),
+            )
 
     def test_legacy_management_redirects_preserve_method_contract(self):
         with mock.patch(

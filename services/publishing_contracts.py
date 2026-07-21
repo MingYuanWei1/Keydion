@@ -129,6 +129,7 @@ class AcceptSubmission:
 class RejectSubmission:
     actor: Actor
     submission_id: str
+    idempotency_key: str
     feedback: str = ""
 
 

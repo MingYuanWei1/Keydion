@@ -397,6 +397,55 @@ class ReaderIntakePersistenceTest(PublishingLifecycleTestCase, unittest.TestCase
             [],
         )
 
+    def test_draft_delete_commit_failure_preserves_row_and_pending_file(self):
+        pending_filename = "draft-commit-failure.pdf"
+        pending_path = self.storage.pending_dir / pending_filename
+        pending_path.write_bytes(self.valid_pdf_bytes("draft-commit-failure"))
+        with self.session_factory() as session:
+            session.add(
+                SubmissionModel(
+                    id="draft-commit-failure",
+                    pending_filename=pending_filename,
+                    status="draft",
+                    submitted_by=self.reader["username"],
+                )
+            )
+            session.commit()
+
+        @contextmanager
+        def failing_delete_commit():
+            session = self.session_factory()
+            try:
+                yield session
+                session.flush()
+                raise RuntimeError("injected delete commit failure")
+            except Exception:
+                session.rollback()
+                raise
+            finally:
+                session.close()
+
+        cleanup = mock.Mock(side_effect=lambda _filename: pending_path.unlink())
+        with mock.patch.object(
+            submission_service,
+            "db_session",
+            side_effect=failing_delete_commit,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "delete commit failure"):
+                submission_service._delete_submission(
+                    "draft-commit-failure",
+                    expected_submitter=self.reader["username"],
+                    expected_status="draft",
+                    pending_cleanup=cleanup,
+                )
+
+        cleanup.assert_not_called()
+        self.assertTrue(pending_path.is_file())
+        with self.session_factory() as session:
+            self.assertIsNotNone(
+                session.get(SubmissionModel, "draft-commit-failure")
+            )
+
 
 class AtomicMetadataBatchRouteTest(unittest.TestCase):
     def setUp(self):

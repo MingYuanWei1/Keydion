@@ -454,6 +454,7 @@
   </div>
 </div>
 
+<script src="{{ url_for('static', filename='js/paper-bulk-result-format.js') }}"></script>
 <script>
 (function () {
   /* === Bulk endpoint === */
@@ -731,16 +732,21 @@
         })
         .then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
         .then(function (d) {
-          var deletedCount = (d && d.count != null) ? d.count : 0;
-          var deletingCount = (d && d.deleting_count != null) ? d.deleting_count : 0;
-          var messages = [];
-          if (deletedCount > 0) {
-            messages.push("{{ _('Deleted') }} " + deletedCount + " " + (deletedCount === 1 ? "{{ _('paper') }}" : "{{ _('papers') }}") + " {{ _('successfully') }}");
-          }
-          if (deletingCount > 0) {
-            messages.push("{{ _('Deletion in progress for') }} " + deletingCount + " " + (deletingCount === 1 ? "{{ _('paper') }}" : "{{ _('papers') }}"));
-          }
-          if (messages.length > 0) queueToast(messages.join(" · "));
+          var message = window.KeydionPaperBulkResults.formatDeleteResult(d, {
+            deleted: function (count) {
+              return "{{ _('Deleted') }} " + count + " " + (count === 1 ? "{{ _('paper') }}" : "{{ _('papers') }}") + " {{ _('successfully') }}";
+            },
+            deleting: function (count) {
+              return "{{ _('Deletion in progress for') }} " + count + " " + (count === 1 ? "{{ _('paper') }}" : "{{ _('papers') }}");
+            },
+            stale: function (count) {
+              return count + " " + (count === 1 ? "{{ _('paper') }}" : "{{ _('papers') }}") + " {{ _('changed while deleting; reload and try again') }}";
+            },
+            notFound: function (count) {
+              return count + " " + (count === 1 ? "{{ _('paper was not found') }}" : "{{ _('papers were not found') }}");
+            }
+          });
+          if (message) queueToast(message);
           location.reload();
         })
         .catch(function () { alert("{{ _('Could not delete papers. Please reload and try again.') }}"); });
