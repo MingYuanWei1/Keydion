@@ -25,12 +25,22 @@
 
   <div class="wizard-steps" id="wizardStepper"></div>
 
+  {% if publishing_error %}
+  <div class="alert alert-danger" role="alert">
+    <div>{{ publishing_error.message }}</div>
+    {% for field, message in publishing_error.get('field_errors', {}).items() %}
+    <div><strong>{{ field }}</strong>: {{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
   <div id="wizardSteps"></div>
 
   <div class="wizard-footer" id="wizardFooter"></div>
 
   <form id="uploadForm" method="post" action="{{ wizard_boot.submit_url }}" enctype="multipart/form-data" style="display:none;">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="publishing_idempotency_key" value="{{ form_data.publishing_idempotency_key }}">
     <input type="file" name="paper" id="uploadFormFile" accept="application/pdf,.pdf">
     {% if wizard_boot.draft_id %}
     <input type="hidden" name="draft_id" value="{{ wizard_boot.draft_id }}">
@@ -40,5 +50,6 @@
 </div>
 
 <script>window.WIZARD_BOOT = {{ wizard_boot | tojson }};</script>
+<script src="{{ url_for('static', filename='js/upload-error-format.js') }}"></script>
 <script src="{{ url_for('static', filename='js/upload-wizard.js') }}"></script>
 {% endblock %}

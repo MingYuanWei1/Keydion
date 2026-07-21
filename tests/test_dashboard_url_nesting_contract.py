@@ -21,8 +21,8 @@ MOVED_ROUTES = {
 
     # Task 5: collection management
     "paper_manage":                    ("/dashboard/admin/papers",                    "/admin/papers"),
-    "paper_modify":                    ("/dashboard/paper/<path:filename>/modify",    "/paper/<path:filename>/modify"),
-    "paper_delete":                    ("/dashboard/paper/<path:filename>/delete",    None),
+    "paper_modify":                    ("/dashboard/paper/<uuid:paper_id>/modify",    "/paper/<path:filename>/modify"),
+    "paper_delete":                    ("/dashboard/paper/<uuid:paper_id>/delete",    None),
     "ee_subjects_manage":              ("/dashboard/admin/ee-subjects",               "/admin/categories"),
     "admin_paper_categories_add":      ("/dashboard/admin/paper-categories/add",      None),
     "admin_paper_categories_rename":   ("/dashboard/admin/paper-categories/rename",   None),
@@ -79,6 +79,11 @@ MOVED_ROUTES = {
     # Task 9: account
     "change_password":                 ("/dashboard/account/change-password",         "/account/change-password"),
 }
+
+# Filename-based paper management aliases deliberately authenticate before
+# resolving the alias. Their canonical dashboard redirect is exercised with an
+# authenticated actor in test_publishing_revision_ui.
+AUTH_FIRST_LEGACY_ENDPOINTS = {"paper_modify"}
 
 
 def _build_app():
@@ -143,6 +148,12 @@ class DashboardUrlNestingContractTest(unittest.TestCase):
             # Verify the redirect target is the /dashboard/* sibling, not e.g.
             # the login wall (302 to /login passes status-only checks vacuously).
             location = resp.headers.get("Location", "")
+            if endpoint in AUTH_FIRST_LEGACY_ENDPOINTS:
+                if location != "/login":
+                    skipped.append(
+                        f"{old_path} -> Location {location!r} does not enforce login first"
+                    )
+                continue
             if "/dashboard" not in location:
                 skipped.append(f"{old_path} -> Location {location!r} does not contain /dashboard")
         self.assertEqual(skipped, [], "Legacy routes didn't redirect:\n" + "\n".join(skipped))

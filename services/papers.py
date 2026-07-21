@@ -1,5 +1,6 @@
 """Papers: metadata, records, EE/CP form data, PDF utilities, categories."""
 import json
+import os
 from dataclasses import asdict
 from io import BytesIO
 from pathlib import Path
@@ -28,18 +29,23 @@ from db import db_session
 from models import PaperMetadataModel
 
 
+def _atomic_json_write(path: Path, payload) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{uuid4().hex}.tmp")
+    try:
+        with temporary.open("w", encoding="utf-8") as handle:
+            json.dump(payload, handle, ensure_ascii=False, indent=2)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 def load_paper_metadata() -> List[Dict[str, str]]:
     with db_session() as db:
         papers = db.query(PaperMetadataModel).all()
         return [{field: (getattr(p, field) or "") for field in METADATA_FIELDS} for p in papers]
-
-
-def save_paper_metadata(rows: List[Dict[str, str]]) -> None:
-    with db_session() as db:
-        db.query(PaperMetadataModel).delete()
-        for r in rows:
-            db.add(PaperMetadataModel(**{field: r.get(field, "") for field in METADATA_FIELDS}))
-        db.commit()
 
 
 def build_paper_record(filename: str, metadata_index: Optional[Dict[str, Dict[str, str]]] = None) -> Dict[str, str]:
@@ -67,34 +73,6 @@ def gather_paper_records(library) -> List[Dict[str, str]]:
     return records
 
 
-def upsert_paper_metadata(filename: str, data: Dict[str, str]) -> None:
-    rows = load_paper_metadata()
-    updated = False
-    for row in rows:
-        if row.get("filename") == filename:
-            for field in METADATA_FIELDS:
-                if field == "filename":
-                    continue
-                row[field] = data.get(field, row.get(field, ""))
-            updated = True
-            break
-    if not updated:
-        new_row = {field: "" for field in METADATA_FIELDS}
-        new_row["filename"] = filename
-        for field in METADATA_FIELDS:
-            if field != "filename":
-                new_row[field] = data.get(field, "")
-        rows.append(new_row)
-    save_paper_metadata(rows)
-
-
-def remove_paper_metadata(filename: str) -> None:
-    rows = load_paper_metadata()
-    filtered = [row for row in rows if row.get("filename") != filename]
-    if len(filtered) != len(rows):
-        save_paper_metadata(filtered)
-
-
 def load_paper_categories() -> list:
     """Load paper subject categories from JSON."""
     path = DATA_DIR / "paper_categories.json"
@@ -109,8 +87,7 @@ def load_paper_categories() -> list:
 
 def save_paper_categories(cats: list) -> None:
     path = DATA_DIR / "paper_categories.json"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(cats, ensure_ascii=False, indent=2), encoding="utf-8")
+    _atomic_json_write(path, cats)
 
 
 def load_ee_subjects() -> dict:
@@ -126,8 +103,7 @@ def load_ee_subjects() -> dict:
 
 def save_ee_subjects(data: dict) -> None:
     """Save IB EE subject groups to JSON."""
-    _EE_SUBJECTS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    _EE_SUBJECTS_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    _atomic_json_write(_EE_SUBJECTS_PATH, data)
 
 
 def _get_ee_subjects_list() -> list:
@@ -214,38 +190,6 @@ def count_papers_using_ee_subject(name: str) -> int:
     return count
 
 
-def rename_ee_subject_in_papers(old: str, new: str) -> int:
-    """Rewrite core/interdisciplinary subject == old to new across papers.
-
-    Returns the number of papers changed; saves once if anything changed.
-    """
-    if old == new:
-        return 0
-    rows = load_paper_metadata()
-    changed = 0
-    for row in rows:
-        raw = row.get("ib_ee_data", "")
-        if not raw:
-            continue
-        try:
-            ib = json.loads(raw)
-        except (json.JSONDecodeError, TypeError):
-            continue
-        touched = False
-        if ib.get("core_subject") == old:
-            ib["core_subject"] = new
-            touched = True
-        if ib.get("interdisciplinary_subject") == old:
-            ib["interdisciplinary_subject"] = new
-            touched = True
-        if touched:
-            row["ib_ee_data"] = json.dumps(ib, ensure_ascii=False)
-            changed += 1
-    if changed:
-        save_paper_metadata(rows)
-    return changed
-
-
 def load_ia_subjects() -> dict:
     """Load IB IA subject groups from JSON, seeding defaults if needed."""
     if _IA_SUBJECTS_PATH.exists():
@@ -259,8 +203,7 @@ def load_ia_subjects() -> dict:
 
 def save_ia_subjects(data: dict) -> None:
     """Save IB IA subject groups to JSON."""
-    _IA_SUBJECTS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    _IA_SUBJECTS_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    _atomic_json_write(_IA_SUBJECTS_PATH, data)
 
 
 def _get_ia_subjects_list() -> list:
@@ -357,32 +300,6 @@ def count_papers_using_ia_subject(name: str) -> int:
         if ia.get("subject") == name:
             count += 1
     return count
-
-
-def rename_ia_subject_in_papers(old: str, new: str) -> int:
-    """Rewrite ia_data subject == old to new across papers.
-
-    Returns the number of papers changed; saves once if anything changed.
-    """
-    if old == new:
-        return 0
-    rows = load_paper_metadata()
-    changed = 0
-    for row in rows:
-        raw = row.get("ia_data", "")
-        if not raw:
-            continue
-        try:
-            ia = json.loads(raw)
-        except (json.JSONDecodeError, TypeError):
-            continue
-        if ia.get("subject") == old:
-            ia["subject"] = new
-            row["ia_data"] = json.dumps(ia, ensure_ascii=False)
-            changed += 1
-    if changed:
-        save_paper_metadata(rows)
-    return changed
 
 
 def _form_int(form, name: str) -> int:

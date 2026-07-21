@@ -1,6 +1,7 @@
 """My-submissions + curator review routes."""
-import shutil
-from datetime import datetime
+import io
+from datetime import datetime, timezone
+from uuid import uuid4
 
 from flask import (
     abort,
@@ -14,19 +15,26 @@ from flask import (
 )
 from flask_babel import gettext as _
 
-import llm_client
-import rag_index
 from config import (
-    PAPERS_DIR,
     PENDING_PAPERS_DIR,
 )
 from services.auth import require_login
-from services.publishing_contracts import NotFound
-from services.papers import (
-    _build_safe_paper_filename,
-    resolve_contained,
-    upsert_paper_metadata,
+from services.publishing_contracts import (
+    AcceptSubmission,
+    CancelSubmission,
+    IndexingState,
+    LifecycleError,
+    NormalizedPaperMetadata,
+    NotFound,
+    PdfUpload,
+    RejectSubmission,
 )
+from routes.publishing_http import (
+    actor_from_session,
+    lifecycle_error_response,
+    lifecycle_from_app,
+)
+from services.papers import _build_safe_paper_filename, resolve_contained
 from services.submissions import (
     _delete_submission,
     _get_submission,
@@ -35,7 +43,23 @@ from services.submissions import (
 )
 
 
+def _utc_today() -> str:
+    return datetime.now(timezone.utc).date().isoformat()
+
+
 def register_routes(app):
+
+    def stable_decision_key(sub_id, persisted_key=""):
+        keys = dict(session.get("publishing_decision_keys", {}))
+        key = persisted_key or keys.get(sub_id) or str(uuid4())
+        keys[sub_id] = key
+        session["publishing_decision_keys"] = keys
+        return key
+
+    def clear_decision_key(sub_id):
+        keys = dict(session.get("publishing_decision_keys", {}))
+        keys.pop(sub_id, None)
+        session["publishing_decision_keys"] = keys
 
     # ---- Submission review routes ----
 
@@ -55,6 +79,30 @@ def register_routes(app):
         if not user:
             return redirect(url_for("login"))
         username = user.get("username", "")
+        submission = _get_submission(sub_id)
+        if not submission or submission.get("submitter") != username:
+            flash(_("Submission not found."), "warning")
+            return redirect(url_for("my_submissions"))
+
+        status = submission.get("status")
+        if status == "pending":
+            try:
+                lifecycle_from_app().cancel_submission(
+                    CancelSubmission(
+                        actor=actor_from_session(),
+                        submission_id=sub_id,
+                    )
+                )
+            except LifecycleError as error:
+                return lifecycle_error_response(
+                    error,
+                    redirect_endpoint="my_submissions",
+                )
+            flash(_("Submission cancelled."), "success")
+            return redirect(url_for("my_submissions"))
+        if status != "draft":
+            flash(_("Reviewed submissions are permanent records."), "warning")
+            return redirect(url_for("my_submissions"))
 
         def remove_pending(pending_file):
             if not pending_file:
@@ -72,6 +120,7 @@ def register_routes(app):
         if not _delete_submission(
             sub_id,
             expected_submitter=username,
+            expected_status="draft",
             pending_cleanup=remove_pending,
         ):
             flash(_("Submission not found."), "warning")
@@ -91,9 +140,12 @@ def register_routes(app):
 
         # Determine PDF URL based on status
         pdf_url = None
-        if sub.get("status") == "pending":
-            pending_path = PENDING_PAPERS_DIR / sub.get("pending_filename", "")
-            if pending_path.exists():
+        if sub.get("status") in {"pending", "rejected"}:
+            if resolve_contained(
+                PENDING_PAPERS_DIR,
+                sub.get("pending_filename", ""),
+                must_exist=True,
+            ) is not None:
                 pdf_url = url_for("my_submission_file", sub_id=sub_id)
         elif sub.get("status") == "accepted":
             paper_id = sub.get("paper_id")
@@ -109,8 +161,6 @@ def register_routes(app):
                         "paper_file",
                         paper_id=document.paper.paper_id,
                     )
-        # rejected: file deleted, pdf_url stays None
-
         return render_template("submission_detail.html", user=user, submission=sub, pdf_url=pdf_url)
 
     @app.route("/dashboard/my-submissions/<sub_id>/file")
@@ -120,7 +170,11 @@ def register_routes(app):
         if not user:
             return redirect(url_for("login"))
         sub = _get_submission(sub_id)
-        if not sub or sub.get("submitter") != user.get("username", ""):
+        if (
+            not sub
+            or sub.get("submitter") != user.get("username", "")
+            or sub.get("status") not in {"pending", "rejected"}
+        ):
             abort(403)
         pending_filename = sub.get("pending_filename", "")
         if resolve_contained(PENDING_PAPERS_DIR, pending_filename, must_exist=True) is None:
@@ -166,8 +220,18 @@ def register_routes(app):
         if not sub:
             flash(_("Submission not found."), "warning")
             return redirect(url_for("review_list"))
+        decision_idempotency_key = stable_decision_key(
+            sub_id,
+            sub.get("decision_idempotency_key") or "",
+        )
         pdf_url = url_for("pending_paper_file", filename=sub.get("pending_filename", ""))
-        return render_template("review_paper.html", user=user, submission=sub, pdf_url=pdf_url)
+        return render_template(
+            "review_paper.html",
+            user=user,
+            submission=sub,
+            pdf_url=pdf_url,
+            decision_idempotency_key=decision_idempotency_key,
+        )
 
     @app.route("/dashboard/review/<sub_id>/accept", methods=["POST"])
     def review_accept(sub_id):
@@ -179,57 +243,59 @@ def register_routes(app):
             flash(_("Submission not found or already reviewed."), "warning")
             return redirect(url_for("review_list"))
 
-        # Move file from pending to published
-        pending_path = PENDING_PAPERS_DIR / sub.get("pending_filename", "")
         filename = sub.get("pdf_filename") or sub.get("filename")
         if not filename:
             filename = _build_safe_paper_filename(
-                sub.get("title", "paper"), sub.get("author_name", "author")
+                sub.get("title", "paper"),
+                sub.get("author_name", "author"),
             )
-        publish_path = PAPERS_DIR / filename
-        if publish_path.exists():
-            # Add sub_id prefix to avoid collision
-            filename = f"{sub_id}_{filename}"
-            publish_path = PAPERS_DIR / filename
-
-        if pending_path.exists():
-            shutil.move(str(pending_path), str(publish_path))
-
-        # Save paper metadata
-        today = datetime.utcnow().date().isoformat()
-        upsert_paper_metadata(
-            filename,
-            {
-                "title": sub.get("title", ""),
-                "journal": sub.get("journal", ""),
-                "category": sub.get("category", ""),
-                "language": sub.get("language", ""),
-                "keywords": sub.get("keywords", ""),
-                "abstract": sub.get("abstract", ""),
-                "author_name": sub.get("author_name", ""),
-                "author_email": sub.get("author_email", ""),
-                "author_school": sub.get("author_school", ""),
-                "published_at": today,
-                "ib_ee_data": sub.get("ib_ee_data", ""),
-                "is_ib_sample": sub.get("is_ib_sample", ""),
-                "is_anonymous": sub.get("is_anonymous", ""),
-                "cp_data": sub.get("cp_data", ""),
-                "ia_data": sub.get("ia_data", ""),
-            },
+        intent = AcceptSubmission(
+            actor=actor_from_session(),
+            submission_id=sub_id,
+            idempotency_key=stable_decision_key(
+                sub_id,
+                request.form.get("decision_idempotency_key", "").strip(),
+            ),
+            metadata=NormalizedPaperMetadata(
+                filename=filename,
+                title=sub.get("title", ""),
+                journal=sub.get("journal", ""),
+                category=sub.get("category", ""),
+                language=sub.get("language", ""),
+                keywords=sub.get("keywords", ""),
+                abstract=sub.get("abstract", ""),
+                author_name=sub.get("author_name", ""),
+                author_email=sub.get("author_email", ""),
+                author_school=sub.get("author_school", ""),
+                published_at=_utc_today(),
+                ib_ee_data=sub.get("ib_ee_data", ""),
+                is_ib_sample=sub.get("is_ib_sample", ""),
+                is_anonymous=sub.get("is_anonymous", ""),
+                cp_data=sub.get("cp_data", ""),
+                ia_data=sub.get("ia_data", ""),
+            ),
+            # Acceptance stages the authoritative pending object by Submission ID;
+            # the upload record remains only for the shared validation contract.
+            pdf=PdfUpload(filename=filename, stream=io.BytesIO()),
         )
-
-        reviewer_name = user.get("display_name", "") or user.get("first_name", "") or user.get("username", "")
-        _update_submission(sub_id, {
-            "status": "accepted",
-            "reviewed_at": datetime.utcnow().isoformat(),
-            "reviewer": reviewer_name,
-        })
-        flash(_("Paper accepted and published."), "success")
         try:
-            if llm_client.llm_enabled():
-                rag_index.build_index([filename])
-        except Exception:
-            app.logger.exception("Failed to index accepted paper")
+            outcome = lifecycle_from_app().review_submission(intent)
+        except LifecycleError as error:
+            return lifecycle_error_response(
+                error,
+                redirect_endpoint="review_list",
+            )
+        if outcome.indexing and outcome.indexing.state is IndexingState.FAILED:
+            flash(
+                _(
+                    "%(paper_name)s published successfully, but RAG indexing failed.",
+                    paper_name=filename,
+                ),
+                "warning",
+            )
+        else:
+            flash(_("Paper accepted and published."), "success")
+        clear_decision_key(sub_id)
         return redirect(url_for("review_list"))
 
     @app.route("/dashboard/review/<sub_id>/reject", methods=["POST"])
@@ -242,20 +308,19 @@ def register_routes(app):
             flash(_("Submission not found or already reviewed."), "warning")
             return redirect(url_for("review_list"))
 
-        comment = request.form.get("comment", "").strip()
-
-        # Remove the pending file
-        pending_path = resolve_contained(PENDING_PAPERS_DIR, sub.get("pending_filename", ""), must_exist=True)
-        if pending_path is not None:
-            pending_path.unlink()
-
-        reviewer_name = user.get("display_name", "") or user.get("first_name", "") or user.get("username", "")
-        _update_submission(sub_id, {
-            "status": "rejected",
-            "reviewed_at": datetime.utcnow().isoformat(),
-            "reviewer": reviewer_name,
-            "comment": comment,
-        })
+        intent = RejectSubmission(
+            actor=actor_from_session(),
+            submission_id=sub_id,
+            feedback=request.form.get("comment", "").strip(),
+        )
+        try:
+            lifecycle_from_app().review_submission(intent)
+        except LifecycleError as error:
+            return lifecycle_error_response(
+                error,
+                redirect_endpoint="review_list",
+            )
+        clear_decision_key(sub_id)
         flash(_("Paper rejected."), "info")
         return redirect(url_for("review_list"))
 

@@ -18,10 +18,12 @@ class JournalPapersMembershipTest(unittest.TestCase):
 
     def test_endpoint_sets_and_clears_journal(self):
         src = source_of("journal_papers")
-        self.assertIn("filenames", src)
-        self.assertIn("save_paper_metadata", src)
+        self.assertIn("paper_ids", src)
+        self.assertIn("row_versions", src)
+        self.assertIn("change_many_metadata", src)
+        self.assertNotIn("save_paper_metadata", src)
 
-    def render_edit(self, all_papers, member_filenames):
+    def render_edit(self, all_papers, member_ids):
         env = Environment(loader=FileSystemLoader(ROOT / "templates"))
         env.globals["csrf_token"] = lambda: ""
         return env.get_template("journal_edit.html").render(
@@ -33,25 +35,26 @@ class JournalPapersMembershipTest(unittest.TestCase):
             user=SimpleNamespace(role="3"),
             journal={"id": "j1", "name": "IB EE", "slug": "IB_EE",
                      "cover_image": "", "introduction": "", "created_at": "2026-01-01"},
-            papers=[p for p in all_papers if p["filename"] in member_filenames],
+            papers=[p for p in all_papers if p["paper_id"] in member_ids],
             all_papers=all_papers,
-            journal_paper_filenames=member_filenames,
+            journal_paper_ids=member_ids,
         )
 
     def test_picker_renders_all_papers_with_member_checked(self):
         html = self.render_edit(
             all_papers=[
-                {"filename": "a.pdf", "title": "Alpha", "author_name": "Ann", "journal": "IB EE"},
-                {"filename": "b.pdf", "title": "Beta", "author_name": "Bob", "journal": ""},
+                {"paper_id": "00000000-0000-4000-8000-000000000901", "row_version": 4, "filename": "a.pdf", "title": "Alpha", "author_name": "Ann", "journal": "IB EE"},
+                {"paper_id": "00000000-0000-4000-8000-000000000902", "row_version": 5, "filename": "b.pdf", "title": "Beta", "author_name": "Bob", "journal": ""},
             ],
-            member_filenames=["a.pdf"],
+            member_ids=["00000000-0000-4000-8000-000000000901"],
         )
         self.assertIn('id="journalPaperSearch"', html)
         self.assertIn('id="journalPapersSaveBtn"', html)
-        self.assertIn('data-filename="a.pdf"', html)
-        self.assertIn('data-filename="b.pdf"', html)
-        # the current member is pre-checked (attributes sit between data-filename and checked)
-        self.assertRegex(html, r'data-filename="a.pdf"[^>]*checked')
+        self.assertIn('data-paper-id="00000000-0000-4000-8000-000000000901"', html)
+        self.assertIn('data-paper-id="00000000-0000-4000-8000-000000000902"', html)
+        self.assertIn('data-row-version="4"', html)
+        self.assertRegex(html, r'data-paper-id="00000000-0000-4000-8000-000000000901"[^>]*checked')
+        self.assertIn("X-CSRFToken", html)
 
 
 if __name__ == "__main__":

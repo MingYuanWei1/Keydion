@@ -12,6 +12,10 @@
   const BOOT = window.WIZARD_BOOT;
   const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
   const I18N = BOOT.i18n || {};
+  const formatUploadError = (
+    window.KeydionUploadErrors
+    && window.KeydionUploadErrors.formatUploadError
+  ) || ((_error, fallback) => fallback);
 
   // ─── i18n helper ───────────────────────────────────────────
   function t(key, fallback, vars) {
@@ -1546,7 +1550,10 @@
         } catch (_) { /* storage disabled — banner just won't show */ }
         window.location = resp.redirect || form.action;
       } else {
-        showUploadError((resp && resp.error) || t('upload_failed', 'Upload failed. Please check your connection and try again.'));
+        showUploadError(formatUploadError(
+          resp && resp.error,
+          t('upload_failed', 'Upload failed. Please check your connection and try again.'),
+        ));
       }
     });
     xhr.addEventListener('error', () => {
@@ -1834,5 +1841,11 @@
   }
 
   // Expose for debugging only
-  window.__uploadWizard = { state, goToStep, render };
+  window.__uploadWizard = {
+    state,
+    goToStep,
+    render,
+    submitViaXhr,
+    formatUploadError,
+  };
 })();

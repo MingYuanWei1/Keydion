@@ -90,21 +90,21 @@ from services.journals import (  # noqa: F401
     get_recent_journals,
 )
 from services.papers import (  # noqa: F401
-    load_paper_metadata, save_paper_metadata,
-    load_paper_categories, save_paper_categories,
+    load_paper_metadata,
+    load_paper_categories,
     _get_ee_subjects_list, _build_safe_paper_filename,
     build_ib_ee_data_from_form, build_cp_data_from_form,
     parse_ib_ee_data_for_form, parse_cp_data_for_form,
     _is_ee_paper, _is_cp_paper, _matches_ee_subject, _matches_cp_context,
     allowed_file, extract_pdf_text, extract_text_from_upload,
-    set_pdf_metadata, build_preview_pdf,
+    build_preview_pdf,
 )
 from services.search import (  # noqa: F401
     _query_in_metadata, _fulltext_index, search_papers,
     _order_hybrid_filenames, _hybrid_search_records,
 )
 from services.submissions import (  # noqa: F401
-    _load_submissions, _write_submissions, _save_submission,
+    _load_submissions, _save_submission,
     _get_submission, _update_submission,
 )
 from services.ai import (  # noqa: F401
@@ -764,64 +764,6 @@ def create_app() -> Flask:
             destination = "dashboard" if session.get("user") else "login"
             next_url = url_for(destination)
         return redirect(next_url)
-
-    @app.route("/dashboard/admin/paper-categories/add", methods=["POST"], endpoint="admin_paper_categories_add")
-    def paper_category_add():
-        user = require_login(level=3)
-        if not user:
-            return jsonify(error="Unauthorized"), 401
-        name = (request.json or {}).get("name", "").strip()
-        if not name:
-            return jsonify(error=str(_("Category name is required."))), 400
-        cats = load_paper_categories()
-        if name in cats:
-            return jsonify(error=str(_("Category already exists."))), 409
-        cats.append(name)
-        save_paper_categories(cats)
-        return jsonify(items=cats)
-
-    @app.route("/dashboard/admin/paper-categories/rename", methods=["POST"], endpoint="admin_paper_categories_rename")
-    def paper_category_rename():
-        user = require_login(level=3)
-        if not user:
-            return jsonify(error="Unauthorized"), 401
-        data = request.json or {}
-        old_name = data.get("old_name", "").strip()
-        new_name = data.get("new_name", "").strip()
-        if not old_name or not new_name:
-            return jsonify(error=str(_("Both old and new names are required."))), 400
-        cats = load_paper_categories()
-        if old_name not in cats:
-            return jsonify(error=str(_("Category not found."))), 404
-        if new_name in cats:
-            return jsonify(error=str(_("A category with that name already exists."))), 409
-        cats[cats.index(old_name)] = new_name
-        save_paper_categories(cats)
-        # Also update existing papers that use the old category name
-        meta_rows = load_paper_metadata()
-        changed = False
-        for row in meta_rows:
-            if row.get("category") == old_name:
-                row["category"] = new_name
-                changed = True
-        if changed:
-            save_paper_metadata(meta_rows)
-        return jsonify(items=cats)
-
-    @app.route("/dashboard/admin/paper-categories/delete", methods=["POST"], endpoint="admin_paper_categories_delete")
-    def paper_category_delete():
-        user = require_login(level=3)
-        if not user:
-            return jsonify(error="Unauthorized"), 401
-        name = (request.json or {}).get("name", "").strip()
-        if not name:
-            return jsonify(error=str(_("Category name is required."))), 400
-        cats = load_paper_categories()
-        if name not in cats:
-            return jsonify(error=str(_("Category not found."))), 404
-        cats.remove(name)
-        save_paper_categories(cats)
-        return jsonify(items=cats)
 
     from routes import register_all
     register_all(app)

@@ -11,8 +11,7 @@ import support
 # PaperStorage validate their UUID/revision paths instead. The retired
 # ``download`` endpoint is likewise absent; downloads use ``paper_file``.
 MIGRATED_SINKS = [
-    "paper_delete", "paper_modify", "papers_bulk_action",
-    "pending_paper_file", "delete_submission", "review_reject",
+    "pending_paper_file", "delete_submission",
     "my_submission_file", "upload",
 ]
 

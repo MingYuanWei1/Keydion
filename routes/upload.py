@@ -1,6 +1,5 @@
 """Upload wizard + upload-related API routes."""
 import json
-from datetime import datetime
 from uuid import uuid4
 
 from flask import (
@@ -20,7 +19,6 @@ import llm_client
 from config import (
     CP_ACTION_TYPES,
     CP_GLOBAL_CONTEXTS,
-    PAPERS_DIR,
     PENDING_PAPERS_DIR,
     _MISSING_FIELD_MESSAGES,
 )
@@ -29,6 +27,13 @@ from ia_metadata import IAMetadataError, generate_ia_scores
 from llm_metadata import LLMMetadataError, generate_abstract_keywords
 from services.auth import require_login
 from services.journals import get_journal_names
+from services.publishing_contracts import (
+    DirectPublish,
+    IndexingState,
+    LifecycleError,
+    NormalizedPaperMetadata,
+    PdfUpload,
+)
 from services.papers import (
     _build_safe_paper_filename,
     _ia_criteria_for_subject,
@@ -43,13 +48,18 @@ from services.papers import (
     parse_ia_data_for_form,
     parse_ib_ee_data_for_form,
     resolve_contained,
-    set_pdf_metadata,
-    upsert_paper_metadata,
 )
 from services.submissions import (
     _get_submission,
     _save_submission,
+    _store_pending_submission_pdf,
     _update_submission,
+)
+from services.publishing_time import utc_now_db
+from routes.publishing_http import (
+    actor_from_session,
+    lifecycle_error_response,
+    lifecycle_from_app,
 )
 
 
@@ -57,8 +67,9 @@ def register_routes(app):
 
     # ==================== UPLOAD ROUTES ====================
 
-    def _render_upload(user, form_data, draft_id):
+    def _render_upload(user, form_data, draft_id, publishing_error=None):
         """Render upload.html with the wizard_boot context the JS needs."""
+        form_data.setdefault("publishing_idempotency_key", str(uuid4()))
         try:
             _role = int(user.get("role", "1"))
         except (TypeError, ValueError):
@@ -286,6 +297,7 @@ def register_routes(app):
             cp_action_types=CP_ACTION_TYPES,
             draft_id=draft_id,
             wizard_boot=wizard_boot,
+            publishing_error=publishing_error,
         )
 
     @app.route("/dashboard/upload", methods=["GET", "POST"])
@@ -295,7 +307,7 @@ def register_routes(app):
             target = url_for("login") if not session.get("user") else url_for("dashboard")
             return redirect(target)
 
-        today = datetime.utcnow().date().isoformat()
+        today = utc_now_db().date().isoformat()
         draft_id = request.args.get("draft", "")
         is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
 
@@ -354,6 +366,10 @@ def register_routes(app):
 
 
         form_data = {
+            "publishing_idempotency_key": request.form.get(
+                "publishing_idempotency_key", ""
+            ).strip()
+            or str(uuid4()),
             "title": request.form.get("title", "").strip(),
             "journal": request.form.get("journal", "").strip(),
             "category": request.form.get("category", "").strip(),
@@ -407,10 +423,10 @@ def register_routes(app):
                     form_data["keywords"] = ", ".join(
                         [kw.strip() for kw in form_data["keywords"].split(",") if kw.strip()]
                     )
-                now = datetime.utcnow().isoformat()
+                now = utc_now_db().isoformat()
                 if draft_id:
                     # Update existing draft
-                    _update_submission(draft_id, {
+                    updated = _update_submission(draft_id, {
                         "title": form_data["title"],
                         "journal": form_data["journal"],
                         "category": form_data["category"],
@@ -426,7 +442,9 @@ def register_routes(app):
                         "cp_data": form_data.get("cp_data", ""),
                         "ia_data": form_data.get("ia_data", ""),
                         "submitted_at": now,
-                    })
+                    }, expected_submitter=user.get("username", ""), expected_status="draft")
+                    if updated is None:
+                        abort(404)
                 else:
                     # Create new draft
                     sub_id = uuid4().hex[:12]
@@ -438,7 +456,7 @@ def register_routes(app):
                         "submitter_name": user.get("display_name", "") or user.get("first_name", "") or user.get("username", ""),
                         "status": "draft",
                         "submitted_at": now,
-                        "reviewed_at": "",
+                        "reviewed_at": None,
                         "reviewer": "",
                         "comment": "",
                         "title": form_data["title"],
@@ -524,38 +542,64 @@ def register_routes(app):
                     )
                     role = int(user.get("role", "1"))
                     if role >= 2:
-                        # Moderator / Admin: publish directly
-                        save_path = resolve_contained(PAPERS_DIR, filename, must_exist=False)
-                        if save_path is None or save_path.exists():
-                            flash(_("A file with this name already exists"), "warning")
-                        else:
-                            file.save(save_path)
-                            set_pdf_metadata(save_path, form_data["title"], form_data["author_name"])
-                            upsert_paper_metadata(
-                                filename,
-                                {
-                                    "title": form_data["title"],
-                                    "journal": form_data["journal"],
-                                    "category": form_data["category"],
-                                    "language": form_data["language"],
-                                    "keywords": form_data["keywords"],
-                                    "abstract": form_data["abstract"],
-                                    "author_name": form_data["author_name"],
-                                    "author_email": form_data["author_email"],
-                                    "author_school": form_data["author_school"],
-                                    "published_at": form_data["published_at"],
-                                    "is_ib_sample": form_data.get("is_ib_sample", ""),
-                                    "is_anonymous": form_data.get("is_anonymous", ""),
-                                    "ib_ee_data": form_data.get("ib_ee_data", ""),
-                                    "cp_data": form_data.get("cp_data", ""),
-                                    "ia_data": form_data.get("ia_data", ""),
-                                },
+                        # Contributor / Curator: publish through the sole lifecycle writer.
+                        intent = DirectPublish(
+                            actor=actor_from_session(),
+                            idempotency_key=form_data["publishing_idempotency_key"],
+                            metadata=NormalizedPaperMetadata(
+                                filename=filename,
+                                title=form_data["title"],
+                                journal=form_data["journal"],
+                                category=form_data["category"],
+                                language=form_data["language"],
+                                keywords=form_data["keywords"],
+                                abstract=form_data["abstract"],
+                                author_name=form_data["author_name"],
+                                author_email=form_data["author_email"],
+                                author_school=form_data["author_school"],
+                                published_at=form_data["published_at"],
+                                is_ib_sample=form_data.get("is_ib_sample", ""),
+                                is_anonymous=form_data.get("is_anonymous", ""),
+                                ib_ee_data=form_data.get("ib_ee_data", ""),
+                                cp_data=form_data.get("cp_data", ""),
+                                ia_data=form_data.get("ia_data", ""),
+                            ),
+                            pdf=PdfUpload(
+                                filename=original_filename,
+                                stream=file.stream,
+                            ),
+                        )
+                        try:
+                            outcome = lifecycle_from_app().publish_direct(intent)
+                        except LifecycleError as error:
+                            return lifecycle_error_response(
+                                error,
+                                html_renderer=lambda payload, status: (
+                                    _render_upload(
+                                        user,
+                                        form_data,
+                                        draft_id,
+                                        publishing_error=payload,
+                                    ),
+                                    status,
+                                ),
                             )
-                            msg = _("Paper %(filename)s uploaded successfully!", filename=filename)
-                            if is_ajax:
-                                return jsonify(ok=True, redirect=url_for("upload"), message=msg)
-                            flash(msg, "success")
-                            return redirect(url_for("upload"))
+                        if outcome.indexing.state is IndexingState.FAILED:
+                            msg = _(
+                                "%(paper_name)s uploaded successfully, but RAG indexing failed.",
+                                paper_name=outcome.filename,
+                            )
+                            category = "warning"
+                        else:
+                            msg = _(
+                                "Paper %(filename)s uploaded successfully!",
+                                filename=outcome.filename,
+                            )
+                            category = "success"
+                        if is_ajax:
+                            return jsonify(ok=True, redirect=url_for("upload"), message=msg)
+                        flash(msg, category)
+                        return redirect(url_for("upload"))
                     else:
                         # Reader: save to pending review queue
                         if draft_id:
@@ -569,14 +613,23 @@ def register_routes(app):
                         pending_path = resolve_contained(PENDING_PAPERS_DIR, pending_filename, must_exist=False)
                         if pending_path is None:
                             abort(400)  # unreachable for server-minted names; defense-in-depth
-                        file.save(pending_path)
-                        set_pdf_metadata(pending_path, form_data["title"], form_data["author_name"])
+                        def write_pending_pdf():
+                            _store_pending_submission_pdf(
+                                file,
+                                pending_path,
+                                title=form_data["title"],
+                                author=form_data["author_name"],
+                            )
+
+                        def discard_failed_pending_pdf():
+                            pending_path.unlink(missing_ok=True)
+
                         if draft_id:
-                            _update_submission(draft_id, {
+                            updated = _update_submission(draft_id, {
                                 "pdf_filename": filename,
                                 "pending_filename": pending_filename,
                                 "status": "pending",
-                                "submitted_at": datetime.utcnow().isoformat(),
+                                "submitted_at": utc_now_db().isoformat(),
                                 "title": form_data["title"],
                                 "journal": form_data["journal"],
                                 "category": form_data["category"],
@@ -591,7 +644,11 @@ def register_routes(app):
                                 "ib_ee_data": form_data.get("ib_ee_data", ""),
                                 "cp_data": form_data.get("cp_data", ""),
                                 "ia_data": form_data.get("ia_data", ""),
-                            })
+                            }, expected_submitter=user.get("username", ""), expected_status="draft",
+                                pending_write=write_pending_pdf,
+                                pending_cleanup_on_failure=discard_failed_pending_pdf)
+                            if updated is None:
+                                abort(404)
                         else:
                             submission = {
                                 "id": sub_id,
@@ -600,8 +657,8 @@ def register_routes(app):
                                 "submitter": user.get("username", ""),
                                 "submitter_name": user.get("display_name", "") or user.get("first_name", "") or user.get("username", ""),
                                 "status": "pending",
-                                "submitted_at": datetime.utcnow().isoformat(),
-                                "reviewed_at": "",
+                                "submitted_at": utc_now_db().isoformat(),
+                                "reviewed_at": None,
                                 "reviewer": "",
                                 "comment": "",
                                 "title": form_data["title"],
@@ -619,7 +676,11 @@ def register_routes(app):
                                 "cp_data": form_data.get("cp_data", ""),
                                 "ia_data": form_data.get("ia_data", ""),
                             }
-                            _save_submission(submission)
+                            _save_submission(
+                                submission,
+                                pending_write=write_pending_pdf,
+                                pending_cleanup_on_failure=discard_failed_pending_pdf,
+                            )
                         msg = _("Your paper has been submitted and is now pending review.")
                         if is_ajax:
                             return jsonify(ok=True, redirect=url_for("upload"), message=msg)

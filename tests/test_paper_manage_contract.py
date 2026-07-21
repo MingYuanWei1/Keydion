@@ -71,6 +71,12 @@ class PaperManageTemplateContract(unittest.TestCase):
         html = _render(SAMPLE, [])
         self.assertIn("/dashboard/admin/papers/bulk", html)
 
+    def test_bulk_delete_distinguishes_deleted_and_deleting_toasts(self):
+        html = _render(SAMPLE, [])
+        self.assertIn("deleting_count", html)
+        self.assertIn("if (deletedCount > 0)", html)
+        self.assertIn("if (deletingCount > 0)", html)
+
 
 class PaperManageRouteContract(unittest.TestCase):
     def test_route_derives_paper_type_and_passes_journals(self):
@@ -79,13 +85,16 @@ class PaperManageRouteContract(unittest.TestCase):
             encoding="utf-8"
         )
 
-        self.assertIn("gather_paper_records(_paper_library())", src)
+        self.assertIn("_paper_library().list_managed()", src)
         self.assertIn('"paper_type"', src)
         self.assertIn("Community Project", src)
         self.assertIn("Extended Essay", src)
         self.assertIn("journals=get_journal_names()", src)
         self.assertIn("p.journal", template)
         self.assertIn("paper_id=p.paper_id", template)
+        self.assertIn("Deletion in progress", template)
+        self.assertIn("p.lifecycle_state != 'deleting'", template)
+        self.assertIn("p.lifecycle_state == 'deleting' %} disabled", template)
 
 
 class PaperBulkEndpointContract(unittest.TestCase):
@@ -94,10 +103,11 @@ class PaperBulkEndpointContract(unittest.TestCase):
         self.assertIn("require_login(level=3)", src)
         self.assertIn('op == "delete"', src)
         self.assertIn('op == "set_journal"', src)
-        self.assertIn("rag_index.purge", src)
-        self.assertIn("upsert_paper_metadata", src)
-        self.assertIn("remove_paper_metadata", src)
-        self.assertIn("resolve_contained(", src)
+        self.assertIn("paper_ids", src)
+        self.assertIn("row_versions", src)
+        self.assertIn("delete_paper", src)
+        self.assertIn("change_many_metadata", src)
+        self.assertNotIn("rag_index.purge", src)
 
     def test_bulk_route_registered_at_expected_url(self):
         self.assertIn('"/dashboard/admin/papers/bulk"', all_sources())

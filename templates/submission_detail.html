@@ -63,11 +63,19 @@
 
             {% if submission.reviewed_at %}
             <dt class="col-sm-4">{{ _('Reviewed') }}</dt>
-            <dd class="col-sm-8">{{ submission.reviewed_at[:10] }}</dd>
+            <dd class="col-sm-8">{{ submission.reviewed_at[:10] if submission.reviewed_at is string else submission.reviewed_at.strftime('%Y-%m-%d') }}</dd>
             {% endif %}
         </dl>
     </div>
 </div>
+
+{% if pdf_url %}
+<a class="btn btn-outline-primary mb-3" href="{{ pdf_url }}">{{ _('View submitted PDF') }}</a>
+{% elif submission.status == 'rejected' %}
+<p class="text-muted">{{ _('Submitted PDF unavailable') }}</p>
+{% elif submission.status == 'accepted' %}
+<p class="text-muted">{{ _('Published paper unavailable') }}</p>
+{% endif %}
 
 {% if submission.comment %}
 <div class="card shadow-sm border-danger">

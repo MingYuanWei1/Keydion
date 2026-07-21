@@ -71,6 +71,7 @@
             <div class="card-body">
                 <form method="post" action="{{ url_for('review_accept', sub_id=submission.id) }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="decision_idempotency_key" value="{{ decision_idempotency_key }}">
                     <button type="submit" class="btn btn-success w-100 btn-lg"
                         onclick="return confirm('{{ _('Accept this paper? It will be published to the library.') }}')">
                         ✓ {{ _('Accept & Publish') }}
@@ -83,6 +84,7 @@
             <div class="card-body">
                 <form method="post" action="{{ url_for('review_reject', sub_id=submission.id) }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="decision_idempotency_key" value="{{ decision_idempotency_key }}">
                     <div class="mb-3">
                         <label for="comment" class="form-label fw-semibold text-danger">{{ _('Rejection Reason')
                             }}</label>

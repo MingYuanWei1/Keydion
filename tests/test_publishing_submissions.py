@@ -4,7 +4,7 @@ import threading
 import time
 import unittest
 from contextlib import contextmanager
-from datetime import timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest import mock
 
@@ -1299,6 +1299,7 @@ class SubmissionPublishingTests(PublishingLifecycleTestCase, unittest.TestCase):
             session.delete(session.get(SubmissionModel, submission_id))
             session.commit()
         self.replace_storage()
+        self.now = datetime.now(timezone.utc).replace(tzinfo=None)
         self.age_reconciliation_window()
         with self.engine.begin() as connection:
             connection.exec_driver_sql("PRAGMA journal_mode=WAL")
@@ -1318,6 +1319,7 @@ class SubmissionPublishingTests(PublishingLifecycleTestCase, unittest.TestCase):
             session = self.session_factory()
             try:
                 yield session
+                session.commit()
             except Exception:
                 session.rollback()
                 raise
@@ -1381,6 +1383,7 @@ class SubmissionPublishingTests(PublishingLifecycleTestCase, unittest.TestCase):
             session = self.session_factory()
             try:
                 yield session
+                session.commit()
             except Exception:
                 session.rollback()
                 raise

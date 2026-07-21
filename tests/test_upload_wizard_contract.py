@@ -100,11 +100,12 @@ class UploadValidatorContractTest(unittest.TestCase):
         self.assertIn("elif is_anonymous:", src)
         # Carried on form_data for re-renders and the wizard boot.
         self.assertIn('"is_anonymous": "1" if is_anonymous else ""', src)
-        # Persisted in: draft update, draft create, direct publish upsert,
+        # Persisted in: draft update, draft create, direct publish intent,
         # pending update, pending create.
         self.assertGreaterEqual(
-            src.count('"is_anonymous": form_data.get("is_anonymous", "")'), 5
+            src.count('"is_anonymous": form_data.get("is_anonymous", "")'), 4
         )
+        self.assertIn('is_anonymous=form_data.get("is_anonymous", "")', src)
 
     def test_upload_uses_render_helper(self):
         """The 8-way repeated render_template(...) is collapsed into one helper."""

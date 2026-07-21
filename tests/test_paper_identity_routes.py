@@ -63,17 +63,19 @@ class PaperIdentityRouteMapTest(unittest.TestCase):
 
     def test_uuid_rules_keep_public_endpoint_names(self):
         cases = (
-            (f"/paper/{PAPER_ID}", "preview_paper"),
-            (f"/paper/{PAPER_ID}/pdf", "paper_file"),
-            (f"/paper/{PAPER_ID}/preview.pdf", "paper_preview"),
-            (f"/paper/{PAPER_ID}/info", "paper_info"),
+            (f"/paper/{PAPER_ID}", "preview_paper", {"paper_id": UUID(PAPER_ID)}),
+            (f"/paper/{PAPER_ID}/pdf", "paper_file", {"paper_id": UUID(PAPER_ID)}),
+            (f"/paper/{PAPER_ID}/preview.pdf", "paper_preview", {"paper_id": UUID(PAPER_ID)}),
+            (f"/paper/{PAPER_ID}/info", "paper_info", {"paper_id": UUID(PAPER_ID)}),
+            (f"/dashboard/paper/{PAPER_ID}/modify", "paper_modify", {"paper_id": UUID(PAPER_ID)}),
+            (f"/dashboard/paper/{PAPER_ID}/revisions/1/pdf", "paper_revision_file", {"paper_id": UUID(PAPER_ID), "revision": 1}),
         )
 
-        for path, expected_endpoint in cases:
+        for path, expected_endpoint, expected_values in cases:
             with self.subTest(path=path):
                 endpoint, values = self.adapter.match(path, method="GET")
                 self.assertEqual(endpoint, expected_endpoint)
-                self.assertEqual(values, {"paper_id": UUID(PAPER_ID)})
+                self.assertEqual(values, expected_values)
 
     def test_filename_rules_are_path_alias_fallbacks_only(self):
         filename = "archive/nested paper.pdf"
@@ -83,6 +85,7 @@ class PaperIdentityRouteMapTest(unittest.TestCase):
             (f"/papers/raw/{filename}", "paper_file_legacy"),
             (f"/papers/{filename}", "download_legacy"),
             (f"/paper/{filename}/info", "paper_info_legacy"),
+            (f"/dashboard/paper/{filename}/modify", "paper_modify_legacy_dashboard"),
         )
 
         for path, expected_endpoint in cases:
@@ -111,8 +114,8 @@ class PaperIdentityRouteMapTest(unittest.TestCase):
 
         for endpoint in (
             "paper_info_legacy",
-            "paper_modify",
-            "paper_delete",
+            "paper_modify_legacy_dashboard",
+            "paper_delete_legacy",
             "paper_modify_legacy",
         ):
             with self.subTest(endpoint=endpoint):
@@ -139,27 +142,31 @@ class PaperIdentityRouteMapTest(unittest.TestCase):
         for endpoint in (
             "paper_modify",
             "paper_delete",
+            "paper_modify_legacy_dashboard",
+            "paper_delete_legacy",
             "paper_modify_legacy",
         ):
             self.app.view_functions[endpoint] = view(endpoint)
         client = self.app.test_client()
 
         uuid_paths = (
-            ("GET", f"/dashboard/paper/{PAPER_ID}/modify"),
-            ("POST", f"/dashboard/paper/{PAPER_ID}/modify"),
-            ("POST", f"/dashboard/paper/{PAPER_ID}/delete"),
-            ("GET", f"/paper/{PAPER_ID}/modify"),
+            ("GET", f"/dashboard/paper/{PAPER_ID}/modify", "paper_modify"),
+            ("POST", f"/dashboard/paper/{PAPER_ID}/modify", "paper_modify"),
+            ("POST", f"/dashboard/paper/{PAPER_ID}/delete", "paper_delete"),
         )
-        for method, path in uuid_paths:
+        for method, path, endpoint in uuid_paths:
             with self.subTest(kind="uuid", method=method, path=path):
                 response = client.open(path, method=method)
-                self.assertEqual(response.status_code, 404)
-        self.assertEqual(calls, [])
+                self.assertEqual(response.status_code, 204)
+                self.assertEqual(calls[-1], endpoint)
+
+        response = client.get(f"/paper/{PAPER_ID}/modify")
+        self.assertEqual(response.status_code, 404)
 
         filename_paths = (
-            ("GET", "/dashboard/paper/paper.pdf/modify", "paper_modify"),
-            ("POST", "/dashboard/paper/paper.pdf/modify", "paper_modify"),
-            ("POST", "/dashboard/paper/paper.pdf/delete", "paper_delete"),
+            ("GET", "/dashboard/paper/paper.pdf/modify", "paper_modify_legacy_dashboard"),
+            ("POST", "/dashboard/paper/paper.pdf/modify", "paper_modify_legacy_dashboard"),
+            ("POST", "/dashboard/paper/paper.pdf/delete", "paper_delete_legacy"),
             ("GET", "/paper/paper.pdf/modify", "paper_modify_legacy"),
         )
         for method, path, endpoint in filename_paths:

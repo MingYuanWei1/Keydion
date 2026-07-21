@@ -94,23 +94,9 @@ class CascadeTest(unittest.TestCase):
             self.assertEqual(sp.count_papers_using_ee_subject("Beta"), 1)
             self.assertEqual(sp.count_papers_using_ee_subject("Zeta"), 0)
 
-    def test_rename_updates_both_fields(self):
-        rows = _rows()
-        captured = {}
-        with mock.patch.object(sp, "load_paper_metadata", return_value=rows), \
-             mock.patch.object(sp, "save_paper_metadata", side_effect=lambda r: captured.update(rows=r)):
-            n = sp.rename_ee_subject_in_papers("Alpha", "Omega")
-        self.assertEqual(n, 2)
-        self.assertEqual(json.loads(captured["rows"][0]["ib_ee_data"])["core_subject"], "Omega")
-        self.assertEqual(json.loads(captured["rows"][1]["ib_ee_data"])["interdisciplinary_subject"], "Omega")
-
-    def test_noop_rename_does_not_save(self):
-        called = {"save": False}
-        with mock.patch.object(sp, "load_paper_metadata", return_value=_rows()), \
-             mock.patch.object(sp, "save_paper_metadata", side_effect=lambda r: called.update(save=True)):
-            n = sp.rename_ee_subject_in_papers("Alpha", "Alpha")
-        self.assertEqual(n, 0)
-        self.assertFalse(called["save"])
+    def test_legacy_rename_writer_is_removed(self):
+        self.assertFalse(hasattr(sp, "rename_ee_subject_in_papers"))
+        self.assertFalse(hasattr(sp, "save_paper_metadata"))
 
 
 class RouteWiringTest(unittest.TestCase):
@@ -118,7 +104,8 @@ class RouteWiringTest(unittest.TestCase):
         src = source_of("ee_subjects_save")
         self.assertIn("reconcile_ee_subjects", src)
         self.assertIn("count_papers_using_ee_subject", src)
-        self.assertIn("rename_ee_subject_in_papers", src)
+        self.assertIn("change_many_metadata", src)
+        self.assertIn("BulkEditMetadata", src)
         self.assertIn("409", src)
 
 

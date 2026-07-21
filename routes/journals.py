@@ -1,5 +1,6 @@
 """Public + admin routes for Journals."""
 from datetime import datetime
+from dataclasses import asdict
 from uuid import uuid4
 
 from flask import (
@@ -24,12 +25,37 @@ from services.journals import (
 )
 from services.papers import (
     gather_paper_records,
-    load_paper_metadata,
-    save_paper_metadata,
+)
+from services.publishing_contracts import (
+    BulkEditMetadata,
+    LifecycleError,
+    MetadataPatch,
+)
+from routes.publishing_http import (
+    actor_from_session,
+    lifecycle_error_response,
+    lifecycle_from_app,
 )
 
 
 def register_routes(app):
+
+    def change_journal_membership(papers, journal_name):
+        if not papers:
+            return None
+        return lifecycle_from_app().change_many_metadata(
+            BulkEditMetadata(
+                actor=actor_from_session(),
+                patches=tuple(
+                    MetadataPatch(
+                        paper_id=paper.paper_id,
+                        expected_row_version=paper.row_version,
+                        changes=(("journal", journal_name),),
+                    )
+                    for paper in papers
+                ),
+            )
+        )
 
     # ==================== JOURNALS ROUTES ====================
 
@@ -69,16 +95,16 @@ def register_routes(app):
         journal = next((j for j in journals if j["id"] == journal_id), None)
         if not journal:
             return jsonify(error=str(_("Journal not found."))), 404
-        # Clear journal field from papers
         old_name = journal["name"]
-        meta_rows = load_paper_metadata()
-        changed = False
-        for row in meta_rows:
-            if row.get("journal") == old_name:
-                row["journal"] = ""
-                changed = True
-        if changed:
-            save_paper_metadata(meta_rows)
+        affected = [
+            paper
+            for paper in app.extensions["paper_library"].list_visible()
+            if paper.journal == old_name
+        ]
+        try:
+            change_journal_membership(affected, "")
+        except LifecycleError as error:
+            return lifecycle_error_response(error)
         journals = [j for j in journals if j["id"] != journal_id]
         save_journals(journals)
         return jsonify(items=journals)
@@ -123,31 +149,38 @@ def register_routes(app):
                     j["slug"] = set_unique_slug(new_name, exclude_id=journal_id, fallback=journal_id)
                     break
 
-            save_journals(journals)
-
-            # Update paper metadata if name changed
             if old_name != new_name:
-                meta_rows = load_paper_metadata()
-                changed = False
-                for row in meta_rows:
-                    if row.get("journal") == old_name:
-                        row["journal"] = new_name
-                        changed = True
-                if changed:
-                    save_paper_metadata(meta_rows)
+                affected = [
+                    paper
+                    for paper in app.extensions["paper_library"].list_visible()
+                    if paper.journal == old_name
+                ]
+                try:
+                    change_journal_membership(affected, new_name)
+                except LifecycleError as error:
+                    return lifecycle_error_response(
+                        error,
+                        redirect_endpoint="admin_journal_edit",
+                        redirect_values={"journal_id": journal_id},
+                    )
+
+            save_journals(journals)
 
             flash(_("Journal updated."), "success")
             return redirect(url_for("admin_journal_edit", journal_id=journal_id))
 
         # GET: load papers belonging to this journal + the full pool for the picker
-        all_papers = gather_paper_records(app.extensions["paper_library"])
+        all_papers = [
+            asdict(paper)
+            for paper in app.extensions["paper_library"].list_visible()
+        ]
         journal_papers = [p for p in all_papers if p.get("journal") == journal["name"]]
         journal_papers.sort(key=lambda r: r.get("published_at") or "", reverse=True)
-        journal_paper_filenames = [p.get("filename") for p in journal_papers]
+        journal_paper_ids = [p.get("paper_id") for p in journal_papers]
 
         return render_template("journal_edit.html", user=user, journal=journal,
                                all_papers=all_papers,
-                               journal_paper_filenames=journal_paper_filenames)
+                               journal_paper_ids=journal_paper_ids)
 
     @app.route("/dashboard/admin/journal/<journal_id>/papers", methods=["POST"], endpoint="admin_journal_papers")
     def journal_papers(journal_id):
@@ -157,20 +190,50 @@ def register_routes(app):
         journal = get_journal_by_id(journal_id)
         if not journal:
             return jsonify(error=str(_("Journal not found."))), 404
-        desired = set((request.json or {}).get("filenames", []))
+        payload = request.get_json(silent=True)
+        if not isinstance(payload, dict):
+            return jsonify(error="Paper UUIDs and row versions are required"), 422
+        paper_ids = payload.get("paper_ids")
+        if (
+            not isinstance(paper_ids, list)
+            or any(type(paper_id) is not str for paper_id in paper_ids)
+        ):
+            return jsonify(error="Paper UUIDs and row versions are required"), 422
+        desired = set(paper_ids)
+        row_versions = payload.get("row_versions", {})
         name = journal["name"]
-        meta_rows = load_paper_metadata()
-        changed = False
-        for row in meta_rows:
-            fn = row.get("filename")
-            if fn in desired and row.get("journal") != name:
-                row["journal"] = name
-                changed = True
-            elif fn not in desired and row.get("journal") == name:
-                row["journal"] = ""
-                changed = True
-        if changed:
-            save_paper_metadata(meta_rows)
+        visible = app.extensions["paper_library"].list_visible()
+        by_id = {paper.paper_id: paper for paper in visible}
+        if (
+            not isinstance(row_versions, dict)
+            or not desired.issubset(by_id)
+            or any(
+                type(row_versions.get(paper.paper_id)) is not int
+                for paper in visible
+            )
+        ):
+            return jsonify(error="Paper UUIDs and row versions are required"), 422
+        affected = [
+            paper
+            for paper in visible
+            if (paper.paper_id in desired and paper.journal != name)
+            or (paper.paper_id not in desired and paper.journal == name)
+        ]
+        patches = tuple(
+            MetadataPatch(
+                paper_id=paper.paper_id,
+                expected_row_version=row_versions[paper.paper_id],
+                changes=(("journal", name if paper.paper_id in desired else ""),),
+            )
+            for paper in affected
+        )
+        if patches:
+            try:
+                lifecycle_from_app().change_many_metadata(
+                    BulkEditMetadata(actor_from_session(), patches)
+                )
+            except LifecycleError as error:
+                return lifecycle_error_response(error)
         return jsonify(ok=True)
 
     @app.route("/admin/journal/<journal_id>/edit", endpoint="admin_journal_edit_legacy")

@@ -70,7 +70,7 @@
     <div class="card-header bg-light d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center gap-2">
             <h5 class="mb-0">{{ _('Papers in this Journal') }}</h5>
-            <span class="badge bg-primary" id="journalMemberCount">{{ journal_paper_filenames|length }}</span>
+            <span class="badge bg-primary" id="journalMemberCount">{{ journal_paper_ids|length }}</span>
         </div>
         <button type="button" class="btn btn-primary btn-sm" id="journalPapersSaveBtn">{{ _('Save changes') }}</button>
     </div>
@@ -82,8 +82,8 @@
             {% for p in all_papers %}
             <label class="jp-row d-flex align-items-center gap-2 py-2 border-bottom"
                 data-text="{{ ((p.title or p.filename) ~ ' ' ~ (p.author_name or ''))|lower }}">
-                <input type="checkbox" class="jp-check" data-filename="{{ p.filename }}"
-                    {% if p.filename in journal_paper_filenames %}checked{% endif %}>
+                <input type="checkbox" class="jp-check" data-paper-id="{{ p.paper_id }}" data-row-version="{{ p.row_version }}"
+                    {% if p.paper_id in journal_paper_ids %}checked{% endif %}>
                 <span style="flex:1;">
                     <span style="font-size:14px;">{{ p.title or p.filename }}</span>
                     <span class="text-muted" style="font-size:12px;"> · {{ p.author_name or _('Unknown') }}</span>
@@ -117,15 +117,19 @@
     });
     var saveBtn = document.getElementById('journalPapersSaveBtn');
     if (saveBtn) saveBtn.addEventListener('click', function () {
-        var filenames = [];
+        var paperIds = [];
+        var rowVersions = {};
+        document.querySelectorAll('#journalPaperList .jp-check').forEach(function (c) {
+            rowVersions[c.dataset.paperId] = Number(c.dataset.rowVersion);
+        });
         document.querySelectorAll('#journalPaperList .jp-check:checked').forEach(function (c) {
-            filenames.push(c.dataset.filename);
+            paperIds.push(c.dataset.paperId);
         });
         saveBtn.disabled = true;
         fetch(SAVE_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filenames: filenames })
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content },
+            body: JSON.stringify({ paper_ids: paperIds, row_versions: rowVersions })
         })
             .then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
             .then(function () { window.location.reload(); })

@@ -16,6 +16,7 @@ from flask import (
 )
 from flask_babel import gettext as _
 from werkzeug.routing import PathConverter
+from werkzeug.utils import secure_filename
 
 import llm_client
 import rag_index
@@ -25,7 +26,6 @@ from config import (
     CP_GLOBAL_CONTEXTS,
     IB_EE_CRITERIA_DEFS,
     OPEN_ACCESS,
-    PAPERS_DIR,
 )
 from routes.shared import paginate_records
 from services.auth import get_active_user, require_login
@@ -53,17 +53,31 @@ from services.papers import (
     load_paper_metadata,
     reconcile_ee_subjects,
     reconcile_ia_subjects,
-    remove_paper_metadata,
-    rename_ee_subject_in_papers,
-    rename_ia_subject_in_papers,
     resolve_contained,
     save_ee_subjects,
     save_ia_subjects,
-    set_pdf_metadata,
-    upsert_paper_metadata,
+    save_paper_categories,
 )
 from services.search import _hybrid_search_records
 from services.publishing_contracts import NotFound
+from services.publishing_contracts import (
+    DeletePaper,
+    DeletionState,
+    EditMetadata,
+    BulkEditMetadata,
+    InvalidInput,
+    LifecycleError,
+    MetadataPatch,
+    PdfUpload,
+    RestoreRevision,
+    RevisePdf,
+    StaleVersion,
+)
+from routes.publishing_http import (
+    actor_from_session,
+    lifecycle_error_response,
+    lifecycle_from_app,
+)
 
 
 class _LegacyPaperPathConverter(PathConverter):
@@ -102,6 +116,39 @@ def _legacy_paper_document(filename):
 
 
 def register_routes(app):
+    def change_return_endpoint(user):
+        return "paper_manage" if str(user.get("role", "1")) == "3" else "dashboard"
+
+    def subject_rename_patches(field, renames):
+        patches = []
+        rename_map = dict(renames)
+        for paper in _paper_library().list_visible():
+            raw = getattr(paper, field)
+            if not raw:
+                continue
+            try:
+                payload = json.loads(raw)
+            except (TypeError, json.JSONDecodeError):
+                continue
+            touched = False
+            if field == "ib_ee_data":
+                for key in ("core_subject", "interdisciplinary_subject"):
+                    if payload.get(key) in rename_map:
+                        payload[key] = rename_map[payload[key]]
+                        touched = True
+            elif payload.get("subject") in rename_map:
+                payload["subject"] = rename_map[payload["subject"]]
+                touched = True
+            if touched:
+                patches.append(
+                    MetadataPatch(
+                        paper_id=paper.paper_id,
+                        expected_row_version=paper.row_version,
+                        changes=((field, json.dumps(payload, ensure_ascii=False)),),
+                    )
+                )
+        return tuple(patches)
+
     def legacy_paper_path_route(rule, **options):
         def decorate(view):
             original_path_converter = app.url_map.converters["path"]
@@ -114,6 +161,77 @@ def register_routes(app):
         return decorate
 
     # ==================== PAPERS / SEARCH ROUTES ====================
+
+    @app.route("/dashboard/admin/paper-categories/add", methods=["POST"], endpoint="admin_paper_categories_add")
+    def paper_category_add():
+        user = require_login(level=3)
+        if not user:
+            return jsonify(error="Unauthorized"), 401
+        name = (request.json or {}).get("name", "").strip()
+        if not name:
+            return jsonify(error=str(_("Category name is required."))), 400
+        categories = load_paper_categories()
+        if name in categories:
+            return jsonify(error=str(_("Category already exists."))), 409
+        categories.append(name)
+        save_paper_categories(categories)
+        return jsonify(items=categories)
+
+    @app.route("/dashboard/admin/paper-categories/rename", methods=["POST"], endpoint="admin_paper_categories_rename")
+    def paper_category_rename():
+        user = require_login(level=3)
+        if not user:
+            return jsonify(error="Unauthorized"), 401
+        data = request.json or {}
+        old_name = data.get("old_name", "").strip()
+        new_name = data.get("new_name", "").strip()
+        if not old_name or not new_name:
+            return jsonify(error=str(_("Both old and new names are required."))), 400
+        categories = load_paper_categories()
+        if old_name not in categories:
+            return jsonify(error=str(_("Category not found."))), 404
+        if new_name in categories:
+            return jsonify(error=str(_("A category with that name already exists."))), 409
+        categories[categories.index(old_name)] = new_name
+        affected = [
+            paper
+            for paper in _paper_library().list_visible()
+            if paper.category == old_name
+        ]
+        if affected:
+            try:
+                lifecycle_from_app().change_many_metadata(
+                    BulkEditMetadata(
+                        actor_from_session(),
+                        tuple(
+                            MetadataPatch(
+                                paper.paper_id,
+                                paper.row_version,
+                                (("category", new_name),),
+                            )
+                            for paper in affected
+                        ),
+                    )
+                )
+            except LifecycleError as error:
+                return lifecycle_error_response(error)
+        save_paper_categories(categories)
+        return jsonify(items=categories)
+
+    @app.route("/dashboard/admin/paper-categories/delete", methods=["POST"], endpoint="admin_paper_categories_delete")
+    def paper_category_delete():
+        user = require_login(level=3)
+        if not user:
+            return jsonify(error="Unauthorized"), 401
+        name = (request.json or {}).get("name", "").strip()
+        if not name:
+            return jsonify(error=str(_("Category name is required."))), 400
+        categories = load_paper_categories()
+        if name not in categories:
+            return jsonify(error=str(_("Category not found."))), 404
+        categories.remove(name)
+        save_paper_categories(categories)
+        return jsonify(items=categories)
 
     @app.route("/advanced-search")
     def advanced_search():
@@ -292,7 +410,13 @@ def register_routes(app):
             target = url_for("login") if not session.get("user") else url_for("dashboard")
             return redirect(target)
 
-        papers = gather_paper_records(_paper_library())
+        papers = []
+        for summary in _paper_library().list_managed():
+            paper = asdict(summary.paper)
+            paper["lifecycle_state"] = summary.lifecycle_state
+            paper["index_status"] = summary.index_status
+            paper["index_error"] = summary.index_error
+            papers.append(paper)
         for paper in papers:
             if _is_cp_paper(paper):
                 paper_type = "Community Project"
@@ -318,30 +442,71 @@ def register_routes(app):
         if not user:
             return jsonify({"error": "Unauthorized"}), 401
         data = request.get_json(silent=True) or {}
-        filenames = data.get("filenames", [])
+        paper_ids = data.get("paper_ids", [])
+        row_versions = data.get("row_versions", {})
         op = data.get("op", "")
+        if (
+            not isinstance(paper_ids, list)
+            or not paper_ids
+            or not isinstance(row_versions, dict)
+            or any(
+                type(paper_id) is not str
+                or type(row_versions.get(paper_id)) is not int
+                for paper_id in paper_ids
+            )
+        ):
+            return jsonify({"error": "Paper UUIDs and row versions are required"}), 422
+        actor = actor_from_session()
         if op == "delete":
             deleted = []
-            for fname in filenames:
-                p = resolve_contained(PAPERS_DIR, fname, must_exist=True)
-                if p is None:
-                    continue
-                remove_paper_metadata(fname)
-                p.unlink(missing_ok=True)
+            deleting = []
+            stale = []
+            not_found = []
+            for paper_id in paper_ids:
                 try:
-                    rag_index.purge(fname)
-                except Exception:
-                    app.logger.exception("purge failed")
-                deleted.append(fname)
-            return jsonify({"deleted": deleted, "count": len(deleted)})
+                    outcome = lifecycle_from_app().delete_paper(
+                        DeletePaper(actor, paper_id, row_versions[paper_id])
+                    )
+                except StaleVersion as error:
+                    stale.append(
+                        {"paper_id": paper_id, "current_version": error.current_version}
+                    )
+                except NotFound:
+                    not_found.append(paper_id)
+                except LifecycleError as error:
+                    return lifecycle_error_response(error)
+                else:
+                    if outcome.state is DeletionState.DELETED:
+                        deleted.append(paper_id)
+                    else:
+                        deleting.append(paper_id)
+            return jsonify(
+                deleted=deleted,
+                deleting=deleting,
+                stale=stale,
+                not_found=not_found,
+                count=len(deleted),
+                deleting_count=len(deleting),
+            )
         if op == "set_journal":
             journal = (data.get("journal") or "").strip()
-            updated = []
-            for fname in filenames:
-                if resolve_contained(PAPERS_DIR, fname, must_exist=True) is None:
-                    continue
-                upsert_paper_metadata(fname, {"journal": journal})
-                updated.append(fname)
+            try:
+                outcome = lifecycle_from_app().change_many_metadata(
+                    BulkEditMetadata(
+                        actor=actor,
+                        patches=tuple(
+                            MetadataPatch(
+                                paper_id=paper_id,
+                                expected_row_version=row_versions[paper_id],
+                                changes=(("journal", journal),),
+                            )
+                            for paper_id in paper_ids
+                        ),
+                    )
+                )
+            except LifecycleError as error:
+                return lifecycle_error_response(error)
+            updated = [paper.paper_id for paper in outcome.papers]
             return jsonify({"updated": updated, "count": len(updated)})
         return jsonify({"error": "Unsupported operation"}), 400
 
@@ -503,29 +668,26 @@ def register_routes(app):
             code=301,
         )
 
-    @legacy_paper_path_route(
-        "/dashboard/paper/<path:filename>/modify",
+    @app.route(
+        "/dashboard/paper/<uuid:paper_id>/modify",
         methods=["GET", "POST"],
     )
-    def paper_modify(filename):
-        user = require_login(level=3)
+    def paper_modify(paper_id):
+        user = require_login(level=2)
         if not user:
             target = url_for("login") if not session.get("user") else url_for("dashboard")
             return redirect(target)
 
-        document = _legacy_paper_document(filename)
+        document = _current_paper_pdf(paper_id)
         paper_id = document.paper.paper_id
-        paper_path = resolve_contained(PAPERS_DIR, filename, must_exist=True)
-        if paper_path is None:
-            flash(_("Paper not found."), "warning")
-            return redirect(url_for("paper_manage"))
-
-        meta_rows = load_paper_metadata()
-        meta = {}
-        for r in meta_rows:
-            if r.get("filename") == filename:
-                meta = r
-                break
+        filename = document.paper.filename
+        meta = asdict(document.paper)
+        return_endpoint = change_return_endpoint(user)
+        management = (
+            _paper_library().management_record(paper_id)
+            if request.method == "GET"
+            else None
+        )
 
         def parsed_authors_from_meta(meta_row):
             names = meta_row.get("author_name", "").split(", ")
@@ -544,13 +706,25 @@ def register_routes(app):
                 parsed = [{"name": "", "email": "", "school": ""}]
             return parsed
 
-        def render_modify_form(meta_row):
+        def render_modify_form(
+            meta_row,
+            publishing_error=None,
+            row_version_value=None,
+        ):
             return render_template(
                 "paper_modify.html",
                 user=user,
                 filename=filename,
                 paper_id=paper_id,
+                row_version=(
+                    document.paper.row_version
+                    if row_version_value is None
+                    else row_version_value
+                ),
+                management=management,
+                return_endpoint=return_endpoint,
                 meta=meta_row,
+                publishing_error=publishing_error,
                 parsed_authors=parsed_authors_from_meta(meta_row),
                 categories=load_paper_categories(),
                 journals=get_journal_names(),
@@ -562,7 +736,48 @@ def register_routes(app):
                 cp_criteria_defs=CP_CRITERIA_DEFS,
             )
 
+        def metadata_edits_requested(current, proposed):
+            json_fields = {"ib_ee_data", "cp_data", "ia_data"}
+            flag_fields = {"is_ib_sample", "is_anonymous"}
+
+            def normalized(key, value):
+                if key in flag_fields:
+                    return str(value or "").strip().casefold() in {
+                        "1", "true", "yes", "on"
+                    }
+                if key in json_fields:
+                    if not value:
+                        return None
+                    try:
+                        return json.loads(value)
+                    except (TypeError, json.JSONDecodeError):
+                        return value
+                return str(value or "").strip()
+
+            editable_fields = (
+                "title",
+                "journal",
+                "category",
+                "language",
+                "keywords",
+                "abstract",
+                "author_name",
+                "author_email",
+                "author_school",
+                "is_ib_sample",
+                "is_anonymous",
+                "ib_ee_data",
+                "cp_data",
+                "ia_data",
+            )
+            return any(
+                normalized(key, current.get(key))
+                != normalized(key, proposed.get(key))
+                for key in editable_fields
+            )
+
         if request.method == "POST":
+            submitted_row_version = request.form.get("row_version", "")
             title = request.form.get("title", "").strip()
 
             raw_names = request.form.getlist("author_name")
@@ -621,91 +836,266 @@ def register_routes(app):
 
             if sum([is_ib_ee, is_cp_paper, is_ia]) > 1:
                 flash(_("A paper can only be one of: Extended Essay, Community Project, or Internal Assessment."), "danger")
-                return render_modify_form(form_meta)
+                return render_modify_form(
+                    form_meta, row_version_value=submitted_row_version
+                )
             if is_ib_ee and not request.form.get("ib_ee_core_subject", "").strip():
                 flash(_("Please select an EE core subject."), "danger")
-                return render_modify_form(form_meta)
+                return render_modify_form(
+                    form_meta, row_version_value=submitted_row_version
+                )
             if is_cp_paper and not request.form.get("cp_global_context", "").strip():
                 flash(_("Please select a Global Context."), "danger")
-                return render_modify_form(form_meta)
+                return render_modify_form(
+                    form_meta, row_version_value=submitted_row_version
+                )
             if is_cp_paper and not request.form.getlist("cp_action_type"):
                 flash(_("Please select at least one Type of Action."), "danger")
-                return render_modify_form(form_meta)
+                return render_modify_form(
+                    form_meta, row_version_value=submitted_row_version
+                )
             if is_ia:
                 ia_parsed = json.loads(ia_data)
                 if not ia_parsed.get("subject"):
                     flash(_("Please select an IA subject."), "danger")
-                    return render_modify_form(form_meta)
+                    return render_modify_form(
+                        form_meta, row_version_value=submitted_row_version
+                    )
                 if not ia_parsed.get("criteria"):
                     flash(_("The selected IA subject has no assessment criteria configured."), "danger")
-                    return render_modify_form(form_meta)
+                    return render_modify_form(
+                        form_meta, row_version_value=submitted_row_version
+                    )
 
-            # We use the raw first author for the filename
             primary_author = author_names[0] if author_names else ""
             new_filename = _build_safe_paper_filename(title, primary_author)
-            if new_filename != filename:
-                new_paper_path = PAPERS_DIR / new_filename
-                if new_paper_path.exists():
-                    flash(_("A file with the new name already exists, unable to rename."), "warning")
-                    return redirect(url_for("paper_modify", filename=filename))
-                else:
-                    paper_path.rename(new_paper_path)
-                    remove_paper_metadata(filename)
-                    filename = new_filename
+            try:
+                expected_version = int(request.form.get("row_version", ""))
+            except (TypeError, ValueError):
+                error = InvalidInput({"row_version": "must be an integer"})
+                return lifecycle_error_response(
+                    error,
+                    html_renderer=lambda payload, status: (
+                        render_modify_form(
+                            form_meta,
+                            publishing_error=payload,
+                            row_version_value=submitted_row_version,
+                        ),
+                        status,
+                    ),
+                )
 
-            set_pdf_metadata(PAPERS_DIR / filename, title, final_author_name)
-
-            upsert_paper_metadata(filename, {
-                "title": title,
-                "journal": request.form.get("journal", "").strip(),
-                "category": request.form.get("category", "").strip(),
-                "language": request.form.get("language", "").strip(),
-                "keywords": request.form.get("keywords", "").strip(),
-                "abstract": request.form.get("abstract", "").strip(),
-                "author_name": final_author_name,
-                "author_email": final_author_email,
-                "author_school": final_author_school,
-                "published_at": meta.get("published_at", ""),
-                "is_ib_sample": "1" if is_ib_sample else "",
-                "is_anonymous": "1" if is_anonymous else "",
-                "ib_ee_data": ib_ee_data,
-                "cp_data": cp_data,
-                "ia_data": ia_data,
-            })
-            flash(_("Paper information updated."), "success")
-            return redirect(url_for("paper_manage"))
+            replacement = request.files.get("replacement_pdf")
+            if replacement and replacement.filename:
+                if metadata_edits_requested(meta, form_meta):
+                    flash(
+                        _(
+                            "Save metadata changes separately before uploading "
+                            "a replacement PDF."
+                        ),
+                        "danger",
+                    )
+                    return render_modify_form(
+                        form_meta, row_version_value=submitted_row_version
+                    ), 422
+                intent = RevisePdf(
+                    actor=actor_from_session(),
+                    paper_id=paper_id,
+                    expected_row_version=expected_version,
+                    pdf=PdfUpload(
+                        filename=secure_filename(replacement.filename),
+                        stream=replacement.stream,
+                    ),
+                )
+            else:
+                intent = EditMetadata(
+                    actor=actor_from_session(),
+                    patch=MetadataPatch(
+                        paper_id=paper_id,
+                        expected_row_version=expected_version,
+                        changes=tuple(
+                            (key, value)
+                            for key, value in (
+                                ("filename", new_filename),
+                                ("title", title),
+                                ("journal", form_meta["journal"]),
+                                ("category", form_meta["category"]),
+                                ("language", form_meta["language"]),
+                                ("keywords", form_meta["keywords"]),
+                                ("abstract", form_meta["abstract"]),
+                                ("author_name", final_author_name),
+                                ("author_email", final_author_email),
+                                ("author_school", final_author_school),
+                                ("is_ib_sample", form_meta["is_ib_sample"]),
+                                ("is_anonymous", form_meta["is_anonymous"]),
+                                ("ib_ee_data", ib_ee_data),
+                                ("cp_data", cp_data),
+                                ("ia_data", ia_data),
+                            )
+                        ),
+                    ),
+                )
+            try:
+                lifecycle_from_app().change_paper(intent)
+            except LifecycleError as error:
+                return lifecycle_error_response(
+                    error,
+                    html_renderer=lambda payload, status: (
+                        render_modify_form(
+                            form_meta,
+                            publishing_error=payload,
+                            row_version_value=submitted_row_version,
+                        ),
+                        status,
+                    ),
+                )
+            if replacement and replacement.filename:
+                flash(_("Paper PDF revised."), "success")
+            else:
+                flash(_("Paper information updated."), "success")
+            return redirect(url_for(return_endpoint))
 
         return render_modify_form(meta)
+
+    @legacy_paper_path_route(
+        "/dashboard/paper/<path:filename>/modify",
+        methods=["GET", "POST"],
+        endpoint="paper_modify_legacy_dashboard",
+    )
+    def paper_modify_legacy_dashboard(filename):
+        user = require_login(level=2)
+        if not user:
+            target = url_for("login") if not session.get("user") else url_for("dashboard")
+            return redirect(target)
+        document = _legacy_paper_document(filename)
+        return redirect(
+            url_for("paper_modify", paper_id=document.paper.paper_id),
+            code=301 if request.method == "GET" else 308,
+        )
 
     @legacy_paper_path_route(
         "/paper/<path:filename>/modify",
         endpoint="paper_modify_legacy",
     )
     def paper_modify_legacy(filename):
-        return redirect(url_for("paper_modify", filename=filename), code=301)
+        user = require_login(level=2)
+        if not user:
+            target = url_for("login") if not session.get("user") else url_for("dashboard")
+            return redirect(target)
+        document = _legacy_paper_document(filename)
+        return redirect(
+            url_for("paper_modify", paper_id=document.paper.paper_id),
+            code=301,
+        )
+
+    @app.route(
+        "/dashboard/paper/<uuid:paper_id>/delete",
+        methods=["POST"],
+    )
+    def paper_delete(paper_id):
+        user = require_login(level=2)
+        if not user:
+            return redirect(url_for("login"))
+        return_endpoint = change_return_endpoint(user)
+        try:
+            expected_version = int(request.form.get("row_version", ""))
+        except (TypeError, ValueError):
+            return lifecycle_error_response(
+                InvalidInput({"row_version": "must be an integer"}),
+                redirect_endpoint=return_endpoint,
+            )
+        try:
+            outcome = lifecycle_from_app().delete_paper(
+                DeletePaper(
+                    actor=actor_from_session(),
+                    paper_id=str(paper_id),
+                    expected_row_version=expected_version,
+                )
+            )
+        except LifecycleError as error:
+            return lifecycle_error_response(
+                error,
+                redirect_endpoint=return_endpoint,
+            )
+        if outcome.state is DeletionState.DELETED:
+            flash(_("Paper deleted."), "success")
+        else:
+            flash(_("Paper deletion is in progress."), "warning")
+        return redirect(url_for(return_endpoint))
 
     @legacy_paper_path_route(
         "/dashboard/paper/<path:filename>/delete",
         methods=["POST"],
+        endpoint="paper_delete_legacy",
     )
-    def paper_delete(filename):
-        user = require_login(level=3)
+    def paper_delete_legacy(filename):
+        user = require_login(level=2)
         if not user:
             return redirect(url_for("login"))
+        document = _legacy_paper_document(filename)
+        return redirect(
+            url_for("paper_delete", paper_id=document.paper.paper_id),
+            code=308,
+        )
 
-        paper_path = resolve_contained(PAPERS_DIR, filename, must_exist=True)
-        if paper_path is None:
-            flash(_("Paper not found."), "warning")
-            return redirect(url_for("paper_manage"))
-
-        remove_paper_metadata(filename)
-        paper_path.unlink(missing_ok=True)
-        flash(_("Deleted %(filename)s.", filename=filename), "success")
+    @app.route(
+        "/dashboard/paper/<uuid:paper_id>/revisions/<int:revision>/pdf"
+    )
+    def paper_revision_file(paper_id, revision):
+        user = require_login(level=2)
+        if not user:
+            return redirect(url_for("login"))
         try:
-            rag_index.purge(filename)
-        except Exception:
-            app.logger.exception("Failed to purge chunks for deleted paper")
-        return redirect(url_for("paper_manage"))
+            document = _paper_library().private_revision_pdf(
+                str(paper_id),
+                revision,
+                actor=actor_from_session(),
+            )
+        except NotFound:
+            abort(404)
+        except LifecycleError as error:
+            return lifecycle_error_response(
+                error,
+                redirect_endpoint="paper_manage",
+            )
+        return send_file(
+            document.path,
+            mimetype="application/pdf",
+            download_name=document.paper.filename,
+        )
+
+    @app.route(
+        "/dashboard/paper/<uuid:paper_id>/restore/<int:revision>",
+        methods=["POST"],
+    )
+    def paper_restore(paper_id, revision):
+        user = require_login(level=2)
+        if not user:
+            return redirect(url_for("login"))
+        return_endpoint = change_return_endpoint(user)
+        try:
+            expected_version = int(request.form.get("row_version", ""))
+        except (TypeError, ValueError):
+            return lifecycle_error_response(
+                InvalidInput({"row_version": "must be an integer"}),
+                redirect_endpoint=return_endpoint,
+            )
+        try:
+            lifecycle_from_app().change_paper(
+                RestoreRevision(
+                    actor=actor_from_session(),
+                    paper_id=str(paper_id),
+                    expected_row_version=expected_version,
+                    revision=revision,
+                )
+            )
+        except LifecycleError as error:
+            return lifecycle_error_response(
+                error,
+                redirect_endpoint=return_endpoint,
+            )
+        flash(_("Paper revision restored."), "success")
+        return redirect(url_for(return_endpoint))
 
     @app.route("/preview/<path:filename>")
     def preview_paper_legacy(filename: str):
@@ -795,8 +1185,14 @@ def register_routes(app):
         if conflicts:
             return jsonify(error=str(_("Some subjects are still used by papers.")),
                            conflicts=conflicts), 409
-        for old_name, new_name in result["renames"]:
-            rename_ee_subject_in_papers(old_name, new_name)
+        patches = subject_rename_patches("ib_ee_data", result["renames"])
+        if patches:
+            try:
+                lifecycle_from_app().change_many_metadata(
+                    BulkEditMetadata(actor_from_session(), patches)
+                )
+            except LifecycleError as error:
+                return lifecycle_error_response(error)
         save_ee_subjects(result["tree"])
         return jsonify(ok=True, **result["tree"])
 
@@ -828,7 +1224,13 @@ def register_routes(app):
         if conflicts:
             return jsonify(error=str(_("Some subjects are still used by papers.")),
                            conflicts=conflicts), 409
-        for old_name, new_name in result["renames"]:
-            rename_ia_subject_in_papers(old_name, new_name)
+        patches = subject_rename_patches("ia_data", result["renames"])
+        if patches:
+            try:
+                lifecycle_from_app().change_many_metadata(
+                    BulkEditMetadata(actor_from_session(), patches)
+                )
+            except LifecycleError as error:
+                return lifecycle_error_response(error)
         save_ia_subjects(result["tree"])
         return jsonify(ok=True, **result["tree"])

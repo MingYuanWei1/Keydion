@@ -300,6 +300,8 @@
         {% set ptype = p.paper_type %}
         {% set tkey = 'ee' if ptype == 'Extended Essay' else 'cp' if ptype == 'Community Project' else 'ia' if ptype == 'Internal Assessment' else 'independent' if ptype == 'Independent Research' else '' %}
         <tr data-row
+            data-paper-id="{{ p.paper_id }}"
+            data-row-version="{{ p.row_version }}"
             data-filename="{{ p.filename }}"
             data-title="{{ (p.title or '')|lower }}"
             data-abstract="{{ (p.abstract or '')|lower }}"
@@ -308,12 +310,13 @@
             data-type="{{ tkey }}"
             data-date="{{ p.published_at }}">
           <td style="padding-right:0;">
-            <input type="checkbox" class="kp-check paper-row-check" value="{{ p.filename }}" aria-label="{{ _('Select paper') }}">
+            <input type="checkbox" class="kp-check{% if p.lifecycle_state != 'deleting' %} paper-row-check{% endif %}" value="{{ p.paper_id }}" data-row-version="{{ p.row_version }}" aria-label="{{ _('Select paper') }}"{% if p.lifecycle_state == 'deleting' %} disabled{% endif %}>
           </td>
           <td>
             <span class="td-title">
-              <a href="{{ url_for('paper_modify', filename=p.filename) }}">{{ p.title }}</a>
+              {% if p.lifecycle_state == 'deleting' %}{{ p.title }}{% else %}<a href="{{ url_for('paper_modify', paper_id=p.paper_id) }}">{{ p.title }}</a>{% endif %}
             </span>
+            {% if p.lifecycle_state == 'deleting' %}<div class="badge bg-warning text-dark">{{ _('Deletion in progress') }}</div>{% endif %}
             {% if p.abstract %}
               <div class="td-sub">{{ p.abstract }}</div>
             {% endif %}
@@ -349,18 +352,21 @@
           <td><span class="td-meta">{{ p.published_at or '—' }}</span></td>
           <td class="text-end">
             <div class="td-actions">
+              {% if p.lifecycle_state != 'deleting' %}
               <a class="kp-row-icon" href="{{ url_for('paper_file', paper_id=p.paper_id) }}" target="_blank" rel="noopener" title="{{ _('Open PDF') }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
               </a>
-              <a class="kp-row-icon" href="{{ url_for('paper_modify', filename=p.filename) }}" title="{{ _('Modify') }}">
+              <a class="kp-row-icon" href="{{ url_for('paper_modify', paper_id=p.paper_id) }}" title="{{ _('Modify') }}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
               </a>
-              <form method="post" action="{{ url_for('paper_delete', filename=p.filename) }}" class="d-inline" onsubmit="return confirm('{{ _('Delete this paper? This cannot be undone.') }}')">
+              <form method="post" action="{{ url_for('paper_delete', paper_id=p.paper_id) }}" class="d-inline" onsubmit="return confirm('{{ _('Delete this paper? This cannot be undone.') }}')">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="row_version" value="{{ p.row_version }}">
                 <button type="submit" class="kp-row-icon" title="{{ _('Delete') }}">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
                 </button>
               </form>
+              {% endif %}
             </div>
           </td>
         </tr>
@@ -575,28 +581,12 @@
     }
   }
 
-  /* Fallback: submit per-row delete forms one-by-one when no bulk endpoint */
-  function bulkDeleteFallback(filenames) {
-    var holder = document.getElementById('paperBulkForms');
-    holder.innerHTML = '';
-    filenames.forEach(function (fn) {
-      var f = document.createElement('form');
-      f.method = 'post';
-      f.action = "{{ url_for('paper_delete', filename='__FN__') }}".replace('__FN__', encodeURIComponent(fn));
-      holder.appendChild(f);
-    });
-    // Submitting navigates away on the first; the server redirects back to the
-    // list, so this only removes one per click unless the bulk route exists.
-    var first = holder.querySelector('form');
-    if (first) first.submit();
-  }
-
   /* ============ "Add to journal" modal ============ */
   function checkedPapers() {
     return Array.prototype.map.call(document.querySelectorAll('.paper-row-check:checked'), function (c) {
       var tr = c.closest('tr');
       var a = tr ? tr.querySelector('.td-title a') : null;
-      return { filename: c.value, title: a ? a.textContent.trim() : c.value };
+      return { paper_id: c.value, row_version: Number(c.dataset.rowVersion), title: a ? a.textContent.trim() : c.value };
     });
   }
 
@@ -634,7 +624,7 @@
     }
     chips.innerHTML = papers.map(function (p) {
       return '<div class="jm-chip"><span class="jm-chip__title">' + escHtml(p.title) + '</span>' +
-        '<button type="button" class="jm-chip__remove" data-fn="' + escAttr(p.filename) + '" title="' + "{{ _('Remove from selection') }}" + '" aria-label="' + "{{ _('Remove from selection') }}" + '">' +
+        '<button type="button" class="jm-chip__remove" data-fn="' + escAttr(p.paper_id) + '" title="' + "{{ _('Remove from selection') }}" + '" aria-label="' + "{{ _('Remove from selection') }}" + '">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>';
     }).join('');
     chips.querySelectorAll('.jm-chip__remove').forEach(function (btn) {
@@ -663,12 +653,14 @@
     if (ov) ov.classList.remove('show');
   }
   function confirmJournal() {
-    var ids = checkedPapers().map(function (p) { return p.filename; });
+    var papers = checkedPapers();
+    var ids = papers.map(function (p) { return p.paper_id; });
+    var versions = Object.fromEntries(papers.map(function (p) { return [p.paper_id, p.row_version]; }));
     if (ids.length === 0 || !jmSelectedJournal) return;
     fetch(BULK_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filenames: ids, op: 'set_journal', journal: jmSelectedJournal })
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content },
+      body: JSON.stringify({ paper_ids: ids, row_versions: versions, op: 'set_journal', journal: jmSelectedJournal })
     })
     .then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
     .then(function (d) {
@@ -726,25 +718,32 @@
     // Bulk delete
     document.querySelectorAll('[data-bulk-op]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        var ids = Array.prototype.map.call(document.querySelectorAll('.paper-row-check:checked'), function (c) { return c.value; });
+        var selected = checkedPapers();
+        var ids = selected.map(function (p) { return p.paper_id; });
+        var versions = Object.fromEntries(selected.map(function (p) { return [p.paper_id, p.row_version]; }));
         if (ids.length === 0) return;
         if (!confirm("{{ _('Delete') }} " + ids.length + " {{ _('papers? This cannot be undone.') }}")) return;
 
         fetch(BULK_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filenames: ids, op: 'delete' })
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content },
+          body: JSON.stringify({ paper_ids: ids, row_versions: versions, op: 'delete' })
         })
         .then(function (r) { return r.ok ? r.json() : Promise.reject(r); })
         .then(function (d) {
-          var n = (d && d.count != null) ? d.count : ids.length;
-          queueToast("{{ _('Deleted') }} " + n + " " + (n === 1 ? "{{ _('paper') }}" : "{{ _('papers') }}") + " {{ _('successfully') }}");
+          var deletedCount = (d && d.count != null) ? d.count : 0;
+          var deletingCount = (d && d.deleting_count != null) ? d.deleting_count : 0;
+          var messages = [];
+          if (deletedCount > 0) {
+            messages.push("{{ _('Deleted') }} " + deletedCount + " " + (deletedCount === 1 ? "{{ _('paper') }}" : "{{ _('papers') }}") + " {{ _('successfully') }}");
+          }
+          if (deletingCount > 0) {
+            messages.push("{{ _('Deletion in progress for') }} " + deletingCount + " " + (deletingCount === 1 ? "{{ _('paper') }}" : "{{ _('papers') }}"));
+          }
+          if (messages.length > 0) queueToast(messages.join(" · "));
           location.reload();
         })
-        .catch(function () {
-          // Endpoint missing/failed → graceful per-row fallback
-          bulkDeleteFallback(ids);
-        });
+        .catch(function () { alert("{{ _('Could not delete papers. Please reload and try again.') }}"); });
       });
     });
 

@@ -2,6 +2,7 @@
 from db import db_session
 from models import SubmissionModel
 from services.submission_fence import lock_submission_creation_fence
+from services.papers import set_pdf_metadata
 
 
 _EXTERNAL_TO_MODEL = {
@@ -29,10 +30,13 @@ def _submission_dict(row):
 
 
 def _submission_model(values):
-    return SubmissionModel(**{
+    model_values = {
         model_name: values.get(external)
         for external, model_name in _EXTERNAL_TO_MODEL.items()
-    })
+    }
+    if model_values.get("reviewed_at") == "":
+        model_values["reviewed_at"] = None
+    return SubmissionModel(**model_values)
 
 
 def _load_submissions():
@@ -71,56 +75,33 @@ def _load_submissions():
         } for row in subs]
 
 
-def _write_submissions(subs):
-    with db_session() as db:
-        lock_submission_creation_fence(db)
-        db.query(SubmissionModel).delete()
-        for s in subs:
-            db.add(SubmissionModel(
-                id=s.get("id"),
-                pdf_filename=s.get("pdf_filename"),
-                pending_filename=s.get("pending_filename"),
-                title=s.get("title"),
-                author_name=s.get("author_name"),
-                author_email=s.get("author_email"),
-                author_school=s.get("author_school"),
-                status=s.get("status"),
-                submitted_at=s.get("submitted_at"),
-                feedback=s.get("feedback"),
-                abstract=s.get("abstract"),
-                keywords=s.get("keywords"),
-                journal=s.get("journal"),
-                category=s.get("category"),
-                language=s.get("language"),
-                submitted_by=s.get("submitter"),
-                original_filename=s.get("original_filename"),
-                ib_ee_data=s.get("ib_ee_data"),
-                is_ib_sample=s.get("is_ib_sample"),
-                is_anonymous=s.get("is_anonymous"),
-                cp_data=s.get("cp_data"),
-                ia_data=s.get("ia_data"),
-                paper_id=s.get("paper_id"),
-                submitter_name=s.get("submitter_name"),
-                reviewed_at=s.get("reviewed_at"),
-                reviewer=s.get("reviewer"),
-                comment=s.get("comment"),
-                decision_idempotency_key=s.get("decision_idempotency_key"),
-                decision_payload_hash=s.get("decision_payload_hash"),
-            ))
-        db.commit()
+def _save_submission(sub, *, pending_write=None, pending_cleanup_on_failure=None):
+    attempted_write = False
+    try:
+        with db_session() as db:
+            lock_submission_creation_fence(db)
+            db.add(_submission_model(sub))
+            db.flush()
+            if pending_write is not None:
+                attempted_write = True
+                pending_write()
+    except Exception:
+        if attempted_write and pending_cleanup_on_failure is not None:
+            pending_cleanup_on_failure()
+        raise
 
 
-def _save_submission(sub):
-    with db_session() as db:
-        lock_submission_creation_fence(db)
-        db.add(_submission_model(sub))
-        db.commit()
+def _store_pending_submission_pdf(upload, pending_path, *, title, author):
+    """Persist Reader intake bytes in the private Submission namespace."""
+    upload.save(pending_path)
+    set_pdf_metadata(pending_path, title, author)
 
 
 def _delete_submission(
     sub_id,
     *,
     expected_submitter=None,
+    expected_status=None,
     pending_cleanup=None,
 ):
     with db_session() as db:
@@ -138,36 +119,73 @@ def _delete_submission(
                 expected_submitter is not None
                 and submission.submitted_by != expected_submitter
             )
+            or (
+                expected_status is not None
+                and submission.status != expected_status
+            )
         ):
             return False
         if pending_cleanup is not None:
             pending_cleanup(submission.pending_filename or "")
         db.delete(submission)
-        db.commit()
         return True
 
 
 def _get_submission(sub_id):
-    for s in _load_submissions():
-        if s.get("id") == sub_id:
-            return s
-    return None
-
-
-def _update_submission(sub_id, updates):
     with db_session() as db:
-        lock_submission_creation_fence(db)
         submission = (
             db.query(SubmissionModel)
             .filter(SubmissionModel.id == sub_id)
-            .with_for_update()
             .one_or_none()
         )
         if submission is None or submission.id != sub_id:
             return None
-        for external, value in updates.items():
-            model_name = _EXTERNAL_TO_MODEL.get(external)
-            if model_name is not None and external != "id":
-                setattr(submission, model_name, value)
-        db.commit()
         return _submission_dict(submission)
+
+
+def _update_submission(
+    sub_id,
+    updates,
+    *,
+    expected_submitter=None,
+    expected_status=None,
+    pending_write=None,
+    pending_cleanup_on_failure=None,
+):
+    attempted_write = False
+    try:
+        with db_session() as db:
+            lock_submission_creation_fence(db)
+            submission = (
+                db.query(SubmissionModel)
+                .filter(SubmissionModel.id == sub_id)
+                .with_for_update()
+                .one_or_none()
+            )
+            if (
+                submission is None
+                or submission.id != sub_id
+                or (
+                    expected_submitter is not None
+                    and submission.submitted_by != expected_submitter
+                )
+                or (
+                    expected_status is not None
+                    and submission.status != expected_status
+                )
+            ):
+                return None
+            for external, value in updates.items():
+                model_name = _EXTERNAL_TO_MODEL.get(external)
+                if model_name is not None and external != "id":
+                    setattr(submission, model_name, value)
+            db.flush()
+            if pending_write is not None:
+                attempted_write = True
+                pending_write()
+            result = _submission_dict(submission)
+        return result
+    except Exception:
+        if attempted_write and pending_cleanup_on_failure is not None:
+            pending_cleanup_on_failure()
+        raise

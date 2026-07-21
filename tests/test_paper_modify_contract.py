@@ -51,27 +51,14 @@ class PaperModifyContractTest(unittest.TestCase):
         self.assertIn("is_ib_sample", returned_keys)
         self.assertIn("cp_data", returned_keys)
 
-        write_submissions = self._find_function("_write_submissions")
-        submission_model_keywords = {
-            keyword.arg
-            for node in ast.walk(write_submissions)
-            if isinstance(node, ast.Call)
-            and getattr(node.func, "id", "") == "SubmissionModel"
-            for keyword in node.keywords
-        }
-        self.assertIn("is_ib_sample", submission_model_keywords)
-        self.assertIn("cp_data", submission_model_keywords)
+        model_mapping = support.all_sources()
+        self.assertIn('"is_ib_sample"', model_mapping)
+        self.assertIn('"cp_data"', model_mapping)
 
         review_accept = self._find_function("review_accept")
-        accept_keys = {
-            key.value
-            for node in ast.walk(review_accept)
-            if isinstance(node, ast.Dict)
-            for key in node.keys
-            if isinstance(key, ast.Constant) and isinstance(key.value, str)
-        }
-        self.assertIn("is_ib_sample", accept_keys)
-        self.assertIn("cp_data", accept_keys)
+        accept_source = support.source_of("review_accept")
+        self.assertIn('is_ib_sample=sub.get("is_ib_sample", "")', accept_source)
+        self.assertIn('cp_data=sub.get("cp_data", "")', accept_source)
 
     def test_modify_route_persists_ib_sections_without_treating_cp_as_sample(self):
         paper_modify = self._find_function("paper_modify")
@@ -113,25 +100,13 @@ class PaperModifyContractTest(unittest.TestCase):
         }
         self.assertIn("is_anonymous", returned_keys)
 
-        write_submissions = self._find_function("_write_submissions")
-        submission_model_keywords = {
-            keyword.arg
-            for node in ast.walk(write_submissions)
-            if isinstance(node, ast.Call)
-            and getattr(node.func, "id", "") == "SubmissionModel"
-            for keyword in node.keywords
-        }
-        self.assertIn("is_anonymous", submission_model_keywords)
+        self.assertIn('"is_anonymous"', support.all_sources())
 
         review_accept = self._find_function("review_accept")
-        accept_keys = {
-            key.value
-            for node in ast.walk(review_accept)
-            if isinstance(node, ast.Dict)
-            for key in node.keys
-            if isinstance(key, ast.Constant) and isinstance(key.value, str)
-        }
-        self.assertIn("is_anonymous", accept_keys)
+        self.assertIn(
+            'is_anonymous=sub.get("is_anonymous", "")',
+            support.source_of("review_accept"),
+        )
 
     def test_metadata_fields_and_models_carry_anonymous_flag(self):
         from config import METADATA_FIELDS
@@ -166,11 +141,11 @@ class PaperModifyContractTest(unittest.TestCase):
 
     def test_submission_round_trip_preserves_ia_data(self):
         load_src = support.source_of("_load_submissions")
-        write_src = support.source_of("_write_submissions")
+        write_src = support.source_of("_submission_model")
         accept_src = support.source_of("review_accept")
         self.assertIn('"ia_data"', load_src, "_load_submissions must read ia_data")
-        self.assertIn("ia_data=", write_src, "_write_submissions must persist ia_data")
-        self.assertIn('"ia_data"', accept_src, "review_accept must carry ia_data on publish")
+        self.assertIn("_EXTERNAL_TO_MODEL", write_src, "targeted Submission writes must use the complete mapping")
+        self.assertIn('ia_data=sub.get("ia_data", "")', accept_src, "review_accept must carry ia_data on publish")
 
     def _find_function(self, name):
         node, _text = support.find_function(name)

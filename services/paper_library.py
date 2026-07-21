@@ -51,6 +51,31 @@ class PaperPdf:
     size_bytes: int
 
 
+@dataclass(frozen=True)
+class PaperRevisionRecord:
+    revision: int
+    created_at: object
+    created_by: str
+    restored_from_revision: int | None
+
+
+@dataclass(frozen=True)
+class PaperManagementRecord:
+    paper: PaperRecord
+    index_status: str
+    index_error: str
+    indexed_revision: int | None
+    revisions: tuple[PaperRevisionRecord, ...]
+
+
+@dataclass(frozen=True)
+class ManagedPaperSummary:
+    paper: PaperRecord
+    lifecycle_state: str
+    index_status: str
+    index_error: str
+
+
 class PaperLibrary:
     """Central read module for Paper visibility and immutable PDF access."""
 
@@ -289,6 +314,61 @@ class PaperLibrary:
             reverse=True,
         )
         return tuple(records)
+
+    def management_record(self, paper_id: str) -> PaperManagementRecord:
+        """Return current management state and immutable revision history."""
+        canonical_id = self._canonical_id(paper_id)
+        with self._session_factory() as session:
+            paper = self._visible_row(session, canonical_id)
+            rows = (
+                session.query(PaperRevisionModel)
+                .filter(PaperRevisionModel.paper_id == canonical_id)
+                .order_by(PaperRevisionModel.revision_number.desc())
+                .all()
+            )
+            return PaperManagementRecord(
+                paper=self._record(paper),
+                index_status=paper.index_status or "pending",
+                index_error=paper.index_error or "",
+                indexed_revision=paper.indexed_revision,
+                revisions=tuple(
+                    PaperRevisionRecord(
+                        revision=row.revision_number,
+                        created_at=row.created_at,
+                        created_by=row.created_by,
+                        restored_from_revision=row.restored_from_revision,
+                    )
+                    for row in rows
+                ),
+            )
+
+    def list_managed(self) -> tuple[ManagedPaperSummary, ...]:
+        """Return published and deletion-in-progress rows for Curator UI."""
+        with self._session_factory() as session:
+            rows = (
+                session.query(PaperMetadataModel)
+                .filter(PaperMetadataModel.lifecycle_state.in_(("published", "deleting")))
+                .all()
+            )
+            summaries = [
+                ManagedPaperSummary(
+                    paper=self._record(paper),
+                    lifecycle_state=paper.lifecycle_state,
+                    index_status=paper.index_status or "pending",
+                    index_error=paper.index_error or "",
+                )
+                for paper in rows
+                if type(paper.current_revision) is int and paper.current_revision > 0
+            ]
+        summaries.sort(
+            key=lambda item: (
+                item.paper.published_at,
+                item.paper.title,
+                item.paper.paper_id,
+            ),
+            reverse=True,
+        )
+        return tuple(summaries)
 
     @staticmethod
     def _authorize_private_revision(actor: Actor) -> None:

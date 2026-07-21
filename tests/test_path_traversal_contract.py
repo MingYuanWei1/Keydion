@@ -25,15 +25,18 @@ class PathTraversalContractTest(unittest.TestCase):
         self.assertIn("_canonical_id(paper_id)", support.source_of("current_pdf"))
         self.assertIn("verify_revision(", support.source_of("_verified_pdf"))
 
-    def test_paper_delete_guard_precedes_unlink(self):
+    def test_paper_delete_delegates_storage_mutation_to_lifecycle(self):
         src = support.source_of("paper_delete")
-        self.assertTrue(_before(src, "resolve_contained(", ".unlink"))
+        self.assertIn("delete_paper(", src)
+        self.assertNotIn("resolve_contained(", src)
+        self.assertNotIn(".unlink", src)
 
-    def test_paper_modify_guard_precedes_fs_ops(self):
+    def test_paper_modify_delegates_storage_and_metadata_to_lifecycle(self):
         src = support.source_of("paper_modify")
-        self.assertIn("resolve_contained(", src)
-        self.assertTrue(src.index("resolve_contained(") < src.index(".rename("))
-        self.assertTrue(src.index("resolve_contained(") < src.index("set_pdf_metadata("))
+        self.assertIn("change_paper(", src)
+        self.assertNotIn("resolve_contained(", src)
+        self.assertNotIn(".rename(", src)
+        self.assertNotIn("set_pdf_metadata(", src)
 
     def test_lib_full_text_verifies_live_alias_and_current_storage_before_read(self):
         src = support.source_of("_lib_full_text")

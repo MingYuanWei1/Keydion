@@ -8,10 +8,53 @@
 </div>
 
 <div class="mb-3">
-    <a class="btn btn-outline-secondary back-link" href="{{ url_for('paper_manage') }}">
+    <a class="btn btn-outline-secondary back-link" href="{{ url_for(return_endpoint) }}">
         &larr; {{ _('Back to Paper Management') }}
     </a>
 </div>
+
+{% if publishing_error %}
+<div class="alert alert-danger" role="alert">
+    <div>{{ publishing_error.message }}</div>
+    {% for field, message in publishing_error.get('field_errors', {}).items() %}
+    <div><strong>{{ field }}</strong>: {{ message }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if management %}
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-light"><h5 class="mb-0">{{ _('Publishing state') }}</h5></div>
+    <div class="card-body">
+        <p class="mb-1"><strong>{{ _('Current revision') }}:</strong> {{ management.paper.current_revision }}</p>
+        <p class="mb-1"><strong>{{ _('Index status') }}:</strong> {{ management.index_status }}</p>
+        {% if management.index_error %}<p class="text-danger mb-0">{{ management.index_error }}</p>{% endif %}
+    </div>
+</div>
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-light"><h5 class="mb-0">{{ _('Revision history') }}</h5></div>
+    <div class="card-body p-0">
+        <table class="table mb-0"><tbody>
+        {% for item in management.revisions %}
+        <tr>
+            <td>{{ _('Revision') }} {{ item.revision }}</td>
+            <td>{{ item.created_at.strftime('%Y-%m-%d %H:%M') if item.created_at else '' }}</td>
+            <td><a href="{{ url_for('paper_revision_file', paper_id=paper_id, revision=item.revision) }}">{{ _('View PDF') }}</a></td>
+            <td>
+            {% if item.revision != management.paper.current_revision %}
+                <form method="post" action="{{ url_for('paper_restore', paper_id=paper_id, revision=item.revision) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="row_version" value="{{ row_version }}">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary">{{ _('Restore') }}</button>
+                </form>
+            {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody></table>
+    </div>
+</div>
+{% endif %}
 
 <div class="row g-4">
     <!-- Edit Form -->
@@ -22,8 +65,9 @@
                 <small class="text-muted">{{ filename }}</small>
             </div>
             <div class="card-body">
-                <form method="post">
+                <form method="post" enctype="multipart/form-data">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="row_version" value="{{ row_version }}">
                     {% set ib_ee_data = meta.get('ib_ee_data', '') %}
                     {% set ib_ee_info = (ib_ee_data | from_json) if ib_ee_data else None %}
                     {% set cp_data = meta.get('cp_data', '') %}
@@ -402,6 +446,12 @@
                     </div>
                     {% endif %}
 
+                    <div class="mb-3">
+                        <label for="replacementPdf" class="form-label fw-semibold">{{ _('Replacement PDF') }}</label>
+                        <input type="file" class="form-control" id="replacementPdf" name="replacement_pdf" accept="application/pdf,.pdf">
+                        <div class="form-text">{{ _('Save metadata changes separately before uploading a replacement PDF.') }}</div>
+                    </div>
+
                     <div class="d-flex gap-2 mt-4">
                         <button type="submit" class="btn btn-primary">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
@@ -411,7 +461,7 @@
                             </svg>
                             {{ _('Save Changes') }}
                         </button>
-                        <a href="{{ url_for('paper_manage') }}" class="btn btn-outline-secondary">{{ _('Cancel') }}</a>
+                        <a href="{{ url_for(return_endpoint) }}" class="btn btn-outline-secondary">{{ _('Cancel') }}</a>
                     </div>
                 </form>
             </div>
