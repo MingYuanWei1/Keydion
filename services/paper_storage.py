@@ -818,6 +818,44 @@ class PaperStorage:
                 raise StorageError("pending PDF changed while copying")
             return staged
 
+    @_serialized
+    def stage_revision(
+        self,
+        paper_id: str,
+        revision: int,
+        operation_id: str,
+    ) -> StagedPdf:
+        """Copy one immutable revision into a new durable staging entry.
+
+        The source is re-opened descriptor-relatively while the storage lock is
+        held, so lifecycle restoration never turns a returned filesystem path
+        back into authority for a later name-based read.
+        """
+        path = self.open_revision(paper_id, revision)
+        relative = f"{path.parent.name}/{path.name}"
+        with self._opened_regular(
+            self.papers_dir,
+            relative,
+            require_single_link=True,
+            require_private=True,
+        ) as (source_fd, _, _, _, source_stat):
+            with os.fdopen(os.dup(source_fd), "rb") as source:
+                staged = self._stage_stream(source, operation_id)
+            current = os.fstat(source_fd)
+            if current.st_nlink != 1 or not _same_inode(source_stat, current):
+                try:
+                    expected = os.stat(
+                        staged.path.name,
+                        dir_fd=self._staging_fd,
+                        follow_symlinks=False,
+                    )
+                    self._unlink_if_matching(self._staging_fd, staged.path.name, expected)
+                    _fsync_directory_fd(self._staging_fd)
+                except OSError:
+                    pass
+                raise StorageError("Paper revision changed while copying")
+            return staged
+
     def _validated_stage(self, staged: StagedPdf) -> tuple[Path, str, int]:
         if not isinstance(staged, StagedPdf):
             raise StorageError("expected a staged PDF")
@@ -1216,6 +1254,75 @@ class PaperStorage:
             raise
         except OSError as exc:
             raise StorageError("Paper revision could not be verified") from exc
+
+    @_serialized
+    def discard_unreferenced_revision(
+        self,
+        paper_id: str,
+        revision: int,
+        *,
+        sha256: str,
+        size_bytes: int,
+    ) -> None:
+        """Remove only an exact new immutable file after SQL visibility failed.
+
+        The caller must first prove under its Paper row lock that no revision
+        record owns this `(paper_id, revision)`.  Hash-and-size matching keeps
+        this recovery primitive incapable of deleting a competing revision.
+        """
+        canonical = _canonical_paper_id(paper_id)
+        number = _valid_revision(revision)
+        if not isinstance(sha256, str) or re.fullmatch(r"[0-9a-f]{64}", sha256) is None:
+            raise StorageError("invalid expected revision hash")
+        if isinstance(size_bytes, bool) or not isinstance(size_bytes, int) or size_bytes < 1:
+            raise StorageError("invalid expected revision size")
+        root_fd: int | None = None
+        paper_fd: int | None = None
+        try:
+            try:
+                root_fd, paper_fd, _ = self._open_paper_directory(canonical, create=False)
+            except StorageError as exc:
+                # A missing Paper directory means no residual file remains.
+                try:
+                    os.stat(canonical, dir_fd=self._papers_fd, follow_symlinks=False)
+                except FileNotFoundError:
+                    return
+                raise exc
+            name = f"{number}.pdf"
+            try:
+                expected = os.stat(name, dir_fd=paper_fd, follow_symlinks=False)
+            except FileNotFoundError:
+                return
+            if (
+                not stat.S_ISREG(expected.st_mode)
+                or not _private_mode(expected, 0o600)
+                or expected.st_nlink != 1
+            ):
+                raise StorageError("unreferenced revision is unsafe")
+            with self._opened_regular(
+                self.papers_dir,
+                f"{canonical}/{name}",
+                require_single_link=True,
+                require_private=True,
+            ) as (file_fd, _, _, _, opened):
+                if not _same_inode(expected, opened):
+                    raise StorageError("unreferenced revision changed before discard")
+                with os.fdopen(os.dup(file_fd), "rb") as source:
+                    actual_hash, actual_size = _hash_reader(source)
+            if (actual_hash, actual_size) != (sha256, size_bytes):
+                raise StorageError("unreferenced revision bytes changed")
+            if not self._unlink_if_matching(paper_fd, name, expected):
+                raise StorageError("unreferenced revision changed during discard")
+            _fsync_directory_fd(paper_fd)
+        except StorageError:
+            raise
+        except OSError as exc:
+            raise StorageError("unreferenced revision could not be discarded") from exc
+        finally:
+            if paper_fd is not None:
+                os.close(paper_fd)
+            if root_fd is not None:
+                os.close(root_fd)
 
     @_serialized
     def copy_revision(

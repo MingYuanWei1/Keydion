@@ -9,7 +9,7 @@ from services.publishing_contracts import (
     Actor, BulkEditMetadata, DirectPublish, IndexingOutcome, IndexingState, JobLease,
     JobProgress, JobState,
     InvalidInput, MetadataPatch, NormalizedPaperMetadata, PdfUpload, PreparedChunk,
-    PreparedRevisionIndex, Published,
+    PreparedRevisionIndex, Published, PublishingLifecyclePort,
 )
 
 
@@ -48,13 +48,26 @@ class PublishingContractTests(unittest.TestCase):
         value = datetime(2026, 7, 20, 12, 0)
         self.assertEqual(utc_iso_z(value), "2026-07-20T12:00:00Z")
 
-    def test_metadata_patch_rejects_fields_outside_the_editable_subset(self):
+    def test_metadata_patch_allows_full_individual_metadata_edits(self):
+        patch = MetadataPatch(
+            paper_id="22222222-2222-4222-8222-222222222222",
+            expected_row_version=1,
+            changes=(("filename", "renamed.pdf"), ("title", "Edited title"),
+                     ("author_name", "Edited author"), ("abstract", "Edited abstract")),
+        )
+        self.assertEqual(patch.changes[0], ("filename", "renamed.pdf"))
+
+    def test_bulk_metadata_rejects_individual_only_metadata_fields(self):
+        patch = MetadataPatch(
+            paper_id="22222222-2222-4222-8222-222222222222",
+            expected_row_version=1,
+            changes=(("title", "Individual only"),),
+        )
         with self.assertRaises(InvalidInput):
-            MetadataPatch(
-                paper_id="22222222-2222-4222-8222-222222222222",
-                expected_row_version=1,
-                changes=(("title", "Not allowed"),),
-            )
+            BulkEditMetadata(Actor("curator", 3), (patch,))
+
+    def test_lifecycle_port_exposes_unified_paper_change_command(self):
+        self.assertIn("change_paper", PublishingLifecyclePort.__dict__)
 
     def test_metadata_patch_rejects_mutable_or_non_string_pairs(self):
         with self.assertRaises(InvalidInput):

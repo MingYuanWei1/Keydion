@@ -21,7 +21,7 @@ from models import (
     RagIndexMetaModel,
     SubmissionModel,
 )
-from services.paper_identity import normalize_alias_key
+from services.paper_identity import normalize_alias_key, validate_paper_id
 from services.paper_storage import (
     PaperStorage,
     PendingTrash,
@@ -33,10 +33,13 @@ from services.publishing_contracts import (
     Actor,
     AcceptSubmission,
     AliasConflict,
+    BulkEditMetadata,
+    BulkPapersChanged,
     CancelSubmission,
     DecisionConflict,
     DecisionRecorded,
     DirectPublish,
+    EditMetadata,
     Forbidden,
     IdempotencyConflict,
     IndexDeadlineExceeded,
@@ -44,12 +47,18 @@ from services.publishing_contracts import (
     IndexingState,
     InvalidInput,
     JobLease,
+    MetadataPatch,
     NormalizedPaperMetadata,
     NotFound,
     PersistenceFailed,
+    PaperChanged,
+    PdfUpload,
     PreparedRevisionIndex,
     Published,
     RejectSubmission,
+    RestoreRevision,
+    RevisePdf,
+    StaleVersion,
     StorageFailed,
     SubmissionCancelled,
     SubmissionNotPending,
@@ -2021,3 +2030,501 @@ class PublishingLifecycle:
 
     def reconcile_pending_cancellations(self) -> int:
         return self.reconcile_submissions()
+
+    # Paper-change commands intentionally share one dispatch boundary.  The
+    # thin HTTP adapters added later therefore cannot select a private storage
+    # or transaction path based on which form field happened to be submitted.
+    @staticmethod
+    def _validate_change_actor(actor: Actor) -> None:
+        if not isinstance(actor, Actor) or (
+            isinstance(actor.role, bool)
+            or not isinstance(actor.role, int)
+            or actor.role not in {1, 2, 3}
+        ):
+            raise InvalidInput({"actor": "is invalid"})
+        if (
+            not isinstance(actor.user_id, str)
+            or not actor.user_id
+            or actor.user_id != actor.user_id.strip()
+            or len(actor.user_id) > 255
+        ):
+            raise InvalidInput({"actor": "must identify a user"})
+        if actor.role < 2:
+            raise Forbidden("Paper changes require Contributor access")
+
+    @staticmethod
+    def _change_target(paper_id: str, expected_row_version: int) -> str:
+        try:
+            canonical = validate_paper_id(paper_id)
+        except (AttributeError, TypeError, ValueError) as exc:
+            raise InvalidInput({"paper_id": "must be a canonical UUID"}) from exc
+        if (
+            isinstance(expected_row_version, bool)
+            or not isinstance(expected_row_version, int)
+            or expected_row_version < 1
+        ):
+            raise InvalidInput({"expected_row_version": "must be a positive integer"})
+        return canonical
+
+    @staticmethod
+    def _validate_metadata_patch(patch: MetadataPatch) -> str:
+        if not isinstance(patch, MetadataPatch):
+            raise InvalidInput({"patch": "must be a MetadataPatch"})
+        paper_id = PublishingLifecycle._change_target(
+            patch.paper_id,
+            patch.expected_row_version,
+        )
+        if not patch.changes:
+            raise InvalidInput({"changes": "must not be empty"})
+        errors: dict[str, str] = {}
+        for key, value in patch.changes:
+            if value != value.strip():
+                errors[key] = "must already be normalized"
+                continue
+            limit = _METADATA_STRING_LIMITS.get(key)
+            if limit is not None and len(value) > limit:
+                errors[key] = f"must be at most {limit} characters"
+        fields = dict(patch.changes)
+        if "filename" in fields:
+            filename = fields["filename"]
+            if (
+                not filename
+                or Path(filename).name != filename
+                or "\\" in filename
+                or not filename.casefold().endswith(".pdf")
+            ):
+                errors["filename"] = "must be a normalized PDF filename"
+            elif len(normalize_alias_key(filename)) > 255:
+                errors["filename"] = "normalized filename is too long"
+        if "title" in fields and not fields["title"]:
+            errors["title"] = "is required"
+        if "language" in fields and not fields["language"]:
+            errors["language"] = "is required"
+        if errors:
+            raise InvalidInput(errors)
+        return paper_id
+
+    @staticmethod
+    def _locked_published_paper(session, paper_id: str, expected_row_version: int):
+        paper = (
+            session.query(PaperMetadataModel)
+            .filter(PaperMetadataModel.id == paper_id)
+            .with_for_update()
+            .one_or_none()
+        )
+        if paper is None or paper.lifecycle_state != "published":
+            raise NotFound("Paper not found")
+        if paper.row_version != expected_row_version:
+            raise StaleVersion(paper.row_version)
+        return paper
+
+    def _metadata_change(self, intent: EditMetadata) -> PaperChanged:
+        if not isinstance(intent, EditMetadata):
+            raise InvalidInput({"intent": "must be an EditMetadata record"})
+        self._validate_change_actor(intent.actor)
+        paper_id = self._validate_metadata_patch(intent.patch)
+        filename = dict(intent.patch.changes).get("filename")
+        try:
+            with self._session() as session:
+                paper = self._locked_published_paper(
+                    session,
+                    paper_id,
+                    intent.patch.expected_row_version,
+                )
+                if filename is not None and filename != paper.filename:
+                    lookup_key = normalize_alias_key(filename)
+                    alias = (
+                        session.query(PaperFilenameAliasModel)
+                        .filter(PaperFilenameAliasModel.lookup_key == lookup_key)
+                        .with_for_update()
+                        .one_or_none()
+                    )
+                    if alias is not None and alias.paper_id != paper.id:
+                        raise AliasConflict(filename)
+                    filename_owner = (
+                        session.query(PaperMetadataModel)
+                        .filter(PaperMetadataModel.filename == filename)
+                        .with_for_update()
+                        .one_or_none()
+                    )
+                    if filename_owner is not None and filename_owner.id != paper.id:
+                        raise AliasConflict(filename)
+                    if alias is None:
+                        session.add(
+                            PaperFilenameAliasModel(
+                                lookup_key=lookup_key,
+                                filename=filename,
+                                paper_id=paper.id,
+                                created_at=self._clock(),
+                            )
+                        )
+                for key, value in intent.patch.changes:
+                    setattr(paper, key, value)
+                paper.row_version += 1
+                result = PaperChanged(
+                    paper_id=paper.id,
+                    filename=paper.filename,
+                    revision=paper.current_revision,
+                    row_version=paper.row_version,
+                    indexing=IndexingOutcome(IndexingState.NOT_REQUIRED),
+                )
+                session.commit()
+                return result
+        except (AliasConflict, Forbidden, InvalidInput, NotFound, StaleVersion):
+            raise
+        except IntegrityError as exc:
+            if filename is not None and self._alias_owned_by_other(filename, paper_id):
+                raise AliasConflict(filename) from exc
+            raise PersistenceFailed("could not update Paper metadata") from exc
+        except Exception as exc:
+            raise PersistenceFailed("could not update Paper metadata") from exc
+
+    def _revision_preflight(
+        self,
+        paper_id: str,
+        expected_row_version: int,
+        *,
+        source_revision: int | None = None,
+    ) -> tuple[str, str, str]:
+        with self._session() as session:
+            paper = self._locked_published_paper(
+                session,
+                paper_id,
+                expected_row_version,
+            )
+            if source_revision is not None:
+                if (
+                    isinstance(source_revision, bool)
+                    or not isinstance(source_revision, int)
+                    or source_revision < 1
+                ):
+                    raise InvalidInput({"revision": "must be a positive integer"})
+                source = (
+                    session.query(PaperRevisionModel)
+                    .filter(
+                        PaperRevisionModel.paper_id == paper.id,
+                        PaperRevisionModel.revision_number == source_revision,
+                    )
+                    .one_or_none()
+                )
+                if source is None:
+                    raise NotFound("Paper revision not found")
+            return paper.id, paper.title or "", paper.author_name or ""
+
+    def _discard_unreferenced_append(
+        self,
+        paper_id: str,
+        revision: int,
+        *,
+        sha256: str,
+        size_bytes: int,
+    ) -> bool:
+        """Delete a promoted revision only after SQL proves it has no owner."""
+        with self._session() as session:
+            paper = (
+                session.query(PaperMetadataModel)
+                .filter(PaperMetadataModel.id == paper_id)
+                .with_for_update()
+                .one_or_none()
+            )
+            if paper is None:
+                return False
+            owned = (
+                session.query(PaperRevisionModel)
+                .filter(
+                    PaperRevisionModel.paper_id == paper_id,
+                    PaperRevisionModel.revision_number == revision,
+                )
+                .with_for_update()
+                .one_or_none()
+            )
+            if owned is not None:
+                return False
+            self._storage.discard_unreferenced_revision(
+                paper_id,
+                revision,
+                sha256=sha256,
+                size_bytes=size_bytes,
+            )
+            session.commit()
+            return True
+
+    def _recover_appended_revision(
+        self,
+        paper_id: str,
+        revision: int,
+    ) -> PaperChanged | None:
+        with self._session() as session:
+            paper = session.get(PaperMetadataModel, paper_id)
+            revision_row = session.get(PaperRevisionModel, (paper_id, revision))
+            if (
+                paper is None
+                or revision_row is None
+                or paper.lifecycle_state != "published"
+                or paper.current_revision != revision
+            ):
+                return None
+            return PaperChanged(
+                paper_id=paper.id,
+                filename=paper.filename,
+                revision=revision,
+                row_version=paper.row_version,
+                indexing=self._indexing_outcome(session, paper),
+            )
+
+    def _append_staged_revision(
+        self,
+        *,
+        paper_id: str,
+        expected_row_version: int,
+        actor: Actor,
+        staged,
+        restored_from_revision: int | None,
+        indexing_enabled: bool,
+    ) -> tuple[PaperChanged, JobLease | None, bool]:
+        """Make one staged immutable PDF visible, then optionally index it.
+
+        The PDF is promoted while the Paper row is locked and before the SQL
+        visibility commit.  If that commit is known not to have persisted, the
+        exact hash-bound storage primitive removes only this new revision.
+        """
+        attempted_revision: int | None = None
+        stored = None
+        try:
+            with self._session() as session:
+                paper = self._locked_published_paper(
+                    session,
+                    paper_id,
+                    expected_row_version,
+                )
+                attempted_revision = paper.current_revision + 1
+                stored = self._storage.promote(staged, paper.id, attempted_revision)
+                self._storage.verify_revision(
+                    paper.id,
+                    attempted_revision,
+                    sha256=stored.sha256,
+                    size_bytes=stored.size_bytes,
+                )
+                now = self._clock()
+                session.add(
+                    PaperRevisionModel(
+                        paper_id=paper.id,
+                        revision_number=attempted_revision,
+                        sha256=stored.sha256,
+                        size_bytes=stored.size_bytes,
+                        created_at=now,
+                        created_by=actor.user_id,
+                        restored_from_revision=restored_from_revision,
+                    )
+                )
+                paper.current_revision = attempted_revision
+                paper.row_version += 1
+                paper.index_status = "pending"
+                paper.indexed_revision = None
+                paper.index_error = None
+                lease = None
+                if indexing_enabled:
+                    lease = self._enqueue_index_job(
+                        session,
+                        paper.id,
+                        attempted_revision,
+                        self._uuid_factory(),
+                    )
+                self._bump_rag_version(session)
+                result = PaperChanged(
+                    paper_id=paper.id,
+                    filename=paper.filename,
+                    revision=attempted_revision,
+                    row_version=paper.row_version,
+                )
+                session.commit()
+                return result, lease, True
+        except (Forbidden, InvalidInput, NotFound, StaleVersion):
+            if stored is not None and attempted_revision is not None:
+                self._discard_unreferenced_append(
+                    paper_id,
+                    attempted_revision,
+                    sha256=stored.sha256,
+                    size_bytes=stored.size_bytes,
+                )
+            raise
+        except StorageError as exc:
+            if attempted_revision is not None:
+                try:
+                    self._discard_unreferenced_append(
+                        paper_id,
+                        attempted_revision,
+                        sha256=(stored.sha256 if stored is not None else staged.sha256),
+                        size_bytes=(stored.size_bytes if stored is not None else staged.size_bytes),
+                    )
+                except Exception as cleanup_exc:
+                    raise StorageFailed("could not clean failed Paper revision") from cleanup_exc
+            raise StorageFailed("PDF revision could not be published") from exc
+        except Exception as exc:
+            if attempted_revision is not None:
+                recovered = self._recover_appended_revision(paper_id, attempted_revision)
+                if recovered is not None:
+                    return recovered, None, False
+                if stored is not None:
+                    try:
+                        self._discard_unreferenced_append(
+                            paper_id,
+                            attempted_revision,
+                            sha256=stored.sha256,
+                            size_bytes=stored.size_bytes,
+                        )
+                    except Exception as cleanup_exc:
+                        raise PersistenceFailed(
+                            "could not clean uncommitted Paper revision"
+                        ) from cleanup_exc
+            raise PersistenceFailed("could not make Paper revision visible") from exc
+
+    def _change_revision(
+        self,
+        intent: RevisePdf | RestoreRevision,
+    ) -> PaperChanged:
+        if not isinstance(intent, (RevisePdf, RestoreRevision)):
+            raise InvalidInput({"intent": "must be a PDF revision record"})
+        self._validate_change_actor(intent.actor)
+        paper_id = self._change_target(intent.paper_id, intent.expected_row_version)
+        source_revision = intent.revision if isinstance(intent, RestoreRevision) else None
+        paper_id, title, author = self._revision_preflight(
+            paper_id,
+            intent.expected_row_version,
+            source_revision=source_revision,
+        )
+        operation_id = self._uuid_factory()
+        staged = None
+        try:
+            if isinstance(intent, RevisePdf):
+                if not isinstance(intent.pdf, PdfUpload):
+                    raise InvalidInput({"pdf": "must be a PdfUpload"})
+                staged = self._storage.stage(intent.pdf, operation_id)
+            else:
+                staged = self._storage.stage_revision(
+                    paper_id,
+                    intent.revision,
+                    operation_id,
+                )
+            staged = self._storage.apply_metadata(staged, title=title, author=author)
+            probe_error = None
+            try:
+                indexing_enabled = bool(self._indexer.enabled())
+            except Exception as exc:
+                indexing_enabled = True
+                probe_error = exc
+            changed, lease, committed = self._append_staged_revision(
+                paper_id=paper_id,
+                expected_row_version=intent.expected_row_version,
+                actor=intent.actor,
+                staged=staged,
+                restored_from_revision=source_revision,
+                indexing_enabled=indexing_enabled,
+            )
+            if not committed:
+                return changed
+            if not indexing_enabled:
+                indexing = IndexingOutcome(IndexingState.NOT_REQUIRED)
+            elif probe_error is not None:
+                indexing = self._mark_index_failure(lease, probe_error)
+            else:
+                indexing = self._run_inline_index(
+                    paper_id,
+                    lease,
+                    self._monotonic_clock() + self._inline_index_timeout_seconds,
+                )
+            return PaperChanged(
+                paper_id=changed.paper_id,
+                filename=changed.filename,
+                revision=changed.revision,
+                row_version=changed.row_version,
+                indexing=indexing,
+            )
+        except (Forbidden, InvalidInput, NotFound, PersistenceFailed, StaleVersion, StorageFailed):
+            raise
+        except StorageError as exc:
+            raise StorageFailed("PDF revision could not be staged") from exc
+        finally:
+            if staged is not None:
+                try:
+                    self._storage.discard_stage(staged)
+                except StorageError:
+                    # The stage contains no public data and storage reconciliation
+                    # owns a later durable retry.  Do not turn a committed Paper
+                    # revision into an apparent failure merely because its already
+                    # unlinked stage cannot be observed again.
+                    pass
+
+    def change_paper(self, intent: EditMetadata | RevisePdf | RestoreRevision) -> PaperChanged:
+        if isinstance(intent, EditMetadata):
+            return self._metadata_change(intent)
+        if isinstance(intent, (RevisePdf, RestoreRevision)):
+            return self._change_revision(intent)
+        raise InvalidInput({"intent": "must be a Paper change record"})
+
+    # Compatibility spellings remain shallow delegates while HTTP migration is
+    # still pending; all behavior stays behind the unified dispatch above.
+    def change_metadata(self, intent: EditMetadata) -> PaperChanged:
+        return self.change_paper(intent)
+
+    def revise_pdf(self, intent: RevisePdf) -> PaperChanged:
+        return self.change_paper(intent)
+
+    def restore_revision(self, intent: RestoreRevision) -> PaperChanged:
+        return self.change_paper(intent)
+
+    def change_many_metadata(self, intent: BulkEditMetadata) -> BulkPapersChanged:
+        if not isinstance(intent, BulkEditMetadata):
+            raise InvalidInput({"intent": "must be a BulkEditMetadata record"})
+        if not isinstance(intent.actor, Actor) or intent.actor.role != 3:
+            if isinstance(intent.actor, Actor) and intent.actor.role in {1, 2}:
+                raise Forbidden("bulk Paper changes require Curator access")
+            raise InvalidInput({"actor": "is invalid"})
+        if not isinstance(intent.actor.user_id, str) or not intent.actor.user_id.strip():
+            raise InvalidInput({"actor": "must identify a user"})
+        patches: dict[str, MetadataPatch] = {}
+        for patch in intent.patches:
+            paper_id = self._validate_metadata_patch(patch)
+            existing = patches.get(paper_id)
+            if existing is not None and existing != patch:
+                raise InvalidInput({"patches": "duplicate Paper IDs conflict"})
+            patches[paper_id] = patch
+        paper_ids = tuple(sorted(patches))
+        try:
+            with self._session() as session:
+                papers = (
+                    session.query(PaperMetadataModel)
+                    .filter(PaperMetadataModel.id.in_(paper_ids))
+                    .order_by(PaperMetadataModel.id)
+                    .with_for_update()
+                    .all()
+                )
+                by_id = {paper.id: paper for paper in papers}
+                for paper_id in paper_ids:
+                    paper = by_id.get(paper_id)
+                    if paper is None or paper.lifecycle_state != "published":
+                        raise NotFound("Paper not found")
+                    patch = patches[paper_id]
+                    if paper.row_version != patch.expected_row_version:
+                        raise StaleVersion(paper.row_version)
+                results = []
+                for paper_id in paper_ids:
+                    paper = by_id[paper_id]
+                    for key, value in patches[paper_id].changes:
+                        setattr(paper, key, value)
+                    paper.row_version += 1
+                    results.append(
+                        PaperChanged(
+                            paper_id=paper.id,
+                            filename=paper.filename,
+                            revision=paper.current_revision,
+                            row_version=paper.row_version,
+                            indexing=IndexingOutcome(IndexingState.NOT_REQUIRED),
+                        )
+                    )
+                session.commit()
+                return BulkPapersChanged(tuple(results))
+        except (Forbidden, InvalidInput, NotFound, StaleVersion):
+            raise
+        except Exception as exc:
+            raise PersistenceFailed("could not update Papers in bulk") from exc

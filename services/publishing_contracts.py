@@ -140,7 +140,12 @@ class CancelSubmission:
 
 MetadataValue = tuple[str, str]
 MetadataChanges = tuple[MetadataValue, ...]
-EDITABLE_METADATA_FIELDS = frozenset({"journal", "category", "ib_ee_data", "cp_data", "ia_data"})
+# Individual Paper edits may update any persisted display metadata.  Lifecycle,
+# identity, revision, indexing, and storage state are deliberately absent.
+EDITABLE_METADATA_FIELDS = frozenset(NormalizedPaperMetadata.__dataclass_fields__)
+BULK_EDITABLE_METADATA_FIELDS = frozenset(
+    {"journal", "category", "ib_ee_data", "cp_data", "ia_data"}
+)
 
 
 @dataclass(frozen=True)
@@ -162,6 +167,12 @@ class MetadataPatch:
         invalid = [key for key, _value in self.changes if key not in EDITABLE_METADATA_FIELDS]
         if invalid:
             raise InvalidInput({key: "is not editable" for key in invalid})
+        duplicate_keys = {
+            key for key, _value in self.changes
+            if sum(1 for candidate, _value in self.changes if candidate == key) > 1
+        }
+        if duplicate_keys:
+            raise InvalidInput({key: "may appear only once" for key in duplicate_keys})
 
 
 @dataclass(frozen=True)
@@ -180,6 +191,14 @@ class BulkEditMetadata:
             isinstance(patch, MetadataPatch) for patch in self.patches
         ):
             raise InvalidInput({"patches": "must be a nonempty immutable tuple of MetadataPatch records"})
+        invalid = {
+            key
+            for patch in self.patches
+            for key, _value in patch.changes
+            if key not in BULK_EDITABLE_METADATA_FIELDS
+        }
+        if invalid:
+            raise InvalidInput({key: "is not bulk editable" for key in invalid})
 
 
 @dataclass(frozen=True)
@@ -327,6 +346,11 @@ class PublishingLifecyclePort(Protocol):
     def reject_submission(self, intent: RejectSubmission) -> DecisionRecorded: ...
 
     def cancel_submission(self, intent: CancelSubmission) -> SubmissionCancelled: ...
+
+    def change_paper(
+        self,
+        intent: EditMetadata | RevisePdf | RestoreRevision,
+    ) -> PaperChanged: ...
 
     def change_metadata(self, intent: EditMetadata) -> PaperChanged: ...
 
