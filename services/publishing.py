@@ -2185,7 +2185,7 @@ class PublishingLifecycle:
         expected_row_version: int,
         *,
         source_revision: int | None = None,
-    ) -> tuple[str, str, str]:
+    ) -> tuple[str, str, str, str | None, int | None]:
         with self._session() as session:
             paper = self._locked_published_paper(
                 session,
@@ -2209,7 +2209,43 @@ class PublishingLifecycle:
                 )
                 if source is None:
                     raise NotFound("Paper revision not found")
-            return paper.id, paper.title or "", paper.author_name or ""
+                source_sha256 = source.sha256
+                source_size_bytes = source.size_bytes
+            else:
+                source_sha256 = None
+                source_size_bytes = None
+            return (
+                paper.id,
+                paper.title or "",
+                paper.author_name or "",
+                source_sha256,
+                source_size_bytes,
+            )
+
+    def _reconcile_unowned_next_locked(
+        self,
+        session,
+        paper,
+        revision: int,
+    ) -> None:
+        """Remove crash residue while the Paper row remains authoritative.
+
+        Every lifecycle writer takes the same Paper lock before choosing its
+        next revision, so the no-row check and descriptor-safe removal form one
+        serialized decision across app processes.
+        """
+        owner = (
+            session.query(PaperRevisionModel)
+            .filter(
+                PaperRevisionModel.paper_id == paper.id,
+                PaperRevisionModel.revision_number == revision,
+            )
+            .with_for_update()
+            .one_or_none()
+        )
+        if owner is not None:
+            raise PersistenceFailed("next Paper revision is already registered")
+        self._storage.discard_unowned_revision(paper.id, revision)
 
     def _discard_unreferenced_append(
         self,
@@ -2298,6 +2334,11 @@ class PublishingLifecycle:
                     expected_row_version,
                 )
                 attempted_revision = paper.current_revision + 1
+                self._reconcile_unowned_next_locked(
+                    session,
+                    paper,
+                    attempted_revision,
+                )
                 stored = self._storage.promote(staged, paper.id, attempted_revision)
                 self._storage.verify_revision(
                     paper.id,
@@ -2339,7 +2380,7 @@ class PublishingLifecycle:
                 )
                 session.commit()
                 return result, lease, True
-        except (Forbidden, InvalidInput, NotFound, StaleVersion):
+        except (Forbidden, InvalidInput, NotFound, PersistenceFailed, StaleVersion):
             if stored is not None and attempted_revision is not None:
                 self._discard_unreferenced_append(
                     paper_id,
@@ -2388,7 +2429,7 @@ class PublishingLifecycle:
         self._validate_change_actor(intent.actor)
         paper_id = self._change_target(intent.paper_id, intent.expected_row_version)
         source_revision = intent.revision if isinstance(intent, RestoreRevision) else None
-        paper_id, title, author = self._revision_preflight(
+        paper_id, title, author, source_sha256, source_size_bytes = self._revision_preflight(
             paper_id,
             intent.expected_row_version,
             source_revision=source_revision,
@@ -2405,6 +2446,8 @@ class PublishingLifecycle:
                     paper_id,
                     intent.revision,
                     operation_id,
+                    sha256=source_sha256,
+                    size_bytes=source_size_bytes,
                 )
             staged = self._storage.apply_metadata(staged, title=title, author=author)
             probe_error = None
@@ -2476,12 +2519,9 @@ class PublishingLifecycle:
     def change_many_metadata(self, intent: BulkEditMetadata) -> BulkPapersChanged:
         if not isinstance(intent, BulkEditMetadata):
             raise InvalidInput({"intent": "must be a BulkEditMetadata record"})
-        if not isinstance(intent.actor, Actor) or intent.actor.role != 3:
-            if isinstance(intent.actor, Actor) and intent.actor.role in {1, 2}:
-                raise Forbidden("bulk Paper changes require Curator access")
-            raise InvalidInput({"actor": "is invalid"})
-        if not isinstance(intent.actor.user_id, str) or not intent.actor.user_id.strip():
-            raise InvalidInput({"actor": "must identify a user"})
+        self._validate_change_actor(intent.actor)
+        if intent.actor.role != 3:
+            raise Forbidden("bulk Paper changes require Curator access")
         patches: dict[str, MetadataPatch] = {}
         for patch in intent.patches:
             paper_id = self._validate_metadata_patch(patch)
@@ -2492,14 +2532,16 @@ class PublishingLifecycle:
         paper_ids = tuple(sorted(patches))
         try:
             with self._session() as session:
-                papers = (
-                    session.query(PaperMetadataModel)
-                    .filter(PaperMetadataModel.id.in_(paper_ids))
-                    .order_by(PaperMetadataModel.id)
-                    .with_for_update()
-                    .all()
-                )
-                by_id = {paper.id: paper for paper in papers}
+                by_id = {}
+                for paper_id in paper_ids:
+                    paper = (
+                        session.query(PaperMetadataModel)
+                        .filter(PaperMetadataModel.id == paper_id)
+                        .with_for_update()
+                        .one_or_none()
+                    )
+                    if paper is not None:
+                        by_id[paper_id] = paper
                 for paper_id in paper_ids:
                     paper = by_id.get(paper_id)
                     if paper is None or paper.lifecycle_state != "published":

@@ -2,19 +2,18 @@
 
 from __future__ import annotations
 
+import hashlib
 import io
 import unittest
-from datetime import timedelta
 from unittest import mock
+
+from sqlalchemy import event
 
 from models import (
     PaperChunkModel,
-    PaperFilenameAliasModel,
     PaperMetadataModel,
     PaperRevisionModel,
-    PublishingJobModel,
 )
-from services.paper_identity import normalize_alias_key
 from services.paper_storage import StorageError
 from services.publishing_contracts import (
     Actor,
@@ -217,6 +216,21 @@ class PublishingRevisionTests(PublishingLifecycleTestCase, unittest.TestCase):
             self.storage.revision_path(published.paper_id, 1).read_bytes(),
         )
 
+    def test_restoration_rejects_valid_pdf_tampering_against_revision_record(self):
+        published = self.publish()
+        source_path = self.storage.revision_path(published.paper_id, 1)
+        source_path.write_bytes(self.valid_pdf_bytes("tampered-but-valid"))
+
+        with self.assertRaises(StorageFailed):
+            self.lifecycle.change_paper(self.restore_intent(published, 1))
+
+        paper = self.paper_row(published.paper_id)
+        self.assertEqual((paper.current_revision, paper.row_version), (1, 1))
+        self.assertEqual(self.revisions(published.paper_id), [1])
+        self.assertFalse(self.storage.revision_path(published.paper_id, 2).exists())
+        self.assertEqual(self.jobs(published.paper_id), [])
+        self.assertEqual(self.staged_entries(), [])
+
     def test_stale_row_version_cannot_overwrite(self):
         published = self.publish()
         self.lifecycle.change_paper(self.edit_intent(published, category="first"))
@@ -262,6 +276,76 @@ class PublishingRevisionTests(PublishingLifecycleTestCase, unittest.TestCase):
         self.assertEqual(self.revisions(published.paper_id), [1])
         self.assertFalse(self.storage.revision_path(published.paper_id, 2).exists())
         self.assertTrue(self.storage.revision_path(published.paper_id, 1).exists())
+
+    def test_retry_reconciles_crash_residue_with_different_bytes(self):
+        published = self.publish()
+        residue_stage = self.storage.stage(
+            PdfUpload("residue.pdf", io.BytesIO(self.valid_pdf_bytes("crashed"))),
+            "crash-residue",
+        )
+        residue_stage = self.storage.apply_metadata(
+            residue_stage,
+            title="stale title",
+            author="stale author",
+        )
+        self.storage.promote(residue_stage, published.paper_id, 2)
+        self.storage.discard_stage(residue_stage)
+        residue_hash = hashlib.sha256(
+            self.storage.revision_path(published.paper_id, 2).read_bytes()
+        ).hexdigest()
+
+        changed = self.lifecycle.change_paper(
+            self.revise_intent(published, self.valid_pdf_bytes("retry-different"))
+        )
+
+        self.assertEqual(changed.revision, 2)
+        self.assertEqual(self.revisions(published.paper_id), [1, 2])
+        self.assertNotEqual(
+            hashlib.sha256(
+                self.storage.revision_path(published.paper_id, 2).read_bytes()
+            ).hexdigest(),
+            residue_hash,
+        )
+
+    def test_reconciliation_never_deletes_a_registered_next_revision(self):
+        published = self.publish()
+        staged = self.storage.stage(
+            PdfUpload("registered.pdf", io.BytesIO(self.valid_pdf_bytes("registered"))),
+            "registered-next",
+        )
+        staged = self.storage.apply_metadata(staged, title="Registered", author="Owner")
+        stored = self.storage.promote(staged, published.paper_id, 2)
+        self.storage.discard_stage(staged)
+        with self.session_factory() as session:
+            session.add(
+                PaperRevisionModel(
+                    paper_id=published.paper_id,
+                    revision_number=2,
+                    sha256=stored.sha256,
+                    size_bytes=stored.size_bytes,
+                    created_at=self.now,
+                    created_by="other-writer",
+                )
+            )
+            session.commit()
+
+        with self.assertRaises(PersistenceFailed):
+            self.lifecycle.change_paper(
+                self.revise_intent(published, self.valid_pdf_bytes("different"))
+            )
+
+        self.assertEqual(self.revisions(published.paper_id), [1, 2])
+        self.assertEqual(
+            hashlib.sha256(
+                self.storage.revision_path(published.paper_id, 2).read_bytes()
+            ).hexdigest(),
+            stored.sha256,
+        )
+        self.assertEqual(
+            (self.paper_row(published.paper_id).current_revision,
+             self.paper_row(published.paper_id).row_version),
+            (1, 1),
+        )
 
     def test_disabled_indexing_appends_revision_without_a_job(self):
         published = self.publish()
@@ -328,6 +412,56 @@ class PublishingRevisionTests(PublishingLifecycleTestCase, unittest.TestCase):
             self.lifecycle.change_many_metadata(self.bulk_intent(patch, role=2))
 
         self.assertEqual(self.paper_row(published.paper_id).category, "original-category")
+
+    def test_bulk_metadata_rejects_malformed_curator_identity(self):
+        malformed = (
+            Actor("curator", 3.0),
+            Actor("curator", True),
+            Actor(" curator", 3),
+            Actor("curator ", 3),
+            Actor("", 3),
+            Actor("x" * 256, 3),
+        )
+        for actor in malformed:
+            published = self.publish()
+            patch = MetadataPatch(
+                published.paper_id,
+                published.row_version,
+                (("category", "must-not-change"),),
+            )
+            with self.subTest(actor=actor), self.assertRaises(InvalidInput):
+                self.lifecycle.change_many_metadata(
+                    BulkEditMetadata(actor, (patch,))
+                )
+            self.assertEqual(
+                self.paper_row(published.paper_id).category,
+                "original-category",
+            )
+
+    def test_bulk_metadata_acquires_one_lock_per_sorted_paper_id(self):
+        first = self.publish()
+        second = self.publish()
+        patches = (
+            MetadataPatch(second.paper_id, second.row_version, (("category", "second"),)),
+            MetadataPatch(first.paper_id, first.row_version, (("category", "first"),)),
+        )
+        selections = []
+
+        def capture_paper_select(_connection, _cursor, statement, parameters, _context, _many):
+            if (
+                statement.lstrip().upper().startswith("SELECT")
+                and "FROM papers_metadata" in statement
+                and "WHERE papers_metadata.id" in statement
+            ):
+                selections.append(tuple(parameters))
+
+        event.listen(self.engine, "before_cursor_execute", capture_paper_select)
+        try:
+            self.lifecycle.change_many_metadata(self.bulk_intent(*patches))
+        finally:
+            event.remove(self.engine, "before_cursor_execute", capture_paper_select)
+
+        self.assertEqual(selections, [(first.paper_id,), (second.paper_id,)])
 
     def test_bulk_metadata_stale_row_rolls_back_every_paper(self):
         first = self.publish()
