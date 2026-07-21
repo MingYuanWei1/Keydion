@@ -1336,6 +1336,47 @@ class PaperStorage:
             if root_fd is not None:
                 os.close(root_fd)
 
+    def _mid_promotion_stage_twin(
+        self,
+        final: os.stat_result,
+    ) -> tuple[str, os.stat_result]:
+        """Find the sole canonical staging name for a two-link final inode."""
+        staging_directory = os.fstat(self._staging_fd)
+        if (
+            not stat.S_ISDIR(staging_directory.st_mode)
+            or not _private_mode(staging_directory, 0o700)
+            or not _same_inode(staging_directory, self._staging_stat)
+        ):
+            raise StorageError("staging namespace is unsafe")
+
+        twins: list[tuple[str, os.stat_result]] = []
+        for entry_name in os.listdir(self._staging_fd):
+            entry = os.stat(
+                entry_name,
+                dir_fd=self._staging_fd,
+                follow_symlinks=False,
+            )
+            if (
+                not stat.S_ISREG(entry.st_mode)
+                or not _private_mode(entry, 0o600)
+                or entry.st_dev != staging_directory.st_dev
+            ):
+                raise StorageError("staging namespace contains an unsafe entry")
+            if _same_inode(entry, final):
+                twins.append((entry_name, entry))
+
+        if len(twins) != 1:
+            raise StorageError("unowned revision has no exact staging twin")
+        twin_name, twin = twins[0]
+        if (
+            not twin_name.endswith(".pdf")
+            or _OPERATION_ID.fullmatch(twin_name[:-4]) is None
+            or final.st_nlink != 2
+            or twin.st_nlink != 2
+        ):
+            raise StorageError("unowned revision staging twin is unsafe")
+        return twin_name, twin
+
     @_serialized
     def discard_unowned_revision(
         self,
@@ -1374,22 +1415,93 @@ class PaperStorage:
             if (
                 not stat.S_ISREG(expected.st_mode)
                 or not _private_mode(expected, 0o600)
-                or expected.st_nlink != 1
+                or expected.st_nlink not in (1, 2)
             ):
                 raise StorageError("unowned revision is unsafe")
             with self._opened_regular(
                 self.papers_dir,
                 f"{canonical}/{name}",
-                require_single_link=True,
                 require_private=True,
             ) as (file_fd, _, _, resolved, opened):
-                if not _same_inode(expected, opened):
+                if (
+                    not _same_inode(expected, opened)
+                    or opened.st_nlink != expected.st_nlink
+                ):
                     raise StorageError("unowned revision changed before discard")
                 with os.fdopen(os.dup(file_fd), "rb") as source:
                     actual_hash, actual_size = _hash_reader(source)
-            if not self._unlink_if_matching(paper_fd, name, expected):
-                raise StorageError("unowned revision changed during discard")
-            _fsync_directory_fd(paper_fd)
+
+                if opened.st_nlink == 2:
+                    twin_name, twin = self._mid_promotion_stage_twin(opened)
+                    with self._opened_regular(
+                        self.staging_dir,
+                        twin_name,
+                        require_private=True,
+                    ) as (twin_fd, _, _, _, twin_opened):
+                        final_before = os.stat(
+                            name,
+                            dir_fd=paper_fd,
+                            follow_symlinks=False,
+                        )
+                        twin_before = os.stat(
+                            twin_name,
+                            dir_fd=self._staging_fd,
+                            follow_symlinks=False,
+                        )
+                        final_descriptor = os.fstat(file_fd)
+                        twin_descriptor = os.fstat(twin_fd)
+                        if (
+                            not stat.S_ISREG(final_before.st_mode)
+                            or not stat.S_ISREG(twin_before.st_mode)
+                            or not _private_mode(final_before, 0o600)
+                            or not _private_mode(twin_before, 0o600)
+                            or final_before.st_nlink != 2
+                            or twin_before.st_nlink != 2
+                            or final_descriptor.st_nlink != 2
+                            or twin_descriptor.st_nlink != 2
+                            or not _same_inode(opened, final_before)
+                            or not _same_inode(twin, twin_before)
+                            or not _same_inode(final_before, twin_before)
+                            or not _same_inode(final_descriptor, twin_descriptor)
+                        ):
+                            raise StorageError(
+                                "unowned revision promotion pair changed before discard"
+                            )
+                        if not self._unlink_if_matching(
+                            self._staging_fd,
+                            twin_name,
+                            twin_before,
+                        ):
+                            raise StorageError(
+                                "unowned revision staging twin changed during discard"
+                            )
+                        _fsync_directory_fd(self._staging_fd)
+
+                        final_after = os.stat(
+                            name,
+                            dir_fd=paper_fd,
+                            follow_symlinks=False,
+                        )
+                        final_descriptor = os.fstat(file_fd)
+                        twin_descriptor = os.fstat(twin_fd)
+                        if (
+                            not stat.S_ISREG(final_after.st_mode)
+                            or not _private_mode(final_after, 0o600)
+                            or final_after.st_nlink != 1
+                            or final_descriptor.st_nlink != 1
+                            or twin_descriptor.st_nlink != 1
+                            or not _same_inode(opened, final_after)
+                            or not _same_inode(final_after, final_descriptor)
+                            or not _same_inode(final_descriptor, twin_descriptor)
+                        ):
+                            raise StorageError(
+                                "unowned revision promotion pair changed during discard"
+                            )
+                        expected = final_after
+
+                if not self._unlink_if_matching(paper_fd, name, expected):
+                    raise StorageError("unowned revision changed during discard")
+                _fsync_directory_fd(paper_fd)
             return StoredPdf(resolved, actual_hash, actual_size)
         except StorageError:
             raise

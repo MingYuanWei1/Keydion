@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+import os
 import unittest
 from unittest import mock
 
@@ -147,6 +148,22 @@ class PublishingRevisionTests(PublishingLifecycleTestCase, unittest.TestCase):
                 )
                 .all()
             )
+
+    def seed_mid_promotion_pair(self, published, operation_id):
+        staged = self.storage.stage(
+            PdfUpload("residue.pdf", io.BytesIO(self.valid_pdf_bytes(operation_id))),
+            operation_id,
+        )
+        staged = self.storage.apply_metadata(
+            staged,
+            title="crashed title",
+            author="crashed author",
+        )
+        final_path = self.storage.revision_path(published.paper_id, 2)
+        os.link(staged.path, final_path)
+        self.assertEqual(staged.path.stat().st_nlink, 2)
+        self.assertEqual(final_path.stat().st_ino, staged.path.stat().st_ino)
+        return staged, final_path
 
     def test_metadata_edit_does_not_rewrite_or_append_pdf(self):
         published = self.publish()
@@ -306,6 +323,86 @@ class PublishingRevisionTests(PublishingLifecycleTestCase, unittest.TestCase):
             ).hexdigest(),
             residue_hash,
         )
+
+    def test_retry_reconciles_exact_mid_promotion_stage_final_pair(self):
+        published = self.publish()
+        crashed_stage, final_path = self.seed_mid_promotion_pair(
+            published,
+            "mid-promotion",
+        )
+        crashed_hash = hashlib.sha256(final_path.read_bytes()).hexdigest()
+
+        changed = self.lifecycle.change_paper(
+            self.revise_intent(published, self.valid_pdf_bytes("retry-after-mid-promotion"))
+        )
+
+        self.assertEqual(changed.revision, 2)
+        self.assertFalse(crashed_stage.path.exists())
+        self.assertEqual(self.revisions(published.paper_id), [1, 2])
+        self.assertNotEqual(hashlib.sha256(final_path.read_bytes()).hexdigest(), crashed_hash)
+        self.assertEqual(final_path.stat().st_nlink, 1)
+
+    def test_mid_promotion_reconciliation_rejects_extra_hard_link(self):
+        published = self.publish()
+        crashed_stage, final_path = self.seed_mid_promotion_pair(
+            published,
+            "mid-extra-link",
+        )
+        extra = self.storage.staging_dir / "unrelated-extra.pdf"
+        os.link(crashed_stage.path, extra)
+        self.assertEqual(final_path.stat().st_nlink, 3)
+
+        with self.assertRaises(StorageFailed):
+            self.lifecycle.change_paper(
+                self.revise_intent(published, self.valid_pdf_bytes("retry-extra-link"))
+            )
+
+        self.assertTrue(crashed_stage.path.exists())
+        self.assertTrue(final_path.exists())
+        self.assertTrue(extra.exists())
+        self.assertEqual(self.revisions(published.paper_id), [1])
+        self.assertEqual(self.paper_row(published.paper_id).row_version, 1)
+
+    def test_mid_promotion_reconciliation_requires_exact_staging_twin(self):
+        published = self.publish()
+        crashed_stage, final_path = self.seed_mid_promotion_pair(
+            published,
+            "mid-wrong-namespace",
+        )
+        rogue = final_path.parent / "rogue.pdf"
+        os.link(crashed_stage.path, rogue)
+        crashed_stage.path.unlink()
+        self.assertEqual(final_path.stat().st_nlink, 2)
+
+        with self.assertRaises(StorageFailed):
+            self.lifecycle.change_paper(
+                self.revise_intent(published, self.valid_pdf_bytes("retry-wrong-namespace"))
+            )
+
+        self.assertTrue(final_path.exists())
+        self.assertTrue(rogue.exists())
+        self.assertEqual(self.revisions(published.paper_id), [1])
+        self.assertEqual(self.paper_row(published.paper_id).row_version, 1)
+
+    def test_mid_promotion_reconciliation_rejects_unsafe_staging_symlink(self):
+        published = self.publish()
+        crashed_stage, final_path = self.seed_mid_promotion_pair(
+            published,
+            "mid-staging-symlink",
+        )
+        unsafe = self.storage.staging_dir / "unsafe-twin.pdf"
+        unsafe.symlink_to(final_path)
+
+        with self.assertRaises(StorageFailed):
+            self.lifecycle.change_paper(
+                self.revise_intent(published, self.valid_pdf_bytes("retry-unsafe-stage"))
+            )
+
+        self.assertTrue(crashed_stage.path.exists())
+        self.assertTrue(final_path.exists())
+        self.assertTrue(unsafe.is_symlink())
+        self.assertEqual(self.revisions(published.paper_id), [1])
+        self.assertEqual(self.paper_row(published.paper_id).row_version, 1)
 
     def test_reconciliation_never_deletes_a_registered_next_revision(self):
         published = self.publish()
