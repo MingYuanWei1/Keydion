@@ -88,6 +88,95 @@ class PypdfPassTest(unittest.TestCase):
                 )
         self.assertIs(raised.exception.__cause__, failure)
 
+    def test_pages_access_or_iteration_failure_after_deadline_is_normalized(self):
+        for phase in ("access", "iterate"):
+            with self.subTest(phase=phase):
+                now = [1.0]
+                failure = RuntimeError(f"pages {phase} failed late")
+
+                class _FailingPages:
+                    def __iter__(self):
+                        return self
+
+                    def __next__(self):
+                        now[0] = 10.0
+                        raise failure
+
+                class _Reader:
+                    is_encrypted = False
+
+                    @property
+                    def pages(self):
+                        if phase == "access":
+                            now[0] = 10.0
+                            raise failure
+                        return _FailingPages()
+
+                with mock.patch.object(
+                    pdf_text, "PdfReader", return_value=_Reader()
+                ), mock.patch.object(
+                    pdf_text.time, "monotonic", side_effect=lambda: now[0]
+                ):
+                    with self.assertRaises(IndexDeadlineExceeded) as raised:
+                        extract_pdf_text(
+                            b"%PDF-fake", deadline=10.0, strict=True
+                        )
+                self.assertIs(raised.exception.__cause__, failure)
+
+    def test_pages_access_cannot_finish_after_deadline(self):
+        now = [1.0]
+
+        class _Reader:
+            is_encrypted = False
+
+            @property
+            def pages(self):
+                now[0] = 10.0
+                return []
+
+        with mock.patch.object(
+            pdf_text, "PdfReader", return_value=_Reader()
+        ), mock.patch.object(
+            pdf_text.time, "monotonic", side_effect=lambda: now[0]
+        ):
+            with self.assertRaises(IndexDeadlineExceeded):
+                extract_pdf_text(b"%PDF-fake", deadline=10.0, strict=True)
+
+    def test_pages_failure_with_time_remaining_or_no_deadline_is_preserved(self):
+        for phase in ("access", "iterate"):
+            for deadline in (10.0, None):
+                with self.subTest(phase=phase, deadline=deadline):
+                    failure = RuntimeError(f"pages {phase} failed early")
+
+                    class _FailingPages:
+                        def __iter__(self):
+                            return self
+
+                        def __next__(self):
+                            raise failure
+
+                    class _Reader:
+                        is_encrypted = False
+
+                        @property
+                        def pages(self):
+                            if phase == "access":
+                                raise failure
+                            return _FailingPages()
+
+                    with mock.patch.object(
+                        pdf_text, "PdfReader", return_value=_Reader()
+                    ), mock.patch.object(
+                        pdf_text.time, "monotonic", return_value=1.0
+                    ):
+                        with self.assertRaises(RuntimeError) as raised:
+                            extract_pdf_text(
+                                b"%PDF-fake",
+                                deadline=deadline,
+                                strict=True,
+                            )
+                    self.assertIs(raised.exception, failure)
+
 
 def _fake_ocr_modules(call_log, page_count):
     """Return a dict of fake fitz / pytesseract / PIL modules for sys.modules."""

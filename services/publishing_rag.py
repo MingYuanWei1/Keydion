@@ -137,22 +137,26 @@ class StrictRagAdapter:
         if len(raw_vectors) != len(chunks):
             raise ValueError("embedding result count does not match chunks")
 
-        prepared_chunks = []
-        dimension = None
-        for index, (content, raw_vector) in enumerate(zip(chunks, raw_vectors)):
-            vector = self._validated_vector(raw_vector, dimension=dimension)
-            if dimension is None:
-                dimension = len(vector)
-            prepared_chunks.append(
-                PreparedChunk(
-                    chunk_index=index,
-                    content=content,
-                    embedding=vector,
-                    language=language or "",
+        def validate_chunks():
+            prepared_chunks = []
+            dimension = None
+            for index, (content, raw_vector) in enumerate(zip(chunks, raw_vectors)):
+                vector = self._validated_vector(raw_vector, dimension=dimension)
+                if dimension is None:
+                    dimension = len(vector)
+                prepared_chunks.append(
+                    PreparedChunk(
+                        chunk_index=index,
+                        content=content,
+                        embedding=vector,
+                        language=language or "",
+                    )
                 )
-            )
+            return tuple(prepared_chunks)
+
+        prepared_chunks = self._run_stage(deadline, validate_chunks)
         return PreparedRevisionIndex(
             paper_id=paper_id,
             revision=revision_number,
-            chunks=tuple(prepared_chunks),
+            chunks=prepared_chunks,
         )

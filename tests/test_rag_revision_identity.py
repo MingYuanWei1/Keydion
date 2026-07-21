@@ -174,6 +174,55 @@ class StrictRagAdapterTest(unittest.TestCase):
                     )
                 self.assertIs(raised.exception.__cause__, failure)
 
+    def test_vector_coercion_cannot_fail_or_finish_after_deadline(self):
+        for outcome in ("raise", "return"):
+            with self.subTest(outcome=outcome):
+                now = [1.0]
+                failure = ValueError("provider value is invalid")
+
+                class _LateValue:
+                    def __float__(self):
+                        now[0] = 10.0
+                        if outcome == "raise":
+                            raise failure
+                        return 1.0
+
+                with self.assertRaises(IndexDeadlineExceeded) as raised:
+                    self.adapter(
+                        monotonic=lambda: now[0],
+                        embed_texts=lambda _texts, **_kwargs: [[_LateValue()]],
+                    ).prepare(
+                        paper_id=PAPER_A,
+                        revision_number=1,
+                        pdf_bytes=b"pdf",
+                        language="en",
+                        deadline=10.0,
+                    )
+                if outcome == "raise":
+                    validation_error = raised.exception.__cause__
+                    self.assertIsInstance(validation_error, ValueError)
+                    self.assertIs(validation_error.__cause__, failure)
+
+    def test_vector_coercion_failure_with_time_remaining_stays_value_error(self):
+        failure = ValueError("provider value is invalid")
+
+        class _BadValue:
+            def __float__(self):
+                raise failure
+
+        with self.assertRaisesRegex(ValueError, "numeric") as raised:
+            self.adapter(
+                monotonic=lambda: 1.0,
+                embed_texts=lambda _texts, **_kwargs: [[_BadValue()]],
+            ).prepare(
+                paper_id=PAPER_A,
+                revision_number=1,
+                pdf_bytes=b"pdf",
+                language="en",
+                deadline=10.0,
+            )
+        self.assertIs(raised.exception.__cause__, failure)
+
     def test_empty_extraction_is_a_strict_failure(self):
         with self.assertRaisesRegex(ValueError, "indexable text"):
             self.adapter(extract_text=lambda _pdf, **_kwargs: "  ").prepare(

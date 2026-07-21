@@ -98,8 +98,27 @@ def _pypdf_text(
     _check_deadline(deadline)
     if encrypted:
         raise PdfTextError("encrypted")
+    try:
+        pages = iter(reader.pages)
+    except IndexDeadlineExceeded:
+        raise
+    except Exception as exc:
+        _raise_deadline_if_expired(deadline, exc)
+        raise
+    _check_deadline(deadline)
+
     parts = []
-    for page in reader.pages:
+    while True:
+        try:
+            page = next(pages)
+        except StopIteration:
+            _check_deadline(deadline)
+            break
+        except IndexDeadlineExceeded:
+            raise
+        except Exception as exc:
+            _raise_deadline_if_expired(deadline, exc)
+            raise
         _check_deadline(deadline)
         try:
             parts.append(page.extract_text() or "")
