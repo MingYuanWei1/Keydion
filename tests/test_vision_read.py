@@ -2,6 +2,7 @@ import unittest
 from unittest import mock
 
 import vision_read
+from services.publishing_contracts import IndexDeadlineExceeded
 from vision_read import VisionError
 
 
@@ -109,6 +110,31 @@ class ExtractWithVisionFailureTest(unittest.TestCase):
             with self.assertRaises(VisionError):
                 vision_read.extract_with_vision(b"%PDF", "P")
 
+    def test_deadline_is_forwarded_to_render_client_and_provider(self):
+        client = _CapturingClient(content='{"ok": true}')
+        with mock.patch.object(
+            vision_read.llm_client,
+            "build_vision_client",
+            return_value=client,
+        ) as build_client, mock.patch.object(
+            vision_read.llm_client,
+            "vision_model",
+            return_value="vmodel",
+        ), mock.patch.object(
+            vision_read.pdf_text,
+            "render_pdf_pages",
+            return_value=[b"PNG"],
+        ) as render, mock.patch.object(
+            vision_read.time,
+            "monotonic",
+            return_value=4.0,
+        ):
+            vision_read.extract_with_vision(b"%PDF", "P", deadline=10.0)
+
+        build_client.assert_called_once_with(deadline=10.0)
+        render.assert_called_once_with(b"%PDF", max_pages=10, deadline=10.0)
+        self.assertEqual(client.calls[0]["timeout"], 6.0)
+
 
 class TranscribePdfTest(unittest.TestCase):
     def test_returns_concatenated_text(self):
@@ -140,6 +166,59 @@ class TranscribePdfTest(unittest.TestCase):
              mock.patch.object(vision_read.llm_client, "vision_model", return_value="vmodel"), \
              mock.patch.object(vision_read.pdf_text, "render_pdf_pages", return_value=[b"PNG"]):
             self.assertEqual(vision_read.transcribe_pdf(b"%PDF"), "")
+
+    def test_strict_mode_propagates_provider_failure_and_empty_output(self):
+        for client in (
+            _CapturingClient(error=RuntimeError("provider failed")),
+            _CapturingClient(content="   "),
+        ):
+            with self.subTest(client=client), mock.patch.object(
+                vision_read.llm_client, "build_vision_client", return_value=client
+            ), mock.patch.object(
+                vision_read.llm_client, "vision_model", return_value="vmodel"
+            ), mock.patch.object(
+                vision_read.pdf_text, "render_pdf_pages", return_value=[b"PNG"]
+            ):
+                with self.assertRaises(VisionError):
+                    vision_read.transcribe_pdf(b"%PDF", strict=True)
+
+    def test_deadline_is_forwarded_and_exhaustion_is_not_swallowed(self):
+        client = _CapturingClient(content="PAGE TEXT")
+        with mock.patch.object(
+            vision_read.llm_client,
+            "build_vision_client",
+            return_value=client,
+        ) as build_client, mock.patch.object(
+            vision_read.llm_client,
+            "vision_model",
+            return_value="vmodel",
+        ), mock.patch.object(
+            vision_read.pdf_text,
+            "render_pdf_pages",
+            return_value=[b"PNG"],
+        ) as render, mock.patch.object(
+            vision_read.time,
+            "monotonic",
+            return_value=7.0,
+        ):
+            result = vision_read.transcribe_pdf(b"%PDF", deadline=10.0)
+
+        self.assertEqual(result, "PAGE TEXT")
+        build_client.assert_called_once_with(deadline=10.0)
+        render.assert_called_once_with(b"%PDF", max_pages=50, deadline=10.0)
+        self.assertEqual(client.calls[0]["timeout"], 3.0)
+
+        with mock.patch.object(
+            vision_read.time,
+            "monotonic",
+            return_value=10.0,
+        ), mock.patch.object(
+            vision_read.llm_client,
+            "vision_model",
+            return_value="vmodel",
+        ):
+            with self.assertRaises(IndexDeadlineExceeded):
+                vision_read.transcribe_pdf(b"%PDF", deadline=10.0)
 
 
 if __name__ == "__main__":

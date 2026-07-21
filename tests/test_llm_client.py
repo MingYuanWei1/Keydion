@@ -1,8 +1,11 @@
 import os
+import sys
+import types
 import unittest
 from unittest import mock
 
 import llm_client
+from services.publishing_contracts import IndexDeadlineExceeded
 
 
 class LlmClientModelResolution(unittest.TestCase):
@@ -44,6 +47,18 @@ class LlmClientModelResolution(unittest.TestCase):
         with mock.patch.dict(os.environ, {"LLM_API_KEY": "k"}, clear=True):
             self.assertTrue(llm_client.llm_enabled())
 
+    def test_embedding_enabled_is_independent_and_uses_chat_fallback(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertFalse(llm_client.embedding_enabled())
+        with mock.patch.dict(
+            os.environ,
+            {"LLM_EMBED_API_KEY": "embed-only"},
+            clear=True,
+        ):
+            self.assertTrue(llm_client.embedding_enabled())
+        with mock.patch.dict(os.environ, {"LLM_API_KEY": "chat"}, clear=True):
+            self.assertTrue(llm_client.embedding_enabled())
+
 
 class LlmClientEmbedConfig(unittest.TestCase):
     def test_embed_config_falls_back_to_chat_vars(self):
@@ -64,6 +79,39 @@ class LlmClientEmbedConfig(unittest.TestCase):
             key, base = llm_client._embed_credentials()
             self.assertEqual(key, "geminikey")
             self.assertEqual(base, "https://gemini.example/v1beta/openai/")
+
+    def test_deadline_bound_client_uses_remaining_timeout_and_no_retries(self):
+        calls = []
+
+        def openai(**kwargs):
+            calls.append(kwargs)
+            return object()
+
+        fake_module = types.SimpleNamespace(OpenAI=openai)
+        with mock.patch.dict(sys.modules, {"openai": fake_module}), \
+             mock.patch.object(llm_client.time, "monotonic", return_value=4.5):
+            llm_client._new_client("key", "https://embed.example", deadline=10.0)
+
+        self.assertEqual(
+            calls,
+            [
+                {
+                    "api_key": "key",
+                    "base_url": "https://embed.example",
+                    "timeout": 5.5,
+                    "max_retries": 0,
+                }
+            ],
+        )
+
+    def test_exhausted_client_deadline_raises_before_construction(self):
+        openai = mock.Mock()
+        fake_module = types.SimpleNamespace(OpenAI=openai)
+        with mock.patch.dict(sys.modules, {"openai": fake_module}), \
+             mock.patch.object(llm_client.time, "monotonic", return_value=10.0):
+            with self.assertRaises(IndexDeadlineExceeded):
+                llm_client._new_client("key", None, deadline=10.0)
+        openai.assert_not_called()
 
 
 class LlmClientVisionConfig(unittest.TestCase):

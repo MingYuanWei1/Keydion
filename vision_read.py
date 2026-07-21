@@ -1,8 +1,9 @@
 """Vision-tier PDF reading: render pages to images and reason over them with a
 multimodal LLM. Two entry points:
 
-    transcribe_pdf(file_bytes, *, max_pages=50, language="en") -> str
-        Vision-as-OCR. Returns concatenated plain text, "" on ANY failure (never raises).
+    transcribe_pdf(file_bytes, *, max_pages=50, language="en", strict=False) -> str
+        Vision-as-OCR. Interactive callers receive "" on failure; strict
+        publishing callers receive provider/render failures.
     extract_with_vision(file_bytes, system_prompt, *, max_pages=10, language="en") -> dict
         Structured extraction with response_format=json_object. Raises VisionError
         on hard failure (no client / empty render / provider error / unparseable).
@@ -18,9 +19,11 @@ import base64
 import json
 import logging
 import re
+import time
 
 import llm_client
 import pdf_text
+from services.publishing_contracts import IndexDeadlineExceeded
 
 _log = logging.getLogger(__name__)
 
@@ -65,27 +68,52 @@ def _lang_name(language: str) -> str:
     return "Chinese" if language == "zh" else "English"
 
 
+def _remaining_timeout(deadline: float | None) -> float | None:
+    if deadline is None:
+        return None
+    remaining = max(float(deadline) - time.monotonic(), 0.0)
+    if remaining == 0.0:
+        raise IndexDeadlineExceeded()
+    return remaining
+
+
 def extract_with_vision(file_bytes: bytes, system_prompt: str, *,
-                        max_pages: int = 10, language: str = "en") -> dict:
+                        max_pages: int = 10, language: str = "en",
+                        deadline: float | None = None) -> dict:
     """Render pages and ask the vision model for a JSON object. Raises VisionError."""
+    _remaining_timeout(deadline)
     if not llm_client.vision_model():
         raise VisionError("Vision model is not configured.")
-    client = llm_client.build_vision_client()
+    client = (
+        llm_client.build_vision_client()
+        if deadline is None
+        else llm_client.build_vision_client(deadline=deadline)
+    )
     if client is None:
         raise VisionError("Vision model is not configured.")
 
-    pages = pdf_text.render_pdf_pages(file_bytes, max_pages=max_pages)
+    render_kwargs = {"max_pages": max_pages}
+    if deadline is not None:
+        render_kwargs["deadline"] = deadline
+    pages = pdf_text.render_pdf_pages(file_bytes, **render_kwargs)
+    _remaining_timeout(deadline)
     if not pages:
         raise VisionError("Could not render any PDF pages.")
 
     content = [{"type": "text", "text": system_prompt}] + _image_parts(pages)
     try:
-        resp = client.chat.completions.create(
+        request = dict(
             model=llm_client.vision_model(),
             temperature=0.2,
             response_format={"type": "json_object"},
             messages=[{"role": "user", "content": content}],
         )
+        if deadline is not None:
+            request["timeout"] = _remaining_timeout(deadline)
+        resp = client.chat.completions.create(**request)
+        _remaining_timeout(deadline)
+    except IndexDeadlineExceeded:
+        raise
     except Exception as exc:  # network/auth/rate-limit from any provider
         _log.exception("Vision request failed")
         raise VisionError("Vision request failed.") from exc
@@ -109,25 +137,57 @@ _TRANSCRIBE_INSTRUCTION = (
 
 
 def transcribe_pdf(file_bytes: bytes, *, max_pages: int = 50,
-                   language: str = "en") -> str:
-    """Vision-as-OCR. Concatenated plain-text transcription, "" on ANY failure."""
+                   language: str = "en",
+                   deadline: float | None = None,
+                   strict: bool = False) -> str:
+    """Vision-as-OCR; optionally propagate failures for publishing work."""
     try:
+        _remaining_timeout(deadline)
         if not llm_client.vision_model():
+            if strict:
+                raise VisionError("Vision model is not configured.")
             return ""
-        client = llm_client.build_vision_client()
+        client = (
+            llm_client.build_vision_client()
+            if deadline is None
+            else llm_client.build_vision_client(deadline=deadline)
+        )
         if client is None:
+            if strict:
+                raise VisionError("Vision model is not configured.")
             return ""
-        pages = pdf_text.render_pdf_pages(file_bytes, max_pages=max_pages)
+        render_kwargs = {"max_pages": max_pages}
+        if deadline is not None:
+            render_kwargs["deadline"] = deadline
+        if strict:
+            render_kwargs["strict"] = True
+        pages = pdf_text.render_pdf_pages(file_bytes, **render_kwargs)
+        _remaining_timeout(deadline)
         if not pages:
+            if strict:
+                raise VisionError("Could not render any PDF pages.")
             return ""
         instruction = _TRANSCRIBE_INSTRUCTION.format(lang=_lang_name(language))
         content = [{"type": "text", "text": instruction}] + _image_parts(pages)
-        resp = client.chat.completions.create(
+        request = dict(
             model=llm_client.vision_model(),
             temperature=0,
             messages=[{"role": "user", "content": content}],
         )
-        return (resp.choices[0].message.content or "").strip()
-    except Exception:  # transcription is best-effort; degrade to ""
+        if deadline is not None:
+            request["timeout"] = _remaining_timeout(deadline)
+        resp = client.chat.completions.create(**request)
+        _remaining_timeout(deadline)
+        text = (resp.choices[0].message.content or "").strip()
+        if strict and not text:
+            raise VisionError("Vision transcription was empty.")
+        return text
+    except IndexDeadlineExceeded:
+        raise
+    except VisionError:
+        raise
+    except Exception as exc:  # transcription is best-effort unless strict
         _log.exception("Vision transcription failed")
+        if strict:
+            raise VisionError("Vision transcription failed.") from exc
         return ""

@@ -12,7 +12,10 @@ from __future__ import annotations
 
 import logging
 import math
+import time
 import numpy as np
+
+from services.publishing_contracts import IndexDeadlineExceeded
 
 _log = logging.getLogger(__name__)
 
@@ -86,9 +89,12 @@ _DEPS: dict = {}
 
 
 def configure(**deps) -> None:
-    """Wire DB + paper access. Keys: build_embed_client, embed_model,
-    embed_batch_size, iter_papers, paper_text, store_replace, store_delete,
-    store_version, store_vectors, fetch_chunks, indexed_filenames, paper_meta."""
+    """Wire provider and read-model dependencies.
+
+    Production indexing writes belong exclusively to ``PublishingLifecycle``.
+    This module receives only embedding-provider callables plus current-visible
+    snapshot/fetch readers.
+    """
     _DEPS.update(deps)
     invalidate_cache()
 
@@ -98,17 +104,38 @@ _SNAPSHOT = None   # _Snapshot | None — per-process; rebuilt when the DB stamp
 
 class _Snapshot:
     """Immutable per-process view of the chunk index at one DB version."""
-    __slots__ = ("version", "ids", "filenames", "chunk_indexes", "matrix",
-                 "paper_filenames", "paper_matrix")
+    __slots__ = (
+        "version",
+        "ids",
+        "paper_ids",
+        "revision_numbers",
+        "chunk_indexes",
+        "matrix",
+        "pooled_paper_ids",
+        "pooled_revisions",
+        "paper_matrix",
+    )
 
-    def __init__(self, version, ids, filenames, chunk_indexes, matrix,
-                 paper_filenames, paper_matrix):
+    def __init__(
+        self,
+        version,
+        ids,
+        paper_ids,
+        revision_numbers,
+        chunk_indexes,
+        matrix,
+        pooled_paper_ids,
+        pooled_revisions,
+        paper_matrix,
+    ):
         self.version = version
         self.ids = ids
-        self.filenames = filenames
+        self.paper_ids = paper_ids
+        self.revision_numbers = revision_numbers
         self.chunk_indexes = chunk_indexes
         self.matrix = matrix                  # (N, dim) float32, L2-normalized rows; None if empty
-        self.paper_filenames = paper_filenames
+        self.pooled_paper_ids = pooled_paper_ids
+        self.pooled_revisions = pooled_revisions
         self.paper_matrix = paper_matrix      # (P, dim) float32, L2-normalized rows; None if empty
 
 
@@ -117,7 +144,23 @@ def invalidate_cache() -> None:
     _SNAPSHOT = None
 
 
-def embed_texts(texts: list[str]) -> list[list[float]]:
+def _remaining_timeout(deadline: float | None) -> float | None:
+    if deadline is None:
+        return None
+    remaining = max(float(deadline) - time.monotonic(), 0.0)
+    if remaining == 0.0:
+        raise IndexDeadlineExceeded()
+    return remaining
+
+
+def embed_texts(
+    texts: list[str],
+    *,
+    deadline: float | None = None,
+    build_embed_client=None,
+    embed_model=None,
+    embed_batch_size=None,
+) -> list[list[float]]:
     """Batch-embed via the configured embedding client.
 
     Inputs are split into sub-batches of at most embed_batch_size() items,
@@ -126,71 +169,26 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
     """
     if not texts:
         return []
-    client = _DEPS["build_embed_client"]()
-    model = _DEPS["embed_model"]()
-    getter = _DEPS.get("embed_batch_size")
+    _remaining_timeout(deadline)
+    builder = build_embed_client or _DEPS["build_embed_client"]
+    model_getter = embed_model or _DEPS["embed_model"]
+    batch_size_getter = embed_batch_size or _DEPS.get("embed_batch_size")
+    client = builder() if deadline is None else builder(deadline=deadline)
+    model = model_getter()
+    getter = batch_size_getter
     size = max(1, int(getter())) if getter else 10
     out: list[list[float]] = []
     for start in range(0, len(texts), size):
         batch = texts[start:start + size]
-        resp = client.embeddings.create(model=model, input=batch)
-        out.extend(d.embedding for d in resp.data)
+        kwargs = {"model": model, "input": batch}
+        if deadline is not None:
+            kwargs["timeout"] = _remaining_timeout(deadline)
+        resp = client.embeddings.create(**kwargs)
+        data = list(resp.data)
+        if len(data) != len(batch):
+            raise ValueError("embedding provider returned the wrong result count")
+        out.extend(item.embedding for item in data)
     return out
-
-
-def build_index(filenames: list[str] | None = None, skip_existing: bool = False) -> dict:
-    """(Re)build chunks+embeddings for the given papers (or all).
-
-    Logs `[i/n] <filename>` progress per paper so a slow run (e.g. OCR of a
-    scanned PDF) doesn't look hung. With skip_existing=True, papers that already
-    have stored chunks are left untouched, so an interrupted run resumes instead
-    of restarting from zero.
-    """
-    papers = _DEPS["iter_papers"]()
-    if filenames is not None:
-        wanted = set(filenames)
-        papers = [p for p in papers if p["filename"] in wanted]
-    already: set = set()
-    if skip_existing:
-        already = set(_DEPS["indexed_filenames"]())
-    n_total = len(papers)
-    n_papers = 0
-    n_chunks = 0
-    n_skipped = 0
-    for i, p in enumerate(papers, 1):
-        fn = p["filename"]
-        if skip_existing and fn in already:
-            n_skipped += 1
-            _log.info("[%d/%d] %s — already indexed, skipping", i, n_total, fn)
-            continue
-        _log.info("[%d/%d] %s", i, n_total, fn)
-        try:
-            text = _DEPS["paper_text"](fn)
-        except Exception:
-            _log.warning("failed to extract text from %s", fn, exc_info=True)
-            text = ""
-        chunks = chunk_text(text)
-        if not chunks:
-            _DEPS["store_replace"](fn, [])
-            continue
-        vectors = embed_texts(chunks)
-        rows = [
-            {"filename": fn, "chunk_index": j, "content": chunks[j],
-             "embedding": vectors[j], "lang": p.get("language", "")}
-            for j in range(len(chunks))
-        ]
-        _DEPS["store_replace"](fn, rows)
-        n_papers += 1
-        n_chunks += len(rows)
-    invalidate_cache()
-    _log.info("Index build complete: %d indexed, %d skipped, %d chunks",
-              n_papers, n_skipped, n_chunks)
-    return {"papers": n_papers, "chunks": n_chunks, "skipped": n_skipped}
-
-
-def purge(filename: str) -> None:
-    _DEPS["store_delete"](filename)
-    invalidate_cache()
 
 
 def _row_vector(raw):
@@ -208,7 +206,7 @@ def _normalize_rows(matrix):
 
 
 def _build_snapshot(version) -> "_Snapshot":
-    ids, filenames, chunk_indexes, vectors = [], [], [], []
+    ids, paper_ids, revision_numbers, chunk_indexes, vectors = [], [], [], [], []
     dim = None
     skipped = 0
     for row in _DEPS["store_vectors"]():
@@ -222,25 +220,36 @@ def _build_snapshot(version) -> "_Snapshot":
             skipped += 1
             continue
         ids.append(row["id"])
-        filenames.append(row["filename"])
+        paper_ids.append(row["paper_id"])
+        revision_numbers.append(row["revision_number"])
         chunk_indexes.append(row["chunk_index"])
         vectors.append(vec)
     if skipped:
         _log.warning("snapshot: skipped %d chunk rows (missing or != %s-dim vectors)",
                      skipped, dim)
     if not vectors:
-        return _Snapshot(version, [], [], [], None, [], None)
+        return _Snapshot(version, [], [], [], [], None, [], [], None)
     raw = np.vstack(vectors).astype(np.float32, copy=False)
     # Pool per paper on RAW vectors (mean), then normalize the pooled vector —
     # cosine(query, mean) == dot(query_norm, mean_norm).
     groups: dict = {}
-    for i, fn in enumerate(filenames):
-        groups.setdefault(fn, []).append(i)
-    paper_filenames = list(groups)
-    pooled = np.vstack([raw[groups[fn]].mean(axis=0) for fn in paper_filenames])
+    for i, paper_id in enumerate(paper_ids):
+        groups.setdefault(paper_id, []).append(i)
+    pooled_paper_ids = list(groups)
+    pooled_revisions = [revision_numbers[groups[paper_id][0]] for paper_id in pooled_paper_ids]
+    pooled = np.vstack(
+        [raw[groups[paper_id]].mean(axis=0) for paper_id in pooled_paper_ids]
+    )
     return _Snapshot(
-        version, ids, filenames, chunk_indexes, _normalize_rows(raw),
-        paper_filenames, _normalize_rows(pooled.astype(np.float32, copy=False)),
+        version,
+        ids,
+        paper_ids,
+        revision_numbers,
+        chunk_indexes,
+        _normalize_rows(raw),
+        pooled_paper_ids,
+        pooled_revisions,
+        _normalize_rows(pooled.astype(np.float32, copy=False)),
     )
 
 
@@ -301,20 +310,29 @@ def retrieve(query: str, k: int = 6, min_sim: float = 0.20) -> list[dict]:
         top.append(int(i))
     if not top:
         return []
-    contents = {c["id"]: c for c in _DEPS["fetch_chunks"]([snap.ids[i] for i in top])}
+    contents = {
+        c["id"]: c for c in _DEPS["fetch_chunks"]([snap.ids[i] for i in top])
+    }
     hits = []
     for i in top:
         chunk = contents.get(snap.ids[i])
-        if chunk is None:        # row deleted between scoring and fetch
+        if (
+            chunk is None
+            or chunk.get("paper_id") != snap.paper_ids[i]
+            or chunk.get("revision_number") != snap.revision_numbers[i]
+        ):
+            # Deleted, hidden, or superseded between scoring and the fresh
+            # current-visible fetch.
             continue
-        meta = _DEPS["paper_meta"](snap.filenames[i]) or {}
         hits.append({
-            "filename": snap.filenames[i],
-            "chunk_index": snap.chunk_indexes[i],
+            "paper_id": chunk["paper_id"],
+            "revision_number": chunk["revision_number"],
+            "filename": chunk["filename"],
+            "chunk_index": chunk["chunk_index"],
             "content": chunk["content"],
             "score": float(scores[i]),
-            "title": meta.get("title", snap.filenames[i]),
-            "author_name": meta.get("author_name", ""),
+            "title": chunk.get("title") or chunk["filename"],
+            "author_name": chunk.get("author_name") or "",
         })
     return hits
 
@@ -344,10 +362,10 @@ def _embed_query_cached(query: str) -> list[float]:
 def search_papers_semantic(query: str, min_sim: float = PAPER_SEARCH_MIN_SIM,
                            k: int = 100) -> list:
     """Rank papers by similarity of the query to each pooled paper vector.
-    One embeddings call per distinct query. Returns [(filename, score)] desc,
+    One embeddings call per distinct query. Returns [(paper_uuid, score)] desc,
     only scores >= min_sim, capped at k. [] for blank query / empty index."""
     query = (query or "").strip()
-    if not query:
+    if not query or k <= 0:
         return []
     snap = _current_snapshot()
     if snap.paper_matrix is None:
@@ -356,33 +374,68 @@ def search_papers_semantic(query: str, min_sim: float = PAPER_SEARCH_MIN_SIM,
     if qvec is None:
         return []
     scores = snap.paper_matrix @ qvec
-    out = []
+    candidates = []
     for i in np.argsort(scores)[::-1]:
-        if scores[i] < min_sim or len(out) >= k:
+        if scores[i] < min_sim:
             break
-        out.append((snap.paper_filenames[int(i)], float(scores[i])))
+        candidates.append(int(i))
+    visible = {
+        row["paper_id"]: row
+        for row in _DEPS["fetch_papers"](
+            [snap.pooled_paper_ids[i] for i in candidates]
+        )
+    }
+    out = []
+    for i in candidates:
+        paper_id = snap.pooled_paper_ids[i]
+        paper = visible.get(paper_id)
+        if paper is None or paper.get("current_revision") != snap.pooled_revisions[i]:
+            continue
+        out.append((paper_id, float(scores[i])))
+        if len(out) >= k:
+            break
     return out
 
 
-def related_papers(filename: str, k: int = 5,
+def related_papers(paper_id: str, k: int = 5,
                    min_sim: float = RELATED_MIN_SIM) -> list:
-    """Papers most similar to `filename` by pooled-vector similarity, excluding
+    """Papers most similar to ``paper_id`` by pooled-vector similarity, excluding
     itself. Zero LLM calls (the paper is already embedded). [] if the paper
     isn't embedded."""
+    if k <= 0:
+        return []
     snap = _current_snapshot()
     if snap.paper_matrix is None:
         return []
     try:
-        pos = snap.paper_filenames.index(filename)
+        pos = snap.pooled_paper_ids.index(paper_id)
     except ValueError:
         return []
     scores = snap.paper_matrix @ snap.paper_matrix[pos]
-    out = []
+    candidates = []
     for i in np.argsort(scores)[::-1]:
         i = int(i)
-        if snap.paper_filenames[i] == filename:
+        if snap.pooled_paper_ids[i] == paper_id:
             continue
-        if scores[i] < min_sim or len(out) >= k:
+        if scores[i] < min_sim:
             break
-        out.append((snap.paper_filenames[i], float(scores[i])))
+        candidates.append(i)
+    visible = {
+        row["paper_id"]: row
+        for row in _DEPS["fetch_papers"](
+            [paper_id] + [snap.pooled_paper_ids[i] for i in candidates]
+        )
+    }
+    source = visible.get(paper_id)
+    if source is None or source.get("current_revision") != snap.pooled_revisions[pos]:
+        return []
+    out = []
+    for i in candidates:
+        candidate_id = snap.pooled_paper_ids[i]
+        paper = visible.get(candidate_id)
+        if paper is None or paper.get("current_revision") != snap.pooled_revisions[i]:
+            continue
+        out.append((candidate_id, float(scores[i])))
+        if len(out) >= k:
+            break
     return out

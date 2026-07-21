@@ -6,6 +6,7 @@ import unittest
 os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
 
 import app as app_module
+import services.ai as ask_module
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import support
@@ -100,7 +101,19 @@ class RagPaperTextOcr(unittest.TestCase):
     def test_rag_paper_text_uses_pdf_text(self):
         from unittest import mock
         from pathlib import Path
-        with mock.patch.object(app_module, "PAPERS_DIR", Path("/tmp")), \
+        with mock.patch.object(
+            ask_module,
+            "_visible_paper_by_filename",
+            return_value={
+                "paper_id": "11111111-1111-4111-8111-111111111111",
+                "current_revision": 1,
+                "filename": "paper.pdf",
+                "language": "en",
+            },
+        ), \
+             mock.patch.object(
+                 ask_module, "_revision_path", return_value=Path("/safe/1.pdf")
+             ), \
              mock.patch("pathlib.Path.read_bytes", return_value=b"%PDF-1.4 fake"), \
              mock.patch("pdf_text.extract_pdf_text", return_value="scanned paper text") as ex:
             out = app_module._rag_paper_text("paper.pdf")

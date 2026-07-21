@@ -14,17 +14,18 @@ import pdf_text
 import rag_index
 import vision_read
 import web_search
-from config import PAPERS_DIR
+from config import PAPERS_DIR, PENDING_PAPERS_DIR
 from db import db_session
-from models import AttachmentChunkModel, PaperChunkModel, RagIndexMetaModel
-from services.papers import build_paper_record, load_paper_metadata, resolve_contained
+from models import (
+    AttachmentChunkModel,
+    PaperChunkModel,
+    PaperMetadataModel,
+    RagIndexMetaModel,
+)
+from services.paper_storage import PaperStorage
+from services.papers import resolve_contained
 
 logger = logging.getLogger(__name__)
-
-
-def _rag_iter_papers():
-    index = {row["filename"]: row for row in load_paper_metadata()}
-    return [build_paper_record(p.name, index) for p in PAPERS_DIR.glob("*.pdf")]
 
 
 def _index_ocr_langs(language: str) -> str:
@@ -42,54 +43,53 @@ def _index_ocr_langs(language: str) -> str:
     return "eng+chi_sim"
 
 
+def _visible_paper_by_filename(filename):
+    with db_session() as db:
+        paper = (
+            db.query(PaperMetadataModel)
+            .filter(
+                PaperMetadataModel.filename == filename,
+                PaperMetadataModel.lifecycle_state == "published",
+                PaperMetadataModel.current_revision.isnot(None),
+            )
+            .one_or_none()
+        )
+        if paper is None:
+            return None
+        return {
+            "paper_id": paper.id,
+            "current_revision": paper.current_revision,
+            "filename": paper.filename,
+            "title": paper.title or paper.filename,
+            "author_name": paper.author_name or "",
+            "language": paper.language or "",
+        }
+
+
+def _revision_path(paper_id, revision):
+    storage = PaperStorage(PAPERS_DIR, PENDING_PAPERS_DIR)
+    try:
+        return storage.open_revision(paper_id, revision)
+    finally:
+        storage.close()
+
+
 def _rag_paper_text(filename):
     # Indexing path: OCR scanned published papers so they're retrievable by
     # chat grounding AND readable in full by read_paper. Uses a higher page
     # cap (50) than request-path callers (10) and biases OCR by the paper's
     # declared language. (The live /search full-text fallback still uses the
     # pypdf-only extract_pdf_text(pdf_path) to avoid OCR per request.)
-    record = build_paper_record(filename)
+    record = _visible_paper_by_filename(filename)
+    if record is None:
+        return ""
     lang = record.get("language", "")
     ocr_langs = _index_ocr_langs(lang)
     vf = (lambda b, mp: vision_read.transcribe_pdf(b, max_pages=mp, language=lang or "en")) \
         if llm_client.vision_enabled() else None
     return pdf_text.extract_pdf_text(
-        (PAPERS_DIR / filename).read_bytes(),
+        _revision_path(record["paper_id"], record["current_revision"]).read_bytes(),
         ocr_langs=ocr_langs, max_ocr_pages=50, vision_fallback=vf)
-
-
-def _rag_paper_meta(filename):
-    return build_paper_record(filename)
-
-
-def bump_chunks_version(db) -> None:
-    """Bump the cross-process RAG invalidation stamp. Must run inside the same
-    db_session as the chunk write so data + stamp commit atomically.
-
-    First-ever bump on a brand-new DB can lose a duplicate-key race (two
-    writers both INSERTing the row); the losing transaction rolls back
-    cleanly (chunks + stamp together) and a retry succeeds."""
-    row = (db.query(RagIndexMetaModel)
-             .filter(RagIndexMetaModel.name == "chunks_version")
-             .with_for_update().first())
-    if row is None:
-        row = RagIndexMetaModel(name="chunks_version", value=0)
-        db.add(row)
-    row.value = (row.value or 0) + 1
-
-
-def _rag_store_replace(filename, rows):
-    with db_session() as db:
-        db.query(PaperChunkModel).filter(PaperChunkModel.filename == filename).delete()
-        for r in rows:
-            db.add(PaperChunkModel(
-                filename=r["filename"],
-                chunk_index=r["chunk_index"],
-                content=r["content"],
-                embedding_vec=json.dumps(r["embedding"]) if r["embedding"] else None,
-                lang=r.get("lang", ""),
-            ))
-        bump_chunks_version(db)
 
 
 def _rag_store_version():
@@ -101,39 +101,92 @@ def _rag_store_version():
 
 
 def _rag_store_vectors():
-    """All chunk vectors as raw VECTOR bytes — content column deliberately
-    NOT selected (it stays out of the per-worker cache)."""
+    """Current-visible chunk vectors; content stays out of the snapshot."""
     with db_session() as db:
-        rows = db.query(PaperChunkModel.id, PaperChunkModel.filename,
-                        PaperChunkModel.chunk_index,
-                        PaperChunkModel.embedding_vec).all()
-        return [{"id": r[0], "filename": r[1], "chunk_index": r[2],
-                 "embedding": r[3]} for r in rows]
+        rows = (
+            db.query(
+                PaperChunkModel.id,
+                PaperChunkModel.paper_id,
+                PaperChunkModel.revision_number,
+                PaperChunkModel.chunk_index,
+                PaperChunkModel.embedding_vec,
+            )
+            .join(PaperMetadataModel, PaperMetadataModel.id == PaperChunkModel.paper_id)
+            .filter(
+                PaperMetadataModel.lifecycle_state == "published",
+                PaperMetadataModel.current_revision == PaperChunkModel.revision_number,
+            )
+            .all()
+        )
+        return [
+            {
+                "id": row[0],
+                "paper_id": row[1],
+                "revision_number": row[2],
+                "chunk_index": row[3],
+                "embedding": row[4],
+            }
+            for row in rows
+        ]
 
 
 def _rag_fetch_chunks(ids):
-    """Contents for the top-k scored chunk ids."""
+    """Fresh current-visible content/metadata for scored chunk ids."""
     if not ids:
         return []
     with db_session() as db:
-        rows = (db.query(PaperChunkModel.id, PaperChunkModel.filename,
-                         PaperChunkModel.chunk_index, PaperChunkModel.content)
-                  .filter(PaperChunkModel.id.in_(list(ids))).all())
-        return [{"id": r[0], "filename": r[1], "chunk_index": r[2],
-                 "content": r[3]} for r in rows]
+        rows = (
+            db.query(
+                PaperChunkModel.id,
+                PaperChunkModel.paper_id,
+                PaperChunkModel.revision_number,
+                PaperChunkModel.chunk_index,
+                PaperChunkModel.content,
+                PaperMetadataModel.filename,
+                PaperMetadataModel.title,
+                PaperMetadataModel.author_name,
+            )
+            .join(PaperMetadataModel, PaperMetadataModel.id == PaperChunkModel.paper_id)
+            .filter(
+                PaperChunkModel.id.in_(list(ids)),
+                PaperMetadataModel.lifecycle_state == "published",
+                PaperMetadataModel.current_revision == PaperChunkModel.revision_number,
+            )
+            .all()
+        )
+        return [
+            {
+                "id": row[0],
+                "paper_id": row[1],
+                "revision_number": row[2],
+                "chunk_index": row[3],
+                "content": row[4],
+                "filename": row[5],
+                "title": row[6],
+                "author_name": row[7],
+            }
+            for row in rows
+        ]
 
 
-def _rag_store_delete(filename):
+def _rag_fetch_papers(ids):
+    """Fresh visibility/revision projection for pooled semantic results."""
+    if not ids:
+        return []
     with db_session() as db:
-        db.query(PaperChunkModel).filter(PaperChunkModel.filename == filename).delete()
-        bump_chunks_version(db)
-
-
-def _rag_indexed_filenames():
-    """Distinct filenames that already have stored chunks (for resume/skip)."""
-    with db_session() as db:
-        rows = db.query(PaperChunkModel.filename).distinct().all()
-        return {r[0] for r in rows}
+        rows = (
+            db.query(PaperMetadataModel.id, PaperMetadataModel.current_revision)
+            .filter(
+                PaperMetadataModel.id.in_(list(ids)),
+                PaperMetadataModel.lifecycle_state == "published",
+                PaperMetadataModel.current_revision.isnot(None),
+            )
+            .all()
+        )
+        return [
+            {"paper_id": row[0], "current_revision": row[1]}
+            for row in rows
+        ]
 
 
 def configure_rag():
@@ -141,15 +194,10 @@ def configure_rag():
         build_embed_client=llm_client.build_embed_client,
         embed_model=llm_client.embed_model,
         embed_batch_size=llm_client.embed_batch_size,
-        iter_papers=_rag_iter_papers,
-        paper_text=_rag_paper_text,
-        paper_meta=_rag_paper_meta,
-        store_replace=_rag_store_replace,
-        store_delete=_rag_store_delete,
         store_version=_rag_store_version,
         store_vectors=_rag_store_vectors,
         fetch_chunks=_rag_fetch_chunks,
-        indexed_filenames=_rag_indexed_filenames,
+        fetch_papers=_rag_fetch_papers,
     )
 
 
@@ -175,10 +223,26 @@ def _lib_full_text(filename: str) -> str:
     safe = resolved.name
     try:
         with db_session() as db:
-            rows = (db.query(PaperChunkModel)
-                      .filter(PaperChunkModel.filename == safe)
-                      .order_by(PaperChunkModel.chunk_index)
-                      .all())
+            paper = (
+                db.query(PaperMetadataModel)
+                .filter(
+                    PaperMetadataModel.filename == safe,
+                    PaperMetadataModel.lifecycle_state == "published",
+                    PaperMetadataModel.current_revision.isnot(None),
+                )
+                .one_or_none()
+            )
+            if paper is None:
+                return ""
+            rows = (
+                db.query(PaperChunkModel)
+                .filter(
+                    PaperChunkModel.paper_id == paper.id,
+                    PaperChunkModel.revision_number == paper.current_revision,
+                )
+                .order_by(PaperChunkModel.chunk_index)
+                .all()
+            )
             contents = [r.content or "" for r in rows]
         if contents:
             return rag_index.reassemble(contents)
@@ -217,7 +281,7 @@ def _lib_search(query: str) -> list:
 
 
 def _lib_paper_meta(filename: str) -> dict:
-    rec = build_paper_record(filename)
+    rec = _visible_paper_by_filename(filename) or {}
     return {"title": rec.get("title") or filename, "authors": rec.get("author_name", "")}
 
 
@@ -487,21 +551,25 @@ def _dedupe_hits_by_paper(hits):
 
     Retrieval is chunk-level, so one long paper can occupy several of the top
     hits. Listing each chunk separately makes the assistant cite the same paper
-    repeatedly. Keep the first (best-scoring) occurrence per filename and merge
+    repeatedly. Keep the first (best-scoring) occurrence per UUID and merge
     the remaining chunk text into it so the model still sees the full context.
     """
     merged = {}
     order = []
     for h in hits:
-        fn = h.get("filename")
-        if fn not in merged:
-            merged[fn] = dict(h)
-            order.append(fn)
+        identity = h.get("paper_id") or h.get("filename")
+        if identity not in merged:
+            merged[identity] = dict(h)
+            order.append(identity)
         else:
-            merged[fn]["content"] = (
-                (merged[fn].get("content", "") + "\n\n" + h.get("content", "")).strip()
+            merged[identity]["content"] = (
+                (
+                    merged[identity].get("content", "")
+                    + "\n\n"
+                    + h.get("content", "")
+                ).strip()
             )
-    return [merged[fn] for fn in order]
+    return [merged[identity] for identity in order]
 
 
 def _cited_numbers(answer_text):
@@ -536,16 +604,42 @@ def _forced_grounding(question, filenames):
     """Ground on user-selected papers: score their stored chunks against the question."""
     chunks = []
     with db_session() as db:
-        rows = (db.query(PaperChunkModel)
-                  .filter(PaperChunkModel.filename.in_(filenames)).all())
-        for r in rows:
-            chunks.append((r.filename, r.chunk_index, r.content, r.embedding_vec))
+        rows = (
+            db.query(
+                PaperChunkModel.paper_id,
+                PaperChunkModel.revision_number,
+                PaperChunkModel.chunk_index,
+                PaperChunkModel.content,
+                PaperChunkModel.embedding_vec,
+                PaperMetadataModel.filename,
+                PaperMetadataModel.title,
+                PaperMetadataModel.author_name,
+            )
+            .join(PaperMetadataModel, PaperMetadataModel.id == PaperChunkModel.paper_id)
+            .filter(
+                PaperMetadataModel.filename.in_(filenames),
+                PaperMetadataModel.lifecycle_state == "published",
+                PaperMetadataModel.current_revision == PaperChunkModel.revision_number,
+            )
+            .all()
+        )
+        chunks.extend(rows)
     if not chunks:
         return []
     qvec = np.asarray(rag_index.embed_texts([question])[0], dtype=np.float32)
     scored = []
-    for filename, idx, content, buf in chunks:
-        scored.append((_cosine_f32(qvec, buf), filename, content))
+    for paper_id, revision, _idx, content, buf, filename, title, author in chunks:
+        scored.append(
+            (
+                _cosine_f32(qvec, buf),
+                paper_id,
+                revision,
+                filename,
+                title,
+                author,
+                content,
+            )
+        )
     scored.sort(key=lambda t: t[0], reverse=True)
     min_sim = 0.20
     qualifying = [t for t in scored if t[0] >= min_sim]
@@ -553,11 +647,16 @@ def _forced_grounding(question, filenames):
     # explicitly selected papers always contribute at least one grounding snippet.
     candidates = qualifying[:6] if qualifying else scored[:1]
     hits = []
-    for score, filename, content in candidates:
-        meta = build_paper_record(filename)
-        hits.append({"filename": filename, "content": content, "score": score,
-                     "title": meta.get("title", filename),
-                     "author_name": meta.get("author_name", "")})
+    for score, paper_id, revision, filename, title, author, content in candidates:
+        hits.append({
+            "paper_id": paper_id,
+            "revision_number": revision,
+            "filename": filename,
+            "content": content,
+            "score": score,
+            "title": title or filename,
+            "author_name": author or "",
+        })
     return hits
 
 

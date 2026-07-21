@@ -9,24 +9,7 @@ import uuid
 from services.paper_storage import PaperStorage
 from services.publishing import PublishingLifecycle
 from services.publishing_jobs import PublishingWorker
-
-
-class StrictRagAdapter:
-    """Fail loudly if production indexing is used before Task 11 installs it."""
-
-    def enabled(self) -> bool:
-        return True
-
-    def prepare(
-        self,
-        *,
-        paper_id,
-        revision_number,
-        pdf_bytes,
-        language,
-        deadline,
-    ):
-        raise NotImplementedError("UUID RAG adapter is installed in Task 11")
+from services.publishing_rag import StrictRagAdapter
 
 
 def _build_lifecycle(session_factory):

@@ -4,6 +4,7 @@ import unittest
 import numpy as np
 
 import rag_index
+from services.publishing_contracts import IndexDeadlineExceeded
 
 
 class ChunkText(unittest.TestCase):
@@ -42,7 +43,6 @@ class Cosine(unittest.TestCase):
         self.assertEqual(rag_index.cosine([0.0, 0.0], [1.0, 1.0]), 0.0)
 
 
-import json
 from unittest import mock
 
 
@@ -73,86 +73,112 @@ def _f32(vec):
 
 class InMemoryStore:
     """Stand-in for the DB layer rag_index talks to via configure().
-    Mimics the real store contract: a version stamp bumped on every write,
-    vectors served as little-endian float32 bytes."""
+    Rows are already current-visible, as the real SQL read adapter guarantees."""
     def __init__(self):
-        self.rows = []   # dicts: id, filename, chunk_index, content, embedding(list), lang
+        self.rows = []
         self.version = 0
-        self._next_id = 1
 
-    def replace_chunks(self, filename, rows):
-        kept = [r for r in self.rows if r["filename"] != filename]
-        for r in rows:
-            r = dict(r)
-            r["id"] = self._next_id
-            self._next_id += 1
-            kept.append(r)
-        self.rows = kept
-        self.version += 1
-
-    def delete_chunks(self, filename):
-        self.rows = [r for r in self.rows if r["filename"] != filename]
+    def delete_chunks(self, paper_id):
+        self.rows = [r for r in self.rows if r["paper_id"] != paper_id]
         self.version += 1
 
     def get_version(self):
         return self.version
 
     def vectors(self):
-        return [{"id": r["id"], "filename": r["filename"],
-                 "chunk_index": r["chunk_index"],
-                 "embedding": _f32(r["embedding"]) if r["embedding"] else None}
-                for r in self.rows]
+        return [
+            {
+                "id": row["id"],
+                "paper_id": row["paper_id"],
+                "revision_number": row["revision_number"],
+                "chunk_index": row["chunk_index"],
+                "embedding": _f32(row["embedding"]) if row["embedding"] else None,
+            }
+            for row in self.rows
+        ]
 
     def fetch(self, ids):
         wanted = set(ids)
-        return [{"id": r["id"], "filename": r["filename"],
-                 "chunk_index": r["chunk_index"], "content": r["content"]}
-                for r in self.rows if r["id"] in wanted]
+        return [
+            {
+                "id": row["id"],
+                "paper_id": row["paper_id"],
+                "revision_number": row["revision_number"],
+                "filename": row["filename"],
+                "chunk_index": row["chunk_index"],
+                "content": row["content"],
+                "title": row.get("title", row["filename"]),
+                "author_name": row.get("author_name", ""),
+            }
+            for row in self.rows
+            if row["id"] in wanted
+        ]
 
-    def all_chunks(self):
-        """Kept for test assertions only (not wired as a dep)."""
-        return list(self.rows)
+    def fetch_papers(self, ids):
+        wanted = set(ids)
+        return [
+            {"paper_id": paper_id, "current_revision": revision}
+            for paper_id, revision in {
+                (row["paper_id"], row["revision_number"])
+                for row in self.rows
+                if row["paper_id"] in wanted
+            }
+        ]
+
+
+PAPER_IDS = {
+    "cold.pdf": "11111111-1111-4111-8111-111111111111",
+    "fr.pdf": "22222222-2222-4222-8222-222222222222",
+    "neutral.pdf": "33333333-3333-4333-8333-333333333333",
+    "zero.pdf": "44444444-4444-4444-8444-444444444444",
+    "a.pdf": "55555555-5555-4555-8555-555555555555",
+    "b.pdf": "66666666-6666-4666-8666-666666666666",
+    "c.pdf": "77777777-7777-4777-8777-777777777777",
+}
+
+
+def _row(row_id, filename, vector, content=None):
+    return {
+        "id": row_id,
+        "paper_id": PAPER_IDS[filename],
+        "revision_number": 1,
+        "filename": filename,
+        "chunk_index": 0,
+        "content": content if content is not None else filename,
+        "embedding": vector,
+        "title": filename,
+        "author_name": "",
+    }
 
 
 class RetrieveBehaviour(unittest.TestCase):
     def setUp(self):
         self.store = InMemoryStore()
-        self.papers = {
-            "cold.pdf": {"filename": "cold.pdf", "title": "Cryoprotection in alpine flora",
-                         "author_name": "Lee", "language": "en", "text": "cold arctic cryo plants survive"},
-            "fr.pdf": {"filename": "fr.pdf", "title": "The French Revolution",
-                       "author_name": "Marin", "language": "en", "text": "revolution history france"},
-        }
+        self.store.rows = [
+            _row(1, "cold.pdf", [1.0, 0.0], "cold arctic cryo plants survive"),
+            _row(2, "fr.pdf", [0.0, 1.0], "revolution history france"),
+        ]
         rag_index.configure(
             build_embed_client=lambda: FakeClient(),
             embed_model=lambda: "fake-embed",
-            iter_papers=lambda: list(self.papers.values()),
-            paper_text=lambda fn: self.papers[fn]["text"],
-            store_replace=self.store.replace_chunks,
-            store_delete=self.store.delete_chunks,
             store_version=self.store.get_version,
             store_vectors=self.store.vectors,
             fetch_chunks=self.store.fetch,
-            paper_meta=lambda fn: self.papers.get(fn, {}),
+            fetch_papers=self.store.fetch_papers,
         )
         rag_index.invalidate_cache()
 
-    def test_build_index_creates_chunks(self):
-        stats = rag_index.build_index()
-        self.assertEqual(stats["papers"], 2)
-        self.assertEqual(len(self.store.all_chunks()), 2)
+    def test_direct_index_writer_api_is_removed(self):
+        self.assertFalse(hasattr(rag_index, "build_index"))
+        self.assertFalse(hasattr(rag_index, "purge"))
 
     def test_retrieve_ranks_relevant_paper_first(self):
-        rag_index.build_index()
-        rag_index.invalidate_cache()
         hits = rag_index.retrieve("how do plants handle the cold?", k=1)
         self.assertEqual(len(hits), 1)
         self.assertEqual(hits[0]["filename"], "cold.pdf")
         self.assertIn("title", hits[0])
 
     def test_retrieve_filters_below_threshold(self):
-        rag_index.build_index()
-        rag_index.invalidate_cache()
         # query maps to [0.5,0.5]; min_sim very high -> nothing passes
         hits = rag_index.retrieve("something neutral", k=5, min_sim=0.999)
         self.assertEqual(hits, [])
@@ -180,17 +206,10 @@ class RetrieveBehaviour(unittest.TestCase):
         # observable difference would require a below-threshold chunk to outscore
         # an above-threshold one, which is impossible for a consistent threshold.
         # The test verifies the contract holds with the new implementation.
-        self.papers["neutral.pdf"] = {
-            "filename": "neutral.pdf", "title": "Neutral Paper",
-            "author_name": "Smith", "language": "en", "text": "neutral content",
-        }
         self.store.rows = [
-            {"id": 1, "filename": "cold.pdf",    "chunk_index": 0, "content": "chunk A",
-             "embedding": [1.0, 0.0], "lang": "en"},
-            {"id": 2, "filename": "fr.pdf",      "chunk_index": 0, "content": "chunk B",
-             "embedding": [0.0, 1.0], "lang": "en"},
-            {"id": 3, "filename": "neutral.pdf", "chunk_index": 0, "content": "chunk C",
-             "embedding": [0.5, 0.5], "lang": "en"},
+            _row(1, "cold.pdf", [1.0, 0.0], "chunk A"),
+            _row(2, "fr.pdf", [0.0, 1.0], "chunk B"),
+            _row(3, "neutral.pdf", [0.5, 0.5], "chunk C"),
         ]
         self.store.version += 1
         rag_index.invalidate_cache()
@@ -211,23 +230,20 @@ class RetrieveBehaviour(unittest.TestCase):
         # THE multi-worker staleness regression test. A write through the store
         # (as another gunicorn worker or the CLI would do it) must be visible to
         # THIS process on the next retrieve, with no local invalidate_cache().
-        rag_index.build_index()
         hits = rag_index.retrieve("how do plants handle the cold?", k=1)
         self.assertEqual(hits[0]["filename"], "cold.pdf")
 
         # "Another process" deletes cold.pdf: store mutates + stamp bumps,
         # but this process's invalidate_cache() is never called.
-        self.store.delete_chunks("cold.pdf")
+        self.store.delete_chunks(PAPER_IDS["cold.pdf"])
 
         hits = rag_index.retrieve("how do plants handle the cold?", k=5)
         self.assertNotIn("cold.pdf", [h["filename"] for h in hits])
 
     def test_zero_vector_chunk_scores_zero_and_never_crashes(self):
         self.store.rows = [
-            {"id": 1, "filename": "zero.pdf", "chunk_index": 0, "content": "z",
-             "embedding": [0.0, 0.0], "lang": "en"},
-            {"id": 2, "filename": "cold.pdf", "chunk_index": 0, "content": "c",
-             "embedding": [1.0, 0.0], "lang": "en"},
+            _row(1, "zero.pdf", [0.0, 0.0], "z"),
+            _row(2, "cold.pdf", [1.0, 0.0], "c"),
         ]
         self.store.version += 1
         hits = rag_index.retrieve("cold arctic", k=5, min_sim=0.2)
@@ -242,20 +258,17 @@ class ScoringEquivalence(unittest.TestCase):
         rag_index.configure(
             build_embed_client=lambda: FakeClient(),
             embed_model=lambda: "fake-embed",
-            store_replace=self.store.replace_chunks,
-            store_delete=self.store.delete_chunks,
             store_version=self.store.get_version,
             store_vectors=self.store.vectors,
             fetch_chunks=self.store.fetch,
-            paper_meta=lambda fn: {"title": fn, "author_name": ""},
+            fetch_papers=self.store.fetch_papers,
         )
         rag_index.invalidate_cache()
 
     def test_retrieve_scores_match_cosine(self):
         vecs = {"a.pdf": [1.0, 0.0], "b.pdf": [0.6, 0.8], "c.pdf": [0.5, 0.5]}
         self.store.rows = [
-            {"id": i + 1, "filename": fn, "chunk_index": 0, "content": fn,
-             "embedding": v, "lang": "en"}
+            _row(i + 1, fn, v)
             for i, (fn, v) in enumerate(sorted(vecs.items()))
         ]
         self.store.version += 1
@@ -267,57 +280,6 @@ class ScoringEquivalence(unittest.TestCase):
         # ranking is descending
         scores = [h["score"] for h in hits]
         self.assertEqual(scores, sorted(scores, reverse=True))
-
-
-class ResumeBehaviour(unittest.TestCase):
-    def setUp(self):
-        self.store = InMemoryStore()
-        self.papers = {
-            "a.pdf": {"filename": "a.pdf", "title": "A", "author_name": "x",
-                      "language": "en", "text": "alpha content here"},
-            "b.pdf": {"filename": "b.pdf", "title": "B", "author_name": "y",
-                      "language": "en", "text": "beta content here"},
-        }
-        # a.pdf is already indexed (has a stored chunk).
-        self.store.rows = [{"id": 1, "filename": "a.pdf", "chunk_index": 0,
-                            "content": "alpha content here", "embedding": [0.5, 0.5],
-                            "lang": "en"}]
-        self.store._next_id = 2
-        rag_index.configure(
-            build_embed_client=lambda: FakeClient(),
-            embed_model=lambda: "fake-embed",
-            iter_papers=lambda: list(self.papers.values()),
-            paper_text=lambda fn: self.papers[fn]["text"],
-            store_replace=self.store.replace_chunks,
-            store_delete=self.store.delete_chunks,
-            store_version=self.store.get_version,
-            store_vectors=self.store.vectors,
-            fetch_chunks=self.store.fetch,
-            paper_meta=lambda fn: self.papers.get(fn, {}),
-            indexed_filenames=lambda: {r["filename"] for r in self.store.rows},
-        )
-        rag_index.invalidate_cache()
-
-    def test_skip_existing_resumes(self):
-        stats = rag_index.build_index(skip_existing=True)
-        self.assertEqual(stats["skipped"], 1)       # a.pdf skipped
-        self.assertEqual(stats["papers"], 1)        # only b.pdf indexed
-        filenames = {r["filename"] for r in self.store.all_chunks()}
-        self.assertIn("a.pdf", filenames)           # untouched
-        self.assertIn("b.pdf", filenames)           # newly added
-
-    def test_no_skip_reprocesses_all(self):
-        stats = rag_index.build_index(skip_existing=False)
-        self.assertEqual(stats.get("skipped", 0), 0)
-        self.assertEqual(stats["papers"], 2)
-
-    def test_progress_is_logged(self):
-        with self.assertLogs("rag_index", level="INFO") as cm:
-            rag_index.build_index()
-        joined = "\n".join(cm.output)
-        self.assertIn("[1/2]", joined)
-        self.assertIn("[2/2]", joined)
-
 
 class EmbedBatchTest(unittest.TestCase):
     def setUp(self):
@@ -370,6 +332,54 @@ class EmbedBatchTest(unittest.TestCase):
         )
         self.assertEqual(rag_index.embed_texts([]), [])
         self.assertEqual(calls, [])
+
+    def test_deadline_is_forwarded_to_client_and_each_batch_request(self):
+        builder_deadlines = []
+        request_calls = []
+
+        class _DeadlineClient:
+            def __init__(self):
+                self.embeddings = self
+
+            def create(self, **kwargs):
+                request_calls.append(kwargs)
+                return type(
+                    "Response",
+                    (),
+                    {
+                        "data": [
+                            type("Embedding", (), {"embedding": [0.1]})()
+                            for _ in kwargs["input"]
+                        ]
+                    },
+                )()
+
+        def build_client(*, deadline=None):
+            builder_deadlines.append(deadline)
+            return _DeadlineClient()
+
+        rag_index.configure(
+            build_embed_client=build_client,
+            embed_model=lambda: "m",
+            embed_batch_size=lambda: 2,
+        )
+        with mock.patch.object(rag_index.time, "monotonic", return_value=4.0):
+            out = rag_index.embed_texts(["a", "b", "c"], deadline=10.0)
+
+        self.assertEqual(len(out), 3)
+        self.assertEqual(builder_deadlines, [10.0])
+        self.assertEqual([call["timeout"] for call in request_calls], [6.0, 6.0])
+
+    def test_exhausted_embedding_deadline_raises_before_client_build(self):
+        build_client = mock.Mock()
+        rag_index.configure(
+            build_embed_client=build_client,
+            embed_model=lambda: "m",
+        )
+        with mock.patch.object(rag_index.time, "monotonic", return_value=10.0):
+            with self.assertRaises(IndexDeadlineExceeded):
+                rag_index.embed_texts(["a"], deadline=10.0)
+        build_client.assert_not_called()
 
 
 class Reassemble(unittest.TestCase):

@@ -1094,7 +1094,9 @@ class PublishingLifecycle:
                 for chunk in prepared.chunks:
                     session.add(
                         PaperChunkModel(
-                            filename=paper.filename,
+                            # Retained only as a rollback-era nullable column;
+                            # UUID + revision are the sole chunk identity.
+                            filename=None,
                             paper_id=lease.paper_id,
                             revision_number=lease.revision,
                             chunk_index=chunk.chunk_index,

@@ -40,17 +40,22 @@ class RagPaperTextBehavior(unittest.TestCase):
     def _call_rag_paper_text(self, language):
         fake_bytes = b"%PDF-fake"
         with mock.patch.object(
-            ask_module, "build_paper_record",
-            return_value={"language": language, "filename": "test.pdf"},
-        ) as mock_build, mock.patch.object(
+            ask_module,
+            "_visible_paper_by_filename",
+            return_value={
+                "paper_id": "11111111-1111-4111-8111-111111111111",
+                "current_revision": 2,
+                "language": language,
+                "filename": "test.pdf",
+            },
+        ), mock.patch.object(
             ask_module.pdf_text, "extract_pdf_text",
             return_value="extracted text",
         ) as mock_extract, mock.patch.object(
-            ask_module, "PAPERS_DIR",
-        ) as mock_dir:
-            mock_dir.__truediv__ = mock.Mock(
-                return_value=mock.Mock(read_bytes=mock.Mock(return_value=fake_bytes))
-            )
+            ask_module,
+            "_revision_path",
+            return_value=mock.Mock(read_bytes=mock.Mock(return_value=fake_bytes)),
+        ):
             result = app_module._rag_paper_text("test.pdf")
         return mock_extract, result
 

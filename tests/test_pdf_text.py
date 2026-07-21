@@ -8,6 +8,7 @@ from unittest import mock
 import pdf_text
 from pdf_text import extract_pdf_text, PdfTextError
 from PyPDF2.errors import PdfReadError
+from services.publishing_contracts import IndexDeadlineExceeded
 
 
 class _StubPage:
@@ -45,6 +46,26 @@ class PypdfPassTest(unittest.TestCase):
             with self.assertRaises(PdfTextError) as ctx:
                 extract_pdf_text(b"%PDF-fake")
         self.assertEqual(ctx.exception.reason, "encrypted")
+
+    def test_deadline_exception_from_page_extraction_is_not_swallowed(self):
+        page = mock.Mock()
+        page.extract_text.side_effect = IndexDeadlineExceeded()
+        with mock.patch.object(
+            pdf_text, "PdfReader", return_value=_StubReader(pages=[page])
+        ), mock.patch.object(pdf_text.time, "monotonic", return_value=1.0):
+            with self.assertRaises(IndexDeadlineExceeded):
+                extract_pdf_text(b"%PDF-fake", deadline=10.0)
+
+    def test_strict_page_extraction_propagates_provider_failure(self):
+        failure = RuntimeError("page extraction failed")
+        page = mock.Mock()
+        page.extract_text.side_effect = failure
+        with mock.patch.object(
+            pdf_text, "PdfReader", return_value=_StubReader(pages=[page])
+        ):
+            with self.assertRaises(RuntimeError) as raised:
+                extract_pdf_text(b"%PDF-fake", strict=True)
+        self.assertIs(raised.exception, failure)
 
 
 def _fake_ocr_modules(call_log, page_count):
@@ -102,6 +123,13 @@ class OcrFallbackTest(unittest.TestCase):
         with mock.patch.dict(sys.modules, {"fitz": None, "pytesseract": None, "PIL": None}):
             out = pdf_text._ocr_pdf(b"%PDF-fake", "eng", 10)
         self.assertEqual(out, "")
+
+    def test_strict_ocr_dependency_failure_propagates(self):
+        with mock.patch.dict(
+            sys.modules, {"fitz": None, "pytesseract": None, "PIL": None}
+        ):
+            with self.assertRaises(ModuleNotFoundError):
+                pdf_text._ocr_pdf(b"%PDF-fake", "eng", 10, strict=True)
 
     def test_page_cap_respected_and_lang_passed(self):
         log = []
@@ -174,6 +202,65 @@ class OcrFallbackTest(unittest.TestCase):
         with mock.patch.dict(sys.modules, {"fitz": fitz, "pytesseract": pyt, "PIL": pil}):
             out = pdf_text._ocr_pdf(b"%PDF-fake", "eng", 10)
         self.assertEqual(out, "")
+
+    def test_deadline_limits_tesseract_timeout(self):
+        captured = {}
+
+        class _Pix:
+            def tobytes(self, _fmt):
+                return b"PNGDATA"
+
+        class _Page:
+            def get_pixmap(self, dpi=300):
+                return _Pix()
+
+        class _Doc:
+            def __iter__(self):
+                return iter([_Page()])
+
+            def close(self):
+                pass
+
+        fitz = mock.Mock()
+        fitz.open.return_value = _Doc()
+        pytesseract = mock.Mock()
+
+        def image_to_string(_image, *, lang=None, timeout=None):
+            captured.update(lang=lang, timeout=timeout)
+            return "bounded"
+
+        pytesseract.image_to_string.side_effect = image_to_string
+        pil = mock.Mock()
+        pil.Image.open.return_value = object()
+        with mock.patch.dict(
+            sys.modules,
+            {"fitz": fitz, "pytesseract": pytesseract, "PIL": pil},
+        ), mock.patch.object(pdf_text.time, "monotonic", return_value=97.0):
+            out = pdf_text._ocr_pdf(
+                b"%PDF-fake",
+                "eng",
+                10,
+                deadline=100.0,
+            )
+
+        self.assertEqual(out, "bounded")
+        self.assertEqual(captured["timeout"], 3.0)
+
+    def test_deadline_exception_from_ocr_worker_is_not_swallowed(self):
+        modules = _fake_ocr_modules([], page_count=1)
+        modules["pytesseract"].image_to_string.side_effect = IndexDeadlineExceeded()
+        with mock.patch.dict(sys.modules, modules), mock.patch.object(
+            pdf_text.time,
+            "monotonic",
+            return_value=1.0,
+        ):
+            with self.assertRaises(IndexDeadlineExceeded):
+                pdf_text._ocr_pdf(
+                    b"%PDF-fake",
+                    "eng",
+                    10,
+                    deadline=10.0,
+                )
 
 
     def test_parallel_ocr_preserves_page_order(self):
@@ -375,6 +462,15 @@ class RenderPdfPagesTest(unittest.TestCase):
             out = pdf_text.render_pdf_pages(b"garbage")
         self.assertEqual(out, [])
 
+    def test_strict_render_open_failure_propagates(self):
+        failure = RuntimeError("not a pdf")
+        fitz = mock.Mock()
+        fitz.open.side_effect = failure
+        with mock.patch.dict(sys.modules, {"fitz": fitz}):
+            with self.assertRaises(RuntimeError) as raised:
+                pdf_text.render_pdf_pages(b"garbage", strict=True)
+        self.assertIs(raised.exception, failure)
+
     def test_missing_deps_returns_empty_list(self):
         with mock.patch.dict(sys.modules, {"fitz": None}):
             out = pdf_text.render_pdf_pages(b"%PDF-fake")
@@ -402,6 +498,11 @@ class RenderPdfPagesTest(unittest.TestCase):
         with mock.patch.dict(sys.modules, {"fitz": fitz}):
             out = pdf_text.render_pdf_pages(b"%PDF-fake", max_pages=10)
         self.assertEqual(out, [b"PNGDATA", b"PNGDATA"])   # bad page dropped
+
+    def test_exhausted_deadline_raises_before_rendering(self):
+        with mock.patch.object(pdf_text.time, "monotonic", return_value=5.0):
+            with self.assertRaises(IndexDeadlineExceeded):
+                pdf_text.render_pdf_pages(b"%PDF", deadline=5.0)
 
 
 class VisionFallbackTest(unittest.TestCase):
@@ -450,6 +551,11 @@ class VisionFallbackTest(unittest.TestCase):
         with mock.patch.object(pdf_text, "PdfReader", return_value=stub):
             out = extract_pdf_text(b"%PDF-fake", vision_fallback=lambda b, mp: "")
         self.assertEqual(out, "")
+
+    def test_exhausted_deadline_raises_before_extraction(self):
+        with mock.patch.object(pdf_text.time, "monotonic", return_value=20.0):
+            with self.assertRaises(IndexDeadlineExceeded):
+                extract_pdf_text(b"%PDF-fake", deadline=20.0)
 
 
 if __name__ == "__main__":

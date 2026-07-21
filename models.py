@@ -249,8 +249,8 @@ class PaperChunkModel(BASE):
     chunk_index = Column(Integer, nullable=False)
     content = Column(UnicodeText)
     # Binary chunk vector (MySQL 9 VECTOR). The legacy JSON `embedding` column
-    # is intentionally unmapped; tools/migrate_chunk_vectors.py backfills it
-    # into this column and drops it.
+    # is intentionally unmapped; the approved Alembic migration owns its
+    # backfill into this column and the eventual legacy-column drop.
     embedding_vec = Column(VectorType(RAG_EMBED_DIM))
     lang = Column(Unicode(10))
 

@@ -142,14 +142,20 @@ class TestLibSearch(unittest.TestCase):
 class TestLibPaperMeta(unittest.TestCase):
 
     def test_returns_title_and_authors(self):
-        with mock.patch.object(ask_module, "build_paper_record",
-                               return_value={"title": "My Paper", "author_name": "Doe"}):
+        with mock.patch.object(
+            ask_module,
+            "_visible_paper_by_filename",
+            return_value={"title": "My Paper", "author_name": "Doe"},
+        ):
             result = app_module._lib_paper_meta("paper.pdf")
         self.assertEqual(result, {"title": "My Paper", "authors": "Doe"})
 
     def test_title_falls_back_to_filename_when_empty(self):
-        with mock.patch.object(ask_module, "build_paper_record",
-                               return_value={"title": "", "author_name": ""}):
+        with mock.patch.object(
+            ask_module,
+            "_visible_paper_by_filename",
+            return_value={"title": "", "author_name": ""},
+        ):
             result = app_module._lib_paper_meta("paper.pdf")
         self.assertEqual(result["title"], "paper.pdf")
 
