@@ -21,6 +21,7 @@ __pycache__/
 .env.prod
 .env.*.local
 .claude/
+.qoder/
 
 # IDEs and Editors
 .vscode/
