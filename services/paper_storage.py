@@ -231,6 +231,48 @@ def _publish_verified_fd_no_replace(
             0x400,
         ) == 0:
             return
+        descriptor_error = ctypes.get_errno()
+        anonymous_flag = getattr(os, "O_TMPFILE", 0)
+        if anonymous_flag:
+            anonymous_fd: int | None = None
+            try:
+                anonymous_fd = os.open(
+                    ".",
+                    os.O_RDWR | getattr(os, "O_CLOEXEC", 0) | anonymous_flag,
+                    0o600,
+                    dir_fd=target_fd,
+                )
+                offset = 0
+                while True:
+                    block = os.pread(source_fd, _BLOCK_SIZE, offset)
+                    if not block:
+                        break
+                    pending = memoryview(block)
+                    while pending:
+                        written = os.write(anonymous_fd, pending)
+                        if written <= 0:
+                            raise OSError(errno.EIO, "anonymous publication write failed")
+                        pending = pending[written:]
+                    offset += len(block)
+                os.fsync(anonymous_fd)
+                ctypes.set_errno(0)
+                if linkat(
+                    anonymous_fd,
+                    b"",
+                    target_fd,
+                    encoded_destination,
+                    0x1000,
+                ) == 0:
+                    return
+                failed("linkat(anonymous copy)")
+            except FileExistsError:
+                raise
+            except OSError:
+                pass
+            finally:
+                if anonymous_fd is not None:
+                    os.close(anonymous_fd)
+        ctypes.set_errno(descriptor_error)
         failed("linkat(descriptor)")
 
     if sys.platform == "darwin":

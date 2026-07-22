@@ -234,6 +234,9 @@ class PaperStorageTests(unittest.TestCase):
     def test_discard_stage_removes_only_the_exact_staged_inode(self):
         staged = self.storage.stage(self.valid_pdf_upload("discard.pdf"), "op-discard")
         replacement = self.valid_pdf_upload("replacement.pdf", width=73).stream.getvalue()
+        replacement_path = self.storage.staging_dir / "op-discard-replacement.pdf"
+        replacement_path.write_bytes(replacement)
+        replacement_path.chmod(0o600)
         original_stat = staged.path.stat()
 
         real_unlink = self.storage._unlink_if_matching
@@ -243,9 +246,7 @@ class PaperStorageTests(unittest.TestCase):
                 original_stat.st_dev,
                 original_stat.st_ino,
             ):
-                staged.path.unlink()
-                staged.path.write_bytes(replacement)
-                staged.path.chmod(0o600)
+                os.replace(replacement_path, staged.path)
             return real_unlink(directory_fd, name, expected)
 
         with mock.patch.object(
@@ -435,6 +436,8 @@ class PaperStorageTests(unittest.TestCase):
     def test_delete_rechecks_legacy_inode_before_unlink(self):
         legacy = self.storage.papers_dir / "legacy.pdf"
         legacy.write_bytes(b"original")
+        replacement = self.storage.pending_dir / "legacy-replacement.pdf"
+        replacement.write_bytes(b"replacement")
         real_stat = os.stat
         calls = 0
 
@@ -443,8 +446,7 @@ class PaperStorageTests(unittest.TestCase):
             if path == legacy.name and kwargs.get("dir_fd") is not None:
                 calls += 1
                 if calls == 2:
-                    legacy.unlink()
-                    legacy.write_bytes(b"replacement")
+                    os.replace(replacement, legacy)
             return real_stat(path, *args, **kwargs)
 
         with mock.patch("services.paper_storage.os.stat", side_effect=replace_before_recheck):
