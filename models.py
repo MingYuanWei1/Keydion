@@ -407,7 +407,7 @@ class SubmissionModel(BASE):
     ia_data = Column(UnicodeText)
     paper_id = Column(
         Unicode(36), ForeignKey("papers_metadata.id", ondelete="SET NULL"),
-        index=True, unique=True,
+        unique=True,
     )
     submitter_name = Column(Unicode(255))
     reviewed_at = Column(DateTime(timezone=False))

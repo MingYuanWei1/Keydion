@@ -30,6 +30,7 @@ class PublishingModelTests(unittest.TestCase):
                          "comment", "decision_idempotency_key",
                          "decision_payload_hash"}.issubset(names))
         self.assertTrue(SubmissionModel.paper_id.unique)
+        self.assertFalse(SubmissionModel.paper_id.index)
 
     def test_alias_and_job_dedupe_keys_are_unique(self):
         self.assertTrue(PaperFilenameAliasModel.lookup_key.primary_key)

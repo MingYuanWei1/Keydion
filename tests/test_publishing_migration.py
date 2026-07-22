@@ -1328,7 +1328,7 @@ class PublishingMigrationTests(unittest.TestCase):
             submission = conn.execute(text("""
                 SELECT paper_id, feedback, comment FROM submissions
             """)).mappings().one()
-        self.assertEqual(current, "0003_publishing_contract")
+        self.assertEqual(current, "0004_submission_paper_uniqueness")
         self.assertEqual(paper.filename, "paper.pdf")
         self.assertEqual(paper.lifecycle_state, "published")
         self.assertEqual(paper.current_revision, 1)
@@ -1357,6 +1357,11 @@ class PublishingMigrationTests(unittest.TestCase):
             for constraint in inspect(engine).get_unique_constraints("submissions")
         }
         self.assertIn(("paper_id",), submission_uniques)
+        submission_indexes = {
+            index["name"]: (tuple(index["column_names"]), bool(index["unique"]))
+            for index in inspect(engine).get_indexes("submissions")
+        }
+        self.assertNotIn("ix_submissions_paper_id", submission_indexes)
         with engine.connect() as conn:
             chunk_actions = {
                 row[6] for row in conn.execute(text("PRAGMA foreign_key_list(papers_chunks)"))
@@ -1429,6 +1434,35 @@ class PublishingMigrationTests(unittest.TestCase):
             ["filename"],
         )
         self.assertIn("publishing_migration_state", inspect(engine).get_table_names())
+
+    def test_index_repair_refuses_missing_submission_paper_uniqueness(self):
+        engine = self._legacy_engine("missing-submission-uniqueness.sqlite")
+        config = self._alembic_config(engine)
+        command.stamp(config, "0000_legacy_baseline")
+        command.upgrade(config, "0001_publishing_expand")
+        command.stamp(config, "0003_publishing_contract")
+
+        with self.assertRaisesRegex(
+            RuntimeError,
+            r"unique submissions\.paper_id contract",
+        ):
+            command.upgrade(config, "head")
+
+    def test_index_repair_downgrade_restores_0003_index(self):
+        engine = self._legacy_engine("submission-index-downgrade.sqlite")
+        config = self._alembic_config(engine)
+        command.stamp(config, "0000_legacy_baseline")
+        command.upgrade(config, "head")
+        command.downgrade(config, "0003_publishing_contract")
+
+        indexes = {
+            index["name"]: (tuple(index["column_names"]), bool(index["unique"]))
+            for index in inspect(engine).get_indexes("submissions")
+        }
+        self.assertEqual(
+            indexes.get("ix_submissions_paper_id"),
+            (("paper_id",), False),
+        )
 
     def test_contract_downgrade_refuses_partial_database_rollback(self):
         engine = self._legacy_engine("downgrade.sqlite")

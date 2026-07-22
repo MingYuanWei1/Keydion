@@ -215,7 +215,7 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
             chunk_ddl = conn.execute(text("SHOW CREATE TABLE papers_chunks")).one()[1]
             submission_ddl = conn.execute(text("SHOW CREATE TABLE submissions")).one()[1]
         self.assertEqual(current, ScriptDirectory.from_config(config).get_current_head())
-        self.assertEqual(current, "0003_publishing_contract")
+        self.assertEqual(current, "0004_submission_paper_uniqueness")
         self.assertEqual(bytes(raw_after), bytes(raw_before))
         self.assertEqual(stored_fingerprint, fingerprint_before)
         self.assertEqual(paper.lifecycle_state, "published")
@@ -234,6 +234,11 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
         self.assertIn("ON DELETE CASCADE", chunk_ddl.upper())
         self.assertIn("ON DELETE SET NULL", submission_ddl.upper())
         self.assertIn("uq_submissions_paper_id", submission_ddl)
+        submission_indexes = {
+            index["name"]: (tuple(index["column_names"]), bool(index["unique"]))
+            for index in inspect(self.engine).get_indexes("submissions")
+        }
+        self.assertNotIn("ix_submissions_paper_id", submission_indexes)
 
         replay = backfill_one_paper(self.engine, self.papers, "one.pdf")
         self.assertTrue(replay.resumed)
