@@ -22,6 +22,7 @@ import pdfplumber
 from PyPDF2 import PdfReader
 from PyPDF2.errors import PdfReadError
 
+from config import _EE_SUBJECTS_DEFAULT
 from vision_extractor import VisionFirstExtractor
 
 _DATA_DIR = Path(__file__).resolve().parent / "data"
@@ -230,7 +231,7 @@ def _canonical_subjects() -> dict:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return {}
+        data = _EE_SUBJECTS_DEFAULT
     out: dict[str, str] = {}
     for group in data.get("groups", []):
         for subject in group.get("subjects", []):

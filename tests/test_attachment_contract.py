@@ -65,6 +65,8 @@ def _make_client():
 
 
 def _authenticate(client, username):
+    if app_module.get_local_user(username) is None:
+        app_module.create_local_user(username, "test-password", role="1")
     token, _ = app_module.register_active_session(
         app_module.ACCOUNT_LOCAL,
         username,

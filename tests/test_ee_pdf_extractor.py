@@ -1,5 +1,6 @@
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from ee_pdf_extractor import extract_ee_metadata, EePdfExtractionError
 
@@ -82,6 +83,16 @@ class ExtractorValuesTest(unittest.TestCase):
 
 class SubjectNormalisationTest(unittest.TestCase):
     """Subjects are matched (case-insensitive exact) against ee_subjects.json."""
+
+    def test_builtin_catalog_is_used_when_runtime_file_is_missing(self):
+        from ee_pdf_extractor import _canonical_subjects, _normalise_subject
+
+        _canonical_subjects.cache_clear()
+        try:
+            with mock.patch.object(Path, "read_text", side_effect=FileNotFoundError):
+                self.assertEqual(_normalise_subject("biology")[0], "Biology")
+        finally:
+            _canonical_subjects.cache_clear()
 
     def test_known_subject_lower_case_normalised(self):
         from ee_pdf_extractor import _normalise_subject
