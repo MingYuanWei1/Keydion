@@ -186,7 +186,7 @@ Self-contained concerns remain factored into satellite modules:
 | `tools/` | CLI scripts: user management, translation compilation, embedding backfill |
 | `tests/` | Contract tests using `unittest` — parse app.py with AST + render Jinja2 templates |
 | `deploy/keydion.nginx.conf` | Production nginx config (host-managed, not docker) |
-| `docs/superpowers/` | Local spec/plan docs — gitignored on purpose, never commit |
+| `docs/superpowers/` | Local spec/plan docs — use this gitignored area for planning artifacts; never stage or commit any plan/spec |
 
 ## Testing approach
 
