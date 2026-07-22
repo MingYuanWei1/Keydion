@@ -65,9 +65,9 @@ from services.auth import (  # noqa: F401
     build_session_user, load_ms_users, get_ms_user, get_ms_user_by_email,
     update_ms_user_password, upsert_ms_user, update_ms_user, update_ms_user_role,
     delete_ms_user, is_profile_complete, get_active_user, require_login,
-    verify_password, load_sessions, is_session_expired, ensure_login_available,
-    register_active_session, release_active_session, force_release_session,
-    refresh_session,
+    verify_password, ACCOUNT_LOCAL, ACCOUNT_MICROSOFT, session_identity,
+    register_active_session, release_active_session, refresh_session,
+    _clear_browser_session,
 )
 from services.resources import (  # noqa: F401
     _can_view_node, _resource_viewer_role,
@@ -279,8 +279,11 @@ def create_app() -> Flask:
         user = session.get("user")
         token = session.get("session_token")
         if user and token:
-            if not refresh_session(user.get("username", ""), token):
-                session.clear()
+            current = refresh_session(user, token)
+            if current is None:
+                _clear_browser_session()
+            else:
+                session["user"] = current
         latest_news = load_news_articles(status="published")[:4]
         return render_template("landing.html", ms_enabled=is_ms_configured(),
                                latest_news=latest_news,
@@ -311,10 +314,6 @@ def create_app() -> Flask:
             if user_record:
                 user = authenticate(user_record.get("username", ""), password)
                 if user:
-                    allowed, warning = ensure_login_available(user["username"])
-                    if not allowed:
-                        flash(warning, "warning")
-                        return redirect(url_for("index", login=1))
                     display = user_record.get("first_name", "") or user_record.get("email", "") or user["username"]
                     saved_next = session.get("next") or request.form.get("next", "")
                     start_local_session(
@@ -329,10 +328,6 @@ def create_app() -> Flask:
                 ms_record = get_ms_user_by_email(email)
                 if ms_record and ms_record.get("password"):
                     if verify_password(password, ms_record["password"]):
-                        allowed, warning = ensure_login_available(ms_record["ms_id"])
-                        if not allowed:
-                            flash(warning, "warning")
-                            return redirect(url_for("index", login=1))
                         saved_next = session.get("next") or request.form.get("next", "")
                         start_ms_session(ms_record)
                         display = ms_record.get("display_name", "") or ms_record.get("email", "")
@@ -405,11 +400,6 @@ def create_app() -> Flask:
             flash(_("Microsoft sign-in did not return a valid profile."), "danger")
             return redirect(url_for("login"))
 
-        allowed, warning = ensure_login_available(profile["ms_id"])
-        if not allowed:
-            flash(warning, "warning")
-            return redirect(url_for("login"))
-
         user_record = upsert_ms_user(profile)
         saved_next = session.get("next")
         start_ms_session(user_record)
@@ -423,10 +413,10 @@ def create_app() -> Flask:
 
     def _do_logout():
         language = session.get("language")
-        username = session.get("user", {}).get("username", "")
-        # 强制释放会话，不检查 token 匹配
-        if username:
-            force_release_session(username)
+        user = session.get("user") or {}
+        token = session.get("session_token", "")
+        account_type, account_id = session_identity(user)
+        release_active_session(account_type, account_id, token)
         session.clear()
         if language:
             session["language"] = language
@@ -752,7 +742,11 @@ def create_app() -> Flask:
         else:
             session["language"] = locale_code
         if session.get("user") and session.get("session_token"):
-            refresh_session(session["user"].get("username", ""), session.get("session_token"))
+            current = refresh_session(session["user"], session["session_token"])
+            if current is None:
+                _clear_browser_session()
+            else:
+                session["user"] = current
         next_url = request.args.get("next")
         if not next_url or not next_url.startswith("/"):
             referrer = request.referrer

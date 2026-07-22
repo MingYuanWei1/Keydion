@@ -65,9 +65,12 @@ def _make_client():
 
 
 def _authenticate(client, username):
-    token = app_module.register_active_session(username)
+    token, _ = app_module.register_active_session(
+        app_module.ACCOUNT_LOCAL,
+        username,
+    )
     with client.session_transaction() as session:
-        session["user"] = {"username": username, "role": "1"}
+        session["user"] = {"username": username, "role": "1", "is_local": True}
         session["session_token"] = token
 
 

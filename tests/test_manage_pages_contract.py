@@ -28,7 +28,8 @@ def _login_as(client, app_module, level):
         if existing is not None:
             db.delete(existing)
         db.query(app_module.SessionModel).filter(
-            app_module.SessionModel.username == f"u{level}"
+            app_module.SessionModel.account_type == "local",
+            app_module.SessionModel.account_id == f"u{level}",
         ).delete()
         db.commit()
         u = app_module.LocalUser(

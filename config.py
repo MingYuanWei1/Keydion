@@ -287,6 +287,7 @@ SUPPORTED_LOCALES = ("en", "zh")
 SESSION_TIMEOUT_SECONDS = int(os.environ.get("PAPERQUERY_SESSION_TIMEOUT", "3600"))
 OPEN_ACCESS = os.environ.get("PAPERQUERY_OPEN_ACCESS", "0").strip().lower() in ("1", "true", "yes", "on")
 SESSION_TIMEOUT = timedelta(seconds=SESSION_TIMEOUT_SECONDS)
+REMEMBER_SESSION_LIFETIME = timedelta(days=7)
 METADATA_FIELDS = ["filename", "title", "journal", "category", "language", "keywords", "abstract", "author_name", "author_email", "author_school", "published_at", "ib_ee_data", "is_ib_sample", "cp_data", "is_anonymous", "ia_data"]
 MS_USER_FIELDS = [
     "ms_id",

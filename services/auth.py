@@ -5,7 +5,7 @@ import hashlib
 import hmac
 import os
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 from uuid import uuid4
 
@@ -13,13 +13,18 @@ import msal
 import requests
 from flask import flash, request, session
 from flask_babel import gettext as _
+from sqlalchemy import and_, or_
 
 from config import (
     MS_AUTHORITY, MS_CLIENT_ID, MS_CLIENT_SECRET, MS_GRAPH_ME_URL,
-    MS_USER_FIELDS, PASSWORD_SCHEME, SESSION_TIMEOUT, SESSION_TIMEOUT_SECONDS,
+    MS_USER_FIELDS, PASSWORD_SCHEME, REMEMBER_SESSION_LIFETIME, SESSION_TIMEOUT,
 )
 from db import db_session
 from models import LocalUser, MsUser, SessionModel
+
+
+ACCOUNT_LOCAL = "local"
+ACCOUNT_MICROSOFT = "microsoft"
 
 
 def load_users() -> List[Dict[str, str]]:
@@ -200,19 +205,44 @@ def load_active_local_user(username: str) -> Optional[Dict[str, str]]:
     }
 
 
+def _clear_browser_session() -> None:
+    preferred_lang = session.get("language")
+    session.clear()
+    if preferred_lang:
+        session["language"] = preferred_lang
+
+
+def _start_browser_session(
+    session_user: Dict[str, str],
+    account_type: str,
+    account_id: str,
+    *,
+    remember: bool,
+) -> None:
+    token, expires_at = register_active_session(
+        account_type,
+        account_id,
+        remember=remember,
+    )
+    _clear_browser_session()
+    session.permanent = remember
+    if expires_at is not None:
+        session["auth_expires_at"] = int(
+            expires_at.replace(tzinfo=timezone.utc).timestamp()
+        )
+    session["user"] = session_user
+    session["session_token"] = token
+
+
 def start_local_session(
     user: Dict[str, str],
     *,
     ms_id: str = "",
     display_name: str = "",
     email: str = "",
+    remember: bool = False,
 ) -> None:
-    preferred_lang = session.get("language")
-    session.clear()
-    if preferred_lang:
-        session["language"] = preferred_lang
-    token = register_active_session(user["username"])
-    session["user"] = {
+    session_user = {
         "username": user.get("username", ""),
         "role": user.get("role", "1"),
         "registered_at": user.get("registered_at", ""),
@@ -222,20 +252,29 @@ def start_local_session(
         "email": email,
         "is_local": True,
     }
-    session["session_token"] = token
+    _start_browser_session(
+        session_user,
+        ACCOUNT_LOCAL,
+        user["username"],
+        remember=remember,
+    )
 
 
-def start_ms_session(ms_user: Dict[str, str], *, linked_username: str = "") -> None:
-    preferred_lang = session.get("language")
-    session.clear()
-    if preferred_lang:
-        session["language"] = preferred_lang
-    token = register_active_session(ms_user.get("ms_id", ""))
+def start_ms_session(
+    ms_user: Dict[str, str],
+    *,
+    linked_username: str = "",
+    remember: bool = False,
+) -> None:
     session_user = build_session_user(ms_user)
     session_user["is_local"] = False
     session_user["linked_username"] = linked_username
-    session["user"] = session_user
-    session["session_token"] = token
+    _start_browser_session(
+        session_user,
+        ACCOUNT_MICROSOFT,
+        ms_user["ms_id"],
+        remember=remember,
+    )
 
 
 def is_ms_configured() -> bool:
@@ -465,15 +504,16 @@ def get_active_user() -> Optional[Dict[str, str]]:
     user = session.get("user")
     if not user:
         return None
-    username = user.get("username", "")
     token = session.get("session_token")
-    if not username or not token:
-        session.clear()
+    if not token:
+        _clear_browser_session()
         return None
-    if not refresh_session(username, token):
-        session.clear()
+    current = refresh_session(user, token)
+    if current is None:
+        _clear_browser_session()
         return None
-    return user
+    session["user"] = current
+    return current
 
 
 def require_login(level: int = 1) -> Optional[Dict[str, str]]:
@@ -487,22 +527,23 @@ def require_login(level: int = 1) -> Optional[Dict[str, str]]:
 
     if not user:
         return _fail_login(_("Please sign in first."))
-    username = user.get("username", "")
     token = session.get("session_token")
-    if not username or not token:
-        session.clear()
+    if not token:
+        _clear_browser_session()
         return _fail_login(_("Session expired. Please sign in again."))
-    if not refresh_session(username, token):
-        session.clear()
+    current = refresh_session(user, token)
+    if current is None:
+        _clear_browser_session()
         return _fail_login(_("Session timed out. Please sign in again."))
+    session["user"] = current
     try:
-        role = int(user.get("role", "1"))
+        role = int(current.get("role", "1"))
     except ValueError:
         role = 1
     if role < level:
         flash(_("You do not have access to that action."), "danger")
         return None
-    return user
+    return current
 
 
 def verify_password(password: str, encoded: str) -> bool:
@@ -532,83 +573,135 @@ def verify_password(password: str, encoded: str) -> bool:
     return hmac.compare_digest(dk, stored_hash)
 
 
-def load_sessions() -> Dict[str, Dict[str, str]]:
-    with db_session() as db:
-        rows = db.query(SessionModel).all()
-        return {r.username: {"token": r.token or "", "last_seen": r.last_seen or ""} for r in rows}
+def session_identity(user: Dict[str, str]) -> Tuple[str, str]:
+    if user.get("is_local", True):
+        return ACCOUNT_LOCAL, user.get("username", "")
+    return ACCOUNT_MICROSOFT, user.get("ms_id") or user.get("username", "")
 
 
-def is_session_expired(entry: Dict[str, str]) -> bool:
-    last_seen = entry.get("last_seen")
-    if not last_seen:
-        return True
-    try:
-        timestamp = datetime.fromisoformat(last_seen)
-    except ValueError:
-        return True
-    return datetime.utcnow() - timestamp > SESSION_TIMEOUT
-
-
-def ensure_login_available(username: str) -> Tuple[bool, str]:
-    sessions = load_sessions()
-    entry = sessions.get(username)
-    if not entry:
-        return True, ""
-    if is_session_expired(entry):
-        with db_session() as db:
-            db.query(SessionModel).filter(SessionModel.username == username).delete()
-            db.commit()
-        return True, ""
-    minutes = max(1, SESSION_TIMEOUT_SECONDS // 60)
-    return False, _(
-        "This account is already signed in. Please sign out from the other session or wait %(minutes)d minutes.",
-        minutes=minutes,
+def _purge_expired_sessions(db, now: datetime) -> int:
+    inactivity_cutoff = now - SESSION_TIMEOUT
+    return (
+        db.query(SessionModel)
+        .filter(or_(
+            and_(
+                SessionModel.expires_at.is_(None),
+                SessionModel.last_seen <= inactivity_cutoff,
+            ),
+            and_(
+                SessionModel.expires_at.is_not(None),
+                SessionModel.expires_at <= now,
+            ),
+        ))
+        .delete(synchronize_session=False)
     )
 
 
-def register_active_session(username: str) -> str:
+def purge_expired_sessions(*, now: Optional[datetime] = None) -> int:
+    checked_at = now or datetime.utcnow()
+    with db_session() as db:
+        return _purge_expired_sessions(db, checked_at)
+
+
+def register_active_session(
+    account_type: str,
+    account_id: str,
+    *,
+    remember: bool = False,
+    now: Optional[datetime] = None,
+) -> Tuple[str, Optional[datetime]]:
+    if account_type not in (ACCOUNT_LOCAL, ACCOUNT_MICROSOFT) or not account_id:
+        raise ValueError("A valid session account identity is required.")
+    created_at = now or datetime.utcnow()
+    expires_at = created_at + REMEMBER_SESSION_LIFETIME if remember else None
     token = uuid4().hex
-    now = datetime.utcnow().isoformat()
     with db_session() as db:
-        existing = db.query(SessionModel).filter(SessionModel.username == username).first()
-        if existing:
-            existing.token = token
-            existing.last_seen = now
-        else:
-            db.add(SessionModel(username=username, token=token, last_seen=now))
-        db.commit()
-    return token
+        _purge_expired_sessions(db, created_at)
+        db.add(SessionModel(
+            token=token,
+            account_type=account_type,
+            account_id=account_id,
+            last_seen=created_at,
+            expires_at=expires_at,
+        ))
+    return token, expires_at
 
 
-def release_active_session(username: str, token: Optional[str]) -> None:
-    if not username:
-        return
+def _current_account_user(db, user, account_type, account_id, now):
+    current = dict(user)
+    if account_type == ACCOUNT_LOCAL:
+        record = db.get(LocalUser, account_id)
+        if record is None or (record.expiry_date and record.expiry_date < now.date()):
+            return None
+        current.update({
+            "username": record.username,
+            "role": record.role or "1",
+            "expiry_date": record.expiry_date.isoformat() if record.expiry_date else "",
+            "email": record.email or current.get("email", ""),
+            "is_local": True,
+        })
+        return current
+    record = db.get(MsUser, account_id)
+    if record is None:
+        return None
+    current.update({
+        "username": record.ms_id,
+        "ms_id": record.ms_id,
+        "role": record.role or "1",
+        "email": record.email or current.get("email", ""),
+        "is_local": False,
+    })
+    return current
+
+
+def refresh_session(
+    user: Dict[str, str],
+    token: str,
+    *,
+    now: Optional[datetime] = None,
+) -> Optional[Dict[str, str]]:
+    checked_at = now or datetime.utcnow()
+    account_type, account_id = session_identity(user)
+    if not account_id or not token:
+        return None
     with db_session() as db:
-        entry = db.query(SessionModel).filter(SessionModel.username == username).first()
-        if entry and (token is None or entry.token == token):
-            db.delete(entry)
-            db.commit()
+        _purge_expired_sessions(db, checked_at)
+        entry = db.get(SessionModel, token)
+        if (
+            entry is None
+            or entry.account_type != account_type
+            or entry.account_id != account_id
+        ):
+            return None
+        current = _current_account_user(
+            db, user, account_type, account_id, checked_at
+        )
+        if current is None:
+            db.query(SessionModel).filter(
+                SessionModel.account_type == account_type,
+                SessionModel.account_id == account_id,
+            ).delete(synchronize_session=False)
+            return None
+        entry.last_seen = checked_at
+        return current
 
 
-def force_release_session(username: str) -> None:
-    if not username:
-        return
+def release_active_session(account_type: str, account_id: str, token: str) -> bool:
+    if not account_id or not token:
+        return False
     with db_session() as db:
-        db.query(SessionModel).filter(SessionModel.username == username).delete()
-        db.commit()
+        return bool(db.query(SessionModel).filter(
+            SessionModel.token == token,
+            SessionModel.account_type == account_type,
+            SessionModel.account_id == account_id,
+        ).delete(synchronize_session=False))
 
 
-def refresh_session(username: str, token: str) -> bool:
+def revoke_account_sessions(account_type: str, account_id: str) -> int:
+    if not account_id:
+        return 0
     with db_session() as db:
-        entry = db.query(SessionModel).filter(SessionModel.username == username).first()
-        if not entry or entry.token != token or is_session_expired({
-            "token": entry.token or "",
-            "last_seen": entry.last_seen or "",
-        }):
-            if entry:
-                db.delete(entry)
-                db.commit()
-            return False
-        entry.last_seen = datetime.utcnow().isoformat()
-        db.commit()
-        return True
+        return db.query(SessionModel).filter(
+            SessionModel.account_type == account_type,
+            SessionModel.account_id == account_id,
+        ).delete(synchronize_session=False)
