@@ -18,6 +18,7 @@ from flask import (
     url_for,
 )
 from flask_babel import Babel, gettext as _, get_locale
+from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.middleware.proxy_fix import ProxyFix
 import llm_client
 import rag_index  # noqa: F401  -- gunicorn post_fork pre-warms app_module.rag_index
@@ -69,6 +70,7 @@ from services.auth import (  # noqa: F401
     register_active_session, release_active_session, refresh_session,
     _clear_browser_session,
 )
+from services.session_cookie import AuthExpirySessionInterface
 from services.resources import (  # noqa: F401
     _can_view_node, _resource_viewer_role,
     get_resource_node, effective_min_role, resource_breadcrumbs,
@@ -148,6 +150,7 @@ def _is_safe_redirect_target(target: str) -> bool:
 
 def create_app() -> Flask:
     app = Flask(__name__)
+    app.session_interface = AuthExpirySessionInterface()
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
     # SEC-09: never silently run with the insecure default secret. Local dev opts
     # in via PAPERQUERY_ALLOW_DEV_SECRET=1 (set by start_local.sh).
@@ -304,6 +307,7 @@ def create_app() -> Flask:
         if request.method == "POST":
             email = request.form.get("email", "").strip()
             password = request.form.get("password", "").strip()
+            remember = request.form.get("remember_me") == "1"
 
             # 1. Try local user by email
             user_record = get_local_user_by_email(email)
@@ -316,11 +320,17 @@ def create_app() -> Flask:
                 if user:
                     display = user_record.get("first_name", "") or user_record.get("email", "") or user["username"]
                     saved_next = session.get("next") or request.form.get("next", "")
-                    start_local_session(
-                        user,
-                        display_name=display,
-                        email=user_record.get("email", ""),
-                    )
+                    try:
+                        start_local_session(
+                            user,
+                            display_name=display,
+                            email=user_record.get("email", ""),
+                            remember=remember,
+                        )
+                    except SQLAlchemyError:
+                        app.logger.exception("Unable to create local login session")
+                        flash(_("Unable to sign in. Please try again."), "danger")
+                        return redirect(url_for("index", login=1))
                     flash(_("Welcome back, %(username)s!", username=display), "success")
                     return redirect(saved_next if _is_safe_redirect_target(saved_next) else url_for("index"))
             else:
@@ -329,7 +339,12 @@ def create_app() -> Flask:
                 if ms_record and ms_record.get("password"):
                     if verify_password(password, ms_record["password"]):
                         saved_next = session.get("next") or request.form.get("next", "")
-                        start_ms_session(ms_record)
+                        try:
+                            start_ms_session(ms_record, remember=remember)
+                        except SQLAlchemyError:
+                            app.logger.exception("Unable to create Microsoft password login session")
+                            flash(_("Unable to sign in. Please try again."), "danger")
+                            return redirect(url_for("index", login=1))
                         display = ms_record.get("display_name", "") or ms_record.get("email", "")
                         flash(_("Welcome back, %(username)s!", username=display), "success")
                         return redirect(saved_next if _is_safe_redirect_target(saved_next) else url_for("index"))
@@ -356,6 +371,7 @@ def create_app() -> Flask:
         state = uuid4().hex
         session["ms_state"] = state
         session["ms_next"] = request.args.get("next", "")
+        session["ms_remember"] = request.args.get("remember_me") == "1"
         auth_url = build_msal_app().get_authorization_request_url(
             MS_SCOPES,
             state=state,
@@ -366,6 +382,7 @@ def create_app() -> Flask:
 
     @app.route("/auth/callback")
     def ms_callback():
+        remember = bool(session.pop("ms_remember", False))
         if not is_ms_configured():
             flash(_("Microsoft sign-in is not configured. Please contact the administrator."), "danger")
             return redirect(url_for("login"))
@@ -402,7 +419,12 @@ def create_app() -> Flask:
 
         user_record = upsert_ms_user(profile)
         saved_next = session.get("next")
-        start_ms_session(user_record)
+        try:
+            start_ms_session(user_record, remember=remember)
+        except SQLAlchemyError:
+            app.logger.exception("Unable to create Microsoft OAuth login session")
+            flash(_("Unable to sign in. Please try again."), "danger")
+            return redirect(url_for("login"))
         if saved_next:
             session["next"] = saved_next
 

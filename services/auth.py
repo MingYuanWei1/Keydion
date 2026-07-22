@@ -21,6 +21,7 @@ from config import (
 )
 from db import db_session
 from models import LocalUser, MsUser, SessionModel
+from services.session_cookie import AUTH_EXPIRES_AT_KEY
 
 
 ACCOUNT_LOCAL = "local"
@@ -227,7 +228,7 @@ def _start_browser_session(
     _clear_browser_session()
     session.permanent = remember
     if expires_at is not None:
-        session["auth_expires_at"] = int(
+        session[AUTH_EXPIRES_AT_KEY] = int(
             expires_at.replace(tzinfo=timezone.utc).timestamp()
         )
     session["user"] = session_user

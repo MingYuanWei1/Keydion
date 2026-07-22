@@ -13,6 +13,7 @@ import support
 
 os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
 import app as app_module
+from services.session_cookie import AuthExpirySessionInterface
 
 
 class MediumHardeningContractTest(unittest.TestCase):
@@ -21,6 +22,14 @@ class MediumHardeningContractTest(unittest.TestCase):
         src = support.source_of("create_app")
         self.assertIn("PERMANENT_SESSION_LIFETIME=timedelta(seconds=SESSION_TIMEOUT_SECONDS)", src)
         self.assertNotIn("timedelta(days=365)", src)
+
+    def test_create_app_installs_auth_expiry_session_interface(self):
+        self.assertIsInstance(app_module.app.session_interface, AuthExpirySessionInterface)
+
+    def test_remembered_session_carries_absolute_cookie_deadline(self):
+        src = support.source_of("_start_browser_session")
+        self.assertIn("AUTH_EXPIRES_AT_KEY", src)
+        self.assertIn('AUTH_EXPIRES_AT_KEY = "auth_expires_at"', support.all_sources())
 
     # --- SEC-09: fail-fast on the insecure default secret ---
     def test_secret_guard_present_in_source(self):
