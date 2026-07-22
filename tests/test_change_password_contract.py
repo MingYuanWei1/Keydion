@@ -103,16 +103,46 @@ class ChangePasswordContractTest(unittest.TestCase):
             "current_password to reject reuse",
         )
 
-    def test_success_clears_browser_session_and_redirects_to_login(self):
+    def test_success_branch_preserves_language_clears_session_and_requires_login(self):
+        success_branch = next(
+            (
+                node.body
+                for node in ast.walk(self.view)
+                if isinstance(node, ast.If)
+                and isinstance(node.test, ast.Name)
+                and node.test.id == "success"
+            ),
+            None,
+        )
+        self.assertIsNotNone(
+            success_branch,
+            "change_password must branch on the password-update result",
+        )
+        branch_source = "\n".join(ast.unparse(node) for node in success_branch)
         self.assertRegex(
-            self.view_source,
-            r"session\.clear\(\)",
-            "change_password must clear the browser session after success",
+            branch_source,
+            r'language\s*=\s*session\.get\(\s*["\']language["\']\s*\)',
+            "the successful update branch must save the selected language",
         )
         self.assertRegex(
-            self.view_source,
+            branch_source,
+            r"session\.clear\(\)",
+            "the successful update branch must clear the browser session",
+        )
+        self.assertRegex(
+            branch_source,
+            r'session\[\s*["\']language["\']\s*\]\s*=\s*language',
+            "the successful update branch must restore the selected language",
+        )
+        self.assertIn(
+            "Password updated. Please sign in again.",
+            branch_source,
+            "the successful update branch must tell the user to sign in again",
+        )
+        self.assertRegex(
+            branch_source,
             r"url_for\(\s*[\"']index[\"']\s*,\s*login\s*=\s*1\s*\)",
-            "change_password must send the user back to the login entry point",
+            "the successful update branch must send the user to the login entry point",
         )
 
 

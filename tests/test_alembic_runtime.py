@@ -145,6 +145,34 @@ class AlembicRuntimeTests(unittest.TestCase):
         with self.engine.connect() as conn:
             self.assertEqual(conn.execute(text("SELECT COUNT(*) FROM sessions")).scalar_one(), 0)
 
+    def test_session_upgrade_creates_table_when_0004_database_has_none(self):
+        with self.engine.begin() as conn:
+            conn.execute(text(
+                "CREATE TABLE alembic_version (version_num VARCHAR(64) NOT NULL)"
+            ))
+            conn.execute(text(
+                "INSERT INTO alembic_version (version_num) "
+                "VALUES ('0004_submission_paper_uniqueness')"
+            ))
+
+        alembic_config = models._alembic_config()
+        with self.engine.begin() as conn:
+            alembic_config.attributes["connection"] = conn
+            try:
+                command.upgrade(alembic_config, "head")
+            finally:
+                alembic_config.attributes.pop("connection", None)
+
+        inspector = inspect(self.engine)
+        self.assertEqual(
+            inspector.get_pk_constraint("sessions")["constrained_columns"],
+            ["token"],
+        )
+        self.assertEqual(
+            {column["name"] for column in inspector.get_columns("sessions")},
+            {"token", "account_type", "account_id", "last_seen", "expires_at"},
+        )
+
     def test_fresh_database_has_no_alembic_drift(self):
         models.ensure_schema_current(self.engine)
         alembic_config = models._alembic_config()

@@ -31,6 +31,13 @@ class AuthSessionServiceTest(unittest.TestCase):
                 role="1",
                 email="alice@example.test",
             ))
+            session.add(LocalUser(
+                username="bob",
+                password=auth.hash_password("sibling-password-1"),
+                registration_date=date(2026, 1, 1),
+                role="1",
+                email="bob@example.test",
+            ))
             session.add(MsUser(
                 ms_id="microsoft-alice",
                 password=auth.hash_password("old-password-1"),
@@ -39,6 +46,35 @@ class AuthSessionServiceTest(unittest.TestCase):
                 created_at=self.now,
                 updated_at=self.now,
             ))
+            session.add(MsUser(
+                ms_id="microsoft-bob",
+                password=auth.hash_password("sibling-password-1"),
+                role="1",
+                email="microsoft-bob@example.test",
+                created_at=self.now,
+                updated_at=self.now,
+            ))
+
+    def _sibling_token(self, account_type):
+        account_id = (
+            "bob" if account_type == auth.ACCOUNT_LOCAL else "microsoft-bob"
+        )
+        token, _ = auth.register_active_session(
+            account_type,
+            account_id,
+            now=self.now,
+        )
+        return account_id, token
+
+    def _assert_sibling_token_active(self, account_type, account_id, token):
+        user = {
+            "username": account_id,
+            "role": "1",
+            "is_local": account_type == auth.ACCOUNT_LOCAL,
+        }
+        if account_type == auth.ACCOUNT_MICROSOFT:
+            user["ms_id"] = account_id
+        self.assertIsNotNone(auth.refresh_session(user, token, now=self.now))
 
     def test_two_tokens_for_one_account_validate_independently(self):
         first, _ = auth.register_active_session(
@@ -180,6 +216,7 @@ class AuthSessionServiceTest(unittest.TestCase):
         self.assertIsNone(auth.refresh_session(wrong_user, token, now=self.now))
 
     def test_password_update_revokes_every_local_session(self):
+        sibling_id, sibling_token = self._sibling_token(auth.ACCOUNT_LOCAL)
         first, _ = auth.register_active_session(
             auth.ACCOUNT_LOCAL, "alice", now=self.now
         )
@@ -191,8 +228,12 @@ class AuthSessionServiceTest(unittest.TestCase):
         user = {"username": "alice", "role": "1", "is_local": True}
         self.assertIsNone(auth.refresh_session(user, first, now=self.now))
         self.assertIsNone(auth.refresh_session(user, second, now=self.now))
+        self._assert_sibling_token_active(
+            auth.ACCOUNT_LOCAL, sibling_id, sibling_token
+        )
 
     def test_account_deletion_revokes_every_local_session(self):
+        sibling_id, sibling_token = self._sibling_token(auth.ACCOUNT_LOCAL)
         first, _ = auth.register_active_session(
             auth.ACCOUNT_LOCAL, "alice", now=self.now
         )
@@ -202,12 +243,16 @@ class AuthSessionServiceTest(unittest.TestCase):
 
         self.assertTrue(auth.delete_local_user("alice"))
         with db.db_session() as session:
-            self.assertEqual(session.query(SessionModel).count(), 0)
+            self.assertEqual(session.query(SessionModel).count(), 1)
         user = {"username": "alice", "role": "1", "is_local": True}
         self.assertIsNone(auth.refresh_session(user, first, now=self.now))
         self.assertIsNone(auth.refresh_session(user, second, now=self.now))
+        self._assert_sibling_token_active(
+            auth.ACCOUNT_LOCAL, sibling_id, sibling_token
+        )
 
     def test_expired_local_account_revokes_all_tokens(self):
+        sibling_id, sibling_token = self._sibling_token(auth.ACCOUNT_LOCAL)
         first, _ = auth.register_active_session(
             auth.ACCOUNT_LOCAL, "alice", now=self.now
         )
@@ -221,7 +266,31 @@ class AuthSessionServiceTest(unittest.TestCase):
         self.assertIsNone(auth.refresh_session(user, first, now=self.now))
         self.assertIsNone(auth.refresh_session(user, second, now=self.now))
         with db.db_session() as session:
-            self.assertEqual(session.query(SessionModel).count(), 0)
+            self.assertEqual(session.query(SessionModel).count(), 1)
+        self._assert_sibling_token_active(
+            auth.ACCOUNT_LOCAL, sibling_id, sibling_token
+        )
+
+    def test_explicit_account_revocation_preserves_sibling_token(self):
+        sibling_id, sibling_token = self._sibling_token(auth.ACCOUNT_LOCAL)
+        first, _ = auth.register_active_session(
+            auth.ACCOUNT_LOCAL, "alice", now=self.now
+        )
+        second, _ = auth.register_active_session(
+            auth.ACCOUNT_LOCAL, "alice", now=self.now
+        )
+
+        self.assertEqual(
+            auth.revoke_account_sessions(auth.ACCOUNT_LOCAL, "alice"),
+            2,
+        )
+
+        user = {"username": "alice", "role": "1", "is_local": True}
+        self.assertIsNone(auth.refresh_session(user, first, now=self.now))
+        self.assertIsNone(auth.refresh_session(user, second, now=self.now))
+        self._assert_sibling_token_active(
+            auth.ACCOUNT_LOCAL, sibling_id, sibling_token
+        )
 
     def test_current_database_role_replaces_cookie_role(self):
         token, _ = auth.register_active_session(
@@ -238,6 +307,7 @@ class AuthSessionServiceTest(unittest.TestCase):
         self.assertEqual(refreshed["role"], "3")
 
     def test_password_update_revokes_every_microsoft_session(self):
+        sibling_id, sibling_token = self._sibling_token(auth.ACCOUNT_MICROSOFT)
         first, _ = auth.register_active_session(
             auth.ACCOUNT_MICROSOFT, "microsoft-alice", now=self.now
         )
@@ -249,8 +319,12 @@ class AuthSessionServiceTest(unittest.TestCase):
         user = {"ms_id": "microsoft-alice", "role": "1", "is_local": False}
         self.assertIsNone(auth.refresh_session(user, first, now=self.now))
         self.assertIsNone(auth.refresh_session(user, second, now=self.now))
+        self._assert_sibling_token_active(
+            auth.ACCOUNT_MICROSOFT, sibling_id, sibling_token
+        )
 
     def test_account_deletion_revokes_every_microsoft_session(self):
+        sibling_id, sibling_token = self._sibling_token(auth.ACCOUNT_MICROSOFT)
         first, _ = auth.register_active_session(
             auth.ACCOUNT_MICROSOFT, "microsoft-alice", now=self.now
         )
@@ -260,7 +334,10 @@ class AuthSessionServiceTest(unittest.TestCase):
 
         self.assertTrue(auth.delete_ms_user("microsoft-alice"))
         with db.db_session() as session:
-            self.assertEqual(session.query(SessionModel).count(), 0)
+            self.assertEqual(session.query(SessionModel).count(), 1)
         user = {"ms_id": "microsoft-alice", "role": "1", "is_local": False}
         self.assertIsNone(auth.refresh_session(user, first, now=self.now))
         self.assertIsNone(auth.refresh_session(user, second, now=self.now))
+        self._assert_sibling_token_active(
+            auth.ACCOUNT_MICROSOFT, sibling_id, sibling_token
+        )

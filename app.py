@@ -370,7 +370,10 @@ def create_app() -> Flask:
             return redirect(url_for("login"))
         state = uuid4().hex
         session["ms_state"] = state
-        session["ms_next"] = request.args.get("next", "")
+        requested_next = request.args.get("next")
+        if requested_next is None:
+            requested_next = session.get("next", "")
+        session["ms_next"] = requested_next
         session["ms_remember"] = request.args.get("remember_me") == "1"
         auth_url = build_msal_app().get_authorization_request_url(
             MS_SCOPES,
@@ -382,6 +385,7 @@ def create_app() -> Flask:
 
     @app.route("/auth/callback")
     def ms_callback():
+        saved_next = session.pop("ms_next", "")
         remember = bool(session.pop("ms_remember", False))
         if not is_ms_configured():
             flash(_("Microsoft sign-in is not configured. Please contact the administrator."), "danger")
@@ -418,20 +422,22 @@ def create_app() -> Flask:
             return redirect(url_for("login"))
 
         user_record = upsert_ms_user(profile)
-        saved_next = session.get("next")
         try:
             start_ms_session(user_record, remember=remember)
         except SQLAlchemyError:
             app.logger.exception("Unable to create Microsoft OAuth login session")
             flash(_("Unable to sign in. Please try again."), "danger")
             return redirect(url_for("login"))
-        if saved_next:
-            session["next"] = saved_next
 
         if not is_profile_complete(user_record):
+            if _is_safe_redirect_target(saved_next):
+                session["next"] = saved_next
             return redirect(url_for("profile_setup"))
-        next_url = session.pop("next", None)
-        return redirect(next_url if _is_safe_redirect_target(next_url) else url_for("index"))
+        return redirect(
+            saved_next
+            if _is_safe_redirect_target(saved_next)
+            else url_for("index")
+        )
 
     def _do_logout():
         language = session.get("language")

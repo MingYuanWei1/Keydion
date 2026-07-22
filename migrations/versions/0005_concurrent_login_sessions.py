@@ -33,7 +33,9 @@ def _create_concurrent_sessions_table():
 
 
 def upgrade():
-    op.drop_table("sessions")
+    inspector = sa.inspect(op.get_bind())
+    if inspector.has_table("sessions"):
+        op.drop_table("sessions")
     _create_concurrent_sessions_table()
 
 

@@ -215,7 +215,6 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
             chunk_ddl = conn.execute(text("SHOW CREATE TABLE papers_chunks")).one()[1]
             submission_ddl = conn.execute(text("SHOW CREATE TABLE submissions")).one()[1]
         self.assertEqual(current, ScriptDirectory.from_config(config).get_current_head())
-        self.assertEqual(current, "0004_submission_paper_uniqueness")
         self.assertEqual(bytes(raw_after), bytes(raw_before))
         self.assertEqual(stored_fingerprint, fingerprint_before)
         self.assertEqual(paper.lifecycle_state, "published")
