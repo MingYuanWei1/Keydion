@@ -1336,7 +1336,7 @@ class PublishingMigrationTests(unittest.TestCase):
             submission = conn.execute(text("""
                 SELECT paper_id, feedback, comment FROM submissions
             """)).mappings().one()
-        self.assertEqual(current, "0004_submission_paper_uniqueness")
+        self.assertEqual(current, "0005_concurrent_login_sessions")
         self.assertEqual(paper.filename, "paper.pdf")
         self.assertEqual(paper.lifecycle_state, "published")
         self.assertEqual(paper.current_revision, 1)
