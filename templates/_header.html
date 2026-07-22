@@ -93,6 +93,12 @@
     font-family: 'Cormorant Garamond', Georgia, serif; font-size: 22px;
     font-weight: 600; margin-bottom: 24px; text-align: center;
   }
+  .login-modal .login-remember {
+    display: flex; align-items: center; gap: 8px;
+    margin: -8px 0 16px; color: #3d3d3d; font-size: 12.5px;
+  }
+  .login-modal .login-remember input { width: auto; margin: 0; accent-color: #8b1a1a; }
+  .login-modal .login-remember label { cursor: pointer; }
   .login-modal .flash {
     background: #fdf6f6; border: 1px solid #f1d1d1; color: #8b1a1a;
     padding: 10px 14px; margin-bottom: 18px; font-size: 13px;
@@ -176,8 +182,12 @@
       {% endfor %}
     {% endwith %}
     <h3 id="loginModalTitle">{{ _('Sign in') }}</h3>
+    <div class="login-remember">
+      <input type="checkbox" id="loginRemember" name="remember_me" value="1" form="loginForm">
+      <label for="loginRemember">{{ _('Stay logged in for 7 days') }}</label>
+    </div>
     {% if ms_enabled %}
-    <button type="button" class="btn-login" onclick="location.href='{{ url_for('ms_login') }}'" style="background:#1a1a1a;margin-bottom:14px;">{{ _('Sign in with Microsoft') }}</button>
+    <button type="button" class="btn-login" onclick="startMicrosoftLogin()" style="background:#1a1a1a;margin-bottom:14px;">{{ _('Sign in with Microsoft') }}</button>
     <div class="login-modal-divider"><span>{{ _('or sign in with email') }}</span></div>
     {% endif %}
     <form method="post" action="{{ url_for('login') }}" id="loginForm">
@@ -216,6 +226,13 @@
   });
   var loginModal = document.getElementById('loginModal');
   var loginTrigger = null;
+  function startMicrosoftLogin() {
+    var params = new URLSearchParams();
+    var remember = document.getElementById('loginRemember');
+    if (remember && remember.checked) params.set('remember_me', '1');
+    params.set('next', window.location.pathname + window.location.search);
+    window.location.href = '{{ url_for("ms_login") }}?' + params.toString();
+  }
   function loginFocusable() {
     return loginModal
       ? loginModal.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), [tabindex]:not([tabindex="-1"])')

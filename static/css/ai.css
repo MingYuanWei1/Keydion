@@ -862,6 +862,17 @@ button { font-family: inherit; cursor: pointer; }
   font-weight: 600;
   color: var(--ink);
 }
+.kd-login-modal .kd-login-remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -8px 0 16px;
+  color: var(--ink-soft);
+  font-family: var(--serif-ui);
+  font-size: 12.5px;
+}
+.kd-login-modal .kd-login-remember input { width: auto; margin: 0; accent-color: var(--accent); }
+.kd-login-modal .kd-login-remember label { cursor: pointer; }
 .kd-login-field { margin-bottom: 14px; }
 .kd-login-field label {
   display: block;

@@ -128,8 +128,12 @@
         {% if category != 'info' %}<div class="kd-login-flash">{{ message }}</div>{% endif %}
       {% endfor %}
       <h3>{{ _('Sign in') }}</h3>
+      <div class="kd-login-remember">
+        <input type="checkbox" id="kdLoginRemember" name="remember_me" value="1" form="loginForm">
+        <label for="kdLoginRemember">{{ _('Stay logged in for 7 days') }}</label>
+      </div>
       {% if ms_enabled %}
-      <button type="button" class="kd-login-btn kd-login-btn--ms" onclick="location.href='{{ url_for('ms_login') }}'">{{ _('Sign in with Microsoft') }}</button>
+      <button type="button" class="kd-login-btn kd-login-btn--ms" onclick="startMicrosoftLogin()">{{ _('Sign in with Microsoft') }}</button>
       <div class="kd-login-divider"><span>{{ _('or sign in with email') }}</span></div>
       {% endif %}
       <form method="post" action="{{ url_for('login') }}" id="loginForm">
@@ -198,6 +202,13 @@
       }
     });
     var loginModal = document.getElementById('loginModal');
+    function startMicrosoftLogin() {
+      var params = new URLSearchParams();
+      var remember = document.getElementById('kdLoginRemember');
+      if (remember && remember.checked) params.set('remember_me', '1');
+      params.set('next', window.location.pathname + window.location.search);
+      window.location.href = '{{ url_for("ms_login") }}?' + params.toString();
+    }
     function openLoginModal() {
       if (loginModal) {
         var next = document.getElementById('loginNext');
