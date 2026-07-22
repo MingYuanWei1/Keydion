@@ -123,6 +123,7 @@ class AcceptSubmission:
     idempotency_key: str
     metadata: NormalizedPaperMetadata
     pdf: PdfUpload
+    comment: str = ""
 
 
 @dataclass(frozen=True)

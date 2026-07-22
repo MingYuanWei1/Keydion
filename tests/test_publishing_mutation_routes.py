@@ -406,7 +406,10 @@ class SubmissionCancellationRouteTest(unittest.TestCase):
         ):
             response = self.client.post(
                 "/dashboard/review/submission-review/accept",
-                data={"decision_idempotency_key": "decision-request-1"},
+                data={
+                    "decision_idempotency_key": "decision-request-1",
+                    "comment": "  Strong evidence.  ",
+                },
             )
 
         self.assertEqual(response.status_code, 302)
@@ -418,6 +421,14 @@ class SubmissionCancellationRouteTest(unittest.TestCase):
         self.assertEqual(intent.idempotency_key, "decision-request-1")
         self.assertEqual(intent.metadata.filename, "reviewed-paper.pdf")
         self.assertEqual(intent.metadata.published_at, "2026-07-21")
+        self.assertEqual(intent.comment, "Strong evidence.")
+
+    def test_pending_review_form_offers_acceptance_comment(self):
+        template = (
+            Path(__file__).resolve().parents[1] / "templates" / "review_paper.html"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn('id="accept-comment"', template)
 
     def test_curator_reject_maps_exact_review_intent(self):
         user = {"username": "curator@example.test", "role": "3"}

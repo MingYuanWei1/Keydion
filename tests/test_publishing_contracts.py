@@ -6,8 +6,8 @@ from datetime import datetime, timezone
 from services.paper_identity import normalize_alias_key
 from services.publishing_time import utc_iso_z
 from services.publishing_contracts import (
-    Actor, BulkEditMetadata, DirectPublish, IndexingOutcome, IndexingState, JobLease,
-    JobProgress, JobState,
+    AcceptSubmission, Actor, BulkEditMetadata, DirectPublish, IndexingOutcome,
+    IndexingState, JobLease, JobProgress, JobState,
     InvalidInput, MetadataPatch, NormalizedPaperMetadata, PdfUpload, PreparedChunk,
     PreparedRevisionIndex, Published, PublishingLifecyclePort,
 )
@@ -27,6 +27,11 @@ class PublishingContractTests(unittest.TestCase):
         self.assertEqual(intent.metadata.filename, "paper.pdf")
         with self.assertRaises(FrozenInstanceError):
             intent.idempotency_key = "changed"
+
+    def test_accept_submission_has_optional_comment(self):
+        fields = AcceptSubmission.__dataclass_fields__
+        self.assertIn("comment", fields)
+        self.assertEqual(fields["comment"].default, "")
 
     def test_index_failure_is_part_of_a_successful_publication(self):
         outcome = Published(

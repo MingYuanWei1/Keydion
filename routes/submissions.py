@@ -286,6 +286,7 @@ def register_routes(app):
             # Acceptance stages the authoritative pending object by Submission ID;
             # the upload record remains only for the shared validation contract.
             pdf=PdfUpload(filename=filename, stream=io.BytesIO()),
+            comment=request.form.get("comment", "").strip(),
         )
         try:
             outcome = lifecycle_from_app().review_submission(intent)

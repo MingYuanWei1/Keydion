@@ -163,6 +163,7 @@ class SubmissionPublishingTests(PublishingLifecycleTestCase, unittest.TestCase):
         key="accept-key",
         metadata=None,
         caller_pdf=b"caller bytes are not the pending source",
+        comment="",
     ):
         return AcceptSubmission(
             actor=Actor(actor_id, role),
@@ -170,6 +171,7 @@ class SubmissionPublishingTests(PublishingLifecycleTestCase, unittest.TestCase):
             idempotency_key=key,
             metadata=metadata or self.metadata(),
             pdf=PdfUpload("caller.pdf", io.BytesIO(caller_pdf)),
+            comment=comment,
         )
 
     def reject_intent(
@@ -235,6 +237,34 @@ class SubmissionPublishingTests(PublishingLifecycleTestCase, unittest.TestCase):
         self.assertFalse((self.storage.pending_dir / self.pending_name()).exists())
         self.assertEqual(len(self.papers()), 1)
         self.assertEqual(len(self.paper_revisions(first.paper_id)), 1)
+
+    def test_acceptance_comment_is_persisted_and_replayable(self):
+        first = self.lifecycle.review_submission(
+            self.accept_intent(comment="Strong evidence.")
+        )
+        replay = self.lifecycle.review_submission(
+            self.accept_intent(comment="Strong evidence.")
+        )
+
+        self.assertFalse(first.replayed)
+        self.assertTrue(replay.replayed)
+        self.assertEqual(self.submission().comment, "Strong evidence.")
+
+    def test_acceptance_replay_with_changed_comment_conflicts(self):
+        self.lifecycle.review_submission(
+            self.accept_intent(comment="Strong evidence.")
+        )
+
+        with self.assertRaises(DecisionConflict):
+            self.lifecycle.review_submission(
+                self.accept_intent(comment="Different rationale.")
+            )
+
+    def test_acceptance_comment_must_be_a_string(self):
+        with self.assertRaises(InvalidInput):
+            self.lifecycle.review_submission(self.accept_intent(comment=42))
+
+        self.assertEqual(self.submission().status, "pending")
 
     def test_submission_identity_lookup_is_case_sensitive_on_sqlite(self):
         self.seed_submission("Case-Submission")

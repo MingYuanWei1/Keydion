@@ -279,6 +279,8 @@ class PublishingLifecycle:
                 pdf=intent.pdf,
             )
         )
+        if not isinstance(intent.comment, str):
+            raise InvalidInput({"comment": "must be a string"})
 
     def _validate_rejection(self, intent: RejectSubmission) -> None:
         if not isinstance(intent, RejectSubmission):
@@ -1559,7 +1561,7 @@ class PublishingLifecycle:
 
     def _review_acceptance(self, intent: AcceptSubmission) -> _SubmissionDecision:
         self._validate_acceptance(intent)
-        comment = ""
+        comment = intent.comment
         payload_hash = self._decision_payload_hash(
             intent.submission_id,
             "accepted",

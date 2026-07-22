@@ -72,6 +72,12 @@
                 <form method="post" action="{{ url_for('review_accept', sub_id=submission.id) }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="decision_idempotency_key" value="{{ decision_idempotency_key }}">
+                    <div class="mb-3">
+                        <label for="accept-comment" class="form-label fw-semibold text-success">
+                            {{ _('Reviewer Comment') }} <span class="text-muted">({{ _('Optional') }})</span>
+                        </label>
+                        <textarea class="form-control" id="accept-comment" name="comment" rows="3"></textarea>
+                    </div>
                     <button type="submit" class="btn btn-success w-100 btn-lg"
                         onclick="return confirm('{{ _('Accept this paper? It will be published to the library.') }}')">
                         ✓ {{ _('Accept & Publish') }}
