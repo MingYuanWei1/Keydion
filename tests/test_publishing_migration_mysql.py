@@ -233,6 +233,7 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
         self.assertIn("uq_papers_chunks_paper_revision_chunk", chunk_ddl)
         self.assertIn("ON DELETE CASCADE", chunk_ddl.upper())
         self.assertIn("ON DELETE SET NULL", submission_ddl.upper())
+        self.assertIn("uq_submissions_paper_id", submission_ddl)
 
         replay = backfill_one_paper(self.engine, self.papers, "one.pdf")
         self.assertTrue(replay.resumed)
@@ -765,6 +766,13 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
         self.assertEqual(
             inspect(self.engine).get_pk_constraint("papers_metadata")["constrained_columns"],
             ["id"],
+        )
+        self.assertIn(
+            ("paper_id",),
+            {
+                tuple(item["column_names"])
+                for item in inspect(self.engine).get_unique_constraints("submissions")
+            },
         )
         with self.engine.connect() as conn:
             self.assertEqual(conn.execute(text("""

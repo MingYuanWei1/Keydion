@@ -887,6 +887,45 @@ class PublishingMigrationTests(unittest.TestCase):
         self.assertEqual(report.unavailable_rejected_pdfs, ("rejected",))
         validate_contract_ready(self.engine, self.papers)
 
+    def test_same_paper_claimed_by_two_accepted_submissions_is_ambiguous(self):
+        self.write_legacy("one.pdf")
+        self.insert_submission("first", "accepted", pdf_filename="one.pdf")
+        self.insert_submission("second", "accepted", pdf_filename="one.pdf")
+
+        report = run_preflight(self.engine, self.papers)
+        self.assertEqual(
+            [(issue.code, issue.legacy_key) for issue in report.issues],
+            [
+                ("submission_ambiguous", "first"),
+                ("submission_ambiguous", "second"),
+            ],
+        )
+
+        backfill_all(self.engine, self.papers)
+
+        with self.engine.connect() as conn:
+            links = conn.execute(text(
+                "SELECT id, paper_id FROM submissions ORDER BY id"
+            )).mappings().all()
+            issues = conn.execute(text("""
+                SELECT kind, legacy_key, blocking
+                FROM publishing_migration_issues
+                WHERE resolved_at IS NULL
+                ORDER BY legacy_key
+            """)).mappings().all()
+        self.assertEqual(
+            [(row.id, row.paper_id) for row in links],
+            [("first", None), ("second", None)],
+        )
+        self.assertEqual(
+            [(row.kind, row.legacy_key, bool(row.blocking)) for row in issues],
+            [
+                ("submission_ambiguous", "first", False),
+                ("submission_ambiguous", "second", False),
+            ],
+        )
+        validate_contract_ready(self.engine, self.papers)
+
     def test_accepted_submission_links_are_recomputed_even_when_prelinked(self):
         self.write_legacy("one.pdf")
         self.write_legacy("two.pdf")
@@ -1313,6 +1352,11 @@ class PublishingMigrationTests(unittest.TestCase):
         self.assertEqual(chunk_foreign_keys[0]["referred_table"], "paper_revisions")
         submission_foreign_keys = inspect(engine).get_foreign_keys("submissions")
         self.assertEqual(submission_foreign_keys[0]["referred_table"], "papers_metadata")
+        submission_uniques = {
+            tuple(constraint["column_names"])
+            for constraint in inspect(engine).get_unique_constraints("submissions")
+        }
+        self.assertIn(("paper_id",), submission_uniques)
         with engine.connect() as conn:
             chunk_actions = {
                 row[6] for row in conn.execute(text("PRAGMA foreign_key_list(papers_chunks)"))

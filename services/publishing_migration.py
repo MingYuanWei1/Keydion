@@ -570,6 +570,56 @@ def _duplicate_chunk_issues(
     )
 
 
+def _accepted_submission_matches(
+    rows,
+    candidate_columns: list[str],
+    owner_by_filename: dict[str, str],
+) -> tuple[dict[str, set[str]], set[str]]:
+    candidates_by_id: dict[str, set[str]] = {}
+    claimants_by_owner: dict[str, list[str]] = {}
+    for row in rows:
+        if (row["status"] or "").casefold() != "accepted":
+            continue
+        candidates = {
+            owner_by_filename[row[column]]
+            for column in candidate_columns
+            if row[column] and row[column] in owner_by_filename
+        }
+        candidates_by_id[row["id"]] = candidates
+        if len(candidates) == 1:
+            owner = next(iter(candidates))
+            claimants_by_owner.setdefault(owner, []).append(row["id"])
+    collisions = {
+        submission_id
+        for claimants in claimants_by_owner.values()
+        if len(claimants) > 1
+        for submission_id in claimants
+    }
+    return candidates_by_id, collisions
+
+
+def _submission_link_issue(
+    candidates: set[str],
+    colliding: bool,
+) -> tuple[str, str] | None:
+    if not candidates:
+        return (
+            "submission_unmatched",
+            "accepted Submission has no exact nonempty legacy filename match",
+        )
+    if len(candidates) > 1:
+        return (
+            "submission_ambiguous",
+            "accepted Submission has multiple exact legacy filename matches",
+        )
+    if colliding:
+        return (
+            "submission_ambiguous",
+            "multiple accepted Submissions claim the same exact legacy Paper",
+        )
+    return None
+
+
 def _submission_summary(engine: Engine, known_filenames: set[str]):
     columns = _columns(engine, "submissions")
     if not {"id", "status"}.issubset(columns):
@@ -582,6 +632,11 @@ def _submission_summary(engine: Engine, known_filenames: set[str]):
     if "paper_id" in columns:
         selected.append("paper_id")
     rows = _rows(engine, f"SELECT {', '.join(selected)} FROM submissions ORDER BY id")
+    candidates_by_id, collisions = _accepted_submission_matches(
+        rows,
+        candidate_columns,
+        {filename: filename for filename in known_filenames},
+    )
     accepted = pending = rejected = 0
     issues: list[MigrationIssue] = []
     unavailable: list[str] = []
@@ -589,21 +644,13 @@ def _submission_summary(engine: Engine, known_filenames: set[str]):
         status = (row["status"] or "").casefold()
         if status == "accepted":
             accepted += 1
-            candidates = {
-                row[column]
-                for column in candidate_columns
-                if row[column] and row[column] in known_filenames
-            }
-            if not candidates:
-                issues.append(_issue(
-                    "submission_unmatched", row["id"],
-                    "accepted Submission has no exact nonempty legacy filename match",
-                ))
-            elif len(candidates) > 1:
-                issues.append(_issue(
-                    "submission_ambiguous", row["id"],
-                    "accepted Submission has multiple exact legacy filename matches",
-                ))
+            diagnostic = _submission_link_issue(
+                candidates_by_id[row["id"]],
+                row["id"] in collisions,
+            )
+            if diagnostic is not None:
+                code, details = diagnostic
+                issues.append(_issue(code, row["id"], details))
         elif status in {"pending", "draft"}:
             pending += 1
         elif status == "rejected":
@@ -2496,6 +2543,11 @@ def _link_submissions(engine: Engine) -> None:
         SELECT filename, id FROM papers_metadata WHERE id IS NOT NULL
     """)
     paper_by_filename = {row["filename"]: row["id"] for row in paper_rows}
+    candidates_by_id, collisions = _accepted_submission_matches(
+        submissions,
+        candidate_columns,
+        paper_by_filename,
+    )
 
     with engine.begin() as connection:
         if {"feedback", "comment"}.issubset(columns):
@@ -2513,12 +2565,12 @@ def _link_submissions(engine: Engine) -> None:
     for submission in submissions:
         if (submission["status"] or "").casefold() != "accepted":
             continue
-        candidates = {
-            paper_by_filename[submission[column]]
-            for column in candidate_columns
-            if submission[column] and submission[column] in paper_by_filename
-        }
-        if len(candidates) == 1:
+        candidates = candidates_by_id[submission["id"]]
+        diagnostic = _submission_link_issue(
+            candidates,
+            submission["id"] in collisions,
+        )
+        if diagnostic is None:
             paper_id = next(iter(candidates))
             with engine.begin() as connection:
                 connection.execute(text("""
@@ -2526,12 +2578,7 @@ def _link_submissions(engine: Engine) -> None:
                 """), {"paper_id": paper_id, "id": submission["id"]})
             _resolve_submission_issues(engine, submission["id"])
         else:
-            code = "submission_unmatched" if not candidates else "submission_ambiguous"
-            details = (
-                "accepted Submission has no exact nonempty legacy filename match"
-                if not candidates
-                else "accepted Submission has multiple exact legacy filename matches"
-            )
+            code, details = diagnostic
             with engine.begin() as connection:
                 connection.execute(text("""
                     UPDATE submissions SET paper_id = NULL WHERE id = :id
@@ -2555,22 +2602,31 @@ def _validate_submission_links(engine: Engine) -> None:
         for row in _rows(engine, "SELECT filename, id FROM papers_metadata")
         if row["id"] is not None
     }
+    candidates_by_id, collisions = _accepted_submission_matches(
+        submissions,
+        candidate_columns,
+        paper_by_filename,
+    )
     for submission in submissions:
         status = (submission["status"] or "").casefold()
-        candidates = {
-            paper_by_filename[submission[column]]
-            for column in candidate_columns
-            if submission[column] and submission[column] in paper_by_filename
-        }
-        expected = next(iter(candidates)) if status == "accepted" and len(candidates) == 1 else None
+        if status == "accepted":
+            candidates = candidates_by_id[submission["id"]]
+            diagnostic = _submission_link_issue(
+                candidates,
+                submission["id"] in collisions,
+            )
+            expected = next(iter(candidates)) if diagnostic is None else None
+        else:
+            diagnostic = None
+            expected = None
         if submission["paper_id"] != expected:
             raise MigrationBlocked(
                 f"accepted Submission link is not exact for {submission['id']!r}"
                 if status == "accepted"
                 else f"non-accepted Submission remains linked: {submission['id']!r}"
             )
-        if status == "accepted" and len(candidates) != 1:
-            expected_kind = "submission_unmatched" if not candidates else "submission_ambiguous"
+        if status == "accepted" and diagnostic is not None:
+            expected_kind, _details = diagnostic
             count = int(_scalar(engine, """
                 SELECT COUNT(*) FROM publishing_migration_issues
                 WHERE legacy_key = :legacy_key AND kind = :kind

@@ -118,6 +118,7 @@ def _sqlite_contract():
             reviewer VARCHAR(255), comment TEXT,
             decision_idempotency_key VARCHAR(255) UNIQUE,
             decision_payload_hash VARCHAR(64),
+            CONSTRAINT uq_submissions_paper_id UNIQUE (paper_id),
             CONSTRAINT fk_submissions_paper
                 FOREIGN KEY (paper_id) REFERENCES papers_metadata (id)
                 ON DELETE SET NULL
@@ -363,6 +364,10 @@ def _mysql_schema_phase(engine):
         ):
             _snapshot_restore_required(f"foreign key {name} has an unexpected definition")
 
+    submission_unique = (
+        (("paper_id",), True)
+        in _index_signatures(inspector, "submissions")
+    )
     chunk_columns = {
         column["name"]: column for column in inspector.get_columns("papers_chunks")
     }
@@ -390,7 +395,11 @@ def _mysql_schema_phase(engine):
         chunk_complete = True
     else:
         _snapshot_restore_required("incomplete atomic chunk contract group")
-    return "relationships_contract" if all_simple_present and chunk_complete else "paper_contract"
+    return (
+        "relationships_contract"
+        if all_simple_present and submission_unique and chunk_complete
+        else "paper_contract"
+    )
 
 
 def _persisted_ddl_phase(engine):
@@ -532,6 +541,14 @@ def _mysql_relationship_contract_group(engine):
             continue
         op.create_foreign_key(
             name, table_name, referred_table, local, remote, ondelete=ondelete,
+        )
+
+    inspector = sa.inspect(engine)
+    if (("paper_id",), True) not in _index_signatures(inspector, "submissions"):
+        op.create_unique_constraint(
+            "uq_submissions_paper_id",
+            "submissions",
+            ["paper_id"],
         )
 
     inspector = sa.inspect(engine)
