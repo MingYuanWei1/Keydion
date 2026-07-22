@@ -34,6 +34,17 @@ class PublishingModelTests(unittest.TestCase):
         self.assertTrue(PaperFilenameAliasModel.lookup_key.primary_key)
         self.assertTrue(PublishingJobModel.dedupe_key.unique)
 
+    def test_publishing_jobs_have_due_order_index(self):
+        indexes = {
+            index.name: tuple(column.name for column in index.columns)
+            for index in PublishingJobModel.__table__.indexes
+        }
+
+        self.assertEqual(
+            indexes.get("ix_publishing_jobs_due_order"),
+            ("available_at", "created_at", "id"),
+        )
+
     def test_opaque_publishing_identity_keys_are_binary_on_mysql(self):
         dialect = mysql.dialect()
         for column_name in ("filename", "direct_idempotency_key"):

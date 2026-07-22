@@ -11,7 +11,7 @@ The decisions and state changes through which a work is published directly or fr
 _Avoid_: Upload flow (upload is only one entry point), Submission lifecycle (directly published Papers have no Submission).
 
 **Publishing worker**:
-The independently operated background participant that completes durable Paper indexing and deletion work after a web request has committed the lifecycle decision. Its availability can lag without changing whether the Paper was published or deleted.
+The independently operated background participant that completes durable Paper indexing and deletion work after a web request has committed the lifecycle decision. Its availability may delay indexing or deletion cleanup without reversing a committed publication decision or a Paper's immediate inaccessibility after deletion starts.
 _Avoid_: Gunicorn worker (web request processes do not own this durable work), indexing thread (the work survives one process).
 
 **Publishing migration**:

@@ -189,6 +189,11 @@ def _upgrade_unfenced():
         sa.UniqueConstraint("dedupe_key", name="uq_publishing_jobs_dedupe_key"),
     )
     op.create_index("ix_publishing_jobs_paper_id", "publishing_jobs", ["paper_id"])
+    op.create_index(
+        "ix_publishing_jobs_due_order",
+        "publishing_jobs",
+        ["available_at", "created_at", "id"],
+    )
     op.create_table(
         "publishing_migration_journal",
         sa.Column("legacy_key", sa.String(255), nullable=False),

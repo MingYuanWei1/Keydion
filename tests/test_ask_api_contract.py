@@ -22,9 +22,17 @@ def _make_client():
     return app.test_client()
 
 
+def _authenticate(client, username):
+    token = app_module.register_active_session(username)
+    with client.session_transaction() as session:
+        session["user"] = {"username": username, "role": "1"}
+        session["session_token"] = token
+
+
 class ApiAskValidation(unittest.TestCase):
     def setUp(self):
         self.client = _make_client()
+        _authenticate(self.client, "ask-api-contract-reader")
 
     def test_disabled_when_no_api_key(self):
         with mock.patch.dict(os.environ, {}, clear=False):

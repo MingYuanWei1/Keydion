@@ -1,3 +1,4 @@
+import logging
 import tempfile
 import unittest
 from pathlib import Path
@@ -97,6 +98,24 @@ class AlembicRuntimeTests(unittest.TestCase):
                 command.check(alembic_config)
             finally:
                 alembic_config.attributes.pop("connection", None)
+
+    def test_alembic_env_keeps_application_loggers_enabled(self):
+        application_logger = logging.getLogger("vision_extractor")
+        original_disabled = application_logger.disabled
+        self.addCleanup(
+            setattr, application_logger, "disabled", original_disabled
+        )
+        application_logger.disabled = False
+
+        alembic_config = Config(str(ROOT / "alembic.ini"))
+        with self.engine.connect() as conn:
+            alembic_config.attributes["connection"] = conn
+            try:
+                command.stamp(alembic_config, "head")
+            finally:
+                alembic_config.attributes.pop("connection", None)
+
+        self.assertFalse(application_logger.disabled)
 
     def test_nonempty_unversioned_database_refuses_startup(self):
         with self.engine.begin() as conn:

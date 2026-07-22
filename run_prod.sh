@@ -23,10 +23,10 @@ elif [[ -n "${VENV_PATH}" && "${VENV_PATH}" != ".venv" ]]; then
   echo "Warning: virtual environment not found at ${VENV_PATH}" >&2
 fi
 
-# Default bind: TCP on 0.0.0.0:4000 — assumes nginx (or another reverse proxy)
-# sits in front. For a Unix-socket setup set GUNICORN_BIND in .env.prod, e.g.
+# Default bind: host-local TCP for the tracked host nginx configuration. For a
+# Unix-socket setup set GUNICORN_BIND in .env.prod, e.g.
 #   GUNICORN_BIND=unix:/var/run/keydion/keydion.sock
-export GUNICORN_BIND="${GUNICORN_BIND:-0.0.0.0:5000}"
+export GUNICORN_BIND="${GUNICORN_BIND:-127.0.0.1:5000}"
 
 # Safety net: refuse to boot with the dev secret in production.
 if [[ "${PAPERQUERY_SECRET:-}" == "dev-secret-key" || -z "${PAPERQUERY_SECRET:-}" ]]; then

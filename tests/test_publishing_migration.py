@@ -1346,6 +1346,22 @@ class PublishingMigrationTests(unittest.TestCase):
                 0,
             )
 
+    def test_expand_revision_installs_publishing_due_order_index(self):
+        engine = self._legacy_engine("expand-due-order-index.sqlite")
+        config = self._alembic_config(engine)
+        command.stamp(config, "0000_legacy_baseline")
+
+        command.upgrade(config, "0001_publishing_expand")
+
+        indexes = {
+            index["name"]: tuple(index["column_names"])
+            for index in inspect(engine).get_indexes("publishing_jobs")
+        }
+        self.assertEqual(
+            indexes.get("ix_publishing_jobs_due_order"),
+            ("available_at", "created_at", "id"),
+        )
+
     def test_exact_expanded_shape_stamped_legacy_replays_idempotently(self):
         engine = self._legacy_engine("expand-replay.sqlite")
         config = self._alembic_config(engine)
@@ -1387,7 +1403,7 @@ class LifecycleCheckNormalizationTests(unittest.TestCase):
 
         self.assertIsNotNone(migration._normalized_check_expression(expected))
         self.assertIsNone(
-            migration._normalized_check_expression(f"({expected}) + 1")
+            migration._normalized_check_expression(f"({expected}) AND TRUE")
         )
 
 

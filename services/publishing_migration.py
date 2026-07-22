@@ -804,6 +804,7 @@ def _mysql_preflight_issues(
             "publishing_jobs": {
                 (("paper_id",), False),
                 (("dedupe_key",), True),
+                (("available_at", "created_at", "id"), False),
             },
             "publishing_migration_journal": {(('paper_id',), True)},
             "publishing_migration_issues": {(('paper_id',), False)},
@@ -852,6 +853,9 @@ def _mysql_preflight_issues(
             "publishing_jobs": {
                 "ix_publishing_jobs_paper_id": (("paper_id",), False),
                 "uq_publishing_jobs_dedupe_key": (("dedupe_key",), True),
+                "ix_publishing_jobs_due_order": (
+                    ("available_at", "created_at", "id"), False,
+                ),
             },
             "publishing_migration_journal": {
                 "uq_publishing_migration_journal_paper_id": (("paper_id",), True),
@@ -1393,8 +1397,13 @@ def legacy_chunk_fingerprint(engine: Engine, legacy_filename: str) -> tuple[int,
     columns = _columns(engine, "papers_chunks")
     if not _LEGACY_CHUNK_COLUMNS.issubset(columns):
         return 0, hashlib.sha256().hexdigest()
-    rows = _rows(engine, """
-        SELECT id, chunk_index, content, lang, embedding_vec
+    vector_read = (
+        "CAST(embedding_vec AS BINARY) AS embedding_vec"
+        if engine.dialect.name == "mysql"
+        else "embedding_vec"
+    )
+    rows = _rows(engine, f"""
+        SELECT id, chunk_index, content, lang, {vector_read}
         FROM papers_chunks
         WHERE filename = :filename
         ORDER BY id

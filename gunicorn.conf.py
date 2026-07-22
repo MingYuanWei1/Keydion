@@ -1,7 +1,7 @@
 import multiprocessing
 import os
 
-bind = os.environ.get("GUNICORN_BIND", "unix:/tmp/keydion.sock")
+bind = os.environ.get("GUNICORN_BIND", "127.0.0.1:5000")
 workers = int(os.environ.get("GUNICORN_WORKERS", (multiprocessing.cpu_count() * 2) + 1))
 worker_class = os.environ.get("GUNICORN_WORKER_CLASS", "sync")
 threads = int(os.environ.get("GUNICORN_THREADS", 1))

@@ -1,0 +1,15 @@
+[Unit]
+Description=Keydion (gunicorn)
+After=network.target
+
+[Service]
+User=keydion
+WorkingDirectory=/Keydion
+ExecStart=/Keydion/run_prod.sh
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

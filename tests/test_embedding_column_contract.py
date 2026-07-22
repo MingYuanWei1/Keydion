@@ -13,7 +13,8 @@ os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
 
 import app as app_module
 from config import RAG_EMBED_DIM
-from sqlalchemy.dialects import mysql
+from sqlalchemy import select
+from sqlalchemy.dialects import mysql, sqlite
 
 
 class EmbeddingColumnWidth(unittest.TestCase):
@@ -28,6 +29,24 @@ class EmbeddingColumnWidth(unittest.TestCase):
             col_type.compile(dialect=mysql.dialect()),
             f"VECTOR({RAG_EMBED_DIM})",
         )
+
+    def test_mysql_vector_reads_compile_to_binary_casts(self):
+        statement = select(app_module.PaperChunkModel.embedding_vec)
+
+        compiled = str(statement.compile(dialect=mysql.dialect()))
+
+        self.assertIn(
+            "CAST(papers_chunks.embedding_vec AS BINARY)",
+            compiled,
+        )
+
+    def test_sqlite_vector_reads_keep_the_original_expression(self):
+        statement = select(app_module.PaperChunkModel.embedding_vec)
+
+        compiled = str(statement.compile(dialect=sqlite.dialect()))
+
+        self.assertIn("papers_chunks.embedding_vec", compiled)
+        self.assertNotIn("CAST(", compiled.upper())
 
     def test_attachment_chunk_embedding_not_plain_text(self):
         col_type = app_module.AttachmentChunkModel.__table__.c.embedding.type

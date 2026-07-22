@@ -93,9 +93,26 @@ enabled unit. nginx serves `/static/*` directly from disk; PDF download routes
    an upstream load balancer.
 
 4. Verify the host uses the `keydion` account, `/Keydion`,
-   `/Keydion/.env.prod`, and `/Keydion/.venv`, then install both tracked units:
+   `/Keydion/.env.prod`, and `/Keydion/.venv`. On a fresh deployment, create
+   every non-optional `ReadWritePaths` directory before installing either unit;
+   existing or schema-changing deployments must instead use the migration
+   runbook's storage-provenance checks. Then install both tracked units:
+
+   `deploy/keydion-legacy.service` is a reviewed first-rollout artifact used
+   only by that runbook to recognize the exact legacy web unit when the old
+   release predates `deploy/keydion.service`; it is never installed as the
+   forward unit. A mismatch is a hard stop. Change the reviewed fixture,
+   runbook, and deployment contract before the maintenance window—never edit
+   or copy installed host bytes to force a match during the window.
 
    ```bash
+   sudo install -d -o keydion -g keydion -m 0750 \
+     /Keydion/data /Keydion/data/pending_papers /Keydion/papers \
+     /Keydion/resource_files /Keydion/static/uploads /var/log/keydion
+   for path in /Keydion/data /Keydion/data/pending_papers /Keydion/papers \
+     /Keydion/resource_files /Keydion/static/uploads /var/log/keydion; do
+     test "$(stat -c '%U:%G:%a' "$path")" = keydion:keydion:750
+   done
    sudo cp deploy/keydion.service /etc/systemd/system/keydion.service
    sudo cp deploy/keydion-publishing-worker.service \
      /etc/systemd/system/keydion-publishing-worker.service
@@ -120,9 +137,14 @@ enabled unit. nginx serves `/static/*` directly from disk; PDF download routes
    Existing databases must complete the linked migration runbook before either
    unit starts on the new release.
 
-### Updating the server after `git pull`
+### Updating the server after `git pull` (schema-neutral releases only)
 
-Match the command to what actually changed:
+This shortcut is only for a release that leaves the database schema unchanged.
+For a schema-changing release, do not pull or check out the candidate in the
+serving tree first: use the coordinated
+[Paper publishing migration runbook](docs/deployment/paper-publishing-migration.md),
+which fences services and takes the restore boundary before checkout. For a
+schema-neutral release, match the command to what actually changed:
 
 | Change | Command |
 |---|---|
@@ -226,7 +248,10 @@ The script resumes by default — papers that already have stored chunks are ski
 python3 tools/build_embeddings.py --rebuild
 ```
 
-New papers uploaded after LLM is configured are indexed automatically on upload.
+New papers are published durably before indexing. An inline attempt may finish
+during upload; otherwise the independent publishing worker owns the durable
+retry job. If an attempt fails, the Paper remains published, the UI reports the
+indexing warning, and later worker retries can recover it.
 
 ## Localization
 

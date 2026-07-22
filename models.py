@@ -8,12 +8,14 @@ from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
 from sqlalchemy import (
     BigInteger, Boolean, CheckConstraint, Column, Date, DateTime, ForeignKey,
-    ForeignKeyConstraint, Integer,
+    ForeignKeyConstraint, Index, Integer, LargeBinary,
     String, Unicode, UnicodeText, UniqueConstraint, create_engine, func, inspect,
     select,
 )
-from sqlalchemy.dialects.mysql import MEDIUMTEXT
+from sqlalchemy.dialects.mysql import MEDIUMTEXT, base as mysql_base
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.sql.functions import FunctionElement
 from sqlalchemy.types import UserDefinedType
 
 import db
@@ -143,6 +145,14 @@ class PaperFilenameAliasModel(BASE):
 
 class PublishingJobModel(BASE):
     __tablename__ = "publishing_jobs"
+    __table_args__ = (
+        Index(
+            "ix_publishing_jobs_due_order",
+            "available_at",
+            "created_at",
+            "id",
+        ),
+    )
     id = Column(Unicode(36), primary_key=True)
     kind = Column(Unicode(32), nullable=False)
     paper_id = Column(
@@ -213,6 +223,25 @@ class PublishingMigrationIssueModel(BASE):
     updated_at = Column(DateTime(timezone=False), nullable=False)
 
 
+class _VectorReadExpression(FunctionElement):
+    """Render a stable binary VECTOR result only for MySQL drivers."""
+
+    inherit_cache = True
+    name = "vector_read"
+    type = LargeBinary()
+
+
+@compiles(_VectorReadExpression)
+def _compile_vector_read(expression, compiler, **kwargs):
+    return compiler.process(next(iter(expression.clauses)), **kwargs)
+
+
+@compiles(_VectorReadExpression, "mysql")
+def _compile_mysql_vector_read(expression, compiler, **kwargs):
+    column = compiler.process(next(iter(expression.clauses)), **kwargs)
+    return f"CAST({column} AS BINARY)"
+
+
 class VectorType(UserDefinedType):
     """MySQL 9 VECTOR(n) column. Python-side values are JSON-text vectors
     ("[0.1, 0.2, ...]") bound through STRING_TO_VECTOR(); reads come back as
@@ -227,6 +256,14 @@ class VectorType(UserDefinedType):
 
     def bind_expression(self, bindvalue):
         return func.STRING_TO_VECTOR(bindvalue)
+
+    def column_expression(self, column):
+        return _VectorReadExpression(column)
+
+
+# SQLAlchemy does not yet know MySQL 9's VECTOR type. Register it wherever the
+# application model is imported, not only when Alembic happens to load first.
+mysql_base.ischema_names["vector"] = VectorType
 
 
 class PaperChunkModel(BASE):

@@ -15,7 +15,10 @@ if (
     alembic_config.config_file_name is not None
     and alembic_config.file_config.has_section("loggers")
 ):
-    fileConfig(alembic_config.config_file_name)
+    fileConfig(
+        alembic_config.config_file_name,
+        disable_existing_loggers=False,
+    )
 
 target_metadata = BASE.metadata
 

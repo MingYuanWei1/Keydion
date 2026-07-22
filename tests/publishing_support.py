@@ -5,7 +5,7 @@ from __future__ import annotations
 import io
 import itertools
 import tempfile
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from PyPDF2 import PdfWriter
@@ -73,7 +73,7 @@ class PublishingLifecycleTestCase:
             session.add(SubmissionIdentityFenceModel(name="global", generation=0))
             session.commit()
         self.storage = PaperStorage(root / "papers", root / "pending")
-        self.now = datetime(2026, 7, 21, 9, 30)
+        self.now = datetime.now(timezone.utc).replace(tzinfo=None)
         self.monotonic_now = 1000.0
         self._uuid_numbers = itertools.count(1)
         self.indexer = FakeRevisionIndexer()

@@ -111,6 +111,7 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
                     ib_ee_data TEXT, is_ib_sample VARCHAR(10),
                     is_anonymous VARCHAR(10), cp_data TEXT, ia_data TEXT
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                  COLLATE=utf8mb4_unicode_ci
             """))
             conn.execute(text(f"""
                 CREATE TABLE papers_chunks (
@@ -119,6 +120,7 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
                     embedding_vec VECTOR({RAG_EMBED_DIM}), lang VARCHAR(10),
                     INDEX ix_papers_chunks_filename (filename)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                  COLLATE=utf8mb4_unicode_ci
             """))
             conn.execute(text("""
                 CREATE TABLE submissions (
@@ -133,6 +135,7 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
                     ib_ee_data TEXT, is_ib_sample VARCHAR(10),
                     is_anonymous VARCHAR(10), cp_data TEXT, ia_data TEXT
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                  COLLATE=utf8mb4_unicode_ci
             """))
 
     def _config(self):
@@ -175,7 +178,8 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
                     ('rejected', 'rejected', NULL, 'gone.pdf', 'declined')
             """))
             raw_before = conn.execute(text(
-                "SELECT embedding_vec FROM papers_chunks WHERE filename='one.pdf'"
+                "SELECT CAST(embedding_vec AS BINARY) AS embedding_vec "
+                "FROM papers_chunks WHERE filename='one.pdf'"
             )).scalar_one()
         count_before, fingerprint_before = legacy_chunk_fingerprint(
             self.engine, "one.pdf",
@@ -194,7 +198,8 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
                 WHERE filename='one.pdf'
             """)).mappings().one()
             raw_after = conn.execute(text(
-                "SELECT embedding_vec FROM papers_chunks WHERE filename='one.pdf'"
+                "SELECT CAST(embedding_vec AS BINARY) AS embedding_vec "
+                "FROM papers_chunks WHERE filename='one.pdf'"
             )).scalar_one()
             stored_fingerprint = conn.execute(text("""
                 SELECT legacy_chunk_fingerprint
@@ -298,6 +303,7 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
                 "decision_idempotency_key": "utf8mb4_bin",
             },
         )
+        command.upgrade(config, "0002_publishing_backfill")
         with self.engine.begin() as conn:
             conn.execute(text("""
                 ALTER TABLE submissions
@@ -551,11 +557,23 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
                 RENAME INDEX ux_papers_metadata_migration_id
                 TO renamed_migration_uuid_index
             """))
+            due_index_names = {
+                index["name"]
+                for index in inspect(self.engine).get_indexes("publishing_jobs")
+            }
+            if "ix_publishing_jobs_due_order" in due_index_names:
+                conn.execute(text(
+                    "DROP INDEX ix_publishing_jobs_due_order ON publishing_jobs"
+                ))
 
         report = run_preflight(self.engine, self.papers)
 
         self.assertIn(
             ("unexpected_legacy_schema", "papers_metadata"),
+            tuple((issue.code, issue.legacy_key) for issue in report.blockers),
+        )
+        self.assertIn(
+            ("unexpected_legacy_schema", "publishing_jobs"),
             tuple((issue.code, issue.legacy_key) for issue in report.blockers),
         )
 
@@ -693,7 +711,7 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
                             OR
                             (lifecycle_state IN ('published', 'deleting')
                              AND current_revision IS NOT NULL)
-                        ) + 1
+                        ) AND TRUE
                     )
             """))
 
