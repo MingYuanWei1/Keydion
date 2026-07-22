@@ -1,13 +1,72 @@
-__pycache__/
+# Source-control and local tooling.
 .git/
 .github/
+.agents/
+.codex/
+.claude/
+.qoder/
+.idea/
+.vscode/
 .venv/
 venv/
 venv_new/
+env/
+__pycache__/
 .mypy_cache/
 .pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 .DS_Store
 *.pyc
 *.pyo
-.idea/
-.vscode/
+
+# Secrets and local configuration.  Git ignore rules do not protect the Docker
+# build context, so keep these rules explicit even though the Dockerfile also
+# copies only an application-source allowlist.
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.crt
+*.cert
+*.p12
+*.pfx
+*.jks
+
+# Runtime/user data and potentially private documents.
+papers/
+data/
+!data/*.sample.json
+resource_files/
+static/uploads/
+backups/
+docs/superpowers/
+docs/review/
+AI_Prompts/
+
+# Database/export/archive artifacts.
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+*.sql.gz
+*.dump
+*.backup
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+
+# Repository-only material is never needed by the production image.
+tests/
+docs/
+deploy/
+README.md
+CLAUDE.md
+CONTEXT.md
+LLM_DEPLOYMENT_IDEAS.md
+LICENSE
+docker-compose*.yml
+start_local.sh

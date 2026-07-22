@@ -12,7 +12,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from flask import Flask, get_flashed_messages, session
+from flask import Flask, get_flashed_messages
 
 from routes.publishing_http import (
     actor_from_session,
@@ -60,14 +60,20 @@ class PublishingHttpAdapterTest(unittest.TestCase):
         with self.app.app_context(), self.assertRaises(KeyError):
             lifecycle_from_app()
 
-    def test_actor_maps_only_canonical_authenticated_session_values(self):
+    def test_actor_maps_only_canonical_server_authenticated_values(self):
         for role in ("1", "2", "3"):
-            with self.subTest(role=role), self.app.test_request_context("/"):
-                session["user"] = {"username": "reader@example.test", "role": role}
-                self.assertEqual(
-                    actor_from_session(),
-                    Actor(user_id="reader@example.test", role=int(role)),
-                )
+            with (
+                self.subTest(role=role),
+                self.app.test_request_context("/"),
+                mock.patch(
+                    "routes.publishing_http.get_active_user",
+                    return_value={"username": "reader@example.test", "role": role},
+                ),
+            ):
+                self.assertEqual(actor_from_session(), Actor(
+                    user_id="reader@example.test",
+                    role=int(role),
+                ))
 
         malformed = (
             None,
@@ -88,9 +94,14 @@ class PublishingHttpAdapterTest(unittest.TestCase):
             {"username": "reader", "role": "4"},
         )
         for user in malformed:
-            with self.subTest(user=user), self.app.test_request_context("/"):
-                if user is not None:
-                    session["user"] = user
+            with (
+                self.subTest(user=user),
+                self.app.test_request_context("/"),
+                mock.patch(
+                    "routes.publishing_http.get_active_user",
+                    return_value=user,
+                ),
+            ):
                 with self.assertRaises(Forbidden):
                     actor_from_session()
 
@@ -679,6 +690,7 @@ class PublishingConstructionTest(unittest.TestCase):
                 }
             )
             script = """
+import os
 import stat
 from types import SimpleNamespace
 from unittest import mock
@@ -686,13 +698,20 @@ from unittest import mock
 import app as app_module
 from config import PAPERS_DIR, PENDING_PAPERS_DIR
 from services import publishing_wiring
+from sqlalchemy import create_engine
+import models
 
-assert "publishing_lifecycle" in app_module.app.extensions
-assert "paper_library" in app_module.app.extensions
-assert "publishing_services" in app_module.app.extensions
-installed = app_module.app.extensions["publishing_services"]
-assert app_module.app.extensions["publishing_lifecycle"] is installed.lifecycle
-assert app_module.app.extensions["paper_library"] is installed.library
+assert app_module._compatibility_app is None
+bootstrap = create_engine(os.environ["PAPERQUERY_DATABASE_URL"])
+models.bootstrap_empty_database(bootstrap)
+bootstrap.dispose()
+served_app = app_module.create_app()
+assert "publishing_lifecycle" in served_app.extensions
+assert "paper_library" in served_app.extensions
+assert "publishing_services" in served_app.extensions
+installed = served_app.extensions["publishing_services"]
+assert served_app.extensions["publishing_lifecycle"] is installed.lifecycle
+assert served_app.extensions["paper_library"] is installed.library
 assert installed.storage is installed.lifecycle._storage
 assert installed.storage is installed.library._storage
 assert stat.S_IMODE(PAPERS_DIR.stat().st_mode) == 0o700
@@ -783,7 +802,7 @@ class GunicornPublishingSafetyTest(unittest.TestCase):
         self.assertNotIn("create_app", post_fork_source)
         self.assertNotIn("build_publishing_worker", post_fork_source)
         self.assertNotIn("Thread", post_fork_source)
-        self.assertIn("app_module.app.app_context()", post_fork_source)
+        self.assertIn("wsgi.app.app_context()", post_fork_source)
 
     def test_production_entrypoints_serve_the_module_app_singleton(self):
         for relative_path in (
@@ -794,7 +813,7 @@ class GunicornPublishingSafetyTest(unittest.TestCase):
             with self.subTest(path=relative_path):
                 source = (ROOT / relative_path).read_text(encoding="utf-8")
                 self.assertNotIn("app:create_app()", source)
-                self.assertIn("app:app", source)
+                self.assertIn("wsgi:app", source)
 
     def test_post_fork_disposes_inherited_engine_then_warms_served_app(self):
         module = self._load_config()
@@ -810,16 +829,20 @@ class GunicornPublishingSafetyTest(unittest.TestCase):
         engine = types.SimpleNamespace(dispose=lambda: events.append("dispose"))
         fake_db = types.ModuleType("db")
         fake_db.get_engine = lambda: engine
-        fake_app = types.ModuleType("app")
-        fake_app.app = types.SimpleNamespace(
+        fake_wsgi = types.ModuleType("wsgi")
+        fake_wsgi.app = types.SimpleNamespace(
             app_context=lambda: (events.append("served-app-context") or Context())
         )
-        fake_app.rag_index = types.SimpleNamespace(warm=lambda: events.append("warm"))
+        fake_rag = types.ModuleType("rag_index")
+        fake_rag.warm = lambda: events.append("warm")
         worker = types.SimpleNamespace(
             log=types.SimpleNamespace(exception=lambda *_args: events.append("logged"))
         )
 
-        with mock.patch.dict(sys.modules, {"db": fake_db, "app": fake_app}):
+        with mock.patch.dict(
+            sys.modules,
+            {"db": fake_db, "wsgi": fake_wsgi, "rag_index": fake_rag},
+        ):
             module.post_fork(mock.sentinel.server, worker)
 
         self.assertEqual(

@@ -84,6 +84,12 @@ class StoredPdf:
 
 
 @dataclass(frozen=True)
+class RevisionStat:
+    path: Path
+    size_bytes: int
+
+
+@dataclass(frozen=True)
 class PendingTrash:
     """Process-local one-use authority for one audited pending-file trash.
 
@@ -1273,6 +1279,22 @@ class PaperStorage:
                 require_private=True,
             ):
                 return path
+        except StorageError as exc:
+            raise StorageError("Paper revision does not exist") from exc
+
+    @_serialized
+    def stat_revision(self, paper_id: str, revision: int) -> RevisionStat:
+        """Return descriptor-audited size without hashing the PDF body."""
+        path = self.revision_path(paper_id, revision)
+        relative = f"{path.parent.name}/{path.name}"
+        try:
+            with self._opened_regular(
+                self.papers_dir,
+                relative,
+                require_single_link=True,
+                require_private=True,
+            ) as (_revision_fd, _, _, resolved, info):
+                return RevisionStat(path=resolved, size_bytes=info.st_size)
         except StorageError as exc:
             raise StorageError("Paper revision does not exist") from exc
 

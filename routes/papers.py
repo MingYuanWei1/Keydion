@@ -408,7 +408,7 @@ def register_routes(app):
     def paper_manage():
         user = require_login(level=3)
         if not user:
-            target = url_for("login") if not session.get("user") else url_for("dashboard")
+            target = url_for("login") if get_active_user() is None else url_for("dashboard")
             return redirect(target)
 
         papers = []
@@ -676,7 +676,7 @@ def register_routes(app):
     def paper_modify(paper_id):
         user = require_login(level=2)
         if not user:
-            target = url_for("login") if not session.get("user") else url_for("dashboard")
+            target = url_for("login") if get_active_user() is None else url_for("dashboard")
             return redirect(target)
 
         document = _current_paper_pdf(paper_id)
@@ -975,7 +975,7 @@ def register_routes(app):
     def paper_modify_legacy_dashboard(filename):
         user = require_login(level=2)
         if not user:
-            target = url_for("login") if not session.get("user") else url_for("dashboard")
+            target = url_for("login") if get_active_user() is None else url_for("dashboard")
             return redirect(target)
         document = _legacy_paper_document(filename)
         return redirect(
@@ -990,7 +990,7 @@ def register_routes(app):
     def paper_modify_legacy(filename):
         user = require_login(level=2)
         if not user:
-            target = url_for("login") if not session.get("user") else url_for("dashboard")
+            target = url_for("login") if get_active_user() is None else url_for("dashboard")
             return redirect(target)
         document = _legacy_paper_document(filename)
         return redirect(
@@ -1170,7 +1170,7 @@ def register_routes(app):
     def ee_subjects_manage():
         user = require_login(level=3)
         if not user:
-            target = url_for("login") if not session.get("user") else url_for("dashboard")
+            target = url_for("login") if get_active_user() is None else url_for("dashboard")
             return redirect(target)
         return render_template("ee_subjects_manage.html", user=user,
                                ee_subjects=load_ee_subjects())
@@ -1217,7 +1217,7 @@ def register_routes(app):
     def ia_subjects_manage():
         user = require_login(level=3)
         if not user:
-            target = url_for("login") if not session.get("user") else url_for("dashboard")
+            target = url_for("login") if get_active_user() is None else url_for("dashboard")
             return redirect(target)
         return render_template("ia_subjects_manage.html", user=user,
                                ia_subjects=load_ia_subjects())

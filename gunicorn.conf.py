@@ -14,7 +14,9 @@ preload_app = False
 
 accesslog = "-"
 errorlog = "-"
-access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s %(L)s "%(f)s"'
+# Deliberately omit %(r)s, %(q)s, and %(f)s: OAuth callback credentials and
+# state live in the query string and referrers must not enter access logs.
+access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(m)s %(U)s %(H)s" %(s)s %(b)s %(L)s'
 
 
 def post_fork(server, worker):
@@ -23,9 +25,10 @@ def post_fork(server, worker):
     engine = db.get_engine()
     if engine is not None:
         engine.dispose()
-    import app as app_module
+    import rag_index
+    import wsgi
     try:
-        with app_module.app.app_context():
-            app_module.rag_index.warm()   # pre-warm the vector snapshot
+        with wsgi.app.app_context():
+            rag_index.warm()   # pre-warm the vector snapshot
     except Exception:
         worker.log.exception("vector pre-warm failed")

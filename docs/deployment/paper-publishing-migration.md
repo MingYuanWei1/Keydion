@@ -9,7 +9,7 @@ If the production account or path differs from `keydion` and `/Keydion`, stop:
 update both tracked units together, adapt this runbook in the same change, and
 rerun the deployment contract before scheduling the migration. Never edit only
 one installed unit or substitute paths ad hoc during the maintenance window.
-`deploy/keydion-legacy.service` is a reviewed first-rollout artifact derived
+`tests/fixtures/deploy/keydion-legacy.service.fixture` is a reviewed first-rollout artifact derived
 from the former README unit, not a forward service to install. It is consulted
 only when the old release does not track `deploy/keydion.service`, and then only
 to allowlist an exact byte-for-byte match of the already-installed web unit.
@@ -370,7 +370,7 @@ resolve_web_unit_provenance() {
     "" )
       KEYDION_WEB_UNIT_ORIGIN=candidate-legacy-allowlist
       KEYDION_WEB_UNIT_SOURCE_RELEASE="$KEYDION_NEW_RELEASE"
-      KEYDION_WEB_UNIT_SOURCE_PATH=deploy/keydion-legacy.service
+      KEYDION_WEB_UNIT_SOURCE_PATH=tests/fixtures/deploy/keydion-legacy.service.fixture
       ;;
     *)
       printf 'Unexpected old-release web unit path: %s\n' "$old_path" >&2
@@ -1164,7 +1164,7 @@ assert_recorded_unit_source() {
       snapshot="$KEYDION_BACKUP_DIR/systemd/keydion.service"
       case "$origin:$source_release:$source_path" in
         "old-release:$KEYDION_OLD_RELEASE:deploy/keydion.service") ;;
-        "candidate-legacy-allowlist:$KEYDION_NEW_RELEASE:deploy/keydion-legacy.service") ;;
+        "candidate-legacy-allowlist:$KEYDION_NEW_RELEASE:tests/fixtures/deploy/keydion-legacy.service.fixture") ;;
         *) printf '%s has invalid recorded source\n' "$unit" >&2; return 1 ;;
       esac
       ;;
@@ -1662,8 +1662,8 @@ sudo -u keydion "$KEYDION_ROOT/.venv/bin/python" -m pip install \
   --disable-pip-version-check \
   --requirement "$KEYDION_ROOT/requirements.txt"
 sudo -u keydion "$KEYDION_ROOT/.venv/bin/python" -m pip check
-test "$(sudo -u keydion "$KEYDION_ROOT/.venv/bin/python" \
-  -m alembic heads)" = "0003_publishing_contract (head)"
+sudo -u keydion "$KEYDION_ROOT/.venv/bin/python" \
+  -m tools.verify_alembic_state --code-only
 sudo install -m 0644 "$KEYDION_ROOT/deploy/keydion.service" \
   /etc/systemd/system/keydion.service
 sudo install -m 0644 \
@@ -1680,7 +1680,7 @@ sudo systemd-analyze verify /etc/systemd/system/keydion.service \
 
 Expected checkpoint: `HEAD` is exactly the recorded candidate SHA; every
 candidate requirement is installed consistently; `pip check` succeeds; the
-candidate exposes exactly `0003_publishing_contract (head)`; neither unit has
+candidate exposes exactly one Alembic code head; neither unit has
 an untracked systemd drop-in; and both installed units validate. A checkout,
 dependency installation, unit installation, or verification failure stops the
 strict shell; do not run a database-facing Alembic command. Restore the snapshot
@@ -2123,8 +2123,8 @@ assert_rename_tree_not_mounted "$KEYDION_PENDING_DIR"
 cd "$KEYDION_ROOT"
 sudo -u keydion test -x "$KEYDION_ROOT/.venv/bin/python"
 sudo -u keydion "$KEYDION_ROOT/.venv/bin/python" -m pip check
-test "$(sudo -u keydion "$KEYDION_ROOT/.venv/bin/python" \
-  -m alembic heads)" = "0003_publishing_contract (head)"
+sudo -u keydion "$KEYDION_ROOT/.venv/bin/python" \
+  -m tools.verify_alembic_state --code-only
 
 KEYDION_APPLICATION_DB_IDENTITY="$(
   sudo -u keydion \
@@ -2249,17 +2249,17 @@ evidence is overwritten.
 
 ## 7. Validate the migrated state
 
-First verify the revision and ORM drift:
+First verify the single code head, database revision, and ORM drift with the
+versioned verifier used by deployment automation:
 
 ```bash
 sudo -u keydion --preserve-env=PAPERQUERY_DATABASE_URL \
-  "$KEYDION_ROOT/.venv/bin/python" -m alembic current
-sudo -u keydion --preserve-env=PAPERQUERY_DATABASE_URL \
-  "$KEYDION_ROOT/.venv/bin/python" -m alembic check
+  "$KEYDION_ROOT/.venv/bin/python" -m tools.verify_alembic_state
 ```
 
-Expected output is exactly `0003_publishing_contract (head)` and
-`No new upgrade operations detected.`
+Expected output is `No new upgrade operations detected.` followed by the
+single revision derived from the candidate's Alembic graph. No revision is
+hard-coded in this runbook.
 
 Use the backup account to inspect counts, issues, hashes, and vector bytes:
 
@@ -2497,9 +2497,8 @@ for unit in keydion-publishing-worker.service keydion.service; do
   test "$(read_unit_enabled_state "$unit")" = disabled
   test "$(read_unit_active_state "$unit")" = inactive
 done
-test "$(sudo -u keydion --preserve-env=PAPERQUERY_DATABASE_URL \
-  "$KEYDION_ROOT/.venv/bin/python" -m alembic current | tail -n 1)" \
-  = '0003_publishing_contract (head)'
+sudo -u keydion --preserve-env=PAPERQUERY_DATABASE_URL \
+  "$KEYDION_ROOT/.venv/bin/python" -m tools.verify_alembic_state
 sudo systemctl enable keydion-publishing-worker
 sudo systemctl start keydion-publishing-worker
 sudo systemctl enable keydion
@@ -2734,9 +2733,8 @@ for unit in keydion-publishing-worker.service keydion.service; do
   test "$(systemctl is-enabled "$unit")" = enabled
   test "$(systemctl is-active "$unit")" = active
 done
-test "$(sudo -u keydion --preserve-env=PAPERQUERY_DATABASE_URL \
-  "$KEYDION_ROOT/.venv/bin/python" -m alembic current | tail -n 1)" \
-  = '0003_publishing_contract (head)'
+sudo -u keydion --preserve-env=PAPERQUERY_DATABASE_URL \
+  "$KEYDION_ROOT/.venv/bin/python" -m tools.verify_alembic_state
 
 read -r -p "Canonical Paper UUID for live validation: " KEYDION_LIVE_PAPER_ID
 [[ "$KEYDION_LIVE_PAPER_ID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$ ]]
@@ -2791,9 +2789,8 @@ sudo -u keydion git -C "$KEYDION_ROOT" diff --cached --quiet --
 KEYDION_GIT_STATUS="$(sudo -u keydion git -C "$KEYDION_ROOT" \
   status --porcelain --untracked-files=all)"
 test -z "$KEYDION_GIT_STATUS"
-test "$(sudo -u keydion --preserve-env=PAPERQUERY_DATABASE_URL \
-  "$KEYDION_ROOT/.venv/bin/python" -m alembic current | tail -n 1)" \
-  = '0003_publishing_contract (head)'
+sudo -u keydion --preserve-env=PAPERQUERY_DATABASE_URL \
+  "$KEYDION_ROOT/.venv/bin/python" -m tools.verify_alembic_state
 
 publish_marker_once() {
   local target="$1" expected="$2" parent base partial stale
@@ -3012,7 +3009,7 @@ assert_recorded_unit_source() {
       snapshot="$KEYDION_BACKUP_DIR/systemd/keydion.service"
       case "$origin:$source_release:$source_path" in
         "old-release:$KEYDION_OLD_RELEASE:deploy/keydion.service") ;;
-        "candidate-legacy-allowlist:$KEYDION_NEW_RELEASE:deploy/keydion-legacy.service") ;;
+        "candidate-legacy-allowlist:$KEYDION_NEW_RELEASE:tests/fixtures/deploy/keydion-legacy.service.fixture") ;;
         *) printf '%s has invalid recorded source\n' "$unit" >&2; return 1 ;;
       esac
       ;;
@@ -5143,9 +5140,8 @@ assert_forward_units() {
     "$KEYDION_ROOT/deploy/keydion-publishing-worker.service"
   assert_recorded_unit_final keydion.service enabled active \
     "$KEYDION_ROOT/deploy/keydion.service"
-  test "$(sudo -u keydion --preserve-env=PAPERQUERY_DATABASE_URL \
-    "$KEYDION_VENV_PATH/bin/python" -m alembic current | tail -n 1)" \
-    = '0003_publishing_contract (head)'
+  sudo -u keydion --preserve-env=PAPERQUERY_DATABASE_URL \
+    "$KEYDION_VENV_PATH/bin/python" -m tools.verify_alembic_state
 }
 
 assert_rollback_units() {

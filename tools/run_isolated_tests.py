@@ -59,6 +59,18 @@ def _drop_database(admin_url: str, database_name: str) -> None:
 
 
 def _run_child(argv: list[str], env: dict[str, str]) -> int:
+    bootstrap = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "tools.bootstrap_database",
+            "--confirm-empty-bootstrap",
+        ],
+        env=env,
+        check=False,
+    )
+    if bootstrap.returncode != 0:
+        return bootstrap.returncode
     completed = subprocess.run(
         [sys.executable, "-m", "unittest", *argv],
         env=env,

@@ -35,7 +35,7 @@ class WebSearchModule(unittest.TestCase):
                 out = web_search.web_search("hello", max_results=2)
         self.assertEqual(len(out), 2)
         self.assertEqual(out[0]["title"], "T1")
-        self.assertEqual(out[0]["url"], "https://a")
+        self.assertEqual(out[0]["url"], "https://a/")
         self.assertIn("body one", out[0]["content"])
         self.assertIn("api.tavily.com", post.call_args[0][0])
 
@@ -68,36 +68,22 @@ def _addrinfo(ip):
     return [(fam, _socket.SOCK_STREAM, 6, "", (ip, 0))]
 
 
-class _FakeRaw:
-    """Stand-in for requests' resp.raw (a urllib3 HTTPResponse).
-
-    Yields the *undecoded* chunks it was given via stream(decode_content=False);
-    asserts the caller never asks it to decode (that is exactly the
-    decompression-bomb bypass the real fetch_url must avoid)."""
-
-    def __init__(self, chunks):
-        self._chunks = list(chunks)
-
-    def stream(self, amt=8192, decode_content=None):
-        assert decode_content is False, (
-            "fetch_url must read the raw body with decode_content=False so a "
-            "Content-Encoding bomb is never inflated by urllib3")
-        for c in self._chunks:
-            yield c
-
-
 def _resp(*, status=200, headers=None, chunks=(b"",), encoding="utf-8"):
-    resp = mock.Mock()
-    resp.is_redirect = status in (301, 302, 303, 307, 308)
-    resp.status_code = status
-    resp.headers = headers or {}
-    resp.encoding = encoding
-    resp.raw = _FakeRaw(chunks)
-    # If anything calls iter_content, blow up: that path decodes and is the bug.
-    resp.iter_content = mock.Mock(
-        side_effect=AssertionError("fetch_url must not use decoding iter_content"))
-    resp.close = lambda: None
+    del encoding
+    body = b"".join(chunks)
+    resp = mock.Mock(status=status)
+    header_map = headers or {}
+    resp.getheader.side_effect = lambda name: header_map.get(name)
+    resp.read.side_effect = lambda amount: body[:amount]
     return resp
+
+
+def _pinned(resp, url="https://example.com/"):
+    connection = mock.Mock()
+    return mock.patch(
+        "web_search._request_pinned",
+        return_value=(connection, resp, url),
+    )
 
 
 class FetchUrlSafety(unittest.TestCase):
@@ -109,7 +95,7 @@ class FetchUrlSafety(unittest.TestCase):
         for ip in ("10.0.0.5", "192.168.1.1", "172.16.0.9", "127.0.0.1",
                    "169.254.169.254", "::1"):
             with mock.patch("web_search.socket.getaddrinfo", return_value=_addrinfo(ip)):
-                with mock.patch("web_search.requests.get") as g:
+                with mock.patch("web_search._open_pinned_connection") as g:
                     self.assertEqual(web_search.fetch_url("http://evil.example"), "")
                     g.assert_not_called()
 
@@ -117,7 +103,7 @@ class FetchUrlSafety(unittest.TestCase):
         # RFC 6598 CGNAT + 6to4 relay anycast — not flagged private by ipaddress.
         for ip in ("100.64.0.1", "192.88.99.1"):
             with mock.patch("web_search.socket.getaddrinfo", return_value=_addrinfo(ip)):
-                with mock.patch("web_search.requests.get") as g:
+                with mock.patch("web_search._open_pinned_connection") as g:
                     self.assertEqual(web_search.fetch_url("http://evil.example"), "")
                     g.assert_not_called()
 
@@ -125,48 +111,71 @@ class FetchUrlSafety(unittest.TestCase):
         html = b"<html><body><h1>Hi</h1><script>x()</script><p>World</p></body></html>"
         resp = _resp(headers={"Content-Type": "text/html; charset=utf-8"},
                      chunks=[html])
-        with mock.patch("web_search.socket.getaddrinfo", return_value=_addrinfo("93.184.216.34")):
-            with mock.patch("web_search.requests.get", return_value=resp) as g:
-                out = web_search.fetch_url("https://example.com")
+        with _pinned(resp):
+            out = web_search.fetch_url("https://example.com")
         self.assertIn("Hi", out)
         self.assertIn("World", out)
         self.assertNotIn("x()", out)   # script stripped
-        # Defense-in-depth: we asked the origin not to compress.
-        sent = g.call_args.kwargs["headers"]
-        self.assertEqual(sent.get("Accept-Encoding"), "identity")
 
     def test_blocks_internal_redirect(self):
-        redirect = mock.Mock()
-        redirect.is_redirect = True
-        redirect.status_code = 302
-        redirect.headers = {"Location": "http://169.254.169.254/latest/meta-data/"}
-        redirect.close = lambda: None
-
-        def fake_get(url, **kw):
-            return redirect
+        redirect = _resp(
+            status=302,
+            headers={"Location": "http://169.254.169.254/latest/meta-data/"},
+        )
 
         # First host public, redirect target internal -> blocked -> "".
         def getaddr(host, *a, **k):
             return _addrinfo("93.184.216.34") if host == "example.com" else _addrinfo("169.254.169.254")
 
-        with mock.patch("web_search.socket.getaddrinfo", side_effect=getaddr):
-            with mock.patch("web_search.requests.get", side_effect=fake_get):
-                self.assertEqual(web_search.fetch_url("https://example.com"), "")
+        first_connection = mock.Mock()
+        with mock.patch("web_search.socket.getaddrinfo", side_effect=getaddr), \
+             mock.patch(
+                 "web_search._request_pinned",
+                 side_effect=[
+                     (first_connection, redirect, "https://example.com/"),
+                     (None, None, None),
+                 ],
+             ):
+            self.assertEqual(web_search.fetch_url("https://example.com"), "")
 
     def test_rejects_disallowed_content_type(self):
         resp = _resp(headers={"Content-Type": "application/pdf"},
                      chunks=[b"%PDF-1.4 ..."])
-        with mock.patch("web_search.socket.getaddrinfo", return_value=_addrinfo("93.184.216.34")):
-            with mock.patch("web_search.requests.get", return_value=resp):
-                self.assertEqual(web_search.fetch_url("https://example.com/x.pdf"), "")
+        with _pinned(resp, "https://example.com/x.pdf"):
+            self.assertEqual(web_search.fetch_url("https://example.com/x.pdf"), "")
 
     def test_rejects_missing_content_type(self):
         # Finding (minor): a 200 with NO Content-Type must NOT be fed to the
         # parser as arbitrary bytes — missing is treated as disallowed.
         resp = _resp(headers={}, chunks=[b"<html><body>secret</body></html>"])
-        with mock.patch("web_search.socket.getaddrinfo", return_value=_addrinfo("93.184.216.34")):
-            with mock.patch("web_search.requests.get", return_value=resp):
-                self.assertEqual(web_search.fetch_url("https://example.com"), "")
+        with _pinned(resp):
+            self.assertEqual(web_search.fetch_url("https://example.com"), "")
+
+    def test_rejects_credentials_abnormal_ports_and_oversized_urls(self):
+        self.assertIsNone(web_search.normalize_fetch_url("https://u:p@example.com/x"))
+        self.assertIsNone(web_search.normalize_fetch_url("https://example.com:8443/x"))
+        self.assertIsNone(web_search.normalize_fetch_url("https://example.com/" + "x" * 2100))
+
+    def test_pinned_request_passes_vetted_numeric_address_to_connector(self):
+        response = _resp(headers={"Content-Type": "text/plain"}, chunks=[b"ok"])
+        connection = mock.Mock()
+        connection.getresponse.return_value = response
+        with mock.patch(
+            "web_search.socket.getaddrinfo",
+            return_value=_addrinfo("93.184.216.34"),
+        ) as resolve, mock.patch(
+            "web_search._open_pinned_connection",
+            return_value=connection,
+        ) as connect:
+            opened, actual, normalized = web_search._request_pinned(
+                "https://example.com/path?q=1",
+                timeout=8,
+            )
+        self.assertIs(opened, connection)
+        self.assertIs(actual, response)
+        self.assertEqual(normalized, "https://example.com/path?q=1")
+        self.assertEqual(connect.call_args.args[1], "93.184.216.34")
+        self.assertEqual(resolve.call_count, 1)
 
 
 class FetchUrlDecompressionBomb(unittest.TestCase):
@@ -181,9 +190,8 @@ class FetchUrlDecompressionBomb(unittest.TestCase):
         resp = _resp(
             headers={"Content-Type": "text/html", "Content-Encoding": "gzip"},
             chunks=[bomb[i:i + 8192] for i in range(0, len(bomb), 8192)])
-        with mock.patch("web_search.socket.getaddrinfo", return_value=_addrinfo("93.184.216.34")):
-            with mock.patch("web_search.requests.get", return_value=resp):
-                out = web_search.fetch_url("https://example.com", max_bytes=1_000_000)
+        with _pinned(resp):
+            out = web_search.fetch_url("https://example.com", max_bytes=1_000_000)
         self.assertEqual(out, "")
 
     def test_decode_body_output_is_capped(self):
@@ -214,20 +222,18 @@ class FetchUrlDecompressionBomb(unittest.TestCase):
             headers={"Content-Type": "text/html",
                      "Content-Length": str(10 * 1024 * 1024)},
             chunks=[b"<html>x</html>"])
-        with mock.patch("web_search.socket.getaddrinfo", return_value=_addrinfo("93.184.216.34")):
-            with mock.patch("web_search.requests.get", return_value=resp):
-                self.assertEqual(
-                    web_search.fetch_url("https://example.com", max_bytes=1_000_000), "")
+        with _pinned(resp):
+            self.assertEqual(
+                web_search.fetch_url("https://example.com", max_bytes=1_000_000), "")
 
     def test_uncompressed_over_cap_raw_rejected(self):
         # Even with no Content-Encoding, a body exceeding max_bytes is dropped.
         big = b"<html><body>" + b"Z" * 2_000_000 + b"</body></html>"
         resp = _resp(headers={"Content-Type": "text/html"},
                      chunks=[big[i:i + 8192] for i in range(0, len(big), 8192)])
-        with mock.patch("web_search.socket.getaddrinfo", return_value=_addrinfo("93.184.216.34")):
-            with mock.patch("web_search.requests.get", return_value=resp):
-                self.assertEqual(
-                    web_search.fetch_url("https://example.com", max_bytes=1_000_000), "")
+        with _pinned(resp):
+            self.assertEqual(
+                web_search.fetch_url("https://example.com", max_bytes=1_000_000), "")
 
 
 class HostIsSafeMappedV6(unittest.TestCase):
@@ -238,7 +244,7 @@ class HostIsSafeMappedV6(unittest.TestCase):
         for ip in ("::ffff:127.0.0.1", "::ffff:169.254.169.254",
                    "::ffff:10.0.0.1", "::ffff:192.168.0.5"):
             with mock.patch("web_search.socket.getaddrinfo", return_value=_addrinfo(ip)):
-                with mock.patch("web_search.requests.get") as g:
+                with mock.patch("web_search._open_pinned_connection") as g:
                     self.assertEqual(web_search.fetch_url("http://evil.example"), "")
                     g.assert_not_called()
 
@@ -246,7 +252,7 @@ class HostIsSafeMappedV6(unittest.TestCase):
         # 64:ff9b::a9fe:a9fe == NAT64-wrapped 169.254.169.254 (metadata).
         for ip in ("64:ff9b::a9fe:a9fe", "64:ff9b::7f00:1", "64:ff9b::a00:1"):
             with mock.patch("web_search.socket.getaddrinfo", return_value=_addrinfo(ip)):
-                with mock.patch("web_search.requests.get") as g:
+                with mock.patch("web_search._open_pinned_connection") as g:
                     self.assertEqual(web_search.fetch_url("http://evil.example"), "")
                     g.assert_not_called()
 

@@ -82,14 +82,10 @@ class ChangePasswordContractTest(unittest.TestCase):
     # --- Task 4: composition + different-from-current -----------------
 
     def test_view_enforces_letters_and_digits(self):
-        has_alpha = "c.isalpha()" in self.view_source
-        has_digit = "c.isdigit()" in self.view_source
-        self.assertTrue(
-            has_alpha and has_digit,
-            "change_password view must enforce a letters-and-digits rule "
-            "(expected `any(c.isalpha() for c in ...)` and "
-            "`any(c.isdigit() for c in ...)` in the function body)",
-        )
+        self.assertIn("password_validation_error(new_password)", self.view_source)
+        policy = support.source_of("password_validation_error")
+        self.assertIn(".isalpha()", policy)
+        self.assertIn(".isdigit()", policy)
 
     def test_view_rejects_unchanged_password(self):
         comparisons = re.findall(

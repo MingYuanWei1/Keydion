@@ -60,9 +60,10 @@ the reverse proxy. The Flask development server (and its Werkzeug debugger)
 must **never** be exposed publicly.
 
 The tracked web unit loads `/Keydion/.env.prod` and starts Gunicorn from the
-shared `/Keydion/.venv`; the publishing worker has its own independently
-enabled unit. nginx serves `/static/*` directly from disk; PDF download routes
-(`/papers/*`) proxy through to Flask so auth checks run.
+shared `/Keydion/.venv`. Publishing and attachment processing run in separate
+worker units, and a systemd timer runs the current-Paper integrity scan. nginx
+serves `/static/*` directly from disk; PDF download routes (`/papers/*`) proxy
+through to Flask so auth checks run.
 
 1. Create a `.env.prod` (gitignored) in the repo root by copying
    [`.env.example`](.env.example) and filling in the values. Use a strong
@@ -74,7 +75,16 @@ enabled unit. nginx serves `/static/*` directly from disk; PDF download routes
 
    ```bash
    python3 -m venv .venv
-   .venv/bin/pip install -r requirements.txt
+   .venv/bin/pip install --require-hashes -r requirements.lock
+   ```
+
+   For a database that has just been created and is still completely empty,
+   bootstrap it explicitly, then verify the single Alembic head. Never run the
+   bootstrap command against an existing installation:
+
+   ```bash
+   .venv/bin/python -m tools.bootstrap_database --confirm-empty-bootstrap
+   .venv/bin/python -m tools.verify_alembic_state
    ```
 
 3. Drop in the nginx site config. A reference is at
@@ -94,11 +104,12 @@ enabled unit. nginx serves `/static/*` directly from disk; PDF download routes
 
 4. Verify the host uses the `keydion` account, `/Keydion`,
    `/Keydion/.env.prod`, and `/Keydion/.venv`. On a fresh deployment, create
-   every non-optional `ReadWritePaths` directory before installing either unit;
+   every non-optional `ReadWritePaths` directory before installing the units;
    existing or schema-changing deployments must instead use the migration
-   runbook's storage-provenance checks. Then install both tracked units:
+   runbook's storage-provenance checks. Then install the tracked units:
 
-   `deploy/keydion-legacy.service` is a reviewed first-rollout artifact used
+   `tests/fixtures/deploy/keydion-legacy.service.fixture` is a reviewed
+   first-rollout artifact used
    only by that runbook to recognize the exact legacy web unit when the old
    release predates `deploy/keydion.service`; it is never installed as the
    forward unit. A mismatch is a hard stop. Change the reviewed fixture,
@@ -116,21 +127,34 @@ enabled unit. nginx serves `/static/*` directly from disk; PDF download routes
    sudo cp deploy/keydion.service /etc/systemd/system/keydion.service
    sudo cp deploy/keydion-publishing-worker.service \
      /etc/systemd/system/keydion-publishing-worker.service
+   sudo cp deploy/keydion-attachment-worker.service \
+     /etc/systemd/system/keydion-attachment-worker.service
+   sudo cp deploy/keydion-paper-integrity.service \
+     /etc/systemd/system/keydion-paper-integrity.service
+   sudo cp deploy/keydion-paper-integrity.timer \
+     /etc/systemd/system/keydion-paper-integrity.timer
    sudo systemctl daemon-reload
    sudo systemd-analyze verify /etc/systemd/system/keydion.service \
-     /etc/systemd/system/keydion-publishing-worker.service
+     /etc/systemd/system/keydion-publishing-worker.service \
+     /etc/systemd/system/keydion-attachment-worker.service \
+     /etc/systemd/system/keydion-paper-integrity.service \
+     /etc/systemd/system/keydion-paper-integrity.timer
    ```
 
-   The web and worker use the same environment and Paper/pending storage. The
-   worker is a separate process; Gunicorn never starts it from `post_fork`.
+   The web, workers, and scanner use the same environment. Workers are separate
+   processes; Gunicorn never starts them from `post_fork`.
 
-5. Enable and start the worker and web units independently:
+5. Enable the workers, integrity timer, and web unit independently:
 
    ```bash
    sudo systemctl daemon-reload
    sudo systemctl enable --now keydion-publishing-worker
+   sudo systemctl enable --now keydion-attachment-worker
+   sudo systemctl enable --now keydion-paper-integrity.timer
    sudo systemctl enable --now keydion
    sudo systemctl status keydion-publishing-worker --no-pager
+   sudo systemctl status keydion-attachment-worker --no-pager
+   sudo systemctl status keydion-paper-integrity.timer --no-pager
    sudo systemctl status keydion --no-pager
    ```
 
@@ -148,10 +172,10 @@ schema-neutral release, match the command to what actually changed:
 
 | Change | Command |
 |---|---|
-| Python code (`app.py`, templates, worker/services) | `sudo systemctl restart keydion-publishing-worker && sudo systemctl reload keydion` |
-| `requirements.txt` (new/upgraded packages) | `.venv/bin/pip install -r requirements.txt && sudo systemctl restart keydion-publishing-worker keydion` |
-| `gunicorn.conf.py` or `.env.prod` | `sudo systemctl restart keydion-publishing-worker keydion` |
-| Either tracked systemd unit | `sudo systemctl daemon-reload && sudo systemctl restart keydion-publishing-worker keydion` |
+| Python code (`app.py`, templates, worker/services) | `sudo systemctl restart keydion-publishing-worker keydion-attachment-worker && sudo systemctl reload keydion` |
+| `requirements.lock` | `.venv/bin/pip install --require-hashes -r requirements.lock && sudo systemctl restart keydion-publishing-worker keydion-attachment-worker keydion` |
+| `gunicorn.conf.py` or `.env.prod` | `sudo systemctl restart keydion-publishing-worker keydion-attachment-worker keydion` |
+| A tracked systemd unit | `sudo systemctl daemon-reload && sudo systemctl restart <changed-unit>` |
 | `.po` translation source files | `.venv/bin/python tools/compile_translations.py && sudo systemctl reload keydion` |
 | Anything under `static/` | nothing — nginx serves it directly from disk |
 | `nginx` config | `sudo nginx -t && sudo systemctl reload nginx` |
@@ -164,10 +188,14 @@ Quick post-deploy check:
 
 ```bash
 sudo systemctl status keydion-publishing-worker --no-pager
+sudo systemctl status keydion-attachment-worker --no-pager
+sudo systemctl status keydion-paper-integrity.timer --no-pager
 sudo systemctl status keydion --no-pager      # active (running)
 sudo journalctl -u keydion-publishing-worker -n 30 --no-pager
+sudo journalctl -u keydion-attachment-worker -n 30 --no-pager
 sudo journalctl -u keydion -n 30 --no-pager   # look for fresh "Booting worker"
 sudo -u keydion /Keydion/.venv/bin/python -m tools.publishing_worker --status
+sudo -u keydion /Keydion/.venv/bin/python -m tools.verify_alembic_state
 curl -sI https://www.keydion.com/ | head -5   # 200/302, Server: nginx
 ```
 
@@ -178,9 +206,9 @@ code failed to import — fix on disk and reload again.
 
 `docker-compose.prod.yml` is **not authoritative for production**. Production
 operations, migration, worker supervision, and rollback use the tracked host
-systemd units and the migration runbook. The unchanged Compose file runs only
-`web` (Gunicorn) and `nginx`; it does not run the required independent
-publishing worker.
+systemd units and the migration runbook. The Compose file runs Gunicorn, the
+attachment worker, and nginx; it still does not replace the publishing-worker
+or integrity-timer operations defined for the host deployment.
 
 For an explicitly non-production reference environment, the stack builds the
 bundled [`Dockerfile`](Dockerfile) (Python 3.11 + Tesseract), so the OCR engine
@@ -231,8 +259,8 @@ python tools/manage_passwords.py list
 
 **Roles:**
 - `1`: Reader (View & Download)
-- `2`: Moderator (Upload Enabled)
-- `3`: Admin (Full Access)
+- `2`: Contributor (Upload Enabled)
+- `3`: Curator (Full Access)
 
 ## Building the Search Index
 

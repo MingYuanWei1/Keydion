@@ -297,6 +297,12 @@ class ReaderIntakePersistenceTest(PublishingLifecycleTestCase, unittest.TestCase
         }
         with self.client.session_transaction() as flask_session:
             flask_session["user"] = dict(self.reader)
+        auth = mock.patch(
+            "routes.publishing_http.get_active_user",
+            return_value=self.reader,
+        )
+        auth.start()
+        self.addCleanup(auth.stop)
 
     @contextmanager
     def _real_db_session(self):
@@ -488,6 +494,12 @@ class AtomicMetadataBatchRouteTest(unittest.TestCase):
         self.curator = {"username": "curator@example.test", "role": "3"}
         with self.client.session_transaction() as flask_session:
             flask_session["user"] = dict(self.curator)
+        auth = mock.patch(
+            "routes.publishing_http.get_active_user",
+            return_value=self.curator,
+        )
+        auth.start()
+        self.addCleanup(auth.stop)
 
     def test_category_conflict_does_not_write_taxonomy(self):
         self.lifecycle.error = StaleVersion(100)

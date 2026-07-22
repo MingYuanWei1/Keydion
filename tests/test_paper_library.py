@@ -669,8 +669,8 @@ class PaperLibraryVisibilityTest(PublishingLifecycleTestCase, unittest.TestCase)
         test_case = self
 
         class ListingStorage:
-            def open_revision(self, *args, **kwargs):
-                return test_case.storage.open_revision(*args, **kwargs)
+            def stat_revision(self, *args, **kwargs):
+                return test_case.storage.stat_revision(*args, **kwargs)
 
             def verify_revision(self, *args, **kwargs):
                 raise AssertionError("listing must not hash Paper bytes")
@@ -782,8 +782,8 @@ class PaperLibraryVisibilityTest(PublishingLifecycleTestCase, unittest.TestCase)
                 test_case = self
 
                 class MutatingOpenStorage:
-                    def open_revision(self, *args, **kwargs):
-                        path = test_case.storage.open_revision(*args, **kwargs)
+                    def stat_revision(self, *args, **kwargs):
+                        result = test_case.storage.stat_revision(*args, **kwargs)
                         with test_case.session_factory() as session:
                             paper = session.get(PaperMetadataModel, paper_id)
                             if mutation == "lifecycle-state":
@@ -799,7 +799,7 @@ class PaperLibraryVisibilityTest(PublishingLifecycleTestCase, unittest.TestCase)
                                 )
                                 revision.sha256 = "0" * 64
                             session.commit()
-                        return path
+                        return result
 
                     def verify_revision(self, *args, **kwargs):
                         raise AssertionError("listing must not hash Paper bytes")

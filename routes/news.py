@@ -77,7 +77,7 @@ def register_routes(app):
     def news_publish():
         user = require_login(level=2)
         if not user:
-            target = url_for("login") if not session.get("user") else url_for("dashboard")
+            target = url_for("login") if get_active_user() is None else url_for("dashboard")
             return redirect(target)
 
         display_name = user.get("display_name") or user.get("username", "")
@@ -154,7 +154,7 @@ def register_routes(app):
     def news_edit(news_id: str):
         user = require_login(level=2)
         if not user:
-            target = url_for("login") if not session.get("user") else url_for("dashboard")
+            target = url_for("login") if get_active_user() is None else url_for("dashboard")
             return redirect(target)
 
         article = get_news_article(news_id)

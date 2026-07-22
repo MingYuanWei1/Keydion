@@ -5,6 +5,8 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
+from flask import Flask
+
 os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
 
 import app as app_module
@@ -66,13 +68,12 @@ def _make_client():
 
 def _authenticate(client, username):
     if app_module.get_local_user(username) is None:
-        app_module.create_local_user(username, "test-password", role="1")
+        app_module.create_local_user(username, "test-password1", role="1")
     token, _ = app_module.register_active_session(
         app_module.ACCOUNT_LOCAL,
         username,
     )
     with client.session_transaction() as session:
-        session["user"] = {"username": username, "role": "1", "is_local": True}
         session["session_token"] = token
 
 
@@ -121,10 +122,9 @@ class RagPaperTextOcr(unittest.TestCase):
             paper=SimpleNamespace(language="en"),
             path=Path("/safe/1.pdf"),
         )
-        with app_module.app.app_context(), \
-             mock.patch.dict(
-                 app_module.app.extensions, {"paper_library": library}
-             ), \
+        test_app = Flask(__name__)
+        test_app.extensions["paper_library"] = library
+        with test_app.app_context(), \
              mock.patch("pathlib.Path.read_bytes", return_value=b"%PDF-1.4 fake"), \
              mock.patch("pdf_text.extract_pdf_text", return_value="scanned paper text") as ex:
             out = app_module._rag_paper_text(paper_id)

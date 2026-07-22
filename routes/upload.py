@@ -25,7 +25,7 @@ from config import (
 from ee_pdf_extractor import EePdfExtractionError, extract_ee_metadata
 from ia_metadata import IAMetadataError, generate_ia_scores
 from llm_metadata import LLMMetadataError, generate_abstract_keywords
-from services.auth import require_login
+from services.auth import get_active_user, require_login
 from services.journals import get_journal_names
 from services.publishing_contracts import (
     DirectPublish,
@@ -56,6 +56,7 @@ from services.submissions import (
     _update_submission,
 )
 from services.publishing_time import utc_now_db
+from services.rate_limit import consume as consume_rate_limit
 from routes.publishing_http import (
     actor_from_session,
     lifecycle_error_response,
@@ -66,6 +67,27 @@ from routes.publishing_http import (
 def register_routes(app):
 
     # ==================== UPLOAD ROUTES ====================
+
+    def _expensive_operation_limited(user, scope):
+        keys = (
+            (f"upload.{scope}.ip", request.remote_addr or "unknown"),
+            (f"upload.{scope}.account", user.get("username") or "unknown"),
+        )
+        for bucket_scope, key in keys:
+            decision = consume_rate_limit(
+                bucket_scope,
+                key,
+                limit=10,
+                window_seconds=300,
+                base_block_seconds=5,
+                max_block_seconds=900,
+            )
+            if not decision.allowed:
+                response = jsonify({"error": str(_("Too many requests — please slow down."))})
+                response.status_code = 429
+                response.headers["Retry-After"] = str(decision.retry_after)
+                return response
+        return None
 
     def _render_upload(user, form_data, draft_id, publishing_error=None):
         """Render upload.html with the wizard_boot context the JS needs."""
@@ -304,7 +326,7 @@ def register_routes(app):
     def upload():
         user = require_login(level=1)
         if not user:
-            target = url_for("login") if not session.get("user") else url_for("dashboard")
+            target = url_for("login") if get_active_user() is None else url_for("dashboard")
             return redirect(target)
 
         today = utc_now_db().date().isoformat()
@@ -704,6 +726,9 @@ def register_routes(app):
         user = require_login(level=2)
         if not user:
             return jsonify({"error": str(_("Unauthorized"))}), 401
+        limited = _expensive_operation_limited(user, "ee")
+        if limited is not None:
+            return limited
 
         upload = request.files.get("file")
         if not upload or not upload.filename:
@@ -727,6 +752,9 @@ def register_routes(app):
         user = require_login(level=2)
         if not user:
             return jsonify({"error": str(_("Unauthorized"))}), 401
+        limited = _expensive_operation_limited(user, "abstract")
+        if limited is not None:
+            return limited
 
         upload = request.files.get("file")
         if not upload or not upload.filename:
@@ -751,6 +779,9 @@ def register_routes(app):
         user = require_login(level=2)
         if not user:
             return jsonify({"error": str(_("Unauthorized"))}), 401
+        limited = _expensive_operation_limited(user, "ia")
+        if limited is not None:
+            return limited
 
         upload = request.files.get("file")
         if not upload or not upload.filename:

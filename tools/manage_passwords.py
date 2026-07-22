@@ -16,17 +16,22 @@ from __future__ import annotations
 
 import argparse
 import sys
-import os
 from pathlib import Path
 
-# Add the parent directory to sys.path so we can import app
+# Add the repository root so the command can be run as a script.
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from app import db_session, LocalUser, hash_password, init_db
+from db import db_session
+from models import LocalUser, init_db
+from services.auth import hash_password, validate_password
 
 def handle_set(args: argparse.Namespace) -> None:
     if not args.password:
         raise SystemExit("Error: --password is required.")
+    try:
+        validate_password(args.password)
+    except ValueError as exc:
+        raise SystemExit(f"Error: {exc}") from exc
     
     with db_session() as db:
         user = db.query(LocalUser).filter(LocalUser.username == args.username).first()
@@ -68,7 +73,7 @@ def handle_list() -> None:
             )
 
 def main() -> None:
-    # Initialize database connection
+    # Startup is verification-only: operators must migrate/bootstrap first.
     init_db()
 
     parser = argparse.ArgumentParser(description="PaperQuery password and user management utility")
@@ -77,7 +82,13 @@ def main() -> None:
     set_parser = subparsers.add_parser("set", help="Create or update a user and hashed password")
     set_parser.add_argument("--username", required=True, help="Username")
     set_parser.add_argument("--password", required=True, help="Plaintext password")
-    set_parser.add_argument("--role", type=int, choices=[1, 2, 3], default=1, help="Role (1=read, 2=upload, 3=admin)")
+    set_parser.add_argument(
+        "--role",
+        type=int,
+        choices=[1, 2, 3],
+        default=1,
+        help="Role (1=Reader, 2=Contributor, 3=Curator)",
+    )
     set_parser.add_argument("--registration-date", help="Registration date, YYYY-MM-DD")
     set_parser.add_argument("--expiry-date", help="Expiry date, YYYY-MM-DD")
 
@@ -91,4 +102,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -5,6 +5,7 @@ MUST be imported before any module reads os.environ (it loads .env/.env.prod).
 from __future__ import annotations
 import os
 from datetime import timedelta
+from enum import IntEnum
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -309,11 +310,20 @@ MS_REDIRECT_URI = os.environ.get("PAPERQUERY_MS_REDIRECT_URI", "http://127.0.0.1
 MS_AUTHORITY = os.environ.get("PAPERQUERY_MS_AUTHORITY", "https://login.microsoftonline.com/common")
 MS_SCOPES = ["User.Read"]
 MS_GRAPH_ME_URL = "https://graph.microsoft.com/v1.0/me"
-ROLE_OPTIONS = [
-    ("1", "Reader"),
-    ("2", "Moderator"),
-    ("3", "Admin"),
-]
+class Role(IntEnum):
+    """Canonical authorization levels and public terminology."""
+
+    READER = 1
+    CONTRIBUTOR = 2
+    CURATOR = 3
+
+
+ROLE_NAMES = {
+    Role.READER: "Reader",
+    Role.CONTRIBUTOR: "Contributor",
+    Role.CURATOR: "Curator",
+}
+ROLE_OPTIONS = [(str(int(role)), label) for role, label in ROLE_NAMES.items()]
 
 _MISSING_FIELD_MESSAGES = {
     "title": _l("Please enter the paper title"),
@@ -351,9 +361,9 @@ CP_CRITERIA_DEFS = [
 ]
 
 ROLE_LABELS = {
-    1: _l("Reader - View & Download"),
-    2: _l("Contributor - Upload Enabled"),
-    3: _l("Curator - Full Access"),
+    Role.READER: _l("Reader - View & Download"),
+    Role.CONTRIBUTOR: _l("Contributor - Upload Enabled"),
+    Role.CURATOR: _l("Curator - Full Access"),
 }
 LANGUAGE_NAMES = {
     "en": _l("English"),

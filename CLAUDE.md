@@ -68,10 +68,10 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ```bash
 # Install dependencies (use python3/pip3 on macOS — there is no `python` binary)
-pip3 install -r requirements.txt
+pip3 install --require-hashes -r requirements.lock
 
 # Start dev server (macOS/Linux). start_local.sh is gitignored (local-only); raw equivalent:
-PAPERQUERY_ALLOW_DEV_SECRET=1 PAPERQUERY_COOKIE_SECURE=0 python3 -m flask --app app run --debug --port 4000
+PAPERQUERY_ALLOW_DEV_SECRET=1 PAPERQUERY_COOKIE_SECURE=0 python3 -m flask --app wsgi run --debug --port 4000
 
 # Start dev container (Flask debug on :4000, MySQL expected on the host at 127.0.0.1:3306).
 # docker-compose.yml is gitignored (local-only); the tracked prod stack is docker-compose.prod.yml.
@@ -117,10 +117,10 @@ Environment variables: see `.env.example` for the full annotated list. **Gotcha:
 
 ## Architecture
 
-**App factory core + domain packages** — `app.py` (~800 lines) is the factory core: `create_app()`, context processors and template filters, the auth/account/profile/dashboard/admin-users/category/EE-subject routes, legacy redirects, and a back-compat re-export block so `from app import X` still works for moved names. `app = create_app()` runs at module level and calls `init_db()`, so **importing `app` connects to MySQL** — this affects tests and CLI scripts (the extracted modules below all import standalone without a DB). The rest of the application is split into:
+**App factory core + domain packages** — `app.py` is the factory core: `create_app()`, context processors and template filters, the auth/account/profile/dashboard/admin-users/category/EE-subject routes, legacy redirects, and a lazy back-compat surface for older imports. Importing `app` does not construct the Flask application or connect to MySQL. `wsgi.py` is the explicit serving entry point and contains `app = create_app()`. Startup verifies the Alembic state; schema creation is available only through the confirmed empty-database bootstrap command. The rest of the application is split into:
 - `config.py` — env loading + constants; **must be imported before reading `os.environ`**
 - `db.py` — engine/session setup; `get_engine()` is what gunicorn `post_fork` uses
-- `models.py` — the 13 ORM classes + `init_db()`
+- `models.py` — ORM mappings plus explicit empty-database bootstrap and schema verification
 - `routes/<domain>.py` — HTTP routes per domain (resources, guides, news, journals, upload, submissions, ask, papers), each exposing `register_routes(app)`; `routes/shared.py` holds cross-domain HTTP helpers; endpoint names are unchanged from the monolith — these are **not** blueprints
 - `services/<domain>.py` — domain logic (DB/storage helpers)
 - Hard rule: `routes/` and `services/` modules never import `app` (enforced by `tests/test_split_imports_contract.py`)
@@ -195,7 +195,7 @@ Tests are **contract tests**, not integration tests. They locate source via `tes
 - Data round-trip contracts (fields are carried through load/write functions)
 - Server-side logic contracts (EE total grade is calculated server-side, not trusted from the form)
 
-~15 of the ~93 test files `import app` (directly or via `from app import ...`), which connects to MySQL at import time — **the full suite needs a reachable database**; without one those modules fail at import with `OperationalError`. This caveat applies to `import app` only — the extracted modules (`config`, `db`, `models`, `routes/*`, `services/*`) import without a DB. The remaining files are pure AST/template tests and run standalone.
+Importing `app`, `routes/*`, or `services/*` is side-effect free with respect to database initialization. Tests that call `create_app()` still require an already migrated database, while the isolated-test runner creates and bootstraps its disposable database explicitly.
 
 **CSRF test gotcha:** global `CSRFProtect` breaks naive tests — Flask test-client tests that POST must set `app.config["WTF_CSRF_ENABLED"] = False`, and standalone Jinja-render tests must stub `env.globals["csrf_token"] = lambda: ""` (else templates calling `{{ csrf_token() }}` raise). Existing test files already do this; follow the pattern when adding tests.
 
@@ -208,9 +208,9 @@ Conventional commits (`feat:`, `fix:`, with optional scope like `fix(i18n):`) ar
 - **News body** supports a JSON block format: `[{"type": "text", "content": "..."}, {"type": "image", "url": "...", "caption": "..."}]`, with a `parse_body_blocks` template filter for backward compat with plain-text bodies. Each text block's `content` is sanitized server-side on publish/edit via `sanitize_news_body` (reuses the guides bleach allowlist `_sanitize_guide_html`); rendered `|safe` only after sanitization.
 - **Path containment** — every user-controlled `PAPERS_DIR / <filename>` sink must `resolve()` + `is_relative_to(PAPERS_DIR.resolve())` before any FS op (idiom from `papers_bulk_action`): `paper_preview`, `preview_paper`, `paper_delete`, `paper_modify`, and the upload draft `pending_filename`. The agentic `read_paper` guard lives in `_lib_full_text` (basename of the model-supplied filename), **not** `_rag_paper_text` — that function doubles as the RAG indexer's text extractor, so guarding it there breaks first-time indexing of new papers.
 - **RAG lifecycle**: papers are chunked + embedded on publish and purged on delete (`rag_index.py`); chunk vectors live in a binary `VECTOR(3072)` column (**requires MySQL 9.x**; dimension from `RAG_EMBED_DIM`). Every store write bumps `rag_index_meta.chunks_version` in the same transaction; each worker's in-memory numpy snapshot is stamp-checked per query, so re-embeds/purges propagate to all workers without restarts. One-time JSON→VECTOR backfill: `tools/migrate_chunk_vectors.py` (then `--drop-json`).
-- DB migrations are ad-hoc in `init_db()` — ALTER TABLE statements wrapped in try/except for idempotency
+- **Schema lifecycle**: Alembic owns every schema change. Runtime startup is verification-only and refuses empty, stale, or divergent schemas. `python3 -m tools.bootstrap_database --confirm-empty-bootstrap` is the only application command that creates and stamps a verified-empty database; `python3 -m tools.verify_alembic_state` checks the deployed revision and migration drift.
 - Paper metadata is both in the DB (`papers_metadata` table) and optionally in the filesystem (`data/paper_metadata.json`); routes read from DB via `_load_papers()` which queries `PaperMetadataModel`
-- **Production deploy** uses host-managed nginx + systemd gunicorn (`gunicorn.conf.py` + `run_prod.sh`). The bundled `docker-compose.prod.yml` exists but is **not** what runs in prod — don't propose Docker-based deploy fixes.
+- **Production deploy** uses host-managed nginx + systemd gunicorn (`wsgi:app`, `gunicorn.conf.py`, and `run_prod.sh`) plus independent publishing and attachment workers and the scheduled Paper-integrity scanner. The bundled `docker-compose.prod.yml` is a reference stack, not the authoritative production procedure.
 - **Translation cache**: Flask-Babel loads `.mo` files at startup. After `tools/compile_translations.py`, the dev server must be restarted for new translations to appear.
 - **Split layout invariants** — endpoint names are a cross-module contract (`url_for("preview_paper")` is called from the ask domain); `routes/` and `services/` modules must not import `app`; new code goes in `services/<domain>` + `routes/<domain>`, not `app.py`.
 

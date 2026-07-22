@@ -71,6 +71,9 @@
       padding: 5px 12px;
       border: 1px solid var(--border);
       transition: all 0.15s;
+      background: none;
+      font-family: inherit;
+      cursor: pointer;
     }
     .lang-btn:hover { color: var(--ink); border-color: var(--ink); }
 
@@ -165,9 +168,11 @@
     <div class="header-inner">
       <a href="{{ url_for('index') }}" class="logo">Keydion</a>
       <div class="header-right">
-        <a class="lang-btn" href="{{ url_for('set_language', locale_code='en' if current_locale == 'zh' else 'zh', next=request.full_path) }}">
-          {{ 'EN' if current_locale == 'zh' else '中文' }}
-        </a>
+        <form method="post" action="{{ url_for('set_language', locale_code='en' if current_locale == 'zh' else 'zh') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="next" value="{{ request.full_path }}">
+          <button class="lang-btn" type="submit">{{ 'EN' if current_locale == 'zh' else '中文' }}</button>
+        </form>
       </div>
     </div>
   </header>

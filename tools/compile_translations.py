@@ -14,7 +14,7 @@ try:
     from babel.messages import mofile, pofile
 except ModuleNotFoundError as exc:  # pragma: no cover
     raise SystemExit(
-        "Babel is required. Please run 'pip install -r requirements.txt' before compiling translations."
+        "Babel is required. Please run 'pip install --require-hashes -r requirements.lock' before compiling translations."
     ) from exc
 
 

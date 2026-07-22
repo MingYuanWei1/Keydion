@@ -5,7 +5,7 @@ import textwrap
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from urllib.parse import urljoin, urlparse
+from urllib.parse import unquote, urljoin, urlsplit, urlunsplit
 
 from flask import Flask, flash, redirect, request, session, url_for
 from flask.sessions import SecureCookieSession
@@ -72,8 +72,9 @@ class RememberRouteSourceContractTest(unittest.TestCase):
     def test_oauth_round_trip_consumes_pending_flag(self):
         login_source = support.source_of("ms_login")
         callback_source = support.source_of("ms_callback")
-        self.assertIn('session["ms_remember"]', login_source)
-        self.assertIn('session.pop("ms_remember"', callback_source)
+        self.assertIn("create_oauth_login_attempt", login_source)
+        self.assertIn("consume_oauth_login_attempt", callback_source)
+        self.assertNotIn('session["ms_remember"]', login_source)
         self.assertIn("remember=remember", callback_source)
 
     def test_session_creation_failures_return_generic_feedback(self):
@@ -95,6 +96,9 @@ class MicrosoftNextRoundTripTest(unittest.TestCase):
     def _app(*, profile_complete=True):
         app = Flask(__name__)
         app.secret_key = "test-secret"
+        attempts = {}
+        app.extensions["oauth_attempts"] = attempts
+        app.extensions["last_oauth_state"] = None
 
         @app.route("/")
         def index():
@@ -110,9 +114,28 @@ class MicrosoftNextRoundTripTest(unittest.TestCase):
 
         def start_ms_session(_record, *, remember=False):
             session.clear()
-            session["user"] = {"ms_id": "microsoft-alice", "is_local": False}
             session["session_token"] = "fresh-session-token"
             session["remember_seen"] = remember
+
+        def create_oauth_login_attempt(
+            state, browser_binding, *, next_url, remember
+        ):
+            attempts[state] = {
+                "binding": browser_binding,
+                "next_url": next_url,
+                "remember": remember,
+            }
+            app.extensions["last_oauth_state"] = state
+
+        def consume_oauth_login_attempt(state, browser_binding):
+            attempt = attempts.get(state)
+            if attempt is None or attempt["binding"] != browser_binding:
+                return None
+            attempts.pop(state)
+            return {
+                "next_url": attempt["next_url"],
+                "remember": attempt["remember"],
+            }
 
         namespace = {
             "SQLAlchemyError": SQLAlchemyError,
@@ -121,10 +144,14 @@ class MicrosoftNextRoundTripTest(unittest.TestCase):
             "_": lambda message, **values: message % values if values else message,
             "app": app,
             "build_msal_app": lambda: MicrosoftNextRoundTripTest._MsalApp(),
+            "create_oauth_login_attempt": create_oauth_login_attempt,
+            "consume_oauth_login_attempt": consume_oauth_login_attempt,
             "fetch_ms_profile": lambda _result: {"ms_id": "microsoft-alice"},
             "flash": flash,
             "is_ms_configured": lambda: True,
             "is_profile_complete": lambda _record: profile_complete,
+            "get_active_user": lambda: None,
+            "_consume_request_limit": lambda *_args, **_kwargs: None,
             "redirect": redirect,
             "request": request,
             "session": session,
@@ -132,10 +159,13 @@ class MicrosoftNextRoundTripTest(unittest.TestCase):
             "upsert_ms_user": lambda profile: dict(profile),
             "url_for": url_for,
             "urljoin": urljoin,
-            "urlparse": urlparse,
+            "unquote": unquote,
+            "urlsplit": urlsplit,
+            "urlunsplit": urlunsplit,
             "uuid4": __import__("uuid").uuid4,
         }
         for function_name in (
+            "_safe_redirect_path",
             "_is_safe_redirect_target",
             "ms_login",
             "ms_callback",
@@ -147,16 +177,17 @@ class MicrosoftNextRoundTripTest(unittest.TestCase):
 
     @staticmethod
     def _state(client):
-        with client.session_transaction() as browser_session:
-            return browser_session["ms_state"]
+        return client.application.extensions["last_oauth_state"]
 
     def test_safe_target_round_trip_survives_session_reset(self):
         client = self._app().test_client()
         response = client.get("/auth/login", query_string={"next": "/dashboard"})
         self.assertEqual(response.location, "/microsoft-provider")
         state = self._state(client)
-        with client.session_transaction() as browser_session:
-            self.assertEqual(browser_session["ms_next"], "/dashboard")
+        self.assertEqual(
+            client.application.extensions["oauth_attempts"][state]["next_url"],
+            "/dashboard",
+        )
 
         response = client.get(
             "/auth/callback",
@@ -186,9 +217,11 @@ class MicrosoftNextRoundTripTest(unittest.TestCase):
             browser_session["next"] = "/protected-route"
 
         client.get("/auth/login")
-
-        with client.session_transaction() as browser_session:
-            self.assertEqual(browser_session["ms_next"], "/protected-route")
+        state = self._state(client)
+        self.assertEqual(
+            client.application.extensions["oauth_attempts"][state]["next_url"],
+            "/protected-route",
+        )
 
     def test_incomplete_profile_keeps_only_a_validated_target(self):
         for target, expected_next in (

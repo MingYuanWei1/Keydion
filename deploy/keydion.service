@@ -10,7 +10,7 @@ Group=keydion
 WorkingDirectory=/Keydion
 EnvironmentFile=/Keydion/.env.prod
 Environment=PYTHONUNBUFFERED=1
-ExecStart=/Keydion/.venv/bin/python -m gunicorn -c /Keydion/gunicorn.conf.py app:app
+ExecStart=/Keydion/.venv/bin/python -m gunicorn -c /Keydion/gunicorn.conf.py wsgi:app
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=on-failure
 RestartSec=5

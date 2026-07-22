@@ -1,0 +1,29 @@
+[Unit]
+Description=Keydion attachment processing worker
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=keydion
+Group=keydion
+WorkingDirectory=/Keydion
+EnvironmentFile=/Keydion/.env.prod
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/Keydion/.venv/bin/python -m tools.attachment_worker
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=90
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/Keydion/data
+LogsDirectory=keydion
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

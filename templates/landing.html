@@ -693,7 +693,7 @@
       <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
         {% if llm_enabled %}<button class="btn-search" onclick="location.href='{{ url_for('ai') }}'">Keydion AI</button>{% endif %}
         <button class="btn-search" onclick="location.href='{{ url_for('search') }}'">{{ _('Search Papers') }}</button>
-        {% if not session.get('user') %}
+        {% if not current_user %}
         <button class="btn-outline-light" onclick="openLoginModal()">{{ _('Sign in') }} →</button>
         {% endif %}
       </div>

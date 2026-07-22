@@ -544,6 +544,19 @@
   }
   var uploadItem = document.getElementById("kd-upload-item");
   var fileInput = document.getElementById("kd-file-input");
+  function pollAttachment(statusUrl, remaining) {
+    if (remaining <= 0) return Promise.reject(new Error("attachment processing timed out"));
+    return fetch(statusUrl, { headers: { "Accept": "application/json" } })
+      .then(function (response) { return response.json(); })
+      .then(function (job) {
+        if (job.state === "succeeded") return job;
+        if (job.state === "failed" || job.state === "canceled" || job.error) {
+          throw new Error(job.error || "attachment processing failed");
+        }
+        return new Promise(function (resolve) { setTimeout(resolve, 1000); })
+          .then(function () { return pollAttachment(statusUrl, remaining - 1); });
+      });
+  }
   if (uploadItem) uploadItem.addEventListener("click", function () {
     if (attachPop) attachPop.classList.remove("is-open");
     if (fileInput) fileInput.click();
@@ -562,9 +575,15 @@
         var up = fetch("/api/ai/attach", { method: "POST", headers: { "X-CSRFToken": CSRF }, body: fd })
           .then(function (r) { return r.json(); })
           .then(function (j) {
-            if (j && j.error) { delete window.__attachedDocs[f.name]; renderChips(); alert(j.error); }
+            if (j && j.error) throw new Error(j.error);
+            if (!j || !j.status_url) throw new Error("attachment job was not created");
+            return pollAttachment(j.status_url, 180);
           })
-          .catch(function () { delete window.__attachedDocs[f.name]; renderChips(); })
+          .catch(function (error) {
+            delete window.__attachedDocs[f.name];
+            renderChips();
+            alert(error && error.message ? error.message : (I18N.error || "Something went wrong."));
+          })
           .then(function () {
             window.__attachUploads = window.__attachUploads.filter(function (p) { return p !== up; });
           });

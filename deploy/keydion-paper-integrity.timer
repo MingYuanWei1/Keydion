@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Keydion Paper integrity verification
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=30m
+Unit=keydion-paper-integrity.service
+
+[Install]
+WantedBy=timers.target

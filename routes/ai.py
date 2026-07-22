@@ -41,6 +41,13 @@ from services.ai import (
     _prepare_available_grounding_hits,
     _tool_status_text,
 )
+from services.attachment_jobs import (
+    attachment_job_status_for_owner,
+    cancel_attachment,
+    delete_conversation_attachment_jobs,
+    queue_attachment,
+)
+from services.attachment_processing import AttachmentProcessingError
 from services.auth import get_active_user, is_ms_configured, require_login
 from services.papers import extract_text_from_upload, gather_paper_records
 from services.search import search_papers
@@ -165,6 +172,7 @@ def register_routes(app):
                     ChatMessageModel.conversation_id == conv.id).delete()
                 db.query(AttachmentChunkModel).filter(
                     AttachmentChunkModel.conversation_id == conv.id).delete()
+                delete_conversation_attachment_jobs(conv.id, db)
                 db.delete(conv)
                 return jsonify({"ok": True})
             if request.method == "PATCH":
@@ -266,16 +274,13 @@ def register_routes(app):
 
         if request.method == "DELETE":
             fname = (request.values.get("filename") or "").strip()
-            with db_session() as db:
-                db.query(AttachmentChunkModel).filter(
-                    AttachmentChunkModel.conversation_id == conv_id,
-                    AttachmentChunkModel.filename == fname).delete()
+            cancel_attachment(conv_id, fname)
             return jsonify({"ok": True})
 
         # Rate-limit uploads: extraction (now including OCR for scanned PDFs) is
         # CPU-heavy, so cap per-IP to avoid a degradation-of-service via the route.
         ip = request.remote_addr or "?"
-        if not _ask_rate_ok(ip):
+        if not _ask_rate_ok(ip, scope="attachment"):
             return jsonify({"error": str(_("Too many requests — please slow down."))}), 429
 
         upload = request.files.get("file")
@@ -287,30 +292,41 @@ def register_routes(app):
         raw = upload.read()
         if len(raw) > MAX_ATTACH_BYTES:
             return jsonify({"error": str(_("File is too large (max 5 MB)."))}), 400
+        display = name.replace("\\", "/").rsplit("/", 1)[-1].strip()[:255]
+        if not display or any(ord(character) < 32 for character in display):
+            return jsonify({"error": str(_("Invalid filename."))}), 400
         try:
-            text = extract_text_from_upload(name, raw)
-        except Exception:
-            app.logger.exception("attachment extraction failed")
+            job_id = queue_attachment(conv_id, display, raw)
+        except AttachmentProcessingError:
             return jsonify({"error": str(_("Could not read the file."))}), 400
-        chunks = rag_index.chunk_text(text)
-        if not chunks:
-            return jsonify({"error": str(_("No readable text found in the file."))}), 400
-        try:
-            vectors = rag_index.embed_texts(chunks)
         except Exception:
-            app.logger.exception("attachment embedding failed")
+            app.logger.exception("attachment job enqueue failed")
             return jsonify({"error": str(_("Something went wrong. Please try again."))}), 502
-        display = name[:255]
-        now = datetime.utcnow().isoformat()
-        with db_session() as db:
-            db.query(AttachmentChunkModel).filter(
-                AttachmentChunkModel.conversation_id == conv_id,
-                AttachmentChunkModel.filename == display).delete()
-            for i, ch in enumerate(chunks):
-                db.add(AttachmentChunkModel(
-                    conversation_id=conv_id, filename=display, chunk_index=i,
-                    content=ch, embedding=json.dumps(vectors[i]), created_at=now))
-        return jsonify({"ok": True, "filename": display, "chunks": len(chunks)})
+        return jsonify({
+            "ok": True,
+            "job_id": job_id,
+            "filename": display,
+            "state": "queued",
+            "status_url": url_for("api_ai_attachment_job", job_id=job_id),
+        }), 202
+
+    @app.get("/api/ai/attach/<string:job_id>")
+    def api_ai_attachment_job(job_id):
+        blocked = require_ask_api_access()
+        if blocked:
+            return blocked
+        owner = _ask_owner_key()
+        status = attachment_job_status_for_owner(job_id, owner)
+        if status is None:
+            return jsonify({"error": str(_("Not found"))}), 404
+        payload = {
+            "job_id": status.id,
+            "filename": status.filename,
+            "state": status.state,
+        }
+        if status.state == "failed":
+            payload["error"] = str(_("Could not process the attachment."))
+        return jsonify(payload)
 
     @app.route("/api/ai", methods=["POST"])
     def api_ai():
@@ -327,7 +343,9 @@ def register_routes(app):
         data = request.get_json(silent=True) or {}
         question = (data.get("question") or "").strip()
         mode = data.get("mode") if data.get("mode") in ("flash", "think") else "flash"
-        web_on = bool(data.get("web"))
+        # Only the JSON boolean true is consent.  Truthy strings and a globally
+        # configured provider must never enable outbound tools on their own.
+        web_on = data.get("web") is True
         msg_attachments = data.get("message_attachments") or []
         if not isinstance(msg_attachments, list):
             msg_attachments = []
@@ -486,7 +504,7 @@ def register_routes(app):
                 attachment_names = _attachment_filenames(db_conv_id)
                 include_attachment = bool(attachment_names)
                 deps = _build_library_deps(db_conv_id)
-                include_web = web_search.web_search_enabled()
+                include_web = web_on and web_search.web_search_enabled()
                 tool_schemas = library_tools.build_tool_schemas(
                     include_web=include_web, include_attachment=include_attachment)
                 web_call_count = 0
@@ -537,11 +555,14 @@ def register_routes(app):
                 web_sources = []
                 if web_results:
                     for w in web_results:
-                        wn = registry.register(w["url"], {
-                            "title": w["title"], "authors": "", "url": w["url"],
+                        allowed_url = registry.allow_web_fetch(w["url"])
+                        if allowed_url is None:
+                            continue
+                        wn = registry.register(allowed_url, {
+                            "title": w["title"], "authors": "", "url": allowed_url,
                         }, is_web=True)
                         web_sources.append({
-                            "n": wn, "title": w["title"], "url": w["url"],
+                            "n": wn, "title": w["title"], "url": allowed_url,
                             "snippet": (w.get("content") or "")[:500],
                         })
 

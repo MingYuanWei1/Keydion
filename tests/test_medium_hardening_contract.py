@@ -4,6 +4,7 @@ SEC-11 (OAuth state), and HTTP security headers.
 """
 import os
 import sys
+import types
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -17,6 +18,21 @@ from services.session_cookie import AuthExpirySessionInterface
 
 
 class MediumHardeningContractTest(unittest.TestCase):
+    def setUp(self):
+        fake_services = types.SimpleNamespace(
+            lifecycle=mock.Mock(),
+            library=mock.Mock(),
+        )
+        with (
+            mock.patch.object(app_module, "init_db"),
+            mock.patch.object(app_module, "configure_rag"),
+            mock.patch(
+                "services.publishing_wiring.build_publishing_services",
+                return_value=fake_services,
+            ),
+        ):
+            self.app = app_module.create_app()
+
     # --- SEC-08: session cookie lifetime shortened to the server token timeout ---
     def test_session_lifetime_matches_server_timeout(self):
         src = support.source_of("create_app")
@@ -24,7 +40,7 @@ class MediumHardeningContractTest(unittest.TestCase):
         self.assertNotIn("timedelta(days=365)", src)
 
     def test_create_app_installs_auth_expiry_session_interface(self):
-        self.assertIsInstance(app_module.app.session_interface, AuthExpirySessionInterface)
+        self.assertIsInstance(self.app.session_interface, AuthExpirySessionInterface)
 
     def test_remembered_session_carries_absolute_cookie_deadline(self):
         src = support.source_of("_start_browser_session")
@@ -51,10 +67,10 @@ class MediumHardeningContractTest(unittest.TestCase):
     # --- SEC-10: open redirect on login `next` ---
     def test_login_uses_safe_redirect_guard(self):
         src = support.source_of("login")
-        self.assertIn("_is_safe_redirect_target(saved_next)", src)
+        self.assertIn("_safe_redirect_path(saved_next)", src)
 
     def test_is_safe_redirect_target_rejects_external(self):
-        with app_module.app.test_request_context("/", base_url="http://localhost/"):
+        with self.app.test_request_context("/", base_url="http://localhost/"):
             # legitimate same-origin targets
             self.assertTrue(app_module._is_safe_redirect_target("/dashboard"))
             self.assertTrue(app_module._is_safe_redirect_target("/search?q=x"))
@@ -68,6 +84,10 @@ class MediumHardeningContractTest(unittest.TestCase):
                 "/\\evil.example",            # backslash that browsers normalize to '//'
                 "/\tevil",                    # control char
                 "http://localhost\\@evil.example",
+                "/%2f%2fevil.example",
+                "/%5cevil.example",
+                "/%255cevil.example",
+                "/%0devil",
             ):
                 self.assertFalse(
                     app_module._is_safe_redirect_target(bad),
@@ -77,12 +97,13 @@ class MediumHardeningContractTest(unittest.TestCase):
     # --- SEC-11: OAuth callback rejects a missing/mismatched state ---
     def test_oauth_callback_requires_state(self):
         src = support.source_of("ms_callback")
-        self.assertIn('session.pop("ms_state"', src)
-        self.assertIn("not expected_state", src)
+        self.assertIn("consume_oauth_login_attempt", src)
+        self.assertIn("attempt is None", src)
+        self.assertNotIn('session["ms_state"]', support.source_of("ms_login"))
 
     # --- HTTP security headers on every response ---
     def test_security_headers_present(self):
-        client = app_module.app.test_client()
+        client = self.app.test_client()
         resp = client.get("/__no_such_route__")  # 404 still passes through after_request
         self.assertEqual(resp.headers.get("X-Content-Type-Options"), "nosniff")
         self.assertEqual(resp.headers.get("X-Frame-Options"), "SAMEORIGIN")

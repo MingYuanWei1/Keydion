@@ -10,9 +10,9 @@ from sqlalchemy import (
     BigInteger, Boolean, CheckConstraint, Column, Date, DateTime, ForeignKey,
     ForeignKeyConstraint, Index, Integer, LargeBinary,
     String, Unicode, UnicodeText, UniqueConstraint, create_engine, func, inspect,
-    select,
+    select, text,
 )
-from sqlalchemy.dialects.mysql import MEDIUMTEXT, base as mysql_base
+from sqlalchemy.dialects.mysql import MEDIUMBLOB, MEDIUMTEXT, base as mysql_base
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql.functions import FunctionElement
@@ -111,6 +111,11 @@ class PaperMetadataModel(BASE):
         unique=True,
     )
     reservation_expires_at = Column(DateTime(timezone=False))
+    integrity_status = Column(
+        Unicode(16), nullable=False, default="unknown", server_default="unknown"
+    )
+    integrity_checked_at = Column(DateTime(timezone=False))
+    integrity_checked_revision = Column(Integer)
 
 
 class PaperRevisionModel(BASE):
@@ -331,6 +336,27 @@ class AttachmentChunkModel(BASE):
     created_at = Column(Unicode(40))
 
 
+class AttachmentJobModel(BASE):
+    __tablename__ = "attachment_jobs"
+    __table_args__ = (
+        Index("ix_attachment_jobs_due", "state", "available_at", "created_at"),
+        Index("ix_attachment_jobs_conversation", "conversation_id"),
+    )
+
+    id = Column(Unicode(36), primary_key=True)
+    conversation_id = Column(Integer, nullable=False)
+    filename = Column(Unicode(255), nullable=False)
+    payload = Column(LargeBinary().with_variant(MEDIUMBLOB(), "mysql"))
+    state = Column(Unicode(16), nullable=False)
+    attempts = Column(Integer, nullable=False, default=0)
+    available_at = Column(DateTime, nullable=False)
+    lease_token = Column(Unicode(36))
+    lease_expires_at = Column(DateTime)
+    last_error = Column(UnicodeText)
+    created_at = Column(DateTime, nullable=False)
+    updated_at = Column(DateTime, nullable=False)
+
+
 class NewsArticleModel(BASE):
     __tablename__ = "news_articles"
     id = Column(Unicode(255), primary_key=True)
@@ -441,6 +467,34 @@ class SessionModel(BASE):
     expires_at = Column(DateTime)
 
 
+class OAuthLoginAttemptModel(BASE):
+    __tablename__ = "oauth_login_attempts"
+    __table_args__ = (
+        Index("ix_oauth_login_attempts_expires_at", "expires_at"),
+    )
+
+    state_hash = Column(Unicode(64), primary_key=True)
+    browser_hash = Column(Unicode(64), nullable=False)
+    next_url = Column(UnicodeText, nullable=False, default="")
+    remember = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+
+
+class RateLimitBucketModel(BASE):
+    __tablename__ = "rate_limit_buckets"
+    __table_args__ = (
+        Index("ix_rate_limit_buckets_expires_at", "expires_at"),
+    )
+
+    scope = Column(Unicode(64), primary_key=True)
+    key_hash = Column(Unicode(64), primary_key=True)
+    window_started_at = Column(DateTime, nullable=False)
+    count = Column(Integer, nullable=False, default=0)
+    blocked_until = Column(DateTime)
+    expires_at = Column(DateTime, nullable=False)
+
+
 def _alembic_config() -> Config:
     return Config(str(Path(__file__).resolve().parent / "alembic.ini"))
 
@@ -452,58 +506,110 @@ def _alembic_head() -> str:
     return head
 
 
-def _ensure_rag_version_row(engine, initial_value: int) -> None:
+def _ensure_rag_version_row(connection, initial_value: int) -> None:
     table = RagIndexMetaModel.__table__
-    with engine.begin() as conn:
-        current = conn.execute(
-            select(table.c.value).where(table.c.name == "chunks_version")
-        ).scalar_one_or_none()
-        if current is None:
-            conn.execute(
-                table.insert().values(
-                    name="chunks_version",
-                    value=initial_value,
-                )
+    current = connection.execute(
+        select(table.c.value).where(table.c.name == "chunks_version")
+    ).scalar_one_or_none()
+    if current is None:
+        connection.execute(
+            table.insert().values(
+                name="chunks_version",
+                value=initial_value,
             )
+        )
 
 
-def _ensure_submission_identity_fence_row(engine) -> None:
+def _ensure_submission_identity_fence_row(connection) -> None:
     table = SubmissionIdentityFenceModel.__table__
-    with engine.begin() as conn:
-        current = conn.execute(
-            select(table.c.generation).where(table.c.name == "global")
-        ).scalar_one_or_none()
-        if current is None:
-            conn.execute(table.insert().values(name="global", generation=0))
+    current = connection.execute(
+        select(table.c.generation).where(table.c.name == "global")
+    ).scalar_one_or_none()
+    if current is None:
+        connection.execute(table.insert().values(name="global", generation=0))
 
 
-def ensure_schema_current(engine) -> None:
-    """Create a new schema or refuse any non-current existing schema."""
-    user_tables = set(inspect(engine).get_table_names()) - {"alembic_version"}
+def bootstrap_empty_database(engine, *, lock_timeout: int = 30) -> str:
+    """Create and stamp a genuinely empty database under an operator lock."""
     head = _alembic_head()
-    if not user_tables:
-        BASE.metadata.create_all(engine)
-        _ensure_rag_version_row(engine, initial_value=0)
-        _ensure_submission_identity_fence_row(engine)
-        alembic_config = _alembic_config()
-        with engine.begin() as conn:
-            alembic_config.attributes["connection"] = conn
+    with engine.connect() as connection:
+        dialect = connection.dialect.name
+        lock_acquired = False
+        if dialect == "mysql":
+            acquired = connection.execute(
+                text("SELECT GET_LOCK('keydion_empty_bootstrap', :timeout)"),
+                {"timeout": lock_timeout},
+            ).scalar_one()
+            connection.commit()
+            if acquired != 1:
+                raise RuntimeError("could not acquire the database bootstrap lock")
+            lock_acquired = True
+        elif dialect == "postgresql":
+            connection.execute(text("SELECT pg_advisory_lock(1262836047)"))
+            connection.commit()
+            lock_acquired = True
+
+        try:
+            existing_tables = set(inspect(connection).get_table_names())
+            if existing_tables:
+                raise RuntimeError(
+                    "database bootstrap requires a completely empty database; "
+                    f"found tables: {', '.join(sorted(existing_tables))}"
+                )
+            # SQLAlchemy inspection may autobegin even though it only reads.
+            connection.commit()
+
+            with connection.begin():
+                BASE.metadata.create_all(connection)
+                _ensure_rag_version_row(connection, initial_value=0)
+                _ensure_submission_identity_fence_row(connection)
+
+            alembic_config = _alembic_config()
+            alembic_config.attributes["connection"] = connection
             try:
                 command.stamp(alembic_config, head)
             finally:
                 alembic_config.attributes.pop("connection", None)
-        return
+
+            current = tuple(
+                MigrationContext.configure(connection).get_current_heads()
+            )
+            if current != (head,):
+                raise RuntimeError(
+                    "database bootstrap did not produce the expected Alembic head"
+                )
+            return head
+        finally:
+            if lock_acquired and dialect == "mysql":
+                connection.execute(
+                    text("SELECT RELEASE_LOCK('keydion_empty_bootstrap')")
+                )
+                connection.commit()
+            elif lock_acquired and dialect == "postgresql":
+                connection.execute(text("SELECT pg_advisory_unlock(1262836047)"))
+                connection.commit()
+
+
+def ensure_schema_current(engine) -> None:
+    """Verify a current schema; web and worker startup never mutate it."""
+    user_tables = set(inspect(engine).get_table_names()) - {"alembic_version"}
+    head = _alembic_head()
+    if not user_tables:
+        raise RuntimeError(
+            "database is empty; run `python -m tools.bootstrap_database "
+            "--confirm-empty-bootstrap` before starting web or worker processes"
+        )
 
     with engine.connect() as conn:
-        current = MigrationContext.configure(conn).get_current_revision()
-    if current is None:
+        current = tuple(MigrationContext.configure(conn).get_current_heads())
+    if not current:
         raise RuntimeError(
             "database schema is unversioned; run the documented Alembic "
             "adoption procedure"
         )
-    if current != head:
+    if current != (head,):
         raise RuntimeError(
-            f"database schema revision {current!r} does not match code head "
+            f"database schema state {current!r} does not match code head "
             f"{head!r}"
         )
 

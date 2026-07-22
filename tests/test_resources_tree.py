@@ -20,9 +20,22 @@ def _reload_app_with_temp_db():
     os.environ["PAPERQUERY_SECRET"] = "test-secret"
     os.environ["PAPERQUERY_DATABASE_URL"] = f"sqlite:///{tmp_db.name}"
     os.environ["PAPERQUERY_RESOURCES_DIR"] = tempfile.mkdtemp()
+    import db
+    import models
+    from sqlalchemy import create_engine
+
+    database_url = os.environ["PAPERQUERY_DATABASE_URL"]
+    bootstrap_engine = create_engine(database_url)
+    try:
+        models.bootstrap_empty_database(bootstrap_engine)
+    finally:
+        bootstrap_engine.dispose()
+    db.DB_URL = database_url
+    db._ENGINE = None
+    db._SESSION_LOCAL = None
     import app as app_module
     importlib.reload(app_module)
-    app_module.create_app()  # runs init_db() -> creates resource_nodes table
+    app_module.create_app()
     return app_module, tmp_db.name
 
 

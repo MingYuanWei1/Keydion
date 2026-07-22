@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import re
 import subprocess
 import tempfile
@@ -13,7 +12,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "test.yml"
 WEB_UNIT = ROOT / "deploy" / "keydion.service"
-LEGACY_WEB_UNIT = ROOT / "deploy" / "keydion-legacy.service"
+LEGACY_WEB_UNIT = (
+    ROOT / "tests" / "fixtures" / "deploy" / "keydion-legacy.service.fixture"
+)
 WORKER_UNIT = ROOT / "deploy" / "keydion-publishing-worker.service"
 RUNBOOK = ROOT / "docs" / "deployment" / "paper-publishing-migration.md"
 
@@ -138,7 +139,7 @@ class PublishingDeploymentContract(unittest.TestCase):
         service = unit["Service"]
         self.assertEqual(
             "/Keydion/.venv/bin/python -m gunicorn -c "
-            "/Keydion/gunicorn.conf.py app:app",
+            "/Keydion/gunicorn.conf.py wsgi:app",
             service.get("ExecStart"),
         )
         self.assertEqual("/bin/kill -HUP $MAINPID", service.get("ExecReload"))
@@ -189,18 +190,16 @@ WantedBy=multi-user.target
         )
         self.assertNotIn("keydion.service", relationships)
 
-    def test_gunicorn_only_warms_the_snapshot_and_compose_is_unchanged(self):
+    def test_gunicorn_only_warms_snapshot_and_compose_runs_attachment_worker(self):
         gunicorn = (ROOT / "gunicorn.conf.py").read_text(encoding="utf-8")
         post_fork = gunicorn[gunicorn.index("def post_fork"):]
         self.assertIn("rag_index.warm()", post_fork)
         self.assertNotIn("publishing_worker", post_fork)
         self.assertNotIn("build_publishing_worker", post_fork)
 
-        compose = (ROOT / "docker-compose.prod.yml").read_bytes()
-        self.assertEqual(
-            "06fd4b8a3d397470b49395f981bfe2410b0cc7392a0bda605acfe85e517fa8af",
-            hashlib.sha256(compose).hexdigest(),
-        )
+        compose = (ROOT / "docker-compose.prod.yml").read_text(encoding="utf-8")
+        self.assertIn("attachment-worker:", compose)
+        self.assertIn('command: ["python", "-m", "tools.attachment_worker"]', compose)
 
     def test_environment_documents_the_approved_worker_defaults(self):
         env_example = (ROOT / ".env.example").read_text(encoding="utf-8")
@@ -393,7 +392,7 @@ WantedBy=multi-user.target
             self.assertIn(required, resume)
         self.assertLess(
             resume.index('cd "$keydion_root"'),
-            resume.index("-m alembic heads"),
+            resume.index("-m tools.verify_alembic_state --code-only"),
         )
         self.assertIn("information_schema.tables", resume)
         self.assertGreaterEqual(lower.count("set -o noclobber"), 2)
@@ -413,7 +412,7 @@ WantedBy=multi-user.target
             "alembic stamp 0000_legacy_baseline",
             "paperquery_publishing_maintenance=1",
             "alembic upgrade head",
-            "0003_publishing_contract (head)",
+            "tools.verify_alembic_state",
             "publishing_migration_issues",
             "source_sha256",
             "legacy_chunk_fingerprint",
@@ -912,7 +911,7 @@ WantedBy=multi-user.target
             "301",
             "canonical",
             "legacy",
-            "-m alembic current",
+            "-m tools.verify_alembic_state",
         ):
             self.assertIn(required, forward)
         terminal = forward.index(
@@ -2056,7 +2055,7 @@ mysql() {
             '"$keydion_new_release:deploy/$unit"',
             'git -c "$keydion_root" hash-object',
             'test "$installed_blob" = "$release_blob"',
-            "0003_publishing_contract (head)",
+            "tools.verify_alembic_state",
         ):
             self.assertIn(required, prestart)
 
@@ -2137,7 +2136,7 @@ mysql() {
             '"" )',
             'keydion_web_unit_origin=candidate-legacy-allowlist',
             'keydion_web_unit_source_release="$keydion_new_release"',
-            'keydion_web_unit_source_path=deploy/keydion-legacy.service',
+            'keydion_web_unit_source_path=tests/fixtures/deploy/keydion-legacy.service.fixture',
             '"${keydion_web_unit_source_release}:${keydion_web_unit_source_path}"',
             'git -c "$keydion_root" cat-file -e',
             'git -c "$keydion_root" hash-object',
@@ -2247,7 +2246,7 @@ mysql() {
         ):
             self.assertNotIn(forbidden, pre_backup)
         self.assertNotIn(
-            "deploy/keydion-legacy.service /etc/systemd/system/keydion.service",
+            "tests/fixtures/deploy/keydion-legacy.service.fixture /etc/systemd/system/keydion.service",
             runbook,
         )
 
@@ -2261,7 +2260,7 @@ mysql() {
             "load_recorded_unit_provenance() {",
             "systemd/unit-provenance.tsv",
             "candidate-legacy-allowlist",
-            "deploy/keydion-legacy.service",
+            "tests/fixtures/deploy/keydion-legacy.service.fixture",
             '"${source_release}:${source_path}"',
             'test "$current_blob" = "$recorded_blob"',
             'test "$current_sha256" = "$recorded_sha256"',
@@ -2292,7 +2291,7 @@ mysql() {
             "load_recorded_unit_provenance() {",
             "systemd/unit-provenance.tsv",
             "candidate-legacy-allowlist",
-            "deploy/keydion-legacy.service",
+            "tests/fixtures/deploy/keydion-legacy.service.fixture",
             '"${source_release}:${source_path}"',
             "assert_recorded_unit_source keydion.service",
         ):

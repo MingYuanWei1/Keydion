@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 import db
-from models import LocalUser, MsUser, SessionModel
+from models import LocalUser, MsUser, OAuthLoginAttemptModel, SessionModel
 from services import auth
 
 
@@ -18,6 +18,7 @@ class AuthSessionServiceTest(unittest.TestCase):
         LocalUser.__table__.create(self.engine)
         MsUser.__table__.create(self.engine)
         SessionModel.__table__.create(self.engine)
+        OAuthLoginAttemptModel.__table__.create(self.engine)
         self.session_factory = sessionmaker(bind=self.engine)
         original_factory = db._SESSION_LOCAL
         db._SESSION_LOCAL = self.session_factory
@@ -208,12 +209,88 @@ class AuthSessionServiceTest(unittest.TestCase):
         with db.db_session() as session:
             self.assertEqual(session.query(SessionModel).count(), 25)
 
-    def test_token_cannot_be_reused_with_another_identity(self):
+    def test_cookie_identity_cannot_override_token_identity(self):
         token, _ = auth.register_active_session(
             auth.ACCOUNT_LOCAL, "alice", now=self.now
         )
         wrong_user = {"username": "different", "role": "1", "is_local": True}
-        self.assertIsNone(auth.refresh_session(wrong_user, token, now=self.now))
+        refreshed = auth.refresh_session(wrong_user, token, now=self.now)
+        self.assertEqual(refreshed["username"], "alice")
+
+    def test_browser_session_contains_no_identity_or_profile_fields(self):
+        app = Flask(__name__)
+        app.secret_key = "test-secret"
+        user = {
+            "username": "alice",
+            "role": "3",
+            "registered_at": "2026-01-01",
+            "expiry_date": "",
+        }
+        with app.test_request_context("/"):
+            auth.start_local_session(
+                user,
+                display_name="Alice Example",
+                email="alice@example.test",
+                remember=True,
+            )
+            keys = set(flask_session)
+            self.assertNotIn("user", keys)
+            self.assertNotIn("email", keys)
+            self.assertNotIn("role", keys)
+            self.assertNotIn("username", keys)
+            self.assertEqual(
+                keys,
+                {"_permanent", "auth_expires_at", "session_token"},
+            )
+
+    def test_oauth_attempt_is_browser_bound_one_use_server_state(self):
+        auth.create_oauth_login_attempt(
+            "state-token",
+            "browser-a",
+            next_url="/dashboard",
+            remember=True,
+            now=self.now,
+        )
+        self.assertIsNone(
+            auth.consume_oauth_login_attempt(
+                "state-token",
+                "browser-b",
+                now=self.now,
+            )
+        )
+        self.assertEqual(
+            auth.consume_oauth_login_attempt(
+                "state-token",
+                "browser-a",
+                now=self.now,
+            ),
+            {"next_url": "/dashboard", "remember": True},
+        )
+        self.assertIsNone(
+            auth.consume_oauth_login_attempt(
+                "state-token",
+                "browser-a",
+                now=self.now,
+            )
+        )
+
+    def test_expired_oauth_attempt_is_rejected_and_purged(self):
+        auth.create_oauth_login_attempt(
+            "expired-state",
+            "browser-a",
+            next_url="/dashboard",
+            remember=False,
+            now=self.now,
+        )
+        self.assertIsNone(
+            auth.consume_oauth_login_attempt(
+                "expired-state",
+                "browser-a",
+                now=self.now + auth.OAUTH_ATTEMPT_LIFETIME,
+            )
+        )
+        with db.db_session() as database:
+            self.assertEqual(database.query(OAuthLoginAttemptModel).count(), 0)
 
     def test_password_update_revokes_every_local_session(self):
         sibling_id, sibling_token = self._sibling_token(auth.ACCOUNT_LOCAL)

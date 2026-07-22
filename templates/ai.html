@@ -19,8 +19,8 @@
     </a>
     <div class="kd-header__right">
       <a class="kd-header__icon" href="{{ url_for('search') }}" title="{{ _('Search papers') }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-3.5-3.5"/></svg></a>
-      {% if session.get('user') %}
-      {% set nav_name = session.get('user', {}).get('display_name') or session.get('user', {}).get('username', '') %}
+      {% if current_user %}
+      {% set nav_name = current_user.get('display_name') or current_user.get('username', '') %}
       <div class="kd-user-menu">
         <button class="kd-avatar btn-user-circle" type="button" onclick="toggleUserMenu()" title="{{ nav_name }}" aria-label="{{ _('Account') }}" aria-expanded="false">
           <img src="{{ url_for('static', filename='usricon.png') }}" alt="">
@@ -36,9 +36,11 @@
       {% else %}
       <button class="kd-signin" type="button" onclick="openLoginModal()">{{ _('Sign in') }}</button>
       {% endif %}
-      <a class="kd-lang-switch" href="{{ url_for('set_language', locale_code='en' if current_locale == 'zh' else 'zh', next=request.full_path) }}">
-        {{ 'EN' if current_locale == 'zh' else '中文' }}
-      </a>
+      <form method="post" action="{{ url_for('set_language', locale_code='en' if current_locale == 'zh' else 'zh') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="next" value="{{ request.full_path }}">
+        <button class="kd-lang-switch" type="submit">{{ 'EN' if current_locale == 'zh' else '中文' }}</button>
+      </form>
     </div>
   </header>
 
@@ -116,7 +118,7 @@
 
   <input id="kd-file-input" type="file" accept=".pdf,.docx,.txt,.md" multiple style="display:none">
 
-  {% if not session.get('user') %}
+  {% if not current_user %}
   {% set flash_messages = get_flashed_messages(with_categories=true) %}
   {% set ns = namespace(has_login_error=false) %}
   {% for category, message in flash_messages %}
@@ -231,7 +233,7 @@
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && loginModal && loginModal.classList.contains('active')) closeLoginModal();
     });
-    {% if not session.get('user') %}
+    {% if not current_user %}
     {% if ns.has_login_error %}openLoginModal();{% endif %}
     {% if request.args.get('login') %}openLoginModal();{% endif %}
     {% endif %}

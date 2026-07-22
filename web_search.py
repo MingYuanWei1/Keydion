@@ -9,10 +9,12 @@ hidden until an operator configures it.
 from __future__ import annotations
 
 import ipaddress
+import http.client
 import os
 import socket
+import ssl
 import zlib
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import requests
 
@@ -47,7 +49,17 @@ def web_search(query: str, max_results: int = 5) -> list:
     provider = (os.environ.get("WEB_SEARCH_PROVIDER") or "tavily").strip().lower()
     try:
         if provider == "tavily":
-            return _tavily(query, max_results)
+            results = []
+            for result in _tavily(query, max_results):
+                normalized = normalize_fetch_url(result.get("url") or "")
+                if normalized is None:
+                    continue
+                results.append({
+                    "title": result.get("title") or normalized,
+                    "url": normalized,
+                    "content": result.get("content") or "",
+                })
+            return results
     except Exception:
         return []
     return []
@@ -113,14 +125,147 @@ def _host_is_safe(host: str) -> bool:
     return True
 
 
-def _url_is_safe(url: str) -> bool:
+def normalize_fetch_url(url: str, *, max_length: int = 2048) -> str | None:
+    """Return one canonical fetchable HTTP(S) URL, without resolving it.
+
+    Model-emitted URLs are untrusted.  Only default web ports are supported and
+    URL credentials, fragments, whitespace/control characters, malformed IDNA,
+    and oversized values are rejected before an allowlist comparison or DNS
+    lookup occurs.
+    """
+    if not isinstance(url, str):
+        return None
+    candidate = url.strip()
+    if not candidate or len(candidate) > max_length:
+        return None
+    if any(ord(char) <= 0x20 or ord(char) == 0x7F for char in candidate):
+        return None
     try:
-        parts = urlparse(url)
+        parts = urlsplit(candidate)
+        scheme = (parts.scheme or "").lower()
+        if scheme not in _FETCH_SCHEMES or not parts.hostname:
+            return None
+        if parts.username is not None or parts.password is not None:
+            return None
+        port = parts.port
+        expected_port = 443 if scheme == "https" else 80
+        if port not in (None, expected_port):
+            return None
+        host = parts.hostname.encode("idna").decode("ascii").lower().rstrip(".")
+        if not host:
+            return None
+        try:
+            parsed_ip = ipaddress.ip_address(host)
+        except ValueError:
+            parsed_ip = None
+        host_for_url = f"[{host}]" if parsed_ip is not None and parsed_ip.version == 6 else host
+        path = parts.path or "/"
+        return urlunsplit((scheme, host_for_url, path, parts.query, ""))
+    except (UnicodeError, ValueError):
+        return None
+
+
+def _resolve_public_ips(host: str, port: int) -> tuple[str, ...]:
+    """Resolve once and return vetted public addresses for a pinned connect."""
+    try:
+        infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    except (socket.gaierror, UnicodeError, OSError, ValueError):
+        return ()
+    addresses = []
+    for info in infos:
+        try:
+            address = str(ipaddress.ip_address(info[4][0]))
+            parsed = ipaddress.ip_address(address)
+        except ValueError:
+            return ()
+        # Fail closed if any DNS answer is non-public; do not choose a public
+        # answer from a mixed public/private result set.
+        if _ip_is_blocked(parsed):
+            return ()
+        if address not in addresses:
+            addresses.append(address)
+    return tuple(addresses)
+
+
+def _url_is_safe(url: str) -> bool:
+    normalized = normalize_fetch_url(url)
+    if normalized is None:
+        return False
+    parts = urlsplit(normalized)
+    return bool(_resolve_public_ips(parts.hostname or "", parts.port or (443 if parts.scheme == "https" else 80)))
+
+
+class _PinnedHTTPSConnection(http.client.HTTPSConnection):
+    """HTTPS connection to a numeric IP with TLS identity bound to the URL host."""
+
+    def __init__(self, address: str, port: int, server_hostname: str, timeout: int):
+        super().__init__(address, port=port, timeout=timeout, context=ssl.create_default_context())
+        self._keydion_server_hostname = server_hostname
+
+    def connect(self) -> None:
+        http.client.HTTPConnection.connect(self)
+        self.sock = self._context.wrap_socket(
+            self.sock,
+            server_hostname=self._keydion_server_hostname,
+        )
+
+
+def _open_pinned_connection(parts, address: str, timeout: int):
+    port = parts.port or (443 if parts.scheme == "https" else 80)
+    if parts.scheme == "https":
+        connection = _PinnedHTTPSConnection(
+            address,
+            port,
+            parts.hostname or "",
+            timeout,
+        )
+    else:
+        connection = http.client.HTTPConnection(address, port=port, timeout=timeout)
+    connection.connect()
+    peer = connection.sock.getpeername()[0] if connection.sock is not None else ""
+    try:
+        peer_ip = ipaddress.ip_address(peer)
+        expected_ip = ipaddress.ip_address(address)
     except ValueError:
-        return False
-    if (parts.scheme or "").lower() not in _FETCH_SCHEMES:
-        return False
-    return _host_is_safe(parts.hostname or "")
+        connection.close()
+        raise OSError("outbound peer address is invalid")
+    if peer_ip != expected_ip or _ip_is_blocked(peer_ip):
+        connection.close()
+        raise OSError("outbound peer does not match the vetted address")
+    return connection
+
+
+def _request_pinned(url: str, *, timeout: int):
+    """Open one response after resolving once, then connecting to that exact IP."""
+    normalized = normalize_fetch_url(url)
+    if normalized is None:
+        return None, None, None
+    parts = urlsplit(normalized)
+    port = parts.port or (443 if parts.scheme == "https" else 80)
+    addresses = _resolve_public_ips(parts.hostname or "", port)
+    if not addresses:
+        return None, None, None
+    target = parts.path or "/"
+    if parts.query:
+        target += "?" + parts.query
+    host_header = parts.hostname or ""
+    last_error = None
+    for address in addresses:
+        connection = None
+        try:
+            connection = _open_pinned_connection(parts, address, timeout)
+            connection.putrequest("GET", target, skip_host=True, skip_accept_encoding=True)
+            connection.putheader("Host", host_header)
+            connection.putheader("User-Agent", "KeydionBot/1.0")
+            connection.putheader("Accept-Encoding", "identity")
+            connection.endheaders()
+            return connection, connection.getresponse(), normalized
+        except (OSError, ssl.SSLError, http.client.HTTPException) as exc:
+            last_error = exc
+            if connection is not None:
+                connection.close()
+    del last_error
+    return None, None, None
 
 
 def _extract_text(html: str, max_chars: int) -> str:
@@ -216,63 +361,48 @@ def fetch_url(url: str, *, max_bytes: int = 3_000_000, timeout: int = 8,
               max_redirects: int = 3, max_chars: int = 10_000) -> str:
     """Fetch a public web page and return extracted text; "" on any violation.
 
-    SSRF-guarded: http/https only; blocks URLs resolving to private/loopback/
-    link-local/reserved/metadata IPs; follows redirects manually, re-validating
-    each hop; caps body size, time, and content-type. NOTE (v1): resolved IPs are
-    validated but the socket is not pinned to them, so DNS-rebinding is not fully
-    closed — see the security review."""
-    current = (url or "").strip()
-    if not _url_is_safe(current):
+    SSRF-guarded: http/https on default ports only; blocks private/loopback/
+    link-local/reserved/metadata IPs; pins the socket to the address vetted by
+    DNS; verifies TLS for the original hostname; revalidates every redirect;
+    and caps body size, time, and content type."""
+    current = normalize_fetch_url(url)
+    if current is None:
         return ""
     for _ in range(max_redirects + 1):
-        try:
-            resp = requests.get(
-                current, timeout=timeout, allow_redirects=False, stream=True,
-                headers={"User-Agent": "KeydionBot/1.0",
-                         # Ask the origin not to compress so the body we cap is
-                         # the body we parse. A hostile server can ignore this,
-                         # so the raw-byte cap below is the real guard.
-                         "Accept-Encoding": "identity"})
-        except Exception:
+        connection, resp, opened_url = _request_pinned(current, timeout=timeout)
+        if connection is None or resp is None or opened_url is None:
             return ""
         try:
-            if getattr(resp, "is_redirect", False) or resp.status_code in (301, 302, 303, 307, 308):
-                loc = resp.headers.get("Location") or ""
+            if resp.status in (301, 302, 303, 307, 308):
+                loc = resp.getheader("Location") or ""
                 if not loc:
                     return ""
-                nxt = urljoin(current, loc)
-                if not _url_is_safe(nxt):
+                nxt = normalize_fetch_url(urljoin(opened_url, loc))
+                if nxt is None:
                     return ""
                 current = nxt
                 continue
-            if resp.status_code != 200:
+            if resp.status != 200:
                 return ""
-            ctype = (resp.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+            ctype = (resp.getheader("Content-Type") or "").split(";")[0].strip().lower()
             # Require an explicit, allowed Content-Type. A missing/blank header is
             # rejected rather than fed to the HTML parser as arbitrary bytes.
             if ctype not in _FETCH_CONTENT_TYPES:
                 return ""
             # Reject up front when the server advertises an over-cap body, so we
             # never even start streaming a known-too-large response.
-            clen = (resp.headers.get("Content-Length") or "").strip()
+            clen = (resp.getheader("Content-Length") or "").strip()
             if clen.isdigit() and int(clen) > max_bytes:
                 return ""
-            # Read the still-compressed body with a hard cap on the *raw* bytes,
-            # then bound the decompressed output too — neither the compressed
-            # input nor the inflated output may exceed max_bytes, so a gzip bomb
-            # cannot exhaust memory.
-            raw_body = _read_capped_raw(resp, max_bytes)
-            if raw_body is None:
+            raw_body = resp.read(max_bytes + 1)
+            if not isinstance(raw_body, bytes) or len(raw_body) > max_bytes:
                 return ""
-            content_encoding = resp.headers.get("Content-Encoding") or ""
+            content_encoding = resp.getheader("Content-Encoding") or ""
             body = _decode_body(raw_body, content_encoding, max_bytes)
             if body is None:
                 return ""
-            html = body.decode(getattr(resp, "encoding", None) or "utf-8", "ignore")
+            html = body.decode("utf-8", "ignore")
             return _extract_text(html, max_chars)
         finally:
-            try:
-                resp.close()
-            except Exception:
-                pass
+            connection.close()
     return ""

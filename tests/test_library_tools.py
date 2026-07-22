@@ -795,7 +795,7 @@ class TestRunToolWebSearch(unittest.TestCase):
         cites = self.registry.as_citations()
         self.assertEqual(len(cites), 1)
         self.assertTrue(cites[0]["is_web"])
-        self.assertEqual(cites[0]["url"], "https://x.example")
+        self.assertEqual(cites[0]["url"], "https://x.example/")
 
     def test_empty_results_returns_recoverable_string(self):
         deps = self._deps([])
@@ -837,6 +837,7 @@ class TestRunToolFetchUrl(unittest.TestCase):
 
     def test_returns_text_and_registers_web(self):
         deps = self._deps("Full article text here.")
+        self.registry.allow_web_fetch("https://a.example/p")
         out = run_tool("fetch_url", '{"url": "https://a.example/p"}', self.registry, deps)
         self.assertIn("Full article text here.", out)
         cites = self.registry.as_citations()
@@ -845,6 +846,7 @@ class TestRunToolFetchUrl(unittest.TestCase):
 
     def test_empty_text_returns_recoverable_error(self):
         deps = self._deps("")
+        self.registry.allow_web_fetch("https://a.example/p")
         out = run_tool("fetch_url", '{"url": "https://a.example/p"}', self.registry, deps)
         self.assertTrue(out.startswith("Error"))
         self.assertEqual(self.registry.as_citations(), [])
@@ -853,8 +855,20 @@ class TestRunToolFetchUrl(unittest.TestCase):
         deps = types.SimpleNamespace(
             search=lambda q: [], full_text=lambda fn: "",
             paper_meta=lambda fn: {}, paper_url=lambda fn: None)
+        self.registry.allow_web_fetch("https://a.example")
         out = run_tool("fetch_url", '{"url": "https://a.example"}', self.registry, deps)
         self.assertTrue(out.startswith("Error"))
+
+    def test_arbitrary_model_url_is_rejected_until_search_allows_it(self):
+        deps = self._deps("must not be returned")
+        out = run_tool(
+            "fetch_url",
+            '{"url": "https://untrusted.example/exfil"}',
+            self.registry,
+            deps,
+        )
+        self.assertIn("only read a URL returned by web_search", out)
+        self.assertEqual(self.registry.as_citations(), [])
 
     def test_empty_url_returns_error(self):
         deps = self._deps("x")

@@ -1,0 +1,22 @@
+[Unit]
+Description=Verify Keydion current Paper integrity
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=keydion
+Group=keydion
+WorkingDirectory=/Keydion
+EnvironmentFile=/Keydion/.env.prod
+ExecStart=/Keydion/.venv/bin/python -m tools.verify_paper_integrity
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+# PaperStorage opens its shared lock and private staging namespaces before the
+# scanner starts; the scanner itself only reads immutable revisions and writes
+# cached integrity state to MySQL.
+ReadWritePaths=/Keydion/papers /Keydion/data/pending_papers
+StandardOutput=journal
+StandardError=journal

@@ -612,7 +612,10 @@ def extract_text_from_upload(filename: str, raw: bytes) -> str:
             if llm_client.vision_enabled() else None
         return pdf_text.extract_pdf_text(raw, vision_fallback=vf)
     if name.endswith(".docx"):
+        from services.attachment_processing import preflight_docx
         from docx import Document
+
+        preflight_docx(raw)
         doc = Document(BytesIO(raw))
         return "\n".join(p.text for p in doc.paragraphs)
     if name.endswith((".txt", ".md")):

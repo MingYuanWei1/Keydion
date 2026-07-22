@@ -115,6 +115,13 @@ class DirectPublicationRouteTest(unittest.TestCase):
         self.lifecycle = RecordingLifecycle()
         self.app.extensions["publishing_lifecycle"] = self.lifecycle
         self.client = self.app.test_client()
+        self.auth_user = None
+        auth = mock.patch(
+            "routes.publishing_http.get_active_user",
+            side_effect=lambda: self.auth_user,
+        )
+        auth.start()
+        self.addCleanup(auth.stop)
 
     def tearDown(self):
         self.temp.cleanup()
@@ -143,6 +150,7 @@ class DirectPublicationRouteTest(unittest.TestCase):
         }
         with self.client.session_transaction() as flask_session:
             flask_session["user"] = dict(user)
+        self.auth_user = dict(user)
 
         with mock.patch("routes.upload.require_login", return_value=user), mock.patch(
             "routes.upload._build_safe_paper_filename",
@@ -178,6 +186,7 @@ class DirectPublicationRouteTest(unittest.TestCase):
         }
         with self.client.session_transaction() as flask_session:
             flask_session["user"] = dict(user)
+        self.auth_user = dict(user)
 
         with mock.patch("routes.upload.require_login", return_value=user), mock.patch(
             "routes.upload._build_safe_paper_filename",
@@ -202,6 +211,7 @@ class DirectPublicationRouteTest(unittest.TestCase):
         user = {"username": "contributor@example.test", "role": "2"}
         with self.client.session_transaction() as flask_session:
             flask_session["user"] = dict(user)
+        self.auth_user = dict(user)
         form = self._valid_form()
         form["title"] = ""
         captured = {}
@@ -229,6 +239,7 @@ class DirectPublicationRouteTest(unittest.TestCase):
         user = {"username": "contributor@example.test", "role": "2"}
         with self.client.session_transaction() as flask_session:
             flask_session["user"] = dict(user)
+        self.auth_user = dict(user)
         captured = {}
 
         def render(_template, **context):
@@ -262,6 +273,7 @@ class DirectPublicationRouteTest(unittest.TestCase):
         user = {"username": "contributor@example.test", "role": "2"}
         with self.client.session_transaction() as flask_session:
             flask_session["user"] = dict(user)
+        self.auth_user = dict(user)
         with mock.patch("routes.upload.require_login", return_value=user):
             response = self.client.post(
                 "/dashboard/upload",
@@ -291,6 +303,7 @@ class DirectPublicationRouteTest(unittest.TestCase):
         user = {"username": "contributor@example.test", "role": "2"}
         with self.client.session_transaction() as flask_session:
             flask_session["user"] = dict(user)
+        self.auth_user = dict(user)
         with mock.patch("routes.upload.require_login", return_value=user), mock.patch(
             "routes.upload._build_safe_paper_filename", return_value="canonical-paper.pdf"
         ):
@@ -323,6 +336,13 @@ class SubmissionCancellationRouteTest(unittest.TestCase):
         self.lifecycle = RecordingLifecycle()
         self.app.extensions["publishing_lifecycle"] = self.lifecycle
         self.client = self.app.test_client()
+        self.auth_user = None
+        auth = mock.patch(
+            "routes.publishing_http.get_active_user",
+            side_effect=lambda: self.auth_user,
+        )
+        auth.start()
+        self.addCleanup(auth.stop)
 
     def test_owner_pending_delete_maps_to_cancel_submission(self):
         user = {"username": "reader@example.test", "role": "1"}
@@ -334,6 +354,7 @@ class SubmissionCancellationRouteTest(unittest.TestCase):
         }
         with self.client.session_transaction() as flask_session:
             flask_session["user"] = dict(user)
+        self.auth_user = dict(user)
 
         with mock.patch(
             "routes.submissions.require_login", return_value=user
@@ -360,6 +381,7 @@ class SubmissionCancellationRouteTest(unittest.TestCase):
         }
         with self.client.session_transaction() as flask_session:
             flask_session["user"] = dict(user)
+        self.auth_user = dict(user)
 
         with mock.patch(
             "routes.submissions.require_login", return_value=user
@@ -396,6 +418,7 @@ class SubmissionCancellationRouteTest(unittest.TestCase):
         user = {"username": "curator@example.test", "role": "3"}
         with self.client.session_transaction() as flask_session:
             flask_session["user"] = dict(user)
+        self.auth_user = dict(user)
         with mock.patch(
             "routes.submissions.require_login", return_value=user
         ), mock.patch(
@@ -434,6 +457,7 @@ class SubmissionCancellationRouteTest(unittest.TestCase):
         user = {"username": "curator@example.test", "role": "3"}
         with self.client.session_transaction() as flask_session:
             flask_session["user"] = dict(user)
+        self.auth_user = dict(user)
         with mock.patch(
             "routes.submissions.require_login", return_value=user
         ), mock.patch(
@@ -474,6 +498,7 @@ class SubmissionCancellationRouteTest(unittest.TestCase):
                 "submission-review": "obsolete-cookie-key",
                 "another-submission": "keep-me",
             }
+        self.auth_user = dict(user)
         captured = {}
         with mock.patch(
             "routes.submissions.require_login", return_value=user
@@ -504,6 +529,7 @@ class SubmissionCancellationRouteTest(unittest.TestCase):
             flask_session["publishing_decision_keys"] = {
                 "submission-review": "stale-cookie-key",
             }
+        self.auth_user = dict(user)
         captured = {}
         with mock.patch(
             "routes.submissions.require_login", return_value=user
@@ -531,6 +557,7 @@ class SubmissionCancellationRouteTest(unittest.TestCase):
         user = {"username": "curator@example.test", "role": "3"}
         with self.client.session_transaction() as flask_session:
             flask_session["user"] = dict(user)
+        self.auth_user = dict(user)
         with mock.patch(
             "routes.submissions.require_login", return_value=user
         ), mock.patch(
@@ -556,6 +583,7 @@ class SubmissionCancellationRouteTest(unittest.TestCase):
         user = {"username": "curator@example.test", "role": "3"}
         with self.client.session_transaction() as flask_session:
             flask_session["user"] = dict(user)
+        self.auth_user = dict(user)
         with mock.patch("routes.submissions.require_login", return_value=user), mock.patch(
             "routes.submissions._get_submission", return_value=self._pending_submission()
         ):
@@ -573,6 +601,7 @@ class SubmissionCancellationRouteTest(unittest.TestCase):
         pending = self._pending_submission()
         with self.client.session_transaction() as flask_session:
             flask_session["user"] = dict(user)
+        self.auth_user = dict(user)
         with mock.patch("routes.submissions.require_login", return_value=user), mock.patch(
             "routes.submissions._get_submission", return_value=pending
         ):
@@ -591,6 +620,7 @@ class SubmissionCancellationRouteTest(unittest.TestCase):
         user = {"username": "reader@example.test", "role": "1"}
         with self.client.session_transaction() as flask_session:
             flask_session["user"] = dict(user)
+        self.auth_user = dict(user)
         captured = []
 
         def renderer(_template, **context):
@@ -735,6 +765,12 @@ class SubmissionDecisionReplayRouteTest(
         self.curator = {"username": "curator@example.test", "role": "3"}
         with self.client.session_transaction() as flask_session:
             flask_session["user"] = dict(self.curator)
+        auth = mock.patch(
+            "routes.publishing_http.get_active_user",
+            return_value=self.curator,
+        )
+        auth.start()
+        self.addCleanup(auth.stop)
 
         self.require_login = mock.patch(
             "routes.submissions.require_login", return_value=self.curator

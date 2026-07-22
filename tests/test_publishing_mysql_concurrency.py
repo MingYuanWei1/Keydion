@@ -140,7 +140,7 @@ class PublishingMySQLConcurrencyTests(unittest.TestCase):
         # never share a DBAPI connection accidentally.
         self.engine = create_engine(self.database_url, pool_pre_ping=True)
         self.addCleanup(self.engine.dispose)
-        models.ensure_schema_current(self.engine)
+        models.bootstrap_empty_database(self.engine)
         self.worker_a_engine = create_engine(self.database_url, pool_pre_ping=True)
         self.worker_b_engine = create_engine(self.database_url, pool_pre_ping=True)
         self.addCleanup(self.worker_b_engine.dispose)

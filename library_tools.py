@@ -46,6 +46,8 @@ from __future__ import annotations
 import json
 from uuid import UUID
 
+from web_search import normalize_fetch_url
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -207,6 +209,19 @@ class SourceRegistry:
     def __init__(self) -> None:
         self._by_identity: dict[tuple[str, str], dict] = {}
         self._counter: int = 0
+        self._fetch_allowlist: set[str] = set()
+
+    def allow_web_fetch(self, url: str) -> str | None:
+        """Register one server-observed search-result URL for this Ask turn."""
+        normalized = normalize_fetch_url(url)
+        if normalized is None:
+            return None
+        self._fetch_allowlist.add(normalized)
+        return normalized
+
+    def web_fetch_allowed(self, url: str) -> bool:
+        normalized = normalize_fetch_url(url)
+        return normalized is not None and normalized in self._fetch_allowlist
 
     def register(self, source_id: str, meta: dict, is_web: bool = False,
                  is_attachment: bool = False) -> int | None:
@@ -513,8 +528,8 @@ def run_tool(name: str, arguments: str | dict, registry: SourceRegistry, deps) -
                     "Try a different query or rely on the library.")
         blocks = []
         for r in results:
-            url = r.get("url") or ""
-            if not url:
+            url = registry.allow_web_fetch(r.get("url") or "")
+            if url is None:
                 continue
             title = r.get("title") or url
             content = r.get("content") or ""
@@ -526,9 +541,15 @@ def run_tool(name: str, arguments: str | dict, registry: SourceRegistry, deps) -
         return "\n\n".join(blocks)
 
     if name == "fetch_url":
-        url = str(args.get("url") or "").strip()
-        if not url:
+        raw_url = str(args.get("url") or "").strip()
+        url = normalize_fetch_url(raw_url)
+        if url is None:
             return "Error: fetch_url requires a non-empty 'url' argument."
+        if not registry.web_fetch_allowed(url):
+            return (
+                "Error: fetch_url may only read a URL returned by web_search "
+                "during this request. Search for the page first."
+            )
         fetch = getattr(deps, "fetch_url", None)
         if fetch is None:
             return "Error: web page fetching is not available."

@@ -1,5 +1,6 @@
 import json
 import os
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -9,11 +10,25 @@ ROOT = Path(__file__).resolve().parents[1]
 def _build_app():
     """Build a fresh Flask app against an in-memory sqlite DB."""
     os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
-    os.environ["PAPERQUERY_DATABASE_URL"] = "sqlite:///:memory:"
+    handle = tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False)
+    handle.close()
+    os.environ["PAPERQUERY_DATABASE_URL"] = f"sqlite:///{handle.name}"
     import importlib
     import sys
     sys.path.insert(0, str(ROOT))
     import app as app_module
+    import db
+    import models
+    from sqlalchemy import create_engine
+
+    bootstrap_engine = create_engine(os.environ["PAPERQUERY_DATABASE_URL"])
+    try:
+        models.bootstrap_empty_database(bootstrap_engine)
+    finally:
+        bootstrap_engine.dispose()
+    db.DB_URL = os.environ["PAPERQUERY_DATABASE_URL"]
+    db._ENGINE = None
+    db._SESSION_LOCAL = None
     importlib.reload(app_module)
     app = app_module.create_app()
     app.config["WTF_CSRF_ENABLED"] = False

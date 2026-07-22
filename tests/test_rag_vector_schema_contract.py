@@ -43,9 +43,12 @@ class RagIndexMetaContract(unittest.TestCase):
         src = ast.get_source_segment(text, node)
         self.assertIn("rag_index_meta", src)
 
-    def test_schema_verifier_replaces_startup_vector_alter(self):
-        src = support.source_of("ensure_schema_current")
-        self.assertIn("BASE.metadata.create_all", src)
+    def test_runtime_schema_check_is_verification_only(self):
+        verifier = support.source_of("ensure_schema_current")
+        bootstrap = support.source_of("bootstrap_empty_database")
+        self.assertNotIn("BASE.metadata.create_all", verifier)
+        self.assertIn("get_current_heads", verifier)
+        self.assertIn("BASE.metadata.create_all", bootstrap)
 
 
 class StoreLayerContract(unittest.TestCase):

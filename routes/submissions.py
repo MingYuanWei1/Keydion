@@ -18,7 +18,7 @@ from flask_babel import gettext as _
 from config import (
     PENDING_PAPERS_DIR,
 )
-from services.auth import require_login
+from services.auth import get_active_user, require_login
 from services.publishing_contracts import (
     AcceptSubmission,
     CancelSubmission,
@@ -200,7 +200,7 @@ def register_routes(app):
     def review_list():
         user = require_login(level=3)
         if not user:
-            target = url_for("login") if not session.get("user") else url_for("dashboard")
+            target = url_for("login") if get_active_user() is None else url_for("dashboard")
             return redirect(target)
         status_filter = request.args.get("status", "pending")
         subs = _load_submissions()
@@ -217,7 +217,7 @@ def register_routes(app):
     def review_detail(sub_id):
         user = require_login(level=3)
         if not user:
-            target = url_for("login") if not session.get("user") else url_for("dashboard")
+            target = url_for("login") if get_active_user() is None else url_for("dashboard")
             return redirect(target)
         sub = _get_submission(sub_id)
         if not sub:

@@ -5,12 +5,14 @@ import os
 from datetime import datetime, timedelta
 from typing import Dict
 from uuid import uuid4
-from urllib.parse import urljoin, urlparse
+from urllib.parse import unquote, urljoin, urlsplit, urlunsplit
 
 from flask import (
     Flask,
     flash,
+    g,
     jsonify,
+    make_response,
     redirect,
     render_template,
     request,
@@ -20,6 +22,7 @@ from flask import (
 from flask_babel import Babel, gettext as _, get_locale
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.middleware.proxy_fix import ProxyFix
+from werkzeug.local import LocalProxy
 import llm_client
 import rag_index  # noqa: F401  -- gunicorn post_fork pre-warms app_module.rag_index
 import web_search  # noqa: F401  -- tests patch app_module.web_search.web_search
@@ -42,19 +45,11 @@ from config import (  # noqa: F401
     ROLE_LABELS, LANGUAGE_NAMES,
 )
 import db
-# Reload shim: several tests importlib.reload() this module with a swapped
-# PAPERQUERY_DATABASE_URL to get an isolated DB. Before the split these
-# globals lived here, so a reload reset them; replicate that by re-reading
-# the URL and dropping the engine so the next init_db() rebuilds it.
-# (No-op on first import: DB_URL is unchanged and _ENGINE is already None.
-# Grep tests/ for importlib.reload before removing.)
-db.DB_URL = os.environ.get("PAPERQUERY_DATABASE_URL")
-db._ENGINE = None
-db._SESSION_LOCAL = None
 from db import BASE, DB_URL, db_session, get_engine  # noqa: F401
 from models import (  # noqa: F401
     LocalUser, MsUser, JournalModel, PaperMetadataModel, PaperChunkModel,
-    ConversationModel, ChatMessageModel, AttachmentChunkModel, NewsArticleModel,
+    ConversationModel, ChatMessageModel, AttachmentChunkModel, AttachmentJobModel,
+    NewsArticleModel,
     GuideModel, ResourceNode, SubmissionModel, SessionModel, init_db,
 )
 from routes.shared import is_partial_request  # noqa: F401
@@ -66,11 +61,15 @@ from services.auth import (  # noqa: F401
     build_session_user, load_ms_users, get_ms_user, get_ms_user_by_email,
     update_ms_user_password, upsert_ms_user, update_ms_user, update_ms_user_role,
     delete_ms_user, is_profile_complete, get_active_user, require_login,
-    verify_password, ACCOUNT_LOCAL, ACCOUNT_MICROSOFT, session_identity,
+    verify_password, password_validation_error,
+    create_oauth_login_attempt, consume_oauth_login_attempt,
+    ACCOUNT_LOCAL, ACCOUNT_MICROSOFT, session_identity,
     register_active_session, release_active_session, refresh_session,
     _clear_browser_session,
 )
 from services.session_cookie import AuthExpirySessionInterface
+from services.rate_limit import clear as clear_rate_limit
+from services.rate_limit import consume as consume_rate_limit
 from services.resources import (  # noqa: F401
     _can_view_node, _resource_viewer_role,
     get_resource_node, effective_min_role, resource_breadcrumbs,
@@ -129,23 +128,46 @@ def select_locale() -> str:
     return match or SUPPORTED_LOCALES[0]
 
 
-def _is_safe_redirect_target(target: str) -> bool:
-    """SEC-10: allow only same-host / relative redirect targets for login `next`.
+def _safe_redirect_path(target: str) -> str | None:
+    """Return a normalized same-origin relative path/query, or ``None``.
 
-    Reject backslashes and network-path references ('//host', '////host', '/\\host')
-    that browsers normalize to a foreign origin, plus control characters — these
-    pass a naive netloc check but escape the origin when emitted as a raw Location.
+    Validation examines repeated percent-decoding so encoded slashes,
+    backslashes, and controls cannot become a network-path redirect after a
+    proxy or browser performs another normalization pass.
     """
-    if not target:
-        return False
-    target = target.strip()
-    if not target or "\\" in target or target.startswith("//"):
-        return False
-    if any(ord(c) < 0x20 for c in target):
-        return False
-    host_url = request.host_url
-    test = urlparse(urljoin(host_url, target))
-    return test.scheme in ("http", "https") and test.netloc == urlparse(host_url).netloc
+    if not isinstance(target, str):
+        return None
+    candidate = target.strip()
+    if not candidate:
+        return None
+    decoded = candidate
+    for _ in range(3):
+        if (
+            not decoded
+            or decoded.startswith("//")
+            or "\\" in decoded
+            or any(ord(character) < 0x20 or ord(character) == 0x7F for character in decoded)
+        ):
+            return None
+        next_decoded = unquote(decoded)
+        if next_decoded == decoded:
+            break
+        decoded = next_decoded
+    host = urlsplit(request.host_url)
+    resolved = urlsplit(urljoin(request.host_url, candidate))
+    if resolved.scheme not in ("http", "https") or resolved.netloc != host.netloc:
+        return None
+    path = resolved.path or "/"
+    decoded_path = unquote(path)
+    if not path.startswith("/") or path.startswith("//") or decoded_path.startswith("//"):
+        return None
+    if "\\" in path or "\\" in decoded_path:
+        return None
+    return urlunsplit(("", "", path, resolved.query, ""))
+
+
+def _is_safe_redirect_target(target: str) -> bool:
+    return _safe_redirect_path(target) is not None
 
 
 def create_app() -> Flask:
@@ -180,7 +202,10 @@ def create_app() -> Flask:
         # handlers/fonts keep working; tune via browser console reports before enforcing.
         resp.headers.setdefault("X-Content-Type-Options", "nosniff")
         resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
-        resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        if request.path == "/auth/callback":
+            resp.headers["Referrer-Policy"] = "no-referrer"
+        else:
+            resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         resp.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
         resp.headers.setdefault(
             "Content-Security-Policy-Report-Only",
@@ -248,6 +273,7 @@ def create_app() -> Flask:
             "ms_enabled": is_ms_configured(),
             "open_access": OPEN_ACCESS,
             "llm_enabled": llm_client.llm_enabled(),
+            "current_user": get_active_user(),
         }
 
     # ---- Template filter: parse block-based article body ----
@@ -277,16 +303,18 @@ def create_app() -> Flask:
         except (json.JSONDecodeError, TypeError, ValueError):
             return None
 
+    def _too_many_requests(retry_after: int):
+        response = make_response(str(_("Too many requests — please slow down.")), 429)
+        response.headers["Retry-After"] = str(max(int(retry_after), 1))
+        return response
+
+    def _consume_request_limit(scope: str, key: str, **policy):
+        decision = consume_rate_limit(scope, key, **policy)
+        return None if decision.allowed else _too_many_requests(decision.retry_after)
+
     @app.route("/")
     def index():
-        user = session.get("user")
-        token = session.get("session_token")
-        if user and token:
-            current = refresh_session(user, token)
-            if current is None:
-                _clear_browser_session()
-            else:
-                session["user"] = current
+        user = get_active_user()
         latest_news = load_news_articles(status="published")[:4]
         return render_template("landing.html", ms_enabled=is_ms_configured(),
                                latest_news=latest_news,
@@ -302,12 +330,28 @@ def create_app() -> Flask:
     @app.route("/login", methods=["GET", "POST"])
     def login():
         # Redirect already-logged-in users away
-        if session.get("user") and session.get("session_token"):
+        if get_active_user() is not None:
             return redirect(url_for("index"))
         if request.method == "POST":
             email = request.form.get("email", "").strip()
             password = request.form.get("password", "").strip()
             remember = request.form.get("remember_me") == "1"
+            login_ip_key = request.remote_addr or "unknown"
+            login_account_key = email.casefold() or "empty"
+            for scope, key, limit in (
+                ("login.ip", login_ip_key, 20),
+                ("login.account", login_account_key, 8),
+            ):
+                limited = _consume_request_limit(
+                    scope,
+                    key,
+                    limit=limit,
+                    window_seconds=300,
+                    base_block_seconds=2,
+                    max_block_seconds=900,
+                )
+                if limited is not None:
+                    return limited
 
             # 1. Try local user by email
             user_record = get_local_user_by_email(email)
@@ -332,7 +376,9 @@ def create_app() -> Flask:
                         flash(_("Unable to sign in. Please try again."), "danger")
                         return redirect(url_for("index", login=1))
                     flash(_("Welcome back, %(username)s!", username=display), "success")
-                    return redirect(saved_next if _is_safe_redirect_target(saved_next) else url_for("index"))
+                    clear_rate_limit("login.ip", login_ip_key)
+                    clear_rate_limit("login.account", login_account_key)
+                    return redirect(_safe_redirect_path(saved_next) or url_for("index"))
             else:
                 # 3. Try MS user by email (if they have set a password)
                 ms_record = get_ms_user_by_email(email)
@@ -347,7 +393,9 @@ def create_app() -> Flask:
                             return redirect(url_for("index", login=1))
                         display = ms_record.get("display_name", "") or ms_record.get("email", "")
                         flash(_("Welcome back, %(username)s!", username=display), "success")
-                        return redirect(saved_next if _is_safe_redirect_target(saved_next) else url_for("index"))
+                        clear_rate_limit("login.ip", login_ip_key)
+                        clear_rate_limit("login.account", login_account_key)
+                        return redirect(_safe_redirect_path(saved_next) or url_for("index"))
 
             flash(_("Invalid email or password"), "danger")
             return redirect(url_for("index", login=1))
@@ -363,18 +411,33 @@ def create_app() -> Flask:
 
     @app.route("/auth/login")
     def ms_login():
-        if session.get("user") and session.get("session_token"):
+        if get_active_user() is not None:
             return redirect(url_for("index"))
         if not is_ms_configured():
             flash(_("Microsoft sign-in is not configured. Please contact the administrator."), "danger")
             return redirect(url_for("login"))
+        limited = _consume_request_limit(
+            "oauth.start.ip",
+            request.remote_addr or "unknown",
+            limit=10,
+            window_seconds=300,
+            base_block_seconds=5,
+            max_block_seconds=900,
+        )
+        if limited is not None:
+            return limited
         state = uuid4().hex
-        session["ms_state"] = state
         requested_next = request.args.get("next")
         if requested_next is None:
             requested_next = session.get("next", "")
-        session["ms_next"] = requested_next
-        session["ms_remember"] = request.args.get("remember_me") == "1"
+        from flask_wtf.csrf import generate_csrf
+        generate_csrf()
+        create_oauth_login_attempt(
+            state,
+            str(session.get("csrf_token") or ""),
+            next_url=requested_next or "",
+            remember=request.args.get("remember_me") == "1",
+        )
         auth_url = build_msal_app().get_authorization_request_url(
             MS_SCOPES,
             state=state,
@@ -385,15 +448,30 @@ def create_app() -> Flask:
 
     @app.route("/auth/callback")
     def ms_callback():
-        saved_next = session.pop("ms_next", "")
-        remember = bool(session.pop("ms_remember", False))
         if not is_ms_configured():
             flash(_("Microsoft sign-in is not configured. Please contact the administrator."), "danger")
             return redirect(url_for("login"))
-        expected_state = session.pop("ms_state", None)
-        if not expected_state or request.args.get("state") != expected_state:
+        limited = _consume_request_limit(
+            "oauth.callback.ip",
+            request.remote_addr or "unknown",
+            limit=20,
+            window_seconds=300,
+            base_block_seconds=5,
+            max_block_seconds=900,
+        )
+        if limited is not None:
+            return limited
+        from flask_wtf.csrf import generate_csrf
+        generate_csrf()
+        attempt = consume_oauth_login_attempt(
+            request.args.get("state", ""),
+            str(session.get("csrf_token") or ""),
+        )
+        if attempt is None:
             flash(_("Login session expired. Please try again."), "warning")
             return redirect(url_for("login"))
+        saved_next = attempt["next_url"]
+        remember = bool(attempt["remember"])
 
         error = request.args.get("error")
         if error:
@@ -430,22 +508,20 @@ def create_app() -> Flask:
             return redirect(url_for("login"))
 
         if not is_profile_complete(user_record):
-            if _is_safe_redirect_target(saved_next):
-                session["next"] = saved_next
+            safe_next = _safe_redirect_path(saved_next)
+            if safe_next:
+                session["next"] = safe_next
             return redirect(url_for("profile_setup"))
         return redirect(
-            saved_next
-            if _is_safe_redirect_target(saved_next)
-            else url_for("index")
+            _safe_redirect_path(saved_next) or url_for("index")
         )
 
     def _do_logout():
         language = session.get("language")
-        user = session.get("user") or {}
         token = session.get("session_token", "")
-        account_type, account_id = session_identity(user)
-        release_active_session(account_type, account_id, token)
+        release_active_session(token)
         session.clear()
+        g.keydion_current_user = None
         if language:
             session["language"] = language
 
@@ -482,14 +558,10 @@ def create_app() -> Flask:
                     },
                 )
                 if updated:
-                    session["user"]["first_name"] = updated.get("first_name", "")
-                    session["user"]["last_name"] = updated.get("last_name", "")
-                    # Prefer user-entered name over MS display_name
-                    entered_name = f"{updated.get('first_name', '').strip()} {updated.get('last_name', '').strip()}".strip()
-                    session["user"]["display_name"] = entered_name or session["user"].get("display_name", "")
+                    g.pop("keydion_current_user", None)
                 flash(_("Profile saved successfully."), "success")
                 next_url = session.pop("next", None)
-                return redirect(next_url if _is_safe_redirect_target(next_url) else url_for("index"))
+                return redirect(_safe_redirect_path(next_url) or url_for("index"))
 
         return render_template(
             "profile_setup.html",
@@ -529,19 +601,18 @@ def create_app() -> Flask:
                     flash(_("Current password is incorrect."), "danger")
                     return redirect(url_for("change_password"))
 
-            if not new_password:
+            password_error = password_validation_error(new_password)
+            if password_error == "required":
                 flash(_("Please enter a new password."), "warning")
                 return redirect(url_for("change_password"))
             if new_password != confirm_password:
                 flash(_("Passwords do not match."), "warning")
                 return redirect(url_for("change_password"))
-            if len(new_password) < 6:
+            if password_error == "too_short":
                 flash(_("Password must be at least 6 characters."), "warning")
                 return redirect(url_for("change_password"))
 
-            has_alpha = any(c.isalpha() for c in new_password)
-            has_digit = any(c.isdigit() for c in new_password)
-            if not (has_alpha and has_digit):
+            if password_error in ("missing_letter", "missing_digit"):
                 flash(_("Password must contain both letters and numbers."), "warning")
                 return redirect(url_for("change_password"))
 
@@ -616,7 +687,7 @@ def create_app() -> Flask:
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
         role = request.form.get("role", "1")
-        if not username or not password:
+        if not username or password_validation_error(password) is not None:
             flash(_("Username and password are required."), "warning")
             return redirect(url_for("admin_users"))
         if get_local_user(username):
@@ -644,7 +715,7 @@ def create_app() -> Flask:
         if not user:
             return redirect(url_for("login"))
         new_password = request.form.get("password", "").strip()
-        if not new_password:
+        if password_validation_error(new_password) is not None:
             flash(_("Password is required."), "warning")
             return redirect(url_for("admin_users"))
         if update_local_user_password(username, new_password):
@@ -697,7 +768,7 @@ def create_app() -> Flask:
         if not user:
             return redirect(url_for("login"))
         new_password = request.form.get("password", "").strip()
-        if not new_password:
+        if password_validation_error(new_password) is not None:
             flash(_("Password is required."), "warning")
             return redirect(url_for("admin_users"))
         if update_ms_user_password(ms_id, new_password):
@@ -768,27 +839,18 @@ def create_app() -> Flask:
             dashboard_stats=stats,
         )
 
-    @app.route("/set-language/<locale_code>")
+    @app.route("/set-language/<locale_code>", methods=["POST"])
     def set_language(locale_code: str):
         if locale_code not in SUPPORTED_LOCALES:
             flash(_("Language not supported."), "warning")
         else:
             session["language"] = locale_code
-        if session.get("user") and session.get("session_token"):
-            current = refresh_session(session["user"], session["session_token"])
-            if current is None:
-                _clear_browser_session()
-            else:
-                session["user"] = current
-        next_url = request.args.get("next")
-        if not next_url or not next_url.startswith("/"):
-            referrer = request.referrer
-            if referrer:
-                parsed = urlparse(referrer)
-                if parsed.path:
-                    next_url = parsed.path
-        if not next_url or not next_url.startswith("/"):
-            destination = "dashboard" if session.get("user") else "login"
+        current = get_active_user()
+        next_url = _safe_redirect_path(request.form.get("next", ""))
+        if next_url is None and request.referrer:
+            next_url = _safe_redirect_path(request.referrer)
+        if next_url is None:
+            destination = "dashboard" if current is not None else "login"
             next_url = url_for(destination)
         return redirect(next_url)
 
@@ -798,12 +860,25 @@ def create_app() -> Flask:
     return app
 
 
-app = create_app()
+_compatibility_app = None
+
+
+def _get_compatibility_app():
+    """Lazy legacy access for callers that still import ``app.app``."""
+    global _compatibility_app
+    if _compatibility_app is None:
+        _compatibility_app = create_app()
+    return _compatibility_app
+
+
+# Importing app.py is now side-effect free. Production serves wsgi.app; this
+# proxy keeps the historical test/tool surface lazy during the transition.
+app = LocalProxy(_get_compatibility_app)
 
 
 if __name__ == "__main__":
     import os as _os
-    app.run(
+    create_app().run(
         host=_os.environ.get("HOST", "127.0.0.1"),
         port=int(_os.environ.get("PORT", "5000")),
         debug=_os.environ.get("FLASK_DEBUG", "").strip().lower() in ("1", "true", "yes", "on"),

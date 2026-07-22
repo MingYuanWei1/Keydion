@@ -121,6 +121,22 @@ class PaperMutationRouteTest(unittest.TestCase):
         self.user = {"username": "contributor@example.test", "role": "2"}
         with self.client.session_transaction() as flask_session:
             flask_session["user"] = dict(self.user)
+        self.auth_user = dict(self.user)
+        auth = mock.patch(
+            "routes.publishing_http.get_active_user",
+            side_effect=lambda: self.auth_user,
+        )
+        auth.start()
+        self.addCleanup(auth.stop)
+        lookups = mock.patch.multiple(
+            "routes.papers",
+            get_journal_names=mock.Mock(return_value=[]),
+            load_paper_categories=mock.Mock(return_value=[]),
+            load_ee_subjects=mock.Mock(return_value={"groups": []}),
+            load_ia_subjects=mock.Mock(return_value={"groups": []}),
+        )
+        lookups.start()
+        self.addCleanup(lookups.stop)
 
     def tearDown(self):
         self.temp.cleanup()
@@ -389,6 +405,7 @@ class PaperMutationRouteTest(unittest.TestCase):
         curator = {"username": "curator@example.test", "role": "3"}
         with self.client.session_transaction() as flask_session:
             flask_session["user"] = dict(curator)
+        self.auth_user = dict(curator)
         with mock.patch("routes.papers.require_login", return_value=curator):
             response = self.client.post(
                 "/dashboard/admin/papers/bulk",
@@ -412,6 +429,7 @@ class PaperMutationRouteTest(unittest.TestCase):
         self.lifecycle.delete_state = DeletionState.DELETING
         with self.client.session_transaction() as flask_session:
             flask_session["user"] = dict(curator)
+        self.auth_user = dict(curator)
         with mock.patch("routes.papers.require_login", return_value=curator):
             response = self.client.post(
                 "/dashboard/admin/papers/bulk",

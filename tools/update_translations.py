@@ -27,7 +27,7 @@ try:
     from babel.messages.frontend import CommandLineInterface
 except ModuleNotFoundError as exc:  # pragma: no cover
     raise SystemExit(
-        "Babel is required. Please run 'pip install -r requirements.txt' before updating."
+        "Babel is required. Please run 'pip install --require-hashes -r requirements.lock' before updating."
     ) from exc
 
 ROOT = Path(__file__).resolve().parents[1]

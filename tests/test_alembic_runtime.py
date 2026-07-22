@@ -41,8 +41,11 @@ class AlembicRuntimeTests(unittest.TestCase):
         self.config_patch.start()
         self.addCleanup(self.config_patch.stop)
 
-    def test_empty_database_is_created_and_stamped(self):
-        models.ensure_schema_current(self.engine)
+    def _bootstrap(self):
+        return models.bootstrap_empty_database(self.engine)
+
+    def test_empty_database_is_created_and_stamped_explicitly(self):
+        self._bootstrap()
 
         with self.engine.connect() as conn:
             self.assertEqual(
@@ -60,7 +63,7 @@ class AlembicRuntimeTests(unittest.TestCase):
             )
 
     def test_empty_database_seeds_submission_identity_fence(self):
-        models.ensure_schema_current(self.engine)
+        self._bootstrap()
 
         with self.engine.connect() as conn:
             self.assertEqual(
@@ -86,11 +89,11 @@ class AlembicRuntimeTests(unittest.TestCase):
             )
 
     def test_current_database_is_accepted(self):
-        models.ensure_schema_current(self.engine)
+        self._bootstrap()
         models.ensure_schema_current(self.engine)
 
     def test_fresh_session_schema_supports_per_device_tokens(self):
-        models.ensure_schema_current(self.engine)
+        self._bootstrap()
         inspector = inspect(self.engine)
         columns = {column["name"]: column for column in inspector.get_columns("sessions")}
         self.assertEqual(
@@ -133,7 +136,7 @@ class AlembicRuntimeTests(unittest.TestCase):
         with self.engine.begin() as conn:
             alembic_config.attributes["connection"] = conn
             try:
-                command.upgrade(alembic_config, "head")
+                command.upgrade(alembic_config, "0005_concurrent_login_sessions")
             finally:
                 alembic_config.attributes.pop("connection", None)
 
@@ -159,7 +162,7 @@ class AlembicRuntimeTests(unittest.TestCase):
         with self.engine.begin() as conn:
             alembic_config.attributes["connection"] = conn
             try:
-                command.upgrade(alembic_config, "head")
+                command.upgrade(alembic_config, "0005_concurrent_login_sessions")
             finally:
                 alembic_config.attributes.pop("connection", None)
 
@@ -174,7 +177,7 @@ class AlembicRuntimeTests(unittest.TestCase):
         )
 
     def test_fresh_database_has_no_alembic_drift(self):
-        models.ensure_schema_current(self.engine)
+        self._bootstrap()
         alembic_config = models._alembic_config()
         with self.engine.connect() as conn:
             alembic_config.attributes["connection"] = conn
@@ -207,6 +210,16 @@ class AlembicRuntimeTests(unittest.TestCase):
 
         with self.assertRaisesRegex(RuntimeError, "database schema is unversioned"):
             models.ensure_schema_current(self.engine)
+
+    def test_empty_database_refuses_normal_startup(self):
+        with self.assertRaisesRegex(RuntimeError, "database is empty"):
+            models.ensure_schema_current(self.engine)
+
+    def test_bootstrap_refuses_any_existing_table(self):
+        with self.engine.begin() as conn:
+            conn.execute(text("CREATE TABLE existing (id INTEGER PRIMARY KEY)"))
+        with self.assertRaisesRegex(RuntimeError, "completely empty"):
+            self._bootstrap()
 
     def test_behind_or_ahead_database_refuses_startup(self):
         with self.engine.begin() as conn:

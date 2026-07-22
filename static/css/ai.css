@@ -154,6 +154,11 @@ button { font-family: inherit; cursor: pointer; }
   color: var(--muted);
   text-decoration: none;
   transition: color 0.15s;
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
 }
 .kd-lang-switch:hover { color: var(--ink); }
 

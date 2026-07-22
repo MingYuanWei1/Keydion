@@ -917,6 +917,9 @@ class PublishingLifecycle:
             paper.indexed_revision = None
             paper.index_error = None
             paper.reservation_expires_at = None
+            paper.integrity_status = "verified"
+            paper.integrity_checked_at = now
+            paper.integrity_checked_revision = 1
             if submission is not None:
                 submission.status = "accepted"
                 submission.paper_id = paper_id
@@ -2662,6 +2665,9 @@ class PublishingLifecycle:
                 paper.index_status = "pending"
                 paper.indexed_revision = None
                 paper.index_error = None
+                paper.integrity_status = "verified"
+                paper.integrity_checked_at = now
+                paper.integrity_checked_revision = attempted_revision
                 lease = None
                 if indexing_enabled:
                     lease = self._enqueue_index_job(

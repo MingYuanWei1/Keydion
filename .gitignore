@@ -39,6 +39,20 @@ __pycache__/
 *.pem
 *.crt
 *.cert
+*.p12
+*.pfx
+
+# Operator backups, database exports, and ad-hoc archives
+backups/
+*.sql
+*.sql.gz
+*.dump
+*.backup
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+!tests/fixtures/**/*.zip
 
 # Data — runtime files
 data/active_sessions.json

@@ -574,7 +574,7 @@
         </div>
 
         <!-- Admin Actions -->
-        {% if session.get('user', {}).get('role', '1')|int >= 2 %}
+        {% if current_user and current_user.get('role', '1')|int >= 2 %}
         <div class="admin-actions">
             <a class="btn-edit" href="{{ url_for('news_edit', news_id=article.id) }}">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

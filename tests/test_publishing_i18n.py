@@ -34,20 +34,8 @@ APPROVED_TRANSLATIONS = {
     "This paper changed while you were editing it. Reload and try again.": (
         "您编辑期间该论文已发生更改。请重新加载后再试。"
     ),
-    "Paper revision %(revision)s published.": "论文修订版 %(revision)s 已发布。",
-    "Revision %(revision)s restored as revision %(new_revision)s.": (
-        "修订版 %(revision)s 已恢复为修订版 %(new_revision)s。"
-    ),
-    "Paper deletion is still in progress. The paper is no longer accessible.": (
-        "论文删除仍在进行中。该论文已无法访问。"
-    ),
-    "Deleted %(paper_name)s.": "已删除 %(paper_name)s。",
-    "Replace PDF (optional)": "替换 PDF（可选）",
     "Revision history": "修订历史",
     "Current revision": "当前修订版",
-    "Restore this revision? A new revision will be created.": (
-        "要恢复此修订版吗？系统将创建一个新的修订版。"
-    ),
 }
 
 PYTHON_PLACEHOLDER = re.compile(

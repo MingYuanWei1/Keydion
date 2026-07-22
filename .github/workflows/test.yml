@@ -12,13 +12,14 @@ jobs:
     name: Fast contracts (Python 3.11)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: "3.11"
           cache: pip
+          cache-dependency-path: requirements.lock
       - name: Install dependencies
-        run: python3 -m pip install -r requirements.txt
+        run: python3 -m pip install --require-hashes -r requirements.lock
       - name: Run deployment, Alembic runtime, and legacy migration contracts
         run: >-
           python3 -m unittest
@@ -34,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mysql:
-        image: mysql:9.7.1
+        image: mysql:9.7.1@sha256:ad88e1c86cbf12ef52d0a0360cd4b774d22956c5ee9c565645fb019d7aacb6c3
         env:
           MYSQL_ROOT_PASSWORD: test
         ports:
@@ -47,13 +48,14 @@ jobs:
     env:
       PAPERQUERY_TEST_MYSQL_ADMIN_URL: mysql+pymysql://root:test@127.0.0.1:3306/?charset=utf8mb4
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: "3.11"
           cache: pip
+          cache-dependency-path: requirements.lock
       - name: Install dependencies
-        run: python3 -m pip install -r requirements.txt
+        run: python3 -m pip install --require-hashes -r requirements.lock
       - name: Run Alembic runtime and legacy migration tests in isolation
         run: >-
           python3 tools/run_isolated_tests.py

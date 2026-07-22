@@ -19,20 +19,24 @@ file -> extraction-method mapping itself lives in ``babel.cfg``.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 try:
     from babel.messages.frontend import CommandLineInterface
 except ModuleNotFoundError as exc:  # pragma: no cover
     raise SystemExit(
-        "Babel is required. Please run 'pip install -r requirements.txt' before extracting."
+        "Babel is required. Please run 'pip install --require-hashes -r requirements.lock' before extracting."
     ) from exc
 
 ROOT = Path(__file__).resolve().parents[1]
 
 # fnmatch patterns matched against each *directory basename* during the walk.
 # Crucially this does NOT include "_*", so templates/_dashboard/ is kept.
-IGNORE_DIRS = ".* venv venv_new env __pycache__ node_modules"
+IGNORE_DIRS = (
+    ".* venv venv_new env __pycache__ node_modules tests docs deploy data tools "
+    "AI_Prompts"
+)
 
 
 def main() -> None:
@@ -40,7 +44,7 @@ def main() -> None:
         "pybabel",
         "extract",
         "-F",
-        str(ROOT / "babel.cfg"),
+        "babel.cfg",
         "-k",
         "_",
         "-k",
@@ -48,10 +52,15 @@ def main() -> None:
         "--ignore-dirs",
         IGNORE_DIRS,
         "-o",
-        str(ROOT / "messages.pot"),
-        str(ROOT),
+        "messages.pot",
+        ".",
     ]
-    CommandLineInterface().run(argv)
+    previous = Path.cwd()
+    try:
+        os.chdir(ROOT)
+        CommandLineInterface().run(argv)
+    finally:
+        os.chdir(previous)
 
 
 if __name__ == "__main__":

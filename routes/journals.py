@@ -113,7 +113,7 @@ def register_routes(app):
     def journals_manage():
         user = require_login(level=3)
         if not user:
-            target = url_for("login") if not session.get("user") else url_for("dashboard")
+            target = url_for("login") if get_active_user() is None else url_for("dashboard")
             return redirect(target)
         journals = load_journals()
         counts = get_journal_paper_counts(app.extensions["paper_library"])
@@ -125,7 +125,7 @@ def register_routes(app):
     def journal_edit(journal_id):
         user = require_login(level=3)
         if not user:
-            target = url_for("login") if not session.get("user") else url_for("dashboard")
+            target = url_for("login") if get_active_user() is None else url_for("dashboard")
             return redirect(target)
         journal = get_journal_by_id(journal_id)
         if not journal:

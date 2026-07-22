@@ -122,6 +122,7 @@ class PaperLibrary:
         if (
             paper is None
             or paper.lifecycle_state != "published"
+            or paper.integrity_status == "corrupt"
             or type(paper.current_revision) is not int
             or paper.current_revision < 1
         ):
@@ -238,7 +239,7 @@ class PaperLibrary:
         )
 
     def list_visible(self) -> tuple[PaperRecord, ...]:
-        """Return safely openable current Papers without hashing PDF bodies."""
+        """Return current Papers whose descriptor-audited size still matches."""
         with self._session_factory() as session:
             rows = (
                 session.query(PaperMetadataModel, PaperRevisionModel)
@@ -251,6 +252,7 @@ class PaperLibrary:
                     ),
                 )
                 .filter(PaperMetadataModel.lifecycle_state == "published")
+                .filter(PaperMetadataModel.integrity_status != "corrupt")
                 .all()
             )
             candidates = {
@@ -267,11 +269,13 @@ class PaperLibrary:
         opened = {}
         for paper_id, snapshot in candidates.items():
             try:
-                self._storage.open_revision(
+                stored = self._storage.stat_revision(
                     paper_id,
                     snapshot[0].current_revision,
                 )
             except StorageError:
+                continue
+            if stored.size_bytes != snapshot[2]:
                 continue
             opened[paper_id] = snapshot
 
@@ -290,6 +294,7 @@ class PaperLibrary:
                     ),
                 )
                 .filter(PaperMetadataModel.lifecycle_state == "published")
+                .filter(PaperMetadataModel.integrity_status != "corrupt")
                 .all()
             )
             unchanged = {

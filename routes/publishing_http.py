@@ -5,7 +5,9 @@ from __future__ import annotations
 from collections.abc import Mapping
 from urllib.parse import urlsplit
 
-from flask import current_app, flash, jsonify, redirect, request, session, url_for
+from flask import current_app, flash, jsonify, redirect, request, url_for
+
+from services.auth import get_active_user
 
 from services.publishing_contracts import (
     Actor,
@@ -22,7 +24,12 @@ from services.publishing_contracts import (
 )
 
 
-_STALE_MESSAGE = (
+def _l(message: str) -> str:
+    """Mark a fixed response for catalog extraction without eager translation."""
+    return message
+
+
+_STALE_MESSAGE = _l(
     "This paper changed while you were editing it. Reload and try again."
 )
 _UNAVAILABLE_MESSAGE = "Publishing is temporarily unavailable. Please try again."
@@ -35,7 +42,7 @@ _ERROR_SPECS = (
         SubmissionNotPending,
         409,
         "submission_not_pending",
-        "Only a pending submission can be cancelled.",
+        _l("Only a pending submission can be cancelled."),
     ),
     (
         DecisionConflict,
@@ -66,12 +73,12 @@ def lifecycle_from_app():
 
 
 def actor_from_session() -> Actor:
-    """Map an already-authenticated session cache into a domain Actor.
+    """Map the request's server-hydrated account into a domain Actor.
 
     Authentication and live-token validation remain the calling route's job;
     this adapter deliberately neither queries users nor refreshes role state.
     """
-    user = session.get("user")
+    user = get_active_user()
     if not isinstance(user, Mapping):
         raise Forbidden()
     username = user.get("username")
@@ -164,6 +171,7 @@ def lifecycle_error_response(
     route values, or a trusted renderer accepting ``(sanitized_error, status)``.
     """
     status, code, message = _error_spec(error)
+    message = str(message)
     payload = {
         "code": code,
         "message": message,

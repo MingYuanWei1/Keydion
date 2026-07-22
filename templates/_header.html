@@ -75,7 +75,8 @@
   .site-header .user-dropdown .logout-form button:hover { background: #f5f0e8; }
   .site-header .lang-switch {
     margin-left: 14px; font-size: 12.5px; color: #6b6b6b; text-decoration: none;
-    transition: color 0.15s;
+    transition: color 0.15s; background: none; border: 0; padding: 0;
+    font-family: inherit; cursor: pointer;
   }
   .site-header .lang-switch:hover, .site-header .lang-switch:focus { color: #8b1a1a; }
 
@@ -152,8 +153,8 @@
       <a class="nav-link" href="{{ url_for('resources') }}">{{ _('Resources') }}</a>
       <a class="nav-link" href="{{ url_for('news_list') }}">{{ _('News') }}</a>
       <a class="nav-link" href="{{ url_for('journal_list_page') }}">{{ _('Journals') }}</a>
-      {% if session.get('user') %}
-      {% set nav_name = session.get('user', {}).get('display_name') or session.get('user', {}).get('username', '') %}
+      {% if current_user %}
+      {% set nav_name = current_user.get('display_name') or current_user.get('username', '') %}
       <div class="user-menu">
         <button class="btn-user-circle" onclick="toggleUserMenu()" title="{{ nav_name }}" aria-expanded="false"><img src="{{ url_for('static', filename='usricon.png') }}" alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover;"></button>
         <div class="user-dropdown" id="userDropdown">
@@ -167,9 +168,11 @@
       {% else %}
       <button class="btn-signin" type="button" onclick="openLoginModal()">{{ _('Sign in') }}</button>
       {% endif %}
-      <a class="lang-switch" href="{{ url_for('set_language', locale_code='en' if current_locale == 'zh' else 'zh', next=request.full_path) }}">
-        {{ 'EN' if current_locale == 'zh' else '中文' }}
-      </a>
+      <form method="post" action="{{ url_for('set_language', locale_code='en' if current_locale == 'zh' else 'zh') }}" style="display:inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="next" value="{{ request.full_path }}">
+        <button class="lang-switch" type="submit">{{ 'EN' if current_locale == 'zh' else '中文' }}</button>
+      </form>
     </nav>
   </div>
 </header>
