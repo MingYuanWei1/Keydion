@@ -31,6 +31,14 @@ class AuthSessionServiceTest(unittest.TestCase):
                 role="1",
                 email="alice@example.test",
             ))
+            session.add(MsUser(
+                ms_id="microsoft-alice",
+                password=auth.hash_password("old-password-1"),
+                role="1",
+                email="microsoft-alice@example.test",
+                created_at=self.now,
+                updated_at=self.now,
+            ))
 
     def test_two_tokens_for_one_account_validate_independently(self):
         first, _ = auth.register_active_session(
@@ -170,3 +178,89 @@ class AuthSessionServiceTest(unittest.TestCase):
         )
         wrong_user = {"username": "different", "role": "1", "is_local": True}
         self.assertIsNone(auth.refresh_session(wrong_user, token, now=self.now))
+
+    def test_password_update_revokes_every_local_session(self):
+        first, _ = auth.register_active_session(
+            auth.ACCOUNT_LOCAL, "alice", now=self.now
+        )
+        second, _ = auth.register_active_session(
+            auth.ACCOUNT_LOCAL, "alice", now=self.now
+        )
+
+        self.assertTrue(auth.update_local_user_password("alice", "new-password-1"))
+        user = {"username": "alice", "role": "1", "is_local": True}
+        self.assertIsNone(auth.refresh_session(user, first, now=self.now))
+        self.assertIsNone(auth.refresh_session(user, second, now=self.now))
+
+    def test_account_deletion_revokes_every_local_session(self):
+        first, _ = auth.register_active_session(
+            auth.ACCOUNT_LOCAL, "alice", now=self.now
+        )
+        second, _ = auth.register_active_session(
+            auth.ACCOUNT_LOCAL, "alice", now=self.now
+        )
+
+        self.assertTrue(auth.delete_local_user("alice"))
+        with db.db_session() as session:
+            self.assertEqual(session.query(SessionModel).count(), 0)
+        user = {"username": "alice", "role": "1", "is_local": True}
+        self.assertIsNone(auth.refresh_session(user, first, now=self.now))
+        self.assertIsNone(auth.refresh_session(user, second, now=self.now))
+
+    def test_expired_local_account_revokes_all_tokens(self):
+        first, _ = auth.register_active_session(
+            auth.ACCOUNT_LOCAL, "alice", now=self.now
+        )
+        second, _ = auth.register_active_session(
+            auth.ACCOUNT_LOCAL, "alice", now=self.now
+        )
+        with db.db_session() as session:
+            session.get(LocalUser, "alice").expiry_date = self.now.date() - timedelta(days=1)
+
+        user = {"username": "alice", "role": "1", "is_local": True}
+        self.assertIsNone(auth.refresh_session(user, first, now=self.now))
+        self.assertIsNone(auth.refresh_session(user, second, now=self.now))
+        with db.db_session() as session:
+            self.assertEqual(session.query(SessionModel).count(), 0)
+
+    def test_current_database_role_replaces_cookie_role(self):
+        token, _ = auth.register_active_session(
+            auth.ACCOUNT_LOCAL, "alice", now=self.now
+        )
+        with db.db_session() as session:
+            session.get(LocalUser, "alice").role = "3"
+
+        refreshed = auth.refresh_session(
+            {"username": "alice", "role": "1", "is_local": True},
+            token,
+            now=self.now,
+        )
+        self.assertEqual(refreshed["role"], "3")
+
+    def test_password_update_revokes_every_microsoft_session(self):
+        first, _ = auth.register_active_session(
+            auth.ACCOUNT_MICROSOFT, "microsoft-alice", now=self.now
+        )
+        second, _ = auth.register_active_session(
+            auth.ACCOUNT_MICROSOFT, "microsoft-alice", now=self.now
+        )
+
+        self.assertTrue(auth.update_ms_user_password("microsoft-alice", "new-password-1"))
+        user = {"ms_id": "microsoft-alice", "role": "1", "is_local": False}
+        self.assertIsNone(auth.refresh_session(user, first, now=self.now))
+        self.assertIsNone(auth.refresh_session(user, second, now=self.now))
+
+    def test_account_deletion_revokes_every_microsoft_session(self):
+        first, _ = auth.register_active_session(
+            auth.ACCOUNT_MICROSOFT, "microsoft-alice", now=self.now
+        )
+        second, _ = auth.register_active_session(
+            auth.ACCOUNT_MICROSOFT, "microsoft-alice", now=self.now
+        )
+
+        self.assertTrue(auth.delete_ms_user("microsoft-alice"))
+        with db.db_session() as session:
+            self.assertEqual(session.query(SessionModel).count(), 0)
+        user = {"ms_id": "microsoft-alice", "role": "1", "is_local": False}
+        self.assertIsNone(auth.refresh_session(user, first, now=self.now))
+        self.assertIsNone(auth.refresh_session(user, second, now=self.now))

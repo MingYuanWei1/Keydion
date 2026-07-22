@@ -22,7 +22,7 @@ class ChangePasswordContractTest(unittest.TestCase):
 
     # --- Task 2: redirect destination ---------------------------------
 
-    def test_success_redirects_to_change_password_not_dashboard(self):
+    def test_validation_failures_redirect_to_change_password_not_dashboard(self):
         url_for_calls = []
         for node in ast.walk(self.view):
             if (
@@ -101,6 +101,18 @@ class ChangePasswordContractTest(unittest.TestCase):
             comparisons,
             "change_password view must compare new_password against "
             "current_password to reject reuse",
+        )
+
+    def test_success_clears_browser_session_and_redirects_to_login(self):
+        self.assertRegex(
+            self.view_source,
+            r"session\.clear\(\)",
+            "change_password must clear the browser session after success",
+        )
+        self.assertRegex(
+            self.view_source,
+            r"url_for\(\s*[\"']index[\"']\s*,\s*login\s*=\s*1\s*\)",
+            "change_password must send the user back to the login entry point",
         )
 
 

@@ -147,6 +147,7 @@ def update_local_user_password(username: str, password: str) -> bool:
         if not user:
             return False
         user.password = hash_password(password)
+        _revoke_account_sessions(db, ACCOUNT_LOCAL, username)
         return True
 
 
@@ -155,6 +156,7 @@ def delete_local_user(username: str) -> bool:
         user = db.get(LocalUser, username)
         if not user:
             return False
+        _revoke_account_sessions(db, ACCOUNT_LOCAL, username)
         db.delete(user)
         return True
 
@@ -418,6 +420,7 @@ def update_ms_user_password(ms_id: str, password: str) -> bool:
             return False
         user.password = hashed
         user.updated_at = datetime.utcnow()
+        _revoke_account_sessions(db, ACCOUNT_MICROSOFT, ms_id)
         return True
 
 
@@ -490,6 +493,7 @@ def delete_ms_user(ms_id: str) -> bool:
         user = db.get(MsUser, ms_id)
         if not user:
             return False
+        _revoke_account_sessions(db, ACCOUNT_MICROSOFT, ms_id)
         db.delete(user)
         return True
 
@@ -598,6 +602,13 @@ def _purge_expired_sessions(db, now: datetime) -> int:
     )
 
 
+def _revoke_account_sessions(db, account_type: str, account_id: str) -> int:
+    return db.query(SessionModel).filter(
+        SessionModel.account_type == account_type,
+        SessionModel.account_id == account_id,
+    ).delete(synchronize_session=False)
+
+
 def purge_expired_sessions(*, now: Optional[datetime] = None) -> int:
     checked_at = now or datetime.utcnow()
     with db_session() as db:
@@ -678,10 +689,7 @@ def refresh_session(
             db, user, account_type, account_id, checked_at
         )
         if current is None:
-            db.query(SessionModel).filter(
-                SessionModel.account_type == account_type,
-                SessionModel.account_id == account_id,
-            ).delete(synchronize_session=False)
+            _revoke_account_sessions(db, account_type, account_id)
             return None
         entry.last_seen = checked_at
         return current
@@ -702,7 +710,4 @@ def revoke_account_sessions(account_type: str, account_id: str) -> int:
     if not account_id:
         return 0
     with db_session() as db:
-        return db.query(SessionModel).filter(
-            SessionModel.account_type == account_type,
-            SessionModel.account_id == account_id,
-        ).delete(synchronize_session=False)
+        return _revoke_account_sessions(db, account_type, account_id)

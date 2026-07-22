@@ -552,7 +552,12 @@ def create_app() -> Flask:
                 success = update_local_user_password(user.get("username", ""), new_password)
 
             if success:
-                flash(_("Password updated successfully."), "success")
+                language = session.get("language")
+                session.clear()
+                if language:
+                    session["language"] = language
+                flash(_("Password updated. Please sign in again."), "success")
+                return redirect(url_for("index", login=1))
             else:
                 flash(_("Unable to update password."), "danger")
             return redirect(url_for("change_password"))
