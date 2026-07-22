@@ -6,7 +6,7 @@ from unittest import mock
 
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker
 
 import db
@@ -88,6 +88,62 @@ class AlembicRuntimeTests(unittest.TestCase):
     def test_current_database_is_accepted(self):
         models.ensure_schema_current(self.engine)
         models.ensure_schema_current(self.engine)
+
+    def test_fresh_session_schema_supports_per_device_tokens(self):
+        models.ensure_schema_current(self.engine)
+        inspector = inspect(self.engine)
+        columns = {column["name"]: column for column in inspector.get_columns("sessions")}
+        self.assertEqual(
+            set(columns),
+            {"token", "account_type", "account_id", "last_seen", "expires_at"},
+        )
+        self.assertEqual(
+            inspector.get_pk_constraint("sessions")["constrained_columns"],
+            ["token"],
+        )
+        indexes = {
+            (index["name"], tuple(index["column_names"]))
+            for index in inspector.get_indexes("sessions")
+        }
+        self.assertIn(
+            ("ix_sessions_account", ("account_type", "account_id")),
+            indexes,
+        )
+
+    def test_session_upgrade_discards_ambiguous_legacy_rows(self):
+        with self.engine.begin() as conn:
+            conn.execute(text(
+                "CREATE TABLE sessions ("
+                "username VARCHAR(255) PRIMARY KEY, "
+                "token VARCHAR(255), last_seen VARCHAR(255))"
+            ))
+            conn.execute(text(
+                "INSERT INTO sessions (username, token, last_seen) "
+                "VALUES ('alice', 'legacy-token', '2026-07-22T00:00:00')"
+            ))
+            conn.execute(text(
+                "CREATE TABLE alembic_version (version_num VARCHAR(64) NOT NULL)"
+            ))
+            conn.execute(text(
+                "INSERT INTO alembic_version (version_num) "
+                "VALUES ('0004_submission_paper_uniqueness')"
+            ))
+
+        alembic_config = models._alembic_config()
+        with self.engine.begin() as conn:
+            alembic_config.attributes["connection"] = conn
+            try:
+                command.upgrade(alembic_config, "head")
+            finally:
+                alembic_config.attributes.pop("connection", None)
+
+        inspector = inspect(self.engine)
+        self.assertEqual(
+            inspector.get_pk_constraint("sessions")["constrained_columns"],
+            ["token"],
+        )
+        with self.engine.connect() as conn:
+            self.assertEqual(conn.execute(text("SELECT COUNT(*) FROM sessions")).scalar_one(), 0)
 
     def test_fresh_database_has_no_alembic_drift(self):
         models.ensure_schema_current(self.engine)

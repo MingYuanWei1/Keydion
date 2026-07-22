@@ -424,9 +424,21 @@ class SubmissionModel(BASE):
 
 class SessionModel(BASE):
     __tablename__ = "sessions"
-    username = Column(Unicode(255), primary_key=True)
-    token = Column(Unicode(255))
-    last_seen = Column(Unicode(255))
+    __table_args__ = (
+        CheckConstraint(
+            "account_type IN ('local', 'microsoft')",
+            name="ck_sessions_account_type",
+        ),
+        Index("ix_sessions_account", "account_type", "account_id"),
+        Index("ix_sessions_last_seen", "last_seen"),
+        Index("ix_sessions_expires_at", "expires_at"),
+    )
+
+    token = Column(Unicode(64), primary_key=True)
+    account_type = Column(Unicode(16), nullable=False)
+    account_id = Column(Unicode(255), nullable=False)
+    last_seen = Column(DateTime, nullable=False)
+    expires_at = Column(DateTime)
 
 
 def _alembic_config() -> Config:
