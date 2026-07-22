@@ -824,7 +824,7 @@ class PublishingMigrationTests(unittest.TestCase):
         self.assertEqual(partial.read_bytes(), b"replacement-owned-by-racer")
         self.assertEqual(Path(result.destination).read_bytes(), b"complete-source")
 
-    def test_interruption_after_atomic_publication_resumes_with_retained_stage(self):
+    def test_interruption_after_atomic_publication_resumes_with_safe_stage_cleanup(self):
         self.write_legacy("paper.pdf", b"source")
         with mock.patch(
             "services.publishing_migration._after_atomic_publication",
@@ -837,10 +837,18 @@ class PublishingMigrationTests(unittest.TestCase):
         part = self.papers / ".publishing-migration-stage" / paper_id / "1.pdf.part"
         self.assertEqual(destination.read_bytes(), b"source")
         self.assertEqual(part.read_bytes(), b"source")
+        publication_used_stage_link = os.path.samestat(
+            destination.stat(), part.stat(),
+        )
 
         result = backfill_one_paper(self.engine, self.papers, "paper.pdf")
         self.assertEqual(result.paper_id, paper_id)
-        self.assertEqual(part.read_bytes(), b"source")
+        if publication_used_stage_link:
+            self.assertFalse(part.exists())
+        else:
+            self.assertEqual(part.read_bytes(), b"source")
+        self.assertEqual(destination.read_bytes(), b"source")
+        self.assertEqual(destination.stat().st_nlink, 1)
         self.assertEqual(self.scalar("SELECT COUNT(*) FROM paper_revisions"), 1)
 
     def test_exact_submission_linking_persists_nonblocking_issues(self):
