@@ -979,6 +979,10 @@ class PublishingMigrationTests(unittest.TestCase):
         self.assertEqual(self.scalar("SELECT index_status FROM papers_metadata"), "pending")
         self.assertEqual(self.scalar("SELECT COUNT(*) FROM publishing_jobs"), 1)
         self.assertEqual(
+            self.scalar("SELECT kind FROM publishing_jobs"),
+            "index_revision",
+        )
+        self.assertEqual(
             self.scalar("SELECT dedupe_key FROM publishing_jobs"),
             f"index:{first.paper_id}:1",
         )

@@ -2333,7 +2333,7 @@ def _persist_paper_rows(
                         attempts, available_at, lease_token, lease_expires_at,
                         last_error, created_at, updated_at
                     ) VALUES (
-                        :id, 'index', :paper_id, 1, :dedupe_key, 'pending',
+                        :id, 'index_revision', :paper_id, 1, :dedupe_key, 'pending',
                         0, :available_at, NULL, NULL, NULL, :created_at, :updated_at
                     )
                 """), {
@@ -2773,7 +2773,7 @@ def validate_contract_ready(
             job_count = int(_scalar(engine, """
                 SELECT COUNT(*) FROM publishing_jobs
                 WHERE paper_id = :paper_id AND revision_number = 1
-                  AND dedupe_key = :dedupe_key AND kind = 'index'
+                  AND dedupe_key = :dedupe_key AND kind = 'index_revision'
             """, {
                 "paper_id": paper["id"],
                 "dedupe_key": f"index:{paper['id']}:1",
