@@ -130,10 +130,6 @@
         {% if category != 'info' %}<div class="kd-login-flash">{{ message }}</div>{% endif %}
       {% endfor %}
       <h3>{{ _('Sign in') }}</h3>
-      <div class="kd-login-remember">
-        <input type="checkbox" id="kdLoginRemember" name="remember_me" value="1" form="loginForm">
-        <label for="kdLoginRemember">{{ _('Stay logged in for 7 days') }}</label>
-      </div>
       {% if ms_enabled %}
       <button type="button" class="kd-login-btn kd-login-btn--ms" onclick="startMicrosoftLogin()">{{ _('Sign in with Microsoft') }}</button>
       <div class="kd-login-divider"><span>{{ _('or sign in with email') }}</span></div>
@@ -151,6 +147,10 @@
         </div>
         <button type="submit" class="kd-login-btn">{{ _('Sign in') }}</button>
       </form>
+      <div class="kd-login-remember">
+        <input type="checkbox" id="kdLoginRemember" name="remember_me" value="1" form="loginForm">
+        <label for="kdLoginRemember">{{ _('Stay logged in for 7 days') }}</label>
+      </div>
       <div class="kd-login-links">
         <a href="#" onclick="closeLoginModal(); return false;">{{ _('Cancel') }}</a>
       </div>
