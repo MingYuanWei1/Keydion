@@ -50,6 +50,10 @@ COPY tools/__init__.py tools/attachment_worker.py tools/bootstrap_database.py /a
 COPY tools/extract_attachment.py tools/publishing_worker.py tools/verify_alembic_state.py /app/tools/
 COPY tools/verify_paper_integrity.py /app/tools/
 
+# BuildKit preserves source modes. Local checkouts commonly use a restrictive
+# umask, so normalize copied application code before dropping privileges.
+RUN chmod -R a+rX /app
+
 # Runtime paths are private and writable only by the unprivileged service user.
 RUN mkdir -p \
         /app/papers \

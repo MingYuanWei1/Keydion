@@ -34,6 +34,7 @@ class ContainerSecurityContractTests(unittest.TestCase):
         copy_lines = [line.strip() for line in source.splitlines() if line.startswith("COPY ")]
         self.assertNotIn("COPY . /app", copy_lines)
         self.assertNotIn("COPY . .", copy_lines)
+        self.assertIn("chmod -R a+rX /app", source)
         self.assertIn("USER keydion:keydion", source)
         self.assertIn("/var/run/keydion", source)
         self.assertIn("chown -R keydion:keydion", source)
