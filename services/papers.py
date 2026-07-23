@@ -9,9 +9,7 @@ from uuid import uuid4
 
 from werkzeug.utils import secure_filename
 
-import llm_client
 import pdf_text
-import vision_read
 from config import (
     ALLOWED_EXTENSIONS,
     CP_CRITERIA_DEFS,
@@ -608,9 +606,10 @@ def extract_text_from_upload(filename: str, raw: bytes) -> str:
     """
     name = (filename or "").lower()
     if name.endswith(".pdf"):
-        vf = (lambda b, mp: vision_read.transcribe_pdf(b, max_pages=mp, language="en")) \
-            if llm_client.vision_enabled() else None
-        return pdf_text.extract_pdf_text(raw, vision_fallback=vf)
+        # pypdf + bounded local OCR only — deliberately no vision fallback:
+        # attachments are untrusted user uploads, and opting them into paid
+        # vision calls is a DoS/cost-abuse vector (reverts commit 6b34d80).
+        return pdf_text.extract_pdf_text(raw)
     if name.endswith(".docx"):
         from services.attachment_processing import preflight_docx
         from docx import Document

@@ -33,8 +33,40 @@ class ExtractTextFromUpload(unittest.TestCase):
         from unittest import mock
         with mock.patch("pdf_text.extract_pdf_text", return_value="ocr or pypdf text") as ex:
             out = app_module.extract_text_from_upload("scan.pdf", b"%PDF-1.4 fake")
-        ex.assert_called_once()
+        # No vision_fallback kwarg: attachments must stay on bounded local OCR
+        # (pypdf + Tesseract) — never opt user uploads into paid vision calls.
+        ex.assert_called_once_with(b"%PDF-1.4 fake")
         self.assertEqual(out, "ocr or pypdf text")
+
+
+class AttachmentNoVisionContract(unittest.TestCase):
+    """Security: attachment extraction must never reach paid vision calls.
+
+    Unbounded synchronous vision LLM calls on untrusted uploads are a
+    DoS/cost-abuse vector (reverts commit 6b34d80). AST-pinned so the
+    invariant holds regardless of mock plumbing or import style.
+    """
+
+    BANNED_TOKENS = ("vision_read", "vision_fallback", "vision_enabled",
+                     "transcribe_pdf", "llm_client")
+
+    def test_no_vision_names_in_extract_text_from_upload(self):
+        src = support.source_of("extract_text_from_upload")
+        for token in self.BANNED_TOKENS:
+            self.assertNotIn(token, src)
+
+    def test_single_bare_extract_pdf_text_call(self):
+        import ast
+        fn = ast.parse(support.source_of("extract_text_from_upload")).body[0]
+        calls = [
+            node for node in ast.walk(fn)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "extract_pdf_text"
+        ]
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(len(calls[0].args), 1)
+        self.assertEqual(calls[0].keywords, [])
 
 
 class AttachmentModelContract(unittest.TestCase):
