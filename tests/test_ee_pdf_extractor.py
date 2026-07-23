@@ -182,7 +182,7 @@ class ExtractorErrorPathsTest(unittest.TestCase):
 
     def test_pdf_header_without_content_raises(self):
         # A bare PDF header is enough to start parsing but yields no text.
-        # PyPDF2 will likely throw, which we wrap as EePdfExtractionError.
+        # pypdf will likely throw, which we wrap as EePdfExtractionError.
         with self.assertRaises(EePdfExtractionError):
             extract_ee_metadata(b"%PDF-1.4\n%%EOF\n")
 

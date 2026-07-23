@@ -11,7 +11,7 @@ from dataclasses import FrozenInstanceError, replace
 from pathlib import Path
 from unittest import mock
 
-from PyPDF2 import PdfReader, PdfWriter
+from pypdf import PdfReader, PdfWriter
 
 import services.paper_storage as storage_module
 from services.paper_storage import PaperStorage, StorageError

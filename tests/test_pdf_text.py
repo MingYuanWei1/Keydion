@@ -7,7 +7,7 @@ from unittest import mock
 
 import pdf_text
 from pdf_text import extract_pdf_text, PdfTextError
-from PyPDF2.errors import PdfReadError
+from pypdf.errors import PdfReadError
 from services.publishing_contracts import IndexDeadlineExceeded
 
 

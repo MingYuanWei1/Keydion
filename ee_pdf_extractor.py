@@ -6,7 +6,7 @@ Public surface:
 
 Parsing strategy:
     Primary: pdfplumber table extraction (added in a later task).
-    Fallback: PyPDF2 text + anchor regex.
+    Fallback: pypdf text + anchor regex.
 """
 
 from __future__ import annotations
@@ -19,8 +19,8 @@ from pathlib import Path
 from typing import Optional
 
 import pdfplumber
-from PyPDF2 import PdfReader
-from PyPDF2.errors import PdfReadError
+from pypdf import PdfReader
+from pypdf.errors import PdfReadError
 
 from config import _EE_SUBJECTS_DEFAULT
 from vision_extractor import VisionFirstExtractor
@@ -62,7 +62,7 @@ class EePdfExtractionError(Exception):
 
 # ── regex anchors ────────────────────────────────────────────────────────────
 #
-# pdftotext/PyPDF2 emit the IB commentary form's table cells in roughly the
+# pdftotext/pypdf emit the IB commentary form's table cells in roughly the
 # visual order: each cell becomes a chunk separated by newlines. The exact
 # whitespace is whitespace-insensitive in these patterns (we use \s+).
 #
@@ -153,7 +153,7 @@ def _read_pdf_text(file_bytes: bytes) -> str:
     for page in reader.pages:
         try:
             parts.append(page.extract_text() or "")
-        except Exception:  # pragma: no cover - PyPDF2 can throw a variety
+        except Exception:  # pragma: no cover - pypdf can throw a variety
             parts.append("")
     text = "\n".join(parts).strip()
     if not text:

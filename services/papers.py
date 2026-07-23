@@ -589,9 +589,9 @@ def allowed_file(filename: str) -> bool:
 
 def extract_pdf_text(pdf_path: Path) -> str:
     try:
-        from PyPDF2 import PdfReader
+        from pypdf import PdfReader
     except ImportError as exc:  # pragma: no cover - dependency guard
-        raise RuntimeError("PyPDF2 is required for PDF search.") from exc
+        raise RuntimeError("pypdf is required for PDF search.") from exc
 
     reader = PdfReader(str(pdf_path))
     text_parts: List[str] = []
@@ -603,7 +603,7 @@ def extract_pdf_text(pdf_path: Path) -> str:
 def extract_text_from_upload(filename: str, raw: bytes) -> str:
     """Extract plain text from an uploaded attachment by extension.
 
-    Supports PDF (PyPDF2), DOCX (python-docx), and TXT/MD (utf-8). Raises
+    Supports PDF (pypdf), DOCX (python-docx), and TXT/MD (utf-8). Raises
     ValueError for anything else.
     """
     name = (filename or "").lower()
@@ -625,9 +625,9 @@ def extract_text_from_upload(filename: str, raw: bytes) -> str:
 
 def set_pdf_metadata(pdf_path: Path, title: str, author: str) -> None:
     try:
-        from PyPDF2 import PdfReader, PdfWriter
+        from pypdf import PdfReader, PdfWriter
     except ImportError as exc:
-        print(f"PyPDF2 not installed, unable to set metadata: {exc}")
+        print(f"pypdf not installed, unable to set metadata: {exc}")
         return
 
     try:
@@ -653,9 +653,9 @@ def set_pdf_metadata(pdf_path: Path, title: str, author: str) -> None:
 
 def build_preview_pdf(pdf_path: Path, *, max_pages: int = 2) -> BytesIO:
     try:
-        from PyPDF2 import PdfReader, PdfWriter
+        from pypdf import PdfReader, PdfWriter
     except ImportError as exc:  # pragma: no cover - dependency guard
-        raise RuntimeError("PyPDF2 is required for PDF previews.") from exc
+        raise RuntimeError("pypdf is required for PDF previews.") from exc
 
     reader = PdfReader(str(pdf_path))
     writer = PdfWriter()

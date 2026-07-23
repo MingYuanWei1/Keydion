@@ -127,7 +127,7 @@ Environment variables: see `.env.example` for the full annotated list. **Gotcha:
 
 Self-contained concerns remain factored into satellite modules:
 - `ee_pdf_extractor.py` — PDF parser for IB EE metadata auto-fill (vision-first when `vision_enabled()`, else the local regex/pdfplumber path)
-- `pdf_text.py` — shared PDF→text extraction (PyPDF2 first, Tesseract OCR fallback for scanned PDFs). Stays a **leaf module** (never imports `llm_client`); for scanned pages it calls an optional caller-**injected** `vision_fallback(file_bytes, max_pages)` callable when one is passed, else Tesseract. Also exposes `render_pdf_pages()` (PyMuPDF rasterizer → PNG bytes per page)
+- `pdf_text.py` — shared PDF→text extraction (pypdf first, Tesseract OCR fallback for scanned PDFs). Stays a **leaf module** (never imports `llm_client`); for scanned pages it calls an optional caller-**injected** `vision_fallback(file_bytes, max_pages)` callable when one is passed, else Tesseract. Also exposes `render_pdf_pages()` (PyMuPDF rasterizer → PNG bytes per page)
 - `llm_client.py` — central LLM client + model resolution: **three providers** — chat (flash/think tiers, `LLM_*`), embeddings (`LLM_EMBED_*`), and vision (`LLM_VISION_*`); `vision_enabled()` gates the vision path independently of `llm_enabled()`
 - `llm_metadata.py` — abstract + keyword drafting from a paper PDF (vision-first when `vision_enabled()`; OCR+text-LLM fallback)
 - `vision_read.py` — vision-model PDF reading: `transcribe_pdf()` (vision-as-OCR, `""` on failure) and `extract_with_vision()` (structured `json_object` extraction over page images, raises `VisionError`). Used by the extractors and the scanned-page RAG ingestion fallback

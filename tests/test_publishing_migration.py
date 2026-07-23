@@ -16,7 +16,7 @@ from unittest import mock
 from alembic import command
 from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
-from PyPDF2 import PdfWriter
+from pypdf import PdfWriter
 from sqlalchemy import create_engine, inspect, text
 
 from services import publishing_migration

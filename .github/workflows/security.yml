@@ -18,7 +18,6 @@ jobs:
         with:
           inputs: requirements.lock
           require-hashes: true
-          no-deps: true
 
   codeql:
     runs-on: ubuntu-latest

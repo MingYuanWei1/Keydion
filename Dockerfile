@@ -26,9 +26,13 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 
 COPY requirements.txt requirements.lock /app/
 # pip cache mount: when requirements.lock changes, only newly selected wheels
-# download; the rest are served from the persistent cache.
+# download; the rest are served from the persistent cache. Setuptools is only
+# build tooling here; remove it from the runtime image so its vendored packages
+# do not add unused code or vulnerability findings.
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --require-hashes -r /app/requirements.lock
+    pip install --require-hashes -r /app/requirements.lock \
+    && pip uninstall --yes setuptools \
+    && pip check
 
 # Copy an explicit production allowlist.  Never replace this with COPY .: the
 # build directory commonly contains .env.prod, private Papers, and databases.

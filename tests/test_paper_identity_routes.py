@@ -13,7 +13,7 @@ from unittest import mock
 from uuid import UUID
 
 from flask import Flask
-from PyPDF2 import PdfReader, PdfWriter
+from pypdf import PdfReader, PdfWriter
 from werkzeug.routing import PathConverter
 
 from routes.papers import _LegacyPaperPathConverter, register_routes

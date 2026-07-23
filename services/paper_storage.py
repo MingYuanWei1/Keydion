@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import BinaryIO, Callable, Iterable, Iterator
 
-from PyPDF2 import PdfReader, PdfWriter
+from pypdf import PdfReader, PdfWriter
 
 from services.paper_identity import validate_paper_id
 from services.papers import resolve_contained

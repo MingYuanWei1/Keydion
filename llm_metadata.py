@@ -56,7 +56,7 @@ def _ocr_langs_for(language: str) -> str:
 
 
 def _pdf_text_from_bytes(file_bytes: bytes, language: str = "en") -> str:
-    """Extract concatenated PDF text (PyPDF2 + OCR fallback), capped to MAX_PDF_CHARS."""
+    """Extract concatenated PDF text (pypdf + OCR fallback), capped to MAX_PDF_CHARS."""
     if not file_bytes:
         raise LLMMetadataError("Empty file")
     try:

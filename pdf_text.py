@@ -1,10 +1,10 @@
-"""Shared PDF-bytes-to-text extraction: PyPDF2 first, Tesseract OCR fallback.
+"""Shared PDF-bytes-to-text extraction: pypdf first, Tesseract OCR fallback.
 
 Public surface:
     extract_pdf_text(file_bytes, *, ocr_langs=..., max_ocr_pages=10) -> str
     PdfTextError   (.reason is "corrupt" | "encrypted")
 
-OCR is a fallback only: when PyPDF2 yields fewer than MIN_TEXT_CHARS
+OCR is a fallback only: when pypdf yields fewer than MIN_TEXT_CHARS
 non-whitespace characters (a scanned / image-only PDF) the pages are rasterised
 with PyMuPDF and run through Tesseract. OCR dependencies are imported lazily, so
 a host without them (or without the `tesseract` binary) keeps serving text-based
@@ -19,8 +19,8 @@ import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-from PyPDF2 import PdfReader
-from PyPDF2.errors import PdfReadError
+from pypdf import PdfReader
+from pypdf.errors import PdfReadError
 from services.publishing_contracts import IndexDeadlineExceeded
 
 MIN_TEXT_CHARS = 50
@@ -128,7 +128,7 @@ def _pypdf_text(
             _raise_deadline_if_expired(deadline, exc)
             if strict:
                 raise
-            # PyPDF2 can throw a variety on odd pages. Interactive callers
+            # pypdf can throw a variety on odd pages. Interactive callers
             # retain the historical best-effort behavior.
             parts.append("")
         _check_deadline(deadline)
@@ -385,7 +385,7 @@ def extract_pdf_text(file_bytes: bytes, *, ocr_langs: str = DEFAULT_OCR_LANGS,
                      vision_fallback=None,
                      deadline: float | None = None,
                      strict: bool = False) -> str:
-    """PDF bytes -> text. PyPDF2 first; scanned-doc fallback for thin text layers.
+    """PDF bytes -> text. pypdf first; scanned-doc fallback for thin text layers.
 
     For a scanned/image-only PDF (pypdf yields < MIN_TEXT_CHARS), the fallback is:
       - vision_fallback(file_bytes, max_ocr_pages) when a callable is injected
