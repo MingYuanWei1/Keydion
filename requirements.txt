@@ -1,6 +1,6 @@
 Flask>=3.0
 Flask-Babel>=4.0
-Flask-WTF>=1.2
+Flask-WTF>=1.3.0
 pypdf>=3.9.0
 pdfplumber>=0.11
 msal>=1.28
