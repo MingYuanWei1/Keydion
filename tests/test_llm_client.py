@@ -182,5 +182,48 @@ class LlmClientVisionConfig(unittest.TestCase):
             self.assertTrue(llm_client.vision_enabled())
 
 
+class VisionClientFallbackBounds(unittest.TestCase):
+    """A vision client built without a deadline must still be finite.
+
+    Vision calls run synchronously on user-visible request paths; the SDK
+    default (600s reads x 2 retries, ~30 min) would let one slow provider
+    response block a gunicorn worker and burn paid quota. The deadline path
+    already bounds itself; this pins the no-deadline backstop and guards
+    chat/embed clients against unintended change.
+    """
+
+    def _construct(self, build):
+        calls = []
+
+        def openai(**kwargs):
+            calls.append(kwargs)
+            return object()
+
+        fake_module = types.SimpleNamespace(OpenAI=openai)
+        with mock.patch.dict(sys.modules, {"openai": fake_module}):
+            build()
+        return calls[0]
+
+    def test_vision_client_without_deadline_gets_finite_backstop(self):
+        kwargs = self._construct(llm_client.build_vision_client)
+        self.assertIn("timeout", kwargs)
+        self.assertGreater(kwargs["timeout"], 0)
+        self.assertLessEqual(kwargs["timeout"], 120)
+        self.assertEqual(kwargs["max_retries"], 0)
+
+    def test_vision_client_deadline_overrides_fallback(self):
+        with mock.patch.object(llm_client.time, "monotonic", return_value=4.5):
+            kwargs = self._construct(
+                lambda: llm_client.build_vision_client(deadline=34.5))
+        self.assertEqual(kwargs["timeout"], 30.0)
+        self.assertEqual(kwargs["max_retries"], 0)
+
+    def test_chat_and_embed_clients_keep_sdk_defaults(self):
+        for build in (llm_client.build_client, llm_client.build_embed_client):
+            kwargs = self._construct(build)
+            self.assertNotIn("timeout", kwargs)
+            self.assertNotIn("max_retries", kwargs)
+
+
 if __name__ == "__main__":
     unittest.main()

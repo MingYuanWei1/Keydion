@@ -75,7 +75,9 @@ def _raise_deadline_if_expired(deadline: float | None, error: Exception) -> None
         raise IndexDeadlineExceeded() from error
 
 
-def _new_client(api_key: str, base_url, *, deadline: float | None = None):
+def _new_client(api_key: str, base_url, *, deadline: float | None = None,
+                fallback_timeout: float | None = None,
+                fallback_max_retries: int | None = None):
     _remaining_timeout(deadline)
     try:
         from openai import OpenAI  # imported lazily so import errors surface at call time
@@ -85,6 +87,11 @@ def _new_client(api_key: str, base_url, *, deadline: float | None = None):
     kwargs = {"api_key": api_key, "base_url": base_url}
     if deadline is not None:
         kwargs.update(timeout=_remaining_timeout(deadline), max_retries=0)
+    else:
+        if fallback_timeout is not None:
+            kwargs["timeout"] = fallback_timeout
+        if fallback_max_retries is not None:
+            kwargs["max_retries"] = fallback_max_retries
     try:
         client = OpenAI(**kwargs)
     except IndexDeadlineExceeded:
@@ -109,10 +116,19 @@ def build_embed_client(*, deadline: float | None = None):
     return _new_client(api_key, base_url, deadline=deadline)
 
 
+# Vision calls run synchronously on user-visible paths; when a caller omits
+# the deadline, still cap the wait (the SDK default is 600s reads x 2
+# retries, ~30 min of blocked worker) and never auto-retry.
+VISION_FALLBACK_TIMEOUT = 90.0
+VISION_FALLBACK_MAX_RETRIES = 0
+
+
 def build_vision_client(*, deadline: float | None = None):
     """Vision client from LLM_VISION_* (fallback to chat vars)."""
     api_key, base_url = _vision_credentials()
-    return _new_client(api_key, base_url, deadline=deadline)
+    return _new_client(api_key, base_url, deadline=deadline,
+                       fallback_timeout=VISION_FALLBACK_TIMEOUT,
+                       fallback_max_retries=VISION_FALLBACK_MAX_RETRIES)
 
 
 def vision_enabled() -> bool:

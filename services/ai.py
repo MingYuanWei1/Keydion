@@ -2,6 +2,7 @@
 import json
 import logging
 import re
+import time
 import types
 
 import numpy as np
@@ -42,6 +43,12 @@ def _index_ocr_langs(language: str) -> str:
     return "eng+chi_sim"
 
 
+# Bound for the live read_paper extraction below: it runs synchronously
+# inside the /api/ai request handler, so cap it under gunicorn's 60s worker
+# timeout (same budget as publishing's inline indexing).
+ASK_READ_PAPER_TIMEOUT = 45.0
+
+
 def _rag_paper_text(paper_id):
     # Indexing path: OCR scanned published papers so they're retrievable by
     # chat grounding AND readable in full by read_paper. Uses a higher page
@@ -55,11 +62,14 @@ def _rag_paper_text(paper_id):
     record = document.paper
     lang = record.language or ""
     ocr_langs = _index_ocr_langs(lang)
-    vf = (lambda b, mp: vision_read.transcribe_pdf(b, max_pages=mp, language=lang or "en")) \
+    deadline = time.monotonic() + ASK_READ_PAPER_TIMEOUT
+    vf = (lambda b, mp: vision_read.transcribe_pdf(
+        b, max_pages=mp, language=lang or "en", deadline=deadline)) \
         if llm_client.vision_enabled() else None
     return pdf_text.extract_pdf_text(
         document.path.read_bytes(),
-        ocr_langs=ocr_langs, max_ocr_pages=50, vision_fallback=vf)
+        ocr_langs=ocr_langs, max_ocr_pages=50, vision_fallback=vf,
+        deadline=deadline)
 
 
 def _rag_store_version():

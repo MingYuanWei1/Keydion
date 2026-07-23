@@ -172,6 +172,59 @@ class RagPaperTextOcr(unittest.TestCase):
         self.assertNotIn("pdf_text.", src)  # must not delegate to pdf_text module
 
 
+class RagPaperTextDeadlineContract(unittest.TestCase):
+    """Security: _rag_paper_text runs synchronously inside the /api/ai request
+    handler (agentic read_paper fallback for chunk-less scanned papers). Its
+    extraction must run under a deadline so one paper cannot hold a gunicorn
+    worker or burn vision quota unboundedly."""
+
+    def test_extract_pdf_text_call_is_deadline_bound(self):
+        import ast
+        fn = ast.parse(support.source_of("_rag_paper_text")).body[0]
+        calls = [
+            node for node in ast.walk(fn)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "extract_pdf_text"
+        ]
+        self.assertEqual(len(calls), 1)
+        self.assertIn("deadline", {keyword.arg for keyword in calls[0].keywords})
+
+    def test_vision_fallback_prebinds_deadline(self):
+        import ast
+        fn = ast.parse(support.source_of("_rag_paper_text")).body[0]
+        calls = [
+            node for node in ast.walk(fn)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "transcribe_pdf"
+        ]
+        self.assertEqual(len(calls), 1)
+        self.assertIn("deadline", {keyword.arg for keyword in calls[0].keywords})
+
+    def test_deadline_value_is_monotonic_plus_ask_timeout(self):
+        # Presence-only pins would still pass with deadline=None, a
+        # time.time() clock mixup, or an inflated constant — pin the actual
+        # value (mirrors the publishing path in test_publishing_publish.py).
+        from unittest import mock
+        paper_id = "11111111-1111-4111-8111-111111111111"
+        library = mock.Mock()
+        library.current_pdf.return_value = SimpleNamespace(
+            paper=SimpleNamespace(language="en"),
+            path=Path("/safe/1.pdf"),
+        )
+        test_app = Flask(__name__)
+        test_app.extensions["paper_library"] = library
+        with test_app.app_context(), \
+             mock.patch.object(ask_module.time, "monotonic", return_value=7.0), \
+             mock.patch("pathlib.Path.read_bytes", return_value=b"%PDF-1.4 fake"), \
+             mock.patch("pdf_text.extract_pdf_text", return_value="") as ex:
+            ask_module._rag_paper_text(paper_id)
+        self.assertEqual(
+            ex.call_args.kwargs["deadline"],
+            7.0 + ask_module.ASK_READ_PAPER_TIMEOUT)
+
+
 class ConversationGetReturnsMessageAttachments(unittest.TestCase):
     def test_message_dict_includes_attachments(self):
         src = support.source_of("api_conversation_item")
