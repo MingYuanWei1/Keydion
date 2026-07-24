@@ -28,7 +28,9 @@ class ConversationModels(unittest.TestCase):
         self.assertIn("def _ask_llm_messages(", src)
         self.assertIn("history_rows = (db.query(ChatMessageModel)", src)
         self.assertIn('{"role": row.role, "content": row.content}', src)
-        self.assertIn('messages=[{"role": "system", "content": system}] + llm_messages', src)
+        # The legacy single-shot fallback (now in services/ask_turn.py) feeds the
+        # system prompt plus the prior-conversation messages to the model.
+        self.assertIn('messages=[{"role": "system", "content": system}] + inp.llm_messages', src)
 
 
 if __name__ == "__main__":
