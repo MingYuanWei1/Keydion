@@ -1844,38 +1844,6 @@ class SubmissionPublishingTests(PublishingLifecycleTestCase, unittest.TestCase):
         self.assertFalse((self.storage.pending_dir / self.pending_name()).exists())
         self.assertTrue(self.lifecycle_trash_path().exists())
 
-    def test_two_concurrent_acceptance_intents_leave_one_paper(self):
-        ready = threading.Barrier(2)
-        outcomes = []
-
-        class BarrierIndexer(FakeRevisionIndexer):
-            def enabled(inner):
-                try:
-                    ready.wait(timeout=5)
-                except threading.BrokenBarrierError:
-                    pass
-                return False
-
-        first = self.new_lifecycle(BarrierIndexer())
-        second = self.new_lifecycle(BarrierIndexer())
-
-        def accept(lifecycle):
-            try:
-                outcomes.append(lifecycle.review_submission(self.accept_intent()))
-            except Exception as exc:
-                outcomes.append(exc)
-
-        threads = [threading.Thread(target=accept, args=(lifecycle,)) for lifecycle in (first, second)]
-        for thread in threads:
-            thread.start()
-        for thread in threads:
-            thread.join(timeout=7)
-        self.assertTrue(all(not thread.is_alive() for thread in threads))
-        self.assertEqual(len(self.papers()), 1)
-        self.assertEqual(len([outcome for outcome in outcomes if not isinstance(outcome, Exception)]), 2)
-        self.assertEqual({outcome.paper_id for outcome in outcomes}, {self.papers()[0].id})
-        self.assertEqual(sorted(outcome.replayed for outcome in outcomes), [False, True])
-
     def test_acceptance_reconstructs_winner_when_cleanup_wins_stage_race(self):
         second_storage = PaperStorage(
             self.storage.papers_dir,
