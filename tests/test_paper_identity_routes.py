@@ -846,7 +846,7 @@ class AskCitationAvailabilityRouteTest(unittest.TestCase):
                 stale_same_paper,
             ],
         ), mock.patch(
-            "routes.ai._build_ask_prompt",
+            "services.ask_turn._build_ask_prompt",
             side_effect=build_prompt,
         ), mock.patch(
             "routes.ai.get_locale",

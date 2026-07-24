@@ -13,7 +13,6 @@ from flask import (
 )
 from flask_babel import get_locale, gettext as _
 
-import library_tools
 import llm_client
 import rag_index
 import web_search
@@ -22,25 +21,19 @@ from db import db_session
 from models import AttachmentChunkModel, ChatMessageModel, ConversationModel
 from routes.shared import is_partial_request
 from services.ai import (
-    FETCH_URL_CALL_CAP,
     MAX_ATTACH_BYTES,
     MAX_QUESTION_CHARS,
-    MAX_TOOL_ROUNDS,
-    WEB_SEARCH_CALL_CAP,
     _ask_llm_messages,
     _ask_owner_key,
     _ask_rate_ok,
     _attachment_filenames,
     _attachment_grounding,
-    _build_agentic_ask_prompt,
-    _build_ask_prompt,
     _build_library_deps,
-    _filter_cited,
     _forced_grounding,
     _normalize_stored_paper_references,
     _prepare_available_grounding_hits,
-    _tool_status_text,
 )
+from services.ask_turn import AskTurnInput, run_ask_turn
 from services.attachment_jobs import (
     attachment_job_status_for_owner,
     cancel_attachment,
@@ -467,275 +460,52 @@ def register_routes(app):
             except Exception:
                 app.logger.exception("web search failed")
                 web_results = []
-        system = _build_ask_prompt(question, hits, locale_code, web_results)
-        web_items = [
-            {"n": len(hits) + j + 1, "title": w["title"], "url": w["url"]}
-            for j, w in enumerate(web_results)
-        ]
+        # Pre-build the citation URL on each non-attachment hit so the turn
+        # module can seed the registry without reaching into Flask's url_for.
+        for h in hits:
+            if not h.get("is_attachment") and h.get("paper_id"):
+                h.setdefault("url", url_for("preview_paper", paper_id=h["paper_id"]))
 
-        def generate():
-            import json as _json
-            full = []
+        include_web = web_on and web_search.web_search_enabled()
+        attachment_names = _attachment_filenames(db_conv_id)
+        deps = _build_library_deps(db_conv_id)
+        client = llm_client.build_client()
 
-            def _finish(shown_citations, shown_web):
-                # Emit citations / web, persist the assistant message, finish.
-                answer_text = "".join(full)
-                yield "data: " + _json.dumps({"type": "citations", "items": shown_citations}) + "\n\n"
-                if shown_web:
-                    yield "data: " + _json.dumps({"type": "web", "items": shown_web}) + "\n\n"
-                if db_conv_id is not None:
-                    try:
-                        with db_session() as db:
-                            conv = db.query(ConversationModel).filter(
-                                ConversationModel.id == db_conv_id,
-                                ConversationModel.owner_key == owner).first()
-                            if conv:
-                                db.add(ChatMessageModel(
-                                    conversation_id=db_conv_id, role="assistant",
-                                    content=answer_text,
-                                    citations=_json.dumps(shown_citations),
-                                    created_at=datetime.utcnow().isoformat()))
-                    except Exception:
-                        app.logger.exception("failed to persist assistant message")
-                yield "data: " + _json.dumps({"type": "done"}) + "\n\n"
+        def persist_assistant(answer_text, shown_citations):
+            with db_session() as db:
+                conv = db.query(ConversationModel).filter(
+                    ConversationModel.id == db_conv_id,
+                    ConversationModel.owner_key == owner).first()
+                if conv:
+                    db.add(ChatMessageModel(
+                        conversation_id=db_conv_id, role="assistant",
+                        content=answer_text,
+                        citations=json.dumps(shown_citations),
+                        created_at=datetime.utcnow().isoformat()))
 
-            try:
-                client = llm_client.build_client()
-                attachment_names = _attachment_filenames(db_conv_id)
-                include_attachment = bool(attachment_names)
-                deps = _build_library_deps(db_conv_id)
-                include_web = web_on and web_search.web_search_enabled()
-                tool_schemas = library_tools.build_tool_schemas(
-                    include_web=include_web, include_attachment=include_attachment)
-                web_call_count = 0
-                fetch_call_count = 0
-                registry = library_tools.SourceRegistry()
+        turn_input = AskTurnInput(
+            question=question,
+            llm_messages=llm_messages,
+            mode=mode,
+            model=model,
+            forced=forced,
+            hits=hits,
+            citations=citations,
+            web_results=web_results,
+            locale_code=locale_code,
+            include_web=include_web,
+            attachment_names=attachment_names,
+            client=client,
+            deps=deps,
+            persist_assistant=persist_assistant if db_conv_id is not None else None,
+            logger=app.logger,
+        )
 
-                # Seed the registry from the retrieved hits (library + attachment
-                # candidates), preserving order so [n] matches what the model sees.
-                candidates = []
-                for h in hits:
-                    is_attachment = bool(h.get("is_attachment"))
-                    source_id = h["filename"] if is_attachment else h["paper_id"]
-                    source_meta = {
-                        "filename": h["filename"],
-                        "title": h.get("title") or h["filename"],
-                        "authors": h.get("author_name", ""),
-                        "url": (None if is_attachment
-                                else url_for("preview_paper", paper_id=h["paper_id"])),
-                    }
-                    if not is_attachment:
-                        source_meta.update({
-                            "paper_id": h["paper_id"],
-                            "revision_number": h["revision_number"],
-                        })
-                    n = registry.register(
-                        source_id,
-                        source_meta,
-                        is_attachment=is_attachment,
-                    )
-                    candidate = {
-                        "n": n,
-                        "title": h.get("title") or h["filename"],
-                        "authors": h.get("author_name", ""),
-                        "filename": h["filename"],
-                        "snippet": (h.get("content") or "")[:500],
-                        "is_attachment": is_attachment,
-                    }
-                    if not is_attachment:
-                        candidate.update({
-                            "paper_id": h["paper_id"],
-                            "revision_number": h["revision_number"],
-                        })
-                    candidates.append(candidate)
+        def sse_stream():
+            for event in run_ask_turn(turn_input):
+                if event.get("type") == "error":
+                    event = {"type": "error",
+                             "message": str(_("Something went wrong. Please try again."))}
+                yield "data: " + json.dumps(event) + "\n\n"
 
-                # Register web results into the SAME registry right after the
-                # library seed, reserving contiguous numbers so papers discovered
-                # during the loop never collide with web numbers.
-                web_sources = []
-                if web_results:
-                    for w in web_results:
-                        allowed_url = registry.allow_web_fetch(w["url"])
-                        if allowed_url is None:
-                            continue
-                        wn = registry.register(allowed_url, {
-                            "title": w["title"], "authors": "", "url": allowed_url,
-                        }, is_web=True)
-                        web_sources.append({
-                            "n": wn, "title": w["title"], "url": allowed_url,
-                            "snippet": (w.get("content") or "")[:500],
-                        })
-
-                agentic_system = _build_agentic_ask_prompt(
-                    question, candidates, web_sources, locale_code,
-                    include_web=include_web, include_attachment=include_attachment,
-                    attachment_names=attachment_names)
-                messages = [{"role": "system", "content": agentic_system}] + llm_messages
-
-                # Pre-read forced papers so the model has their full text up front.
-                if forced:
-                    results = []
-                    for paper_id in forced:
-                        res = library_tools.run_tool(
-                            "read_paper",
-                            _json.dumps({"paper_id": paper_id}),
-                            registry,
-                            deps,
-                        )
-                        if res and not res.startswith("Error:"):
-                            results.append(res)
-                    if results:
-                        intro = ("The following are the full texts of papers the user "
-                                 "explicitly referenced. Use them to answer.")
-                        messages.append({"role": "system",
-                                         "content": intro + "\n\n" + "\n\n".join(results)})
-
-                create_kwargs = {}
-                if mode == "think":
-                    create_kwargs["extra_body"] = {"thinking": {"type": "enabled"}}
-
-                answered = False
-                for round_i in range(MAX_TOOL_ROUNDS):
-                    try:
-                        stream = client.chat.completions.create(
-                            model=model, temperature=0.2, stream=True,
-                            messages=messages, tools=tool_schemas,
-                            **create_kwargs,
-                        )
-                    except Exception:
-                        if round_i == 0:
-                            # Provider likely lacks tool support — fall back to the
-                            # legacy single-shot path that reproduces today's behavior.
-                            app.logger.warning(
-                                "tool-calling create failed on first round; "
-                                "falling back to legacy single-shot ask", exc_info=True)
-                            full = []
-                            # `system` was computed pre-generate via _build_ask_prompt;
-                            # the fallback reproduces today's exact single-shot behavior.
-                            legacy_stream = client.chat.completions.create(
-                                model=model, temperature=0.2, stream=True,
-                                messages=[{"role": "system", "content": system}] + llm_messages,
-                                **create_kwargs,
-                            )
-                            for chunk in legacy_stream:
-                                delta = ""
-                                try:
-                                    delta = chunk.choices[0].delta.content or ""
-                                except (AttributeError, IndexError):
-                                    delta = ""
-                                if delta:
-                                    full.append(delta)
-                                    yield "data: " + _json.dumps(
-                                        {"type": "token", "text": delta}) + "\n\n"
-                            answer_text = "".join(full)
-                            shown_citations = _filter_cited(citations, answer_text)
-                            shown_web = _filter_cited(web_items, answer_text)
-                            yield from _finish(shown_citations, shown_web)
-                            return
-                        raise
-
-                    # Accumulate tool calls by index (fragments stream in pieces).
-                    acc = {}
-                    round_content = []
-                    for chunk in stream:
-                        try:
-                            delta = chunk.choices[0].delta
-                        except (AttributeError, IndexError):
-                            continue
-                        content = getattr(delta, "content", None) or ""
-                        if content:
-                            round_content.append(content)
-                            yield "data: " + _json.dumps(
-                                {"type": "token", "text": content}) + "\n\n"
-                        for tc in (getattr(delta, "tool_calls", None) or []):
-                            idx = tc.index
-                            slot = acc.setdefault(idx, {"id": "", "name": "", "arguments": ""})
-                            if getattr(tc, "id", None):
-                                slot["id"] = tc.id
-                            fn = getattr(tc, "function", None)
-                            if fn is not None:
-                                if getattr(fn, "name", None):
-                                    slot["name"] = fn.name
-                                if getattr(fn, "arguments", None):
-                                    slot["arguments"] += fn.arguments
-
-                    if acc:
-                        calls = [acc[i] for i in sorted(acc)]
-                        messages.append({
-                            "role": "assistant",
-                            "content": "".join(round_content) or None,
-                            "tool_calls": [
-                                # Use synthetic id if provider omitted it; must match tool message below.
-                                {"id": c["id"] or f"call_{idx}", "type": "function",
-                                 "function": {"name": c["name"], "arguments": c["arguments"]}}
-                                for idx, c in enumerate(calls)
-                            ],
-                        })
-                        for idx, c in enumerate(calls):
-                            cid = c["id"] or f"call_{idx}"
-                            if c["name"] == "web_search":
-                                if web_call_count >= WEB_SEARCH_CALL_CAP:
-                                    messages.append({"role": "tool", "tool_call_id": cid,
-                                        "content": "Error: web_search limit reached for "
-                                                   "this turn; answer with what you have."})
-                                    continue
-                                web_call_count += 1
-                            if c["name"] == "fetch_url":
-                                if fetch_call_count >= FETCH_URL_CALL_CAP:
-                                    messages.append({"role": "tool", "tool_call_id": cid,
-                                        "content": "Error: fetch_url limit reached for "
-                                                   "this turn; answer with what you have."})
-                                    continue
-                                fetch_call_count += 1
-                            yield "data: " + _json.dumps({
-                                "type": "status",
-                                "text": _tool_status_text(
-                                    c["name"], c["arguments"], registry, deps),
-                            }) + "\n\n"
-                            result = library_tools.run_tool(
-                                c["name"], c["arguments"], registry, deps)
-                            messages.append({"role": "tool", "tool_call_id": cid,
-                                             "content": result})
-                        continue
-
-                    # No tool calls — this round was the final answer.
-                    full.extend(round_content)
-                    answered = True
-                    break
-
-                if not answered:
-                    # Round cap hit — force one final answer with no more tools.
-                    final_stream = client.chat.completions.create(
-                        model=model, temperature=0.2, stream=True,
-                        messages=messages, tools=tool_schemas,
-                        tool_choice="none", **create_kwargs,
-                    )
-                    for chunk in final_stream:
-                        delta = ""
-                        try:
-                            delta = chunk.choices[0].delta.content or ""
-                        except (AttributeError, IndexError):
-                            delta = ""
-                        if delta:
-                            full.append(delta)
-                            yield "data: " + _json.dumps(
-                                {"type": "token", "text": delta}) + "\n\n"
-
-                # Finish (agentic path): split citations into library vs web, then
-                # keep only the sources the answer actually referenced.
-                answer_text = "".join(full)
-                all_cites = registry.as_citations()
-                lib_citations = [c for c in all_cites if not c["is_web"]]
-                web_citations = [
-                    {"n": c["n"], "title": c["title"], "url": c["url"]}
-                    for c in all_cites if c["is_web"]
-                ]
-                shown_citations = _filter_cited(lib_citations, answer_text)
-                shown_web = _filter_cited(web_citations, answer_text)
-                yield from _finish(shown_citations, shown_web)
-            except Exception:
-                app.logger.exception("LLM stream failed")
-                yield "data: " + _json.dumps({"type": "error",
-                       "message": str(_("Something went wrong. Please try again."))}) + "\n\n"
-
-        return Response(stream_with_context(generate()), mimetype="text/event-stream")
+        return Response(stream_with_context(sse_stream()), mimetype="text/event-stream")
