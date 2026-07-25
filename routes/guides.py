@@ -25,6 +25,7 @@ from services.auth import require_login
 from services.guides import (
     _group_guides_for_index,
     _load_guide_categories,
+    _order_guides_for_index,
     _read_guide_form,
     _sanitize_guide_html,
     _slugify,
@@ -54,7 +55,10 @@ def register_routes(app):
         if not guide or not guide.get("published"):
             abort(404)
         # Compute prev/next from the same ordered list the index uses.
-        flat = load_guides(published_only=True)
+        flat = _order_guides_for_index(
+            load_guides(published_only=True),
+            _load_guide_categories(),
+        )
         idx = next((i for i, g in enumerate(flat) if g.get("slug") == slug), -1)
         prev_guide = flat[idx - 1] if idx > 0 else None
         next_guide = flat[idx + 1] if 0 <= idx < len(flat) - 1 else None

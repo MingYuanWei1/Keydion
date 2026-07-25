@@ -2625,7 +2625,9 @@ msgid "help."
 msgstr ""
 
 #: templates/guides.html:15
-msgid "How to upload, publish, and curate work on Keydion."
+msgid ""
+"Discover and read research, ask questions about it, and submit your own work "
+"for review."
 msgstr ""
 
 #: templates/guides.html:20

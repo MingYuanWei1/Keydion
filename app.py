@@ -81,6 +81,7 @@ from services.resources import (  # noqa: F401
 )
 from services.guides import (  # noqa: F401
     _sanitize_guide_html, _read_guide_form, _group_guides_for_index,
+    _order_guides_for_index,
 )
 from services.news import (  # noqa: F401
     load_news_articles,

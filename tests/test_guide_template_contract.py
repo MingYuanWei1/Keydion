@@ -3,6 +3,11 @@ from pathlib import Path
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+READER_LEDE = (
+    "Discover and read research, ask questions about it, and submit your own "
+    "work for review."
+)
+OLD_CONTRIBUTOR_LEDE = "How to upload, publish, and curate work on Keydion."
 sys.path.insert(0, str(ROOT))
 
 
@@ -65,6 +70,10 @@ class GuideTemplateContractTest(unittest.TestCase):
         self.assertIn("'%02d'", self.index_tpl)
         # Empty-state message preserved
         self.assertIn("No guides published yet", self.index_tpl)
+
+    def test_index_introduction_is_reader_only(self):
+        self.assertIn(READER_LEDE, self.index_tpl)
+        self.assertNotIn(OLD_CONTRIBUTOR_LEDE, self.index_tpl)
 
     def test_article_template_renders_body_safe(self):
         # body is sanitized server-side, so `| safe` is correct here

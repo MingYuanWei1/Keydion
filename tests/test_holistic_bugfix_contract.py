@@ -83,6 +83,77 @@ class GuidesIndexGroupingTest(unittest.TestCase):
         grouped = self.m._group_guides_for_index(guides, ["Alpha", "Beta"])
         self.assertEqual([cat for cat, _items in grouped], ["Alpha", "Beta"])
 
+    def test_configured_order_drives_the_exact_reader_navigation_sequence(self):
+        guides = [
+            {"slug": "reader-account", "category": "Account", "sort_order": 10},
+            {"slug": "welcome-to-keydion", "category": "Getting Started", "sort_order": 10},
+            {"slug": "find-research", "category": "Getting Started", "sort_order": 20},
+            {
+                "slug": "read-and-download-papers",
+                "category": "Getting Started",
+                "sort_order": 30,
+            },
+            {"slug": "ask-the-library", "category": "Getting Started", "sort_order": 40},
+            {
+                "slug": "explore-journals-and-resources",
+                "category": "Getting Started",
+                "sort_order": 50,
+            },
+            {"slug": "read-news-and-updates", "category": "News", "sort_order": 10},
+            {
+                "slug": "submit-research-for-review",
+                "category": "Submissions",
+                "sort_order": 10,
+            },
+            {
+                "slug": "track-drafts-and-submissions",
+                "category": "Submissions",
+                "sort_order": 20,
+            },
+        ]
+        categories = ["Getting Started", "Account", "Submissions", "News"]
+
+        ordering_helper = getattr(self.m, "_order_guides_for_index", None)
+        self.assertIsNotNone(
+            ordering_helper,
+            "guides need one shared configured category-ordering helper",
+        )
+        ordered = ordering_helper(guides, categories)
+        slugs = [guide["slug"] for guide in ordered]
+
+        self.assertEqual(
+            slugs,
+            [
+                "welcome-to-keydion",
+                "find-research",
+                "read-and-download-papers",
+                "ask-the-library",
+                "explore-journals-and-resources",
+                "reader-account",
+                "submit-research-for-review",
+                "track-drafts-and-submissions",
+                "read-news-and-updates",
+            ],
+        )
+        neighbors = {
+            slug: (
+                slugs[index - 1] if index else None,
+                slugs[index + 1] if index + 1 < len(slugs) else None,
+            )
+            for index, slug in enumerate(slugs)
+        }
+        self.assertEqual(neighbors["welcome-to-keydion"][0], None)
+        self.assertEqual(
+            neighbors["explore-journals-and-resources"][1], "reader-account"
+        )
+        self.assertEqual(
+            neighbors["reader-account"][1], "submit-research-for-review"
+        )
+        self.assertEqual(
+            neighbors["track-drafts-and-submissions"][1], "read-news-and-updates"
+        )
+        self.assertEqual(neighbors["read-news-and-updates"][1], None)
+
 
 if __name__ == "__main__":
     unittest.main()

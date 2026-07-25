@@ -1,5 +1,6 @@
 import unittest
 from pathlib import Path
+import re
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -42,6 +43,27 @@ class GuidesCssContractTest(unittest.TestCase):
             "kd-hairline", "kd-panel", "kd-panel-head",
         ]:
             self.assertIn(f".{cls}", self.css, f"guides.css missing class .{cls}")
+
+    def test_mobile_callout_stacks_into_a_shrink_safe_column(self):
+        mobile_match = re.search(
+            r"@media \(max-width: 767\.98px\) \{(?P<body>.*?)\n\}",
+            self.css,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(mobile_match, "missing narrow guides breakpoint")
+        mobile_css = mobile_match.group("body")
+        callout_match = re.search(
+            r"\.kd-callout\s*\{(?P<body>.*?)\}",
+            mobile_css,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(callout_match, "mobile breakpoint must override .kd-callout")
+        callout_css = callout_match.group("body")
+        self.assertRegex(
+            callout_css,
+            r"grid-template-columns\s*:\s*minmax\(0,\s*1fr\)",
+        )
+        self.assertRegex(callout_css, r"gap\s*:\s*12px")
 
 
 if __name__ == "__main__":

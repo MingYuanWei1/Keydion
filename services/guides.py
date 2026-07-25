@@ -173,34 +173,48 @@ def _guide_to_dict(g) -> dict:
     return out
 
 
-def _group_guides_for_index(all_guides: list, categories_in_order: list) -> list:
-    """Group published guides for the public /guides index.
+def _order_guides_for_index(all_guides: list, categories_in_order: list) -> list:
+    """Order guides exactly as the public index presents them.
 
     Known categories appear first in the order from guide_categories.json,
     then any other named categories alphabetically, then guides with no
-    category last. Uncategorized guides MUST still appear — they were
-    previously dropped, leaving published-but-uncategorized guides reachable
-    by direct URL yet invisible on the index.
+    category last. Guides within a category follow sort_order.
     """
-    seen = set()
+    category_ranks = {
+        category: index for index, category in enumerate(categories_in_order)
+    }
+
+    def ordering_key(guide):
+        category = guide.get("category") or ""
+        if category in category_ranks:
+            category_key = (0, category_ranks[category], "")
+        elif category:
+            category_key = (1, 0, category)
+        else:
+            category_key = (2, 0, "")
+        return (
+            *category_key,
+            guide.get("sort_order") or 0,
+            guide.get("id") or 0,
+            guide.get("slug") or "",
+        )
+
+    return sorted(all_guides, key=ordering_key)
+
+
+def _group_guides_for_index(all_guides: list, categories_in_order: list) -> list:
+    """Group guides using the shared configured public-index order.
+
+    Uncategorized guides MUST still appear — they were previously dropped,
+    leaving published-but-uncategorized guides reachable by direct URL yet
+    invisible on the index.
+    """
     grouped = []
-    for cat in categories_in_order:
-        items = [g for g in all_guides if g.get("category") == cat]
-        if items:
-            grouped.append((cat, items))
-            seen.add(cat)
-    extras = {}
-    uncategorized = []
-    for g in all_guides:
-        cat = g.get("category") or ""
-        if not cat:
-            uncategorized.append(g)
-        elif cat not in seen:
-            extras.setdefault(cat, []).append(g)
-    for cat in sorted(extras):
-        grouped.append((cat, extras[cat]))
-    if uncategorized:
-        grouped.append(("", uncategorized))
+    for guide in _order_guides_for_index(all_guides, categories_in_order):
+        category = guide.get("category") or ""
+        if not grouped or grouped[-1][0] != category:
+            grouped.append((category, []))
+        grouped[-1][1].append(guide)
     return grouped
 
 

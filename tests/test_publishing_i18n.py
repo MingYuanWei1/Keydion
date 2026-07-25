@@ -38,6 +38,13 @@ APPROVED_TRANSLATIONS = {
     "Current revision": "当前修订版",
 }
 
+READER_GUIDE_LEDE = (
+    "Discover and read research, ask questions about it, and submit your own "
+    "work for review."
+)
+READER_GUIDE_LEDE_ZH = "发现并阅读研究成果，针对研究内容提出问题，也可以提交自己的研究作品供审核。"
+OLD_CONTRIBUTOR_LEDE = "How to upload, publish, and curate work on Keydion."
+
 PYTHON_PLACEHOLDER = re.compile(
     r"%\(([^)]+)\)[#0\- +]*(?:\d+|\*)?(?:\.(?:\d+|\*))?[diouxXeEfFgGcrsa]"
 )
@@ -121,6 +128,26 @@ class PublishingLifecycleI18nContract(unittest.TestCase):
                     self.assertTrue(message.string)
                     self.assertEqual(expected, message.string)
                     self.assertEqual(_placeholders(msgid), _placeholders(message.string))
+
+    def test_reader_guide_lede_is_active_localized_and_compiled(self):
+        expected_by_locale = {
+            "en": READER_GUIDE_LEDE,
+            "zh": READER_GUIDE_LEDE_ZH,
+        }
+        self.assertIsNotNone(self.pot.get(READER_GUIDE_LEDE))
+        self.assertIsNone(self.pot.get(OLD_CONTRIBUTOR_LEDE))
+        for locale, expected in expected_by_locale.items():
+            with self.subTest(locale=locale):
+                source_message = self.po_catalogs[locale].get(READER_GUIDE_LEDE)
+                compiled_message = self.mo_catalogs[locale].get(READER_GUIDE_LEDE)
+                self.assertIsNotNone(source_message)
+                self.assertNotIn("fuzzy", source_message.flags)
+                self.assertEqual(expected, source_message.string)
+                self.assertIsNotNone(compiled_message)
+                self.assertEqual(expected, compiled_message.string)
+                self.assertIsNone(
+                    self.mo_catalogs[locale].get(OLD_CONTRIBUTOR_LEDE)
+                )
 
 
 if __name__ == "__main__":
