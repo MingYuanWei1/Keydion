@@ -96,7 +96,7 @@
   }
   .login-modal .login-remember {
     display: flex; align-items: center; gap: 8px;
-    margin: -8px 0 16px; color: #3d3d3d; font-size: 12.5px;
+    margin: 16px 0 0; color: #3d3d3d; font-size: 12.5px;
   }
   .login-modal .login-remember input { width: auto; margin: 0; accent-color: #8b1a1a; }
   .login-modal .login-remember label { cursor: pointer; }
@@ -185,10 +185,6 @@
       {% endfor %}
     {% endwith %}
     <h3 id="loginModalTitle">{{ _('Sign in') }}</h3>
-    <div class="login-remember">
-      <input type="checkbox" id="loginRemember" name="remember_me" value="1" form="loginForm">
-      <label for="loginRemember">{{ _('Stay logged in for 7 days') }}</label>
-    </div>
     {% if ms_enabled %}
     <button type="button" class="btn-login" onclick="startMicrosoftLogin()" style="background:#1a1a1a;margin-bottom:14px;">{{ _('Sign in with Microsoft') }}</button>
     <div class="login-modal-divider"><span>{{ _('or sign in with email') }}</span></div>
@@ -206,6 +202,10 @@
       </div>
       <button type="submit" class="btn-login">{{ _('Sign in') }}</button>
     </form>
+    <div class="login-remember">
+      <input type="checkbox" id="loginRemember" name="remember_me" value="1" form="loginForm">
+      <label for="loginRemember">{{ _('Stay logged in for 7 days') }}</label>
+    </div>
     <div class="login-links"><button type="button" onclick="closeLoginModal()">{{ _('Cancel') }}</button></div>
   </div>
 </div>

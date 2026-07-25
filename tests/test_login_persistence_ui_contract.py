@@ -24,6 +24,19 @@ class LoginPersistenceUiContractTest(unittest.TestCase):
                 r'.*?Stay logged in for 7 days.*?</label>',
                 relative,
             )
+            submit = re.search(
+                r'<button[^>]+type="submit"[^>]*>.*?Sign in.*?</button>',
+                source,
+            )
+            cancel = re.search(
+                r'<(?:button|a)[^>]+onclick="closeLoginModal\(\)[^"]*"[^>]*>'
+                r'.*?Cancel.*?</(?:button|a)>',
+                source,
+            )
+            self.assertIsNotNone(submit, relative)
+            self.assertIsNotNone(cancel, relative)
+            self.assertLess(submit.start(), checkbox.start(), relative)
+            self.assertLess(checkbox.start(), cancel.start(), relative)
             self.assertRegex(
                 source,
                 r'<button[^>]+onclick="startMicrosoftLogin\(\)"[^>]*>'

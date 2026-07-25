@@ -48,3 +48,9 @@ _Avoid_: vision extraction (drops the fallback, which is part of the concept).
 **Fallback path**:
 How Keydion reads a PDF without a vision model — from the PDF's embedded text, with OCR for scanned pages, and for some targets a direct read of the marks on the page. Yields the same shape of result as the vision read, so a caller cannot tell which path produced it.
 _Avoid_: legacy path, OCR path (each names only part of it).
+
+## Ask-the-Library
+
+**Ask turn**:
+One round of a reader's conversation with the Ask-the-Library assistant: the question, the grounding gathered for it, the model's streamed answer, and the citations the answer actually references. A turn may run tool calls between the question and the final answer, fall back to a single-shot answer when tools are unavailable, hit a round cap that forces a tool-free final answer, and persist the assistant message when it finishes.
+_Avoid_: Ask request (the HTTP call is one way to start a turn), conversation (many turns share one conversation), RAG retrieval (one input to a turn, not the turn itself).

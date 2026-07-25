@@ -40,20 +40,13 @@ class LoopWiring(unittest.TestCase):
     def setUp(self):
         self.src = support.source_of("api_ai")
 
-    def test_loop_uses_build_tool_schemas(self):
-        self.assertIn("build_tool_schemas", self.src)
-
     def test_loop_gates_web_on_enabled(self):
+        # The route gates web on explicit request + provider configuration
+        # before constructing the turn. (Loop internals — build_tool_schemas,
+        # is_web registration, the citation split, and the per-turn caps —
+        # moved into services/ask_turn.py and are now behaviorally covered in
+        # tests/test_ask_turn.py, not pinned by source greps.)
         self.assertIn("web_search_enabled()", self.src)
-
-    def test_prefetch_registers_is_web(self):
-        self.assertIn("is_web=True", self.src)
-
-    def test_citation_split_uses_is_web(self):
-        self.assertIn('c["is_web"]', self.src)
-
-    def test_per_turn_web_cap_present(self):
-        self.assertIn("WEB_SEARCH_CALL_CAP", self.src)
 
 
 class AttachmentDeps(unittest.TestCase):
@@ -73,9 +66,6 @@ class AttachmentDeps(unittest.TestCase):
 class AttachmentLoopWiring(unittest.TestCase):
     def setUp(self):
         self.src = support.source_of("api_ai")
-
-    def test_loop_passes_include_attachment(self):
-        self.assertIn("include_attachment", self.src)
 
     def test_loop_builds_deps_with_conv(self):
         self.assertIn("_build_library_deps(", self.src)

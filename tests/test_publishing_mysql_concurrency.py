@@ -7,6 +7,8 @@ to an ambient application database.
 
 from __future__ import annotations
 
+import io
+import itertools
 import json
 import os
 import re
@@ -24,6 +26,7 @@ from unittest import mock
 MYSQL_ADMIN_URL = os.environ.get("PAPERQUERY_TEST_MYSQL_ADMIN_URL")
 
 from alembic import command
+from pypdf import PdfWriter
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import IntegrityError
@@ -39,14 +42,18 @@ from models import (
     PaperRevisionModel,
     PublishingJobModel,
     RagIndexMetaModel,
+    SubmissionModel,
 )
 from services.paper_storage import PaperStorage
 from services.publishing import PublishingLifecycle
 from services.publishing_contracts import (
+    AcceptSubmission,
     Actor,
     DeletePaper,
     DeletionState,
     JobLease,
+    NormalizedPaperMetadata,
+    PdfUpload,
     PreparedChunk,
     PreparedRevisionIndex,
 )
@@ -56,6 +63,7 @@ from services.publishing_jobs import (
     job_status,
     release_failed_job,
 )
+from tests.publishing_support import FakeRevisionIndexer
 
 
 _TEST_DATABASE_RE = re.compile(r"keydion_test_[0-9a-f]{32}\Z")
@@ -778,6 +786,150 @@ class PublishingMySQLConcurrencyTests(unittest.TestCase):
         status = job_status(self.worker_b, _NOW + timedelta(seconds=45))
         self.assertEqual((status.pending, status.running), (1, 0))
         self.assertEqual(status.oldest_age_seconds, 136)
+
+    # ------------------------------------------------------------------
+    # Concurrent submission acceptance idempotency.
+    #
+    # This needs real row-level locking to serialize the two writers, so it
+    # lives here (MySQL) rather than the SQLite lifecycle suite: SQLite treats
+    # `with_for_update` as a no-op, so the same test flakes there under the
+    # barrier-induced write contention. The deterministic replay-after-winner
+    # path is covered on SQLite by
+    # test_acceptance_reconstructs_winner_when_cleanup_wins_stage_race.
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _valid_pdf_bytes(label: str) -> bytes:
+        stream = io.BytesIO()
+        writer = PdfWriter()
+        writer.add_blank_page(width=72, height=72)
+        writer.add_metadata({"/Subject": label})
+        writer.write(stream)
+        return stream.getvalue()
+
+    def _seed_pending_submission(self, submission_id: str, pending_filename: str) -> None:
+        pending_path = self.pending_dir / pending_filename
+        pending_path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        pending_path.write_bytes(self._valid_pdf_bytes(submission_id))
+        pending_path.chmod(0o600)
+        with self.worker_a() as session:
+            session.add(
+                SubmissionModel(
+                    id=submission_id,
+                    pdf_filename=f"{submission_id}.pdf",
+                    pending_filename=pending_filename,
+                    title="Submitted Paper",
+                    author_name="Reader Author",
+                    author_email="reader@example.test",
+                    author_school="Reader School",
+                    status="pending",
+                    submitted_at="2026-07-21",
+                    abstract="Submitted abstract",
+                    keywords="evidence, methods",
+                    journal="Submission Journal",
+                    category="science",
+                    language="en",
+                    submitted_by="reader",
+                    original_filename="original.pdf",
+                    ib_ee_data="",
+                    is_ib_sample="",
+                    is_anonymous="",
+                    cp_data="",
+                    ia_data="",
+                    submitter_name="Reader",
+                )
+            )
+            session.commit()
+
+    @staticmethod
+    def _acceptance_metadata() -> NormalizedPaperMetadata:
+        return NormalizedPaperMetadata(
+            filename="accepted-paper.pdf",
+            title="Submitted Paper",
+            journal="Submission Journal",
+            category="science",
+            language="en",
+            keywords="evidence, methods",
+            abstract="Submitted abstract",
+            author_name="Reader Author",
+            author_email="reader@example.test",
+            author_school="Reader School",
+            published_at="2026-07-21",
+        )
+
+    def _accept_intent(self, submission_id: str) -> AcceptSubmission:
+        return AcceptSubmission(
+            actor=Actor("curator", 3),
+            submission_id=submission_id,
+            idempotency_key="accept-key",
+            metadata=self._acceptance_metadata(),
+            pdf=PdfUpload(
+                "caller.pdf",
+                io.BytesIO(b"caller bytes are not the pending source"),
+            ),
+            comment="",
+        )
+
+    def test_two_concurrent_acceptance_intents_leave_one_paper(self):
+        submission_id = "33333333-3333-4333-8333-333333333333"
+        self._seed_pending_submission(
+            submission_id, f"pending-{submission_id}.pdf"
+        )
+
+        ready = threading.Barrier(2)
+        outcomes = []
+
+        class BarrierIndexer(FakeRevisionIndexer):
+            def enabled(self):
+                try:
+                    ready.wait(timeout=10)
+                except threading.BrokenBarrierError:
+                    pass
+                return False
+
+        uuid_numbers = itertools.count(1)
+
+        def uuid_factory():
+            return f"44444444-4444-4444-8444-{next(uuid_numbers):012d}"
+
+        def make_lifecycle(factory, storage):
+            return PublishingLifecycle(
+                session_factory=factory,
+                storage=storage,
+                indexer=BarrierIndexer(),
+                clock=lambda: _NOW,
+                monotonic_clock=lambda: 1.0,
+                uuid_factory=uuid_factory,
+                jitter=lambda: 0.0,
+            )
+
+        first = make_lifecycle(self.worker_a, self.storage_a)
+        second = make_lifecycle(self.worker_b, self.storage_b)
+
+        def accept(lifecycle):
+            try:
+                outcomes.append(
+                    lifecycle.review_submission(self._accept_intent(submission_id))
+                )
+            except Exception as exc:
+                outcomes.append(exc)
+
+        threads = [
+            threading.Thread(target=accept, args=(lifecycle,))
+            for lifecycle in (first, second)
+        ]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=15)
+        self.assertTrue(all(not thread.is_alive() for thread in threads))
+
+        with self.worker_a() as session:
+            papers = session.query(PaperMetadataModel).all()
+        self.assertEqual(len(papers), 1)
+        decided = [o for o in outcomes if not isinstance(o, Exception)]
+        self.assertEqual(len(decided), 2, f"outcomes={outcomes!r}")
+        self.assertEqual({o.paper_id for o in decided}, {papers[0].id})
+        self.assertEqual(sorted(o.replayed for o in decided), [False, True])
 
 
 if __name__ == "__main__":

@@ -353,6 +353,7 @@ def register_routes(app):
         user = require_login(level=3)
         if not user:
             return redirect(url_for("login"))
-        if resolve_contained(PENDING_PAPERS_DIR, filename, must_exist=True) is None:
+        resolved = resolve_contained(PENDING_PAPERS_DIR, filename, must_exist=True)
+        if resolved is None:
             abort(404)
-        return send_from_directory(str(PENDING_PAPERS_DIR), filename)
+        return send_from_directory(str(resolved.parent), resolved.name)

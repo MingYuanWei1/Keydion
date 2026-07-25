@@ -1,3 +1,4 @@
+import ast
 import json
 import os
 import re
@@ -34,6 +35,33 @@ from services.publishing_migration import (
 
 ROOT = Path(__file__).resolve().parents[1]
 _TEST_DATABASE_RE = re.compile(r"keydion_test_[0-9a-f]{32}\Z")
+_MIGRATIONS_DIR = ROOT / "migrations" / "versions"
+
+
+def _migration_created_tables():
+    """Table names migrations introduce via ``*.create_table("<name>", ...)``.
+
+    Derived from the migration sources so the legacy-schema builder cannot
+    drift out of sync: every table a migration creates must be absent from the
+    ``0000_legacy_baseline`` or replaying the migration collides with the
+    pre-created copy (MySQL 1050 / SQLite "already exists"). False positives are
+    harmless (excluding a name that is not an ORM table is a no-op), so the
+    match is intentionally lenient to avoid false negatives.
+    """
+    created = set()
+    for path in sorted(_MIGRATIONS_DIR.glob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            if not (isinstance(func, ast.Attribute) and func.attr == "create_table"):
+                continue
+            if node.args and isinstance(node.args[0], ast.Constant) and isinstance(
+                node.args[0].value, str
+            ):
+                created.add(node.args[0].value)
+    return created
 
 
 @unittest.skipUnless(
@@ -91,11 +119,11 @@ class PublishingMigrationMySQLTests(unittest.TestCase):
             conn.execute(text(f"DROP DATABASE IF EXISTS `{self.database_name}`"))
 
     def _create_legacy_schema(self):
-        excluded = {
+        # Skip any table a migration will CREATE (replaying it would collide
+        # with the pre-created copy) plus the legacy tables the fixture
+        # hand-builds below with their pre-migration DDL shape.
+        excluded = _migration_created_tables() | {
             "papers_metadata", "papers_chunks", "submissions",
-            "paper_revisions", "paper_filename_aliases", "publishing_jobs",
-            "publishing_migration_journal", "publishing_migration_state",
-            "publishing_migration_issues", "submission_identity_fence",
         }
         for table in BASE.metadata.sorted_tables:
             if table.name not in excluded:
