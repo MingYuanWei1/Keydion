@@ -82,9 +82,21 @@
 .kd-footer a { color: #666; text-decoration: none; }
 
 /* ─── Page shell ─── */
-.kd-page  { background: var(--cream); min-height: 100%; }
+.kd-page {
+  background: var(--cream);
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 100%;
+  box-sizing: border-box;
+  padding: 1.5rem clamp(12px, 4vw, 32px);
+}
 .kd-main  { padding: 56px 32px 80px; }
-.kd-wrap  { max-width: 880px; margin: 0 auto; }
+.kd-wrap {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+.kd-wrap-article { max-width: 920px; }
 .kd-wrap-wide { max-width: 1120px; margin: 0 auto; padding: 0 32px; }
 
 /* base.html ships <body class="bg-light ..."> for the rest of the site;
@@ -98,6 +110,19 @@
    rule ever appears. The clean fix is template-side, not CSS-side. */
 body:has(.kd-page) {
   background: var(--cream) !important;
+}
+body:has(.kd-page) > main {
+  display: flex;
+  flex: 1 0 auto;
+  padding: 0 !important;
+}
+body:has(.kd-page) > main > .container {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  width: 100%;
+  max-width: none;
+  padding: 0;
 }
 
 /* ─── Eyebrows, headlines, meta ─── */
@@ -144,7 +169,7 @@ body:has(.kd-page) {
 /* ─── Index: category rows ─── */
 .kd-cat-row {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 260px 1fr;
   gap: 48px;
   padding: 36px 0;
   border-top: 1px solid var(--border);
@@ -157,13 +182,6 @@ body:has(.kd-page) {
   font-weight: 500; font-style: italic;
   font-size: 28px; line-height: 1.1;
   color: var(--ink);
-}
-.kd-cat-count {
-  display: block;
-  font-family: var(--mono); font-style: normal;
-  font-size: 11px; letter-spacing: 0.12em;
-  color: var(--muted-2);
-  margin-top: 8px; text-transform: uppercase;
 }
 
 .kd-guide-list { list-style: none; padding: 0; margin: 0; }

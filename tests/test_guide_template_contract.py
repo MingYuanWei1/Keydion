@@ -2,6 +2,8 @@ import unittest
 from pathlib import Path
 import sys
 
+from jinja2 import DictLoader, Environment
+
 ROOT = Path(__file__).resolve().parents[1]
 READER_LEDE = (
     "Discover and read research, ask questions about it, and submit your own "
@@ -18,6 +20,31 @@ class GuideTemplateContractTest(unittest.TestCase):
         cls.manage_tpl = (ROOT / "templates" / "guide_manage.html").read_text(encoding="utf-8")
         cls.index_tpl = (ROOT / "templates" / "guides.html").read_text(encoding="utf-8")
         cls.article_tpl = (ROOT / "templates" / "guide_article.html").read_text(encoding="utf-8")
+
+    def _render_index(self, *, total):
+        env = Environment(
+            loader=DictLoader({
+                "guides.html": self.index_tpl,
+                "base.html": "{% block content %}{% endblock %}",
+            }),
+            autoescape=True,
+        )
+        env.globals["_"] = lambda text: text
+        env.globals["url_for"] = (
+            lambda endpoint, **values: f"/{endpoint}/{values.get('slug', '')}"
+        )
+        guide = {
+            "slug": "read-news",
+            "title_en": "Read News",
+            "title_zh": "",
+            "summary_en": "Reader summary",
+            "summary_zh": "",
+        }
+        return env.get_template("guides.html").render(
+            grouped=[("News", [guide])],
+            total=total,
+            current_locale="en",
+        )
 
     def test_publish_form_has_all_body_fields(self):
         # Per-language title/summary inputs
@@ -75,6 +102,15 @@ class GuideTemplateContractTest(unittest.TestCase):
         self.assertIn(READER_LEDE, self.index_tpl)
         self.assertNotIn(OLD_CONTRIBUTOR_LEDE, self.index_tpl)
 
+    def test_index_omits_category_counts_and_does_not_pad_the_total(self):
+        html = self._render_index(total=9)
+
+        self.assertIn("9 ARTICLES", html)
+        self.assertNotIn("09 ARTICLES", html)
+        self.assertNotIn("01 Articles", html)
+        self.assertNotIn("kd-cat-count", html)
+        self.assertIn('class="kd-guide-num">01</span>', html)
+
     def test_article_template_renders_body_safe(self):
         # body is sanitized server-side, so `| safe` is correct here
         self.assertIn("| safe", self.article_tpl)
@@ -88,6 +124,8 @@ class GuideTemplateContractTest(unittest.TestCase):
         self.assertIn("kd-article-meta", self.article_tpl)
         self.assertIn("kd-cat-pill", self.article_tpl)
         self.assertIn('article class="kd-body"', self.article_tpl)
+        self.assertIn('class="kd-wrap kd-wrap-article"', self.article_tpl)
+        self.assertNotIn('style="max-width: 760px;"', self.article_tpl)
         self.assertIn("kd-prevnext", self.article_tpl)
         # prev/next rendered, optional via if/else
         self.assertIn("prev_guide", self.article_tpl)

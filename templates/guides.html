@@ -7,7 +7,7 @@
       <div class="kd-eyebrow" style="margin-bottom: 24px;">
         {{ _('Guides') }}
         <span style="color: var(--accent); margin: 0 8px;">·</span>
-        {{ '%02d'|format(total or 0) }} {{ _('ARTICLES') }}
+        {{ total or 0 }} {{ _('ARTICLES') }}
       </div>
       <h1 class="kd-h-display" style="margin-bottom: 24px;">
         {{ _('Step-by-step') }} <em>{{ _('help.') }}</em>
@@ -22,10 +22,7 @@
     {% else %}
       {% for category, items in grouped %}
         <section class="kd-cat-row">
-          <div class="kd-cat-label">
-            {{ category }}
-            <span class="kd-cat-count">{{ '%02d'|format(items|length) }} {{ _('Articles') }}</span>
-          </div>
+          <div class="kd-cat-label">{{ category }}</div>
           <ol class="kd-guide-list">
             {% for g in items %}
               {% set title = g.title_zh if current_locale == 'zh' and g.title_zh else g.title_en or g.title_zh %}
