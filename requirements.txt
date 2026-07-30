@@ -17,5 +17,5 @@ python-docx>=1.2.0
 pymupdf>=1.28.0
 pytesseract>=0.3.13
 Pillow>=12.3.0
-beautifulsoup4>=4.12
+beautifulsoup4>=4.15.0
 numpy>=1.26
