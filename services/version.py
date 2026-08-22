@@ -77,8 +77,26 @@ def _log(message: str) -> None:
         del _run["log"][:-200]
 
 
+def probe_repo():
+    """Return (is_git, detail).
+
+    When the repo is unusable, detail carries the actual git error so
+    ownership/permission problems are distinguishable from a plain
+    non-checkout instead of being masked by a generic message.
+    """
+    if shutil.which("git") is None:
+        return False, "git is not installed on this host"
+    result = _git("rev-parse", "--is-inside-work-tree", timeout=10)
+    if result.returncode == 0:
+        return True, ""
+    detail = (result.stderr or result.stdout).strip()
+    if not detail:
+        detail = f"{config.BASE_DIR} is not a git checkout"
+    return False, detail[:500]
+
+
 def repo_root_is_git() -> bool:
-    return _git("rev-parse", "--is-inside-work-tree", timeout=10).returncode == 0
+    return probe_repo()[0]
 
 
 def current_sha():
@@ -166,8 +184,9 @@ def _write_state(state: dict) -> None:
 
 def snapshot() -> dict:
     """Everything the Version page needs, gathered in one pass."""
+    is_git, repo_detail = probe_repo()
     info = {
-        "is_git": repo_root_is_git(),
+        "is_git": is_git,
         "branch": "",
         "head_sha": None,
         "head_short": "",
@@ -183,7 +202,7 @@ def snapshot() -> dict:
         "update_running": _run["running"],
     }
     if not info["is_git"]:
-        info["check_error"] = "not a git checkout"
+        info["check_error"] = repo_detail
         return info
     info["branch"] = current_branch()
     info["head_sha"] = current_sha()
@@ -231,8 +250,9 @@ def start_update():
     with _lock:
         if _run["running"]:
             return False, "An update is already running."
-        if not repo_root_is_git():
-            return False, "This deployment is not a git checkout."
+        is_git, repo_detail = probe_repo()
+        if not is_git:
+            return False, repo_detail
         head = current_sha()
         if not head:
             return False, "Unable to read the current revision."

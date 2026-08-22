@@ -15,7 +15,7 @@
 
   {% if info.check_error %}
   <div class="alert alert-danger">
-    {{ _('Update check failed:') }} <code>{{ info.check_error }}</code>
+    {{ _('Update check failed:') }} <code style="white-space: pre-line">{{ info.check_error }}</code>
   </div>
   {% elif not info.is_git %}
   <div class="alert alert-warning">

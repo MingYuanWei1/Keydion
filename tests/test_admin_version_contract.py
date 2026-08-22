@@ -145,7 +145,7 @@ class AdminVersionNoGitContract(unittest.TestCase):
         with mock.patch.object(v.shutil, "which", return_value=None):
             info = v.snapshot()
         self.assertFalse(info["is_git"])
-        self.assertEqual(info["check_error"], "not a git checkout")
+        self.assertIn("git is not installed", info["check_error"])
         self.assertEqual(info["behind_count"], 0)
 
     def test_start_update_refused_when_git_missing(self):
@@ -154,7 +154,30 @@ class AdminVersionNoGitContract(unittest.TestCase):
         with mock.patch.object(v.shutil, "which", return_value=None):
             ok, message = v.start_update()
         self.assertFalse(ok)
-        self.assertIn("not a git checkout", message)
+        self.assertIn("git is not installed", message)
+
+    def test_probe_repo_surfaces_real_git_error(self):
+        """The page must show the underlying git failure (e.g. dubious
+        ownership), never a generic 'not a git checkout' mask."""
+        import subprocess
+        from unittest import mock
+        import services.version as v
+        stderr = (
+            "fatal: detected dubious ownership in repository at '/Keydion'\n"
+            "To add an exception, run: git config --global --add safe.directory /Keydion"
+        )
+        fake = subprocess.CompletedProcess(["git"], 128, "", stderr)
+        with mock.patch.object(v.shutil, "which", return_value="/usr/bin/git"), \
+             mock.patch.object(v.subprocess, "run", return_value=fake):
+            is_git, detail = v.probe_repo()
+        self.assertFalse(is_git)
+        self.assertIn("dubious ownership", detail)
+        self.assertIn("safe.directory", detail)
+
+        with mock.patch.object(v.shutil, "which", return_value="/usr/bin/git"), \
+             mock.patch.object(v.subprocess, "run", return_value=fake):
+            info = v.snapshot()
+        self.assertIn("dubious ownership", info["check_error"])
 
 
 class AdminVersionServiceContract(unittest.TestCase):
