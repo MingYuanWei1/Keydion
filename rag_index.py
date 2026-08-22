@@ -12,10 +12,13 @@ from __future__ import annotations
 
 import logging
 import math
-import time
 import numpy as np
 
-from services.publishing_contracts import IndexDeadlineExceeded
+from services.publishing_contracts import (
+    IndexDeadlineExceeded,
+    raise_deadline_if_expired as _raise_deadline_if_expired,
+    remaining_timeout as _remaining_timeout,
+)
 
 _log = logging.getLogger(__name__)
 
@@ -142,20 +145,6 @@ class _Snapshot:
 def invalidate_cache() -> None:
     global _SNAPSHOT
     _SNAPSHOT = None
-
-
-def _remaining_timeout(deadline: float | None) -> float | None:
-    if deadline is None:
-        return None
-    remaining = max(float(deadline) - time.monotonic(), 0.0)
-    if remaining == 0.0:
-        raise IndexDeadlineExceeded()
-    return remaining
-
-
-def _raise_deadline_if_expired(deadline: float | None, error: Exception) -> None:
-    if deadline is not None and time.monotonic() >= float(deadline):
-        raise IndexDeadlineExceeded() from error
 
 
 def embed_texts(

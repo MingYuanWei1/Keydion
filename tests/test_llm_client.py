@@ -89,7 +89,7 @@ class LlmClientEmbedConfig(unittest.TestCase):
 
         fake_module = types.SimpleNamespace(OpenAI=openai)
         with mock.patch.dict(sys.modules, {"openai": fake_module}), \
-             mock.patch.object(llm_client.time, "monotonic", return_value=4.5):
+             mock.patch("time.monotonic", return_value=4.5):
             llm_client._new_client("key", "https://embed.example", deadline=10.0)
 
         self.assertEqual(
@@ -108,7 +108,7 @@ class LlmClientEmbedConfig(unittest.TestCase):
         openai = mock.Mock()
         fake_module = types.SimpleNamespace(OpenAI=openai)
         with mock.patch.dict(sys.modules, {"openai": fake_module}), \
-             mock.patch.object(llm_client.time, "monotonic", return_value=10.0):
+             mock.patch("time.monotonic", return_value=10.0):
             with self.assertRaises(IndexDeadlineExceeded):
                 llm_client._new_client("key", None, deadline=10.0)
         openai.assert_not_called()
@@ -123,8 +123,8 @@ class LlmClientEmbedConfig(unittest.TestCase):
 
         fake_module = types.SimpleNamespace(OpenAI=openai)
         with mock.patch.dict(sys.modules, {"openai": fake_module}), \
-             mock.patch.object(
-                 llm_client.time, "monotonic", side_effect=lambda: now[0]
+             mock.patch(
+                 "time.monotonic", side_effect=lambda: now[0]
              ):
             with self.assertRaises(IndexDeadlineExceeded) as raised:
                 llm_client._new_client("key", None, deadline=10.0)
@@ -134,7 +134,7 @@ class LlmClientEmbedConfig(unittest.TestCase):
         failure = RuntimeError("client construction failed early")
         fake_module = types.SimpleNamespace(OpenAI=mock.Mock(side_effect=failure))
         with mock.patch.dict(sys.modules, {"openai": fake_module}), \
-             mock.patch.object(llm_client.time, "monotonic", return_value=1.0):
+             mock.patch("time.monotonic", return_value=1.0):
             with self.assertRaises(RuntimeError) as raised:
                 llm_client._new_client("key", None, deadline=10.0)
         self.assertIs(raised.exception, failure)
@@ -212,7 +212,7 @@ class VisionClientFallbackBounds(unittest.TestCase):
         self.assertEqual(kwargs["max_retries"], 0)
 
     def test_vision_client_deadline_overrides_fallback(self):
-        with mock.patch.object(llm_client.time, "monotonic", return_value=4.5):
+        with mock.patch("time.monotonic", return_value=4.5):
             kwargs = self._construct(
                 lambda: llm_client.build_vision_client(deadline=34.5))
         self.assertEqual(kwargs["timeout"], 30.0)
@@ -223,6 +223,203 @@ class VisionClientFallbackBounds(unittest.TestCase):
             kwargs = self._construct(build)
             self.assertNotIn("timeout", kwargs)
             self.assertNotIn("max_retries", kwargs)
+
+
+class ParseJsonTest(unittest.TestCase):
+    """llm_client._parse_json — JSON salvage for prose-wrapped model output."""
+
+    def test_clean_json_object(self):
+        self.assertEqual(
+            llm_client._parse_json('{"a": 1, "b": [2, 3]}'), {"a": 1, "b": [2, 3]}
+        )
+
+    def test_json_wrapped_in_prose(self):
+        content = 'Here is the assessment:\n{"criteria": [], "holistic_comment": "ok"}\nThanks!'
+        self.assertEqual(
+            llm_client._parse_json(content),
+            {"criteria": [], "holistic_comment": "ok"},
+        )
+
+    def test_empty_string_returns_none(self):
+        self.assertIsNone(llm_client._parse_json(""))
+
+    def test_no_json_present_returns_none(self):
+        self.assertIsNone(llm_client._parse_json("absolutely no json here"))
+
+    def test_malformed_braces_return_none(self):
+        self.assertIsNone(llm_client._parse_json("{not: valid, json"))
+
+
+class _ChatClient:
+    """Fake OpenAI client whose chat.completions.create records kwargs."""
+
+    class _Resp:
+        def __init__(self, content):
+            class _Msg:
+                pass
+            class _Choice:
+                pass
+            msg = _Msg()
+            msg.content = content
+            choice = _Choice()
+            choice.message = msg
+            self.choices = [choice]
+
+    def __init__(self, content="plain text", error=None):
+        self.calls = []
+        self._content = content
+        self._error = error
+        self.chat = self
+        self.completions = self
+
+    def create(self, **kwargs):
+        self.calls.append(kwargs)
+        if self._error is not None:
+            raise self._error
+        return _ChatClient._Resp(self._content)
+
+
+class ChatInterfaceTest(unittest.TestCase):
+    """The conversation seam: tier resolution, kwargs, errors, deadline authority."""
+
+    MESSAGES = [{"role": "system", "content": "s"}, {"role": "user", "content": "u"}]
+
+    def test_chat_resolves_flash_tier_and_forwards_kwargs(self):
+        client = _ChatClient(content="plain text")
+        with mock.patch.dict(
+            os.environ, {"LLM_API_KEY": "k", "LLM_DEFAULT_FLASH": "fast-x"}, clear=True
+        ), mock.patch.object(llm_client, "build_client", return_value=client) as build:
+            out = llm_client.chat(self.MESSAGES, tier="flash", temperature=0.2)
+        self.assertEqual(out, "plain text")
+        build.assert_called_once_with(deadline=None)
+        self.assertEqual(client.calls[0]["model"], "fast-x")
+        self.assertEqual(client.calls[0]["temperature"], 0.2)
+        self.assertNotIn("response_format", client.calls[0])
+        self.assertNotIn("timeout", client.calls[0])
+
+    def test_chat_json_sets_json_mode(self):
+        client = _ChatClient(content='{"a": 1}')
+        with mock.patch.dict(
+            os.environ, {"LLM_API_KEY": "k", "LLM_DEFAULT_THINK": "deep-y"}, clear=True
+        ), mock.patch.object(llm_client, "build_client", return_value=client):
+            out = llm_client.chat_json(self.MESSAGES, tier="think", temperature=0)
+        self.assertEqual(out, {"a": 1})
+        self.assertEqual(client.calls[0]["model"], "deep-y")
+        self.assertEqual(client.calls[0]["response_format"], {"type": "json_object"})
+
+    def test_vision_tier_uses_vision_client_and_model(self):
+        client = _ChatClient(content='{"ok": true}')
+        with mock.patch.dict(
+            os.environ, {"LLM_VISION": "vqa-x", "LLM_API_KEY": "k"}, clear=True
+        ), mock.patch.object(
+            llm_client, "build_vision_client", return_value=client
+        ) as build:
+            out = llm_client.chat_json(self.MESSAGES, tier="vision", temperature=0.2)
+        self.assertEqual(out, {"ok": True})
+        build.assert_called_once_with(deadline=None)
+        self.assertEqual(client.calls[0]["model"], "vqa-x")
+        self.assertEqual(client.calls[0]["temperature"], 0.2)
+
+    def test_unknown_tier_rejected(self):
+        client = _ChatClient()
+        with self.assertRaises(ValueError):
+            llm_client.chat(self.MESSAGES, tier="bogus", client=client)
+
+    def test_injected_client_skips_builder(self):
+        client = _ChatClient(content="hi")
+        with mock.patch.dict(os.environ, {}, clear=True), \
+             mock.patch.object(llm_client, "build_client") as build:
+            out = llm_client.chat(self.MESSAGES, tier="flash", client=client)
+        self.assertEqual(out, "hi")
+        build.assert_not_called()
+
+    def test_chat_unavailable_without_api_key(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            with self.assertRaises(llm_client.LLMChatUnavailable) as ctx:
+                llm_client.chat(self.MESSAGES, tier="flash")
+        self.assertEqual(str(ctx.exception), "AI assist is not configured.")
+
+    def test_chat_unavailable_when_openai_missing(self):
+        def _raise_import(*_a, **_k):
+            raise ImportError("openai")
+        with mock.patch.dict(os.environ, {"LLM_API_KEY": "k"}, clear=True), \
+             mock.patch.object(llm_client, "build_client", side_effect=_raise_import):
+            with self.assertRaises(llm_client.LLMChatUnavailable) as ctx:
+                llm_client.chat(self.MESSAGES, tier="flash")
+        self.assertEqual(str(ctx.exception), "openai package is not installed.")
+
+    def test_provider_error_becomes_request_error_and_logs(self):
+        failure = RuntimeError("rate limited")
+        client = _ChatClient(error=failure)
+        with mock.patch.dict(os.environ, {"LLM_API_KEY": "k"}, clear=True), \
+             mock.patch.object(llm_client, "build_client", return_value=client):
+            with self.assertLogs("llm_client", level="ERROR"):
+                with self.assertRaises(llm_client.LLMChatRequestError) as ctx:
+                    llm_client.chat(self.MESSAGES, tier="flash")
+        self.assertIs(ctx.exception.__cause__, failure)
+
+    def test_malformed_response_becomes_parse_error(self):
+        class _EmptyChoicesClient:
+            def __init__(self):
+                self.chat = self
+                self.completions = self
+
+            def create(self, **_kwargs):
+                class _Resp:
+                    choices = []
+                return _Resp()
+        with mock.patch.dict(os.environ, {"LLM_API_KEY": "k"}, clear=True), \
+             mock.patch.object(llm_client, "build_client",
+                               return_value=_EmptyChoicesClient()):
+            with self.assertRaises(llm_client.LLMChatParseError):
+                llm_client.chat(self.MESSAGES, tier="flash")
+
+    def test_chat_json_salvages_prose_wrapped_json(self):
+        client = _ChatClient(content='Sure!\n{"a": 2}\nthanks')
+        with mock.patch.dict(os.environ, {"LLM_API_KEY": "k"}, clear=True), \
+             mock.patch.object(llm_client, "build_client", return_value=client):
+            self.assertEqual(llm_client.chat_json(self.MESSAGES, tier="flash"), {"a": 2})
+
+    def test_chat_json_non_object_raises_parse_error(self):
+        client = _ChatClient(content='["a", "b"]')
+        with mock.patch.dict(os.environ, {"LLM_API_KEY": "k"}, clear=True), \
+             mock.patch.object(llm_client, "build_client", return_value=client):
+            with self.assertRaises(llm_client.LLMChatParseError):
+                llm_client.chat_json(self.MESSAGES, tier="flash")
+
+    def test_deadline_sets_request_timeout(self):
+        client = _ChatClient(content="ok")
+        with mock.patch.dict(os.environ, {"LLM_API_KEY": "k"}, clear=True), \
+             mock.patch.object(llm_client, "build_client", return_value=client), \
+             mock.patch("time.monotonic", return_value=4.0):
+            llm_client.chat(self.MESSAGES, tier="flash", deadline=10.0)
+        self.assertEqual(client.calls[0]["timeout"], 6.0)
+
+    def test_provider_failure_after_deadline_becomes_deadline_error(self):
+        now = [1.0]
+        failure = RuntimeError("provider timed out")
+
+        def fail(**_kwargs):
+            now[0] = 10.0
+            raise failure
+
+        client = _ChatClient()
+        client.create = fail
+        with mock.patch.dict(os.environ, {"LLM_API_KEY": "k"}, clear=True), \
+             mock.patch.object(llm_client, "build_client", return_value=client), \
+             mock.patch("time.monotonic", side_effect=lambda: now[0]):
+            with self.assertRaises(IndexDeadlineExceeded) as ctx:
+                llm_client.chat(self.MESSAGES, tier="flash", deadline=10.0)
+        self.assertIs(ctx.exception.__cause__, failure)
+
+    def test_exhausted_deadline_raises_before_request(self):
+        client = _ChatClient()
+        with mock.patch.dict(os.environ, {"LLM_API_KEY": "k"}, clear=True), \
+             mock.patch.object(llm_client, "build_client", return_value=client), \
+             mock.patch("time.monotonic", return_value=10.0):
+            with self.assertRaises(IndexDeadlineExceeded):
+                llm_client.chat(self.MESSAGES, tier="flash", deadline=10.0)
+        self.assertEqual(client.calls, [])
 
 
 if __name__ == "__main__":

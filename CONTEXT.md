@@ -46,7 +46,7 @@ The default way Keydion reads an uploaded PDF for metadata: render the pages and
 _Avoid_: vision extraction (drops the fallback, which is part of the concept).
 
 **Fallback path**:
-How Keydion reads a PDF without a vision model — from the PDF's embedded text, with OCR for scanned pages, and for some targets a direct read of the marks on the page. Yields the same shape of result as the vision read, so a caller cannot tell which path produced it.
+How Keydion reads a PDF without a vision model — from the PDF's embedded text, with OCR for scanned pages, then a text model reading the result. Yields the same shape of result as the vision read, so a caller cannot tell which path produced it.
 _Avoid_: legacy path, OCR path (each names only part of it).
 
 ## Ask-the-Library

@@ -11,10 +11,6 @@ code works against OpenAI, a local model (Ollama/vLLM), or any OpenAI-style API.
 
 from __future__ import annotations
 
-import json
-import logging
-import re
-
 from pdf_text import extract_pdf_text, PdfTextError
 
 import llm_client
@@ -43,9 +39,6 @@ ABSTRACT_SYSTEM_PROMPT_ZH = (
     "to []. Return ONLY the JSON object, no prose."
 )
 
-_log = logging.getLogger(__name__)
-
-
 class LLMMetadataError(Exception):
     """Raised when the PDF is unusable or the LLM request/response fails."""
 
@@ -69,33 +62,6 @@ def _pdf_text_from_bytes(file_bytes: bytes, language: str = "en") -> str:
     if not text:
         raise LLMMetadataError("No readable text — is this a scanned image?")
     return text[:MAX_PDF_CHARS]
-
-
-def _build_client():
-    """Construct the chat client; raise the module error if AI is unconfigured."""
-    if not llm_client.llm_enabled():
-        raise LLMMetadataError("AI assist is not configured.")
-    try:
-        return llm_client.build_client()
-    except ImportError as exc:  # openai not installed
-        raise LLMMetadataError("openai package is not installed.") from exc
-
-
-def _parse_json(content: str):
-    """Parse JSON, tolerating a model that wraps it in prose. Returns dict or None."""
-    if not content:
-        return None
-    try:
-        return json.loads(content)
-    except (ValueError, TypeError):
-        pass
-    match = re.search(r"\{.*\}", content, re.DOTALL)
-    if not match:
-        return None
-    try:
-        return json.loads(match.group(0))
-    except ValueError:
-        return None
 
 
 def _normalise_keywords(value) -> list:
@@ -126,10 +92,9 @@ def _normalise_authors(value) -> list:
     return out
 
 
-def _complete(client, text: str, language: str) -> dict:
+def _complete(text: str, language: str) -> dict:
     """Call the chat endpoint and return {abstract, keywords, title, authors, warnings}."""
     warnings: list = []
-    model = llm_client.flash_model()
     lang_name = "Chinese" if language == "zh" else "English"
     system = (
         "You are an academic editor. Read the paper text and return a JSON object "
@@ -141,28 +106,20 @@ def _complete(client, text: str, language: str) -> dict:
         "and \"authors\" to []. Return ONLY the JSON object, no prose."
     )
     try:
-        resp = client.chat.completions.create(
-            model=model,
-            temperature=0.2,
-            response_format={"type": "json_object"},
-            messages=[
+        data = llm_client.chat_json(
+            [
                 {"role": "system", "content": system},
                 {"role": "user", "content": text},
             ],
+            tier="flash",
+            temperature=0.2,
         )
-    except Exception as exc:  # network/auth/rate-limit from any provider
-        # Log full detail server-side; never echo provider internals to the client.
-        _log.exception("LLM request failed")
+    except llm_client.LLMChatUnavailable as exc:
+        raise LLMMetadataError(str(exc)) from exc
+    except llm_client.LLMChatRequestError as exc:
         raise LLMMetadataError("AI request failed — please try again later.") from exc
-
-    try:
-        content = (resp.choices[0].message.content or "").strip()
-    except (AttributeError, IndexError, TypeError) as exc:
+    except llm_client.LLMChatParseError as exc:
         raise LLMMetadataError("The AI response could not be parsed.") from exc
-
-    data = _parse_json(content)
-    if not isinstance(data, dict):  # valid JSON can still be a list / str / number
-        raise LLMMetadataError("The AI response could not be parsed.")
 
     raw_abstract = data.get("abstract")
     abstract = raw_abstract.strip() if isinstance(raw_abstract, str) else ""
@@ -209,8 +166,7 @@ class AbstractExtractor(VisionFirstExtractor):
 
     def fallback(self, file_bytes: bytes) -> dict:
         text = _pdf_text_from_bytes(file_bytes, self.language)
-        client = _build_client()
-        return _complete(client, text, self.language)
+        return _complete(text, self.language)
 
 
 def generate_abstract_keywords(file_bytes: bytes, language: str = "en") -> dict:

@@ -10,10 +10,11 @@ import support  # noqa: E402
 
 
 class UploadWizardGateContractTest(unittest.TestCase):
-    """The abstract/IA auto-extract buttons are gated on EITHER model that can
-    drive extraction being configured for a contributor; the EE extract button
-    stays always-on. Both generators are vision-first (generate_abstract_keywords
-    / generate_ia_scores return from the vision branch before touching the chat
+    """The abstract/IA/EE auto-extract buttons are gated on EITHER model that
+    can drive extraction being configured for a contributor; the EE extract
+    button is gated like the others (its fallback is also model-read). All
+    generators are vision-first (generate_abstract_keywords / generate_ia_scores
+    / extract_ee_metadata return from the vision branch before touching the chat
     client), so a vision-only deployment can extract end-to-end — the gate must
     include vision_enabled(), per spec VD1/§7."""
 

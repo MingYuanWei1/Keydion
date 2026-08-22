@@ -10,46 +10,28 @@ multimodal LLM. Two entry points:
 
 Provider/model resolved via llm_client.build_vision_client() + vision_model()
 (LLM_VISION / LLM_VISION_API_KEY / LLM_VISION_BASE_URL). Page images go out as
-OpenAI-style data:image/png;base64 content parts.
+OpenAI-style data:image/png;base64 content parts; the completion itself crosses
+llm_client's conversation interface (chat / chat_json).
 """
 
 from __future__ import annotations
 
 import base64
-import json
 import logging
-import re
-import time
 
 import llm_client
 import pdf_text
-from services.publishing_contracts import IndexDeadlineExceeded
+from services.publishing_contracts import (
+    IndexDeadlineExceeded,
+    raise_deadline_if_expired as _raise_deadline_if_expired,
+    remaining_timeout as _remaining_timeout,
+)
 
 _log = logging.getLogger(__name__)
 
 
 class VisionError(Exception):
     """Raised on a hard vision failure (no client / no pages / provider / parse)."""
-
-
-def _parse_json(content: str):
-    """Parse JSON, tolerating a model that wraps it in prose. Returns dict/list/None.
-
-    Mirrors llm_metadata._parse_json (llm_metadata.py:63-77).
-    """
-    if not content:
-        return None
-    try:
-        return json.loads(content)
-    except (ValueError, TypeError):
-        pass
-    match = re.search(r"\{.*\}", content, re.DOTALL)
-    if not match:
-        return None
-    try:
-        return json.loads(match.group(0))
-    except ValueError:
-        return None
 
 
 def _image_parts(pages: list) -> list:
@@ -66,20 +48,6 @@ def _image_parts(pages: list) -> list:
 
 def _lang_name(language: str) -> str:
     return "Chinese" if language == "zh" else "English"
-
-
-def _remaining_timeout(deadline: float | None) -> float | None:
-    if deadline is None:
-        return None
-    remaining = max(float(deadline) - time.monotonic(), 0.0)
-    if remaining == 0.0:
-        raise IndexDeadlineExceeded()
-    return remaining
-
-
-def _raise_deadline_if_expired(deadline: float | None, error: Exception) -> None:
-    if deadline is not None and time.monotonic() >= float(deadline):
-        raise IndexDeadlineExceeded() from error
 
 
 def extract_with_vision(file_bytes: bytes, system_prompt: str, *,
@@ -120,34 +88,17 @@ def extract_with_vision(file_bytes: bytes, system_prompt: str, *,
 
     content = [{"type": "text", "text": system_prompt}] + _image_parts(pages)
     try:
-        request = dict(
-            model=llm_client.vision_model(),
+        return llm_client.chat_json(
+            [{"role": "user", "content": content}],
+            tier="vision",
             temperature=0.2,
-            response_format={"type": "json_object"},
-            messages=[{"role": "user", "content": content}],
+            deadline=deadline,
+            client=client,
         )
-        if deadline is not None:
-            request["timeout"] = _remaining_timeout(deadline)
-        resp = client.chat.completions.create(**request)
-        _remaining_timeout(deadline)
-    except IndexDeadlineExceeded:
-        raise
-    except Exception as exc:  # network/auth/rate-limit from any provider
-        _raise_deadline_if_expired(deadline, exc)
-        _log.exception("Vision request failed")
-        raise VisionError("Vision request failed.") from exc
-
-    try:
-        text = (resp.choices[0].message.content or "").strip()
-    except (AttributeError, IndexError, TypeError) as exc:
-        _raise_deadline_if_expired(deadline, exc)
+    except llm_client.LLMChatParseError as exc:
         raise VisionError("The vision response could not be parsed.") from exc
-
-    data = _parse_json(text)
-    _remaining_timeout(deadline)
-    if not isinstance(data, dict):
-        raise VisionError("The vision response could not be parsed.")
-    return data
+    except llm_client.LLMChatRequestError as exc:
+        raise VisionError("Vision request failed.") from exc
 
 
 _TRANSCRIBE_INSTRUCTION = (
@@ -191,16 +142,13 @@ def transcribe_pdf(file_bytes: bytes, *, max_pages: int = 50,
             return ""
         instruction = _TRANSCRIBE_INSTRUCTION.format(lang=_lang_name(language))
         content = [{"type": "text", "text": instruction}] + _image_parts(pages)
-        request = dict(
-            model=llm_client.vision_model(),
+        text = llm_client.chat(
+            [{"role": "user", "content": content}],
+            tier="vision",
             temperature=0,
-            messages=[{"role": "user", "content": content}],
+            deadline=deadline,
+            client=client,
         )
-        if deadline is not None:
-            request["timeout"] = _remaining_timeout(deadline)
-        resp = client.chat.completions.create(**request)
-        _remaining_timeout(deadline)
-        text = (resp.choices[0].message.content or "").strip()
         _remaining_timeout(deadline)
         if strict and not text:
             raise VisionError("Vision transcription was empty.")

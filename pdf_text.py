@@ -16,12 +16,15 @@ import io
 import logging
 import os
 import re
-import time
 from concurrent.futures import ThreadPoolExecutor
 
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
-from services.publishing_contracts import IndexDeadlineExceeded
+from services.publishing_contracts import (
+    IndexDeadlineExceeded,
+    raise_deadline_if_expired as _raise_deadline_if_expired,
+    remaining_timeout as _remaining_timeout,
+)
 
 MIN_TEXT_CHARS = 50
 DEFAULT_OCR_LANGS = "eng+chi_sim"   # chi_tra dropped: fewer langs = faster Tesseract
@@ -54,22 +57,8 @@ def _meaningful_len(text: str) -> int:
     return len(re.sub(r"\s+", "", text or ""))
 
 
-def _remaining_timeout(deadline: float | None) -> float | None:
-    if deadline is None:
-        return None
-    remaining = max(float(deadline) - time.monotonic(), 0.0)
-    if remaining == 0.0:
-        raise IndexDeadlineExceeded()
-    return remaining
-
-
 def _check_deadline(deadline: float | None) -> None:
     _remaining_timeout(deadline)
-
-
-def _raise_deadline_if_expired(deadline: float | None, error: Exception) -> None:
-    if deadline is not None and time.monotonic() >= float(deadline):
-        raise IndexDeadlineExceeded() from error
 
 
 def _pypdf_text(

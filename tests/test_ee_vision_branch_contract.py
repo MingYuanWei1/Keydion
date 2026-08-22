@@ -42,12 +42,10 @@ class EeVisionBranchTest(unittest.TestCase):
         with mock.patch.object(vision_extractor.llm_client, "vision_enabled", return_value=True), \
              mock.patch.object(vision_extractor.vision_read, "extract_with_vision",
                                side_effect=vision_extractor.vision_read.VisionError("boom")), \
-             mock.patch.object(ee_pdf_extractor, "_read_pdf_text", return_value="some text"), \
-             mock.patch.object(ee_pdf_extractor, "_extract_via_pdfplumber", return_value=None), \
-             mock.patch.object(ee_pdf_extractor, "_extract_via_regex",
-                               return_value=ee_pdf_extractor._empty_result()) as regex:
+             mock.patch.object(ee_pdf_extractor, "_legacy_extract_ee_metadata",
+                               return_value=ee_pdf_extractor._empty_result()) as legacy:
             extract_ee_metadata(b"%PDF-fake")
-        regex.assert_called_once()
+        legacy.assert_called_once()
 
 
 class EePromptFidelityTest(unittest.TestCase):

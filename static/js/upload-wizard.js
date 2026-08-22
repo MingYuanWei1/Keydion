@@ -482,6 +482,7 @@
       ['E', t('crit_ee_E', 'Reflection'), 4],
     ];
     return `
+      ${BOOT.extract_assist_enabled ? `
       <div class="ee-autofill">
         <button type="button" id="eeAutofillBtn" class="btn btn-outline-primary btn-sm" ${state.eeAutofillStatus === 'loading' ? 'disabled' : ''}>
           ${t('ee_autofill_btn', 'Auto-fill from commentary PDF')}
@@ -491,6 +492,7 @@
           ${esc(state.eeAutofillMessage || '')}
         </span>
       </div>
+      ` : ''}
 
       <div class="section-sub">${t('ee_subject', 'EE Subject')} <span class="req">*</span></div>
       <div class="form-grid">

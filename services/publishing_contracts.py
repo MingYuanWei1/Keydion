@@ -1,4 +1,5 @@
 """Immutable, framework-free contracts for the Paper publishing lifecycle."""
+import time
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
@@ -57,6 +58,22 @@ class PersistenceFailed(LifecycleError):
 
 class IndexDeadlineExceeded(Exception):
     pass
+
+
+def remaining_timeout(deadline: float | None) -> float | None:
+    """Seconds left until ``deadline`` (monotonic clock); raises when exhausted."""
+    if deadline is None:
+        return None
+    remaining = max(float(deadline) - time.monotonic(), 0.0)
+    if remaining == 0.0:
+        raise IndexDeadlineExceeded()
+    return remaining
+
+
+def raise_deadline_if_expired(deadline: float | None, error: Exception) -> None:
+    """Re-raise an expired ``deadline`` as IndexDeadlineExceeded, chained to ``error``."""
+    if deadline is not None and time.monotonic() >= float(deadline):
+        raise IndexDeadlineExceeded() from error
 
 
 class IndexingState(StrEnum):

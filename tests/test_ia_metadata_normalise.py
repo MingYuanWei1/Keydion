@@ -1,11 +1,12 @@
 # tests/test_ia_metadata_normalise.py
-"""Unit tests for the pure normalisation/parse helpers in ia_metadata.py.
+"""Unit tests for the pure normalisation helpers in ia_metadata.py.
 
-`_normalise_criteria` and `_parse_json` are pure functions with no DB/LLM
-dependency, so they import and run standalone. These guard the load-bearing
-correctness of the IA extractor: server-side score clamping, missing-criterion
--> BLANK (None) + warning (never fabricated as 0), invented-criterion drop,
-null/unreadable-score -> blank, and JSON-in-prose parsing.
+`_normalise_criteria` is a pure function with no DB/LLM dependency, so it
+imports and runs standalone. These guard the load-bearing correctness of the
+IA extractor: server-side score clamping, missing-criterion -> BLANK (None) +
+warning (never fabricated as 0), invented-criterion drop, and
+null/unreadable-score -> blank. (JSON-in-prose parsing is pinned where it
+lives now: llm_client._parse_json in tests/test_llm_client.py.)
 """
 import sys
 import unittest
@@ -109,29 +110,6 @@ class NormaliseCriteriaTest(unittest.TestCase):
         out, warnings = ia_metadata._normalise_criteria(None, CRITERIA)
         self.assertEqual([c["score"] for c in out], [None, None])
         self.assertEqual(len(warnings), 2)
-
-
-class ParseJsonTest(unittest.TestCase):
-    def test_clean_json_object(self):
-        self.assertEqual(
-            ia_metadata._parse_json('{"a": 1, "b": [2, 3]}'), {"a": 1, "b": [2, 3]}
-        )
-
-    def test_json_wrapped_in_prose(self):
-        content = 'Here is the assessment:\n{"criteria": [], "holistic_comment": "ok"}\nThanks!'
-        self.assertEqual(
-            ia_metadata._parse_json(content),
-            {"criteria": [], "holistic_comment": "ok"},
-        )
-
-    def test_empty_string_returns_none(self):
-        self.assertIsNone(ia_metadata._parse_json(""))
-
-    def test_no_json_present_returns_none(self):
-        self.assertIsNone(ia_metadata._parse_json("absolutely no json here"))
-
-    def test_malformed_braces_return_none(self):
-        self.assertIsNone(ia_metadata._parse_json("{not: valid, json"))
 
 
 class PromptFidelityTest(unittest.TestCase):

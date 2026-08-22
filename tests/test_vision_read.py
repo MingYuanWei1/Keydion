@@ -1,6 +1,7 @@
 import unittest
 from unittest import mock
 
+import llm_client
 import vision_read
 from services.publishing_contracts import IndexDeadlineExceeded
 from vision_read import VisionError
@@ -124,9 +125,8 @@ class ExtractWithVisionFailureTest(unittest.TestCase):
             vision_read.pdf_text,
             "render_pdf_pages",
             return_value=[b"PNG"],
-        ) as render, mock.patch.object(
-            vision_read.time,
-            "monotonic",
+        ) as render, mock.patch(
+            "time.monotonic",
             return_value=4.0,
         ):
             vision_read.extract_with_vision(b"%PDF", "P", deadline=10.0)
@@ -152,8 +152,8 @@ class ExtractWithVisionFailureTest(unittest.TestCase):
             vision_read.llm_client, "vision_model", return_value="vmodel"
         ), mock.patch.object(
             vision_read.pdf_text, "render_pdf_pages", return_value=[b"PNG"]
-        ), mock.patch.object(
-            vision_read.time, "monotonic", side_effect=lambda: now[0]
+        ), mock.patch(
+            "time.monotonic", side_effect=lambda: now[0]
         ):
             with self.assertRaises(IndexDeadlineExceeded) as raised:
                 vision_read.extract_with_vision(
@@ -222,9 +222,8 @@ class TranscribePdfTest(unittest.TestCase):
             vision_read.pdf_text,
             "render_pdf_pages",
             return_value=[b"PNG"],
-        ) as render, mock.patch.object(
-            vision_read.time,
-            "monotonic",
+        ) as render, mock.patch(
+            "time.monotonic",
             return_value=7.0,
         ):
             result = vision_read.transcribe_pdf(b"%PDF", deadline=10.0)
@@ -234,9 +233,8 @@ class TranscribePdfTest(unittest.TestCase):
         render.assert_called_once_with(b"%PDF", max_pages=50, deadline=10.0)
         self.assertEqual(client.calls[0]["timeout"], 3.0)
 
-        with mock.patch.object(
-            vision_read.time,
-            "monotonic",
+        with mock.patch(
+            "time.monotonic",
             return_value=10.0,
         ), mock.patch.object(
             vision_read.llm_client,
@@ -271,10 +269,8 @@ class TranscribePdfTest(unittest.TestCase):
                     vision_read.pdf_text,
                     "render_pdf_pages",
                     return_value=[b"PNG"],
-                ), mock.patch.object(
-                    vision_read.time,
-                    "monotonic",
-                    side_effect=lambda: now[0],
+                ), mock.patch(
+                    "time.monotonic", side_effect=lambda: now[0]
                 ):
                     with self.assertRaises(IndexDeadlineExceeded) as raised:
                         vision_read.transcribe_pdf(
@@ -299,15 +295,21 @@ class TranscribePdfTest(unittest.TestCase):
                     vision_read.pdf_text,
                     "render_pdf_pages",
                     return_value=[b"PNG"],
-                ), mock.patch.object(
-                    vision_read.time, "monotonic", return_value=1.0
-                ):
+                ), mock.patch("time.monotonic", return_value=1.0):
                     if strict:
                         with self.assertRaises(VisionError) as raised:
                             vision_read.transcribe_pdf(
                                 b"%PDF", deadline=10.0, strict=True
                             )
-                        self.assertIs(raised.exception.__cause__, failure)
+                        # The chain keeps the provider failure reachable:
+                        # VisionError -> LLMChatRequestError -> failure.
+                        self.assertIsInstance(
+                            raised.exception.__cause__,
+                            llm_client.LLMChatRequestError,
+                        )
+                        self.assertIs(
+                            raised.exception.__cause__.__cause__, failure
+                        )
                     else:
                         self.assertEqual(
                             vision_read.transcribe_pdf(
