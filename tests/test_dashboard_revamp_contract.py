@@ -24,6 +24,17 @@ class DashboardAssetsContractTest(unittest.TestCase):
         src = (ROOT / "static" / "js" / "dashboard.js").read_text(encoding="utf-8")
         self.assertIn("keydion.sidebar", src)
 
+    def test_dashboard_logout_button_resets_native_text_alignment(self):
+        # The sign-out label is a growing flex child. Without an explicit
+        # left alignment, the button's native centered text creates a large
+        # visual gap between the icon and label.
+        import re
+
+        src = (ROOT / "static" / "css" / "dashboard.css").read_text(encoding="utf-8")
+        rule = re.search(r"\.logout-form button\.nav-item\s*\{([^}]*)\}", src)
+        self.assertIsNotNone(rule)
+        self.assertRegex(rule.group(1), r"text-align\s*:\s*left")
+
     def test_dashboard_js_passes_submitter_to_formdata(self):
         # Without the second arg, the clicked button's name=value (e.g.
         # action=draft vs action=publish) is dropped from the partial POST.
