@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Keydion 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-22 19:46+0800\n"
+"POT-Creation-Date: 2026-08-22 21:00+0800\n"
 "PO-Revision-Date: 2025-10-11 00:00+0000\n"
 "Last-Translator: \n"
 "Language: en\n"
@@ -185,61 +185,61 @@ msgstr "+%(n)d this month"
 msgid "Language not supported."
 msgstr "Language not supported."
 
-#: config.py:333
+#: config.py:345
 #, fuzzy
 msgid "Please enter the paper title"
 msgstr "Please enter the paper title"
 
-#: config.py:334
+#: config.py:346
 #, fuzzy
 msgid "Please select a subject category"
 msgstr "Please select a category..."
 
-#: config.py:335
+#: config.py:347
 #, fuzzy
 msgid "Please select a language"
 msgstr "Please select a language"
 
-#: config.py:336
+#: config.py:348
 msgid "Please enter keywords"
 msgstr "Please enter keywords"
 
-#: config.py:337
+#: config.py:349
 #, fuzzy
 msgid "Please enter the abstract"
 msgstr "Please enter the abstract"
 
-#: config.py:338
+#: config.py:350
 msgid "Please enter the author name"
 msgstr "Please enter the author name"
 
-#: config.py:339
+#: config.py:351
 msgid "Please enter the contact email"
 msgstr "Please enter the contact email"
 
-#: config.py:340
+#: config.py:352
 msgid "Please enter the school name"
 msgstr "Please enter the school name"
 
-#: config.py:368
+#: config.py:380
 msgid "Reader - View & Download"
 msgstr ""
 
-#: config.py:369
+#: config.py:381
 msgid "Contributor - Upload Enabled"
 msgstr ""
 
-#: config.py:370
+#: config.py:382
 msgid "Curator - Full Access"
 msgstr ""
 
 # ==================== LANGUAGE ====================
-#: config.py:373 routes/upload.py:173 templates/paper_modify.html:116
+#: config.py:385 routes/upload.py:173 templates/paper_modify.html:116
 #: templates/search.html:115
 msgid "English"
 msgstr "English"
 
-#: config.py:374 routes/upload.py:174 templates/paper_modify.html:114
+#: config.py:386 routes/upload.py:174 templates/paper_modify.html:114
 #: templates/search.html:114
 msgid "Chinese"
 msgstr "Chinese"
@@ -1190,7 +1190,8 @@ msgstr "Who wrote this?"
 msgid "The first author's contact details are required. Add co-authors as needed."
 msgstr "The first author's contact details are required. Add co-authors as needed."
 
-#: routes/upload.py:226 templates/paper_modify.html:166
+#: routes/upload.py:226 templates/admin_models.html:230
+#: templates/paper_modify.html:166
 msgid "Name"
 msgstr "Name"
 
@@ -1328,11 +1329,12 @@ msgstr "Everything required is filled in."
 msgid "Click Submit Paper below to send your submission for review."
 msgstr "Click Submit Paper below to send your submission for review."
 
-#: routes/upload.py:258 templates/guide_manage.html:175
-#: templates/guide_manage.html:241 templates/guide_publish.html:20
-#: templates/journal_manage.html:61 templates/my_submissions.html:58
-#: templates/news_article.html:584 templates/news_manage.html:202
-#: templates/resource_manage.html:53 templates/resource_manage.html:121
+#: routes/upload.py:258 templates/admin_models.html:74
+#: templates/guide_manage.html:175 templates/guide_manage.html:241
+#: templates/guide_publish.html:20 templates/journal_manage.html:61
+#: templates/my_submissions.html:58 templates/news_article.html:584
+#: templates/news_manage.html:202 templates/resource_manage.html:53
+#: templates/resource_manage.html:121
 msgid "Edit"
 msgstr ""
 
@@ -1808,7 +1810,7 @@ msgstr "Write an article"
 msgid "Manage news"
 msgstr "Manage news"
 
-#: templates/_dashboard_shell.html:165
+#: templates/_dashboard_shell.html:165 templates/admin_models.html:18
 msgid "Admin"
 msgstr "Admin"
 
@@ -1817,7 +1819,7 @@ msgid "Manage users"
 msgstr "Manage users"
 
 # | msgid "IA Details"
-#: templates/_dashboard_shell.html:176 templates/admin_models.html:13
+#: templates/_dashboard_shell.html:176 templates/admin_models.html:20
 #, fuzzy
 msgid "AI models"
 msgstr "IA Details"
@@ -1975,224 +1977,252 @@ msgstr "← Back to regular login"
 msgid "AI models · Keydion"
 msgstr "Journals · Keydion"
 
-#: templates/admin_models.html:14
+#: templates/admin_models.html:21
 #, python-format
 msgid ""
 "Providers, models and keys for the features Keydion runs on. Keys live in"
 " %(file)s and are never shown again once saved."
 msgstr ""
 
-#: templates/admin_models.html:17
-#, python-format
-msgid ""
-"The server cannot write %(file)s — grants its user write access before "
-"changing anything here."
-msgstr ""
-
+# | msgid "Not provided"
+# | msgid "Provider"
 #: templates/admin_models.html:24
+#, fuzzy
+msgid "Add provider"
+msgstr "Not provided"
+
+#: templates/admin_models.html:29
 msgid "What is running"
 msgstr ""
 
-#: templates/admin_models.html:27
+#: templates/admin_models.html:32
 msgid "Ask and auto-fill"
 msgstr ""
 
 # | msgid "Advanced Search"
-#: templates/admin_models.html:32
+#: templates/admin_models.html:37
 #, fuzzy
 msgid "Semantic search"
 msgstr "Advanced Search"
 
-#: templates/admin_models.html:37
+#: templates/admin_models.html:42
 msgid "Vision-first extraction"
 msgstr ""
 
-#: templates/admin_models.html:38
+#: templates/admin_models.html:43
 msgid "off"
 msgstr ""
 
-#: templates/admin_models.html:42 templates/ai.html:102
+#: templates/admin_models.html:47 templates/ai.html:102
 msgid "Web access"
 msgstr ""
 
 # | msgid "Visible to"
-#: templates/admin_models.html:43
+#: templates/admin_models.html:48
 #, fuzzy
 msgid "visible"
 msgstr "Visible to"
 
-#: templates/admin_models.html:43
+#: templates/admin_models.html:48
 msgid "hidden"
 msgstr ""
 
-#: templates/admin_models.html:56 templates/news_publish.html:1078
+# | msgid "Not provided"
+#: templates/admin_models.html:60 templates/admin_models.html:99
+#: templates/admin_models.html:133 templates/admin_models.html:164
+#: templates/admin_models.html:225
+#, fuzzy
+msgid "Provider"
+msgstr "Not provided"
+
+#: templates/admin_models.html:61 templates/admin_version.html:54
+#: templates/my_submissions.html:27 templates/news_manage.html:150
+#: templates/review_list.html:53 templates/review_paper.html:54
+#: templates/submission_detail.html:48
+msgid "Status"
+msgstr "Status"
+
+#: templates/admin_models.html:62 templates/admin_users.html:30
+#: templates/admin_users.html:83 templates/my_submissions.html:28
+#: templates/news_manage.html:153 templates/paper_manage.html:295
+#: templates/resource_manage.html:31
+msgid "Actions"
+msgstr "Actions"
+
+# | msgid "Check again"
+#: templates/admin_models.html:70
+#, fuzzy
+msgid "Checking…"
+msgstr "Check again"
+
+#: templates/admin_models.html:75 templates/admin_users.html:57
+#: templates/admin_users.html:113 templates/guide_manage.html:183
+#: templates/guide_manage.html:246 templates/journal_manage.html:64
+#: templates/my_submissions.html:64 templates/news_article.html:594
+#: templates/news_manage.html:136 templates/news_manage.html:207
+#: templates/news_manage.html:444 templates/news_manage.html:513
+#: templates/news_manage.html:526 templates/paper_manage.html:365
+#: templates/paper_manage.html:726 templates/paper_manage.html:825
+#: templates/resource_manage.html:59
+msgid "Delete"
+msgstr "Delete"
+
+#: templates/admin_models.html:79
+msgid "No providers configured — add one to begin."
+msgstr ""
+
+#: templates/admin_models.html:87
+msgid "Slot assignments"
+msgstr ""
+
+#: templates/admin_models.html:94 templates/news_publish.html:1078
 #: templates/news_publish.html:1319
 msgid "Text"
 msgstr ""
 
 # | msgid "Continue →"
-#: templates/admin_models.html:59 templates/admin_models.html:101
-#: templates/admin_models.html:142 templates/admin_models.html:186
+#: templates/admin_models.html:96 templates/admin_models.html:161
+#: templates/admin_models.html:200
 #, fuzzy
 msgid "Configured"
 msgstr "Continue →"
 
 # | msgid "Not chosen"
-#: templates/admin_models.html:59 templates/admin_models.html:101
-#: templates/admin_models.html:142 templates/admin_models.html:186
+#: templates/admin_models.html:96 templates/admin_models.html:161
+#: templates/admin_models.html:200
 #, fuzzy
 msgid "Not set"
 msgstr "Not chosen"
 
-#: templates/admin_models.html:61
-msgid "Flash drafts abstracts and keywords; Think handles EE and IA extraction."
-msgstr ""
-
-#: templates/admin_models.html:63 templates/admin_models.html:108
-#: templates/admin_models.html:161
-msgid "Base URL"
-msgstr ""
-
-#: templates/admin_models.html:66 templates/admin_models.html:111
-#: templates/admin_models.html:163 templates/admin_models.html:190
-msgid "API key"
-msgstr ""
-
-#: templates/admin_models.html:68 templates/admin_models.html:113
-#: templates/admin_models.html:165 templates/admin_models.html:192
-msgid "Configured — enter a new key to replace it"
-msgstr ""
-
-#: templates/admin_models.html:68 templates/admin_models.html:113
-#: templates/admin_models.html:165 templates/admin_models.html:192
-msgid "Enter an API key"
-msgstr ""
-
 # | msgid "Last name"
-#: templates/admin_models.html:70
+#: templates/admin_models.html:106
 #, fuzzy
 msgid "Flash model"
 msgstr "Last name"
 
-#: templates/admin_models.html:74
+#: templates/admin_models.html:109
 msgid "Think model"
 msgstr ""
 
-#: templates/admin_models.html:77
-msgid "follows Flash"
-msgstr ""
-
-#: templates/admin_models.html:80
+#: templates/admin_models.html:113
 msgid "Follow Flash"
 msgstr ""
 
-#: templates/admin_models.html:84 templates/admin_models.html:125
-#: templates/admin_models.html:169
-msgid "Fetch models"
-msgstr ""
-
-# | msgid "Reset"
-#: templates/admin_models.html:85 templates/admin_models.html:126
-#: templates/admin_models.html:170 templates/admin_models.html:196
-#, fuzzy
-msgid "Test"
-msgstr "Reset"
-
-#: templates/admin_models.html:86 templates/admin_models.html:127
-#: templates/admin_models.html:171 templates/admin_models.html:197
+#: templates/admin_models.html:117 templates/admin_models.html:148
+#: templates/admin_models.html:186 templates/admin_models.html:209
 #: templates/ee_subjects_manage.html:82 templates/ia_subjects_manage.html:120
 #: templates/journal_edit.html:75
 msgid "Save changes"
 msgstr "Save changes"
 
 # | msgid "Pending"
-#: templates/admin_models.html:98
+#: templates/admin_models.html:128
 #, fuzzy
 msgid "Embedding"
 msgstr "Pending"
 
-#: templates/admin_models.html:101 templates/admin_models.html:142
-msgid "uses the Text key"
-msgstr ""
-
-#: templates/admin_models.html:104
-#, python-format
-msgid ""
-"Chunks and queries embed through this slot; the column stores "
-"VECTOR(%(dim)d)-d vectors."
-msgstr ""
-
-#: templates/admin_models.html:113
-msgid "leave empty to use the Text key"
-msgstr ""
-
 # | msgid "Move"
-#: templates/admin_models.html:115 templates/admin_models.html:154
+#: templates/admin_models.html:140 templates/admin_models.html:181
 #, fuzzy
 msgid "Model"
 msgstr "Move"
 
-#: templates/admin_models.html:121
+#: templates/admin_models.html:144
 msgid ""
-"Existing chunks were embedded with the saved model — semantic search "
-"degrades until a re-index runs (tools/build_embeddings.py). A model with "
-"a different vector dimension is refused at save."
+"A different embedding model degrades semantic search until a re-index "
+"runs (tools/build_embeddings.py); a different vector dimension is refused"
+" at save."
 msgstr ""
 
 # | msgid "Our Mission"
 # | msgid "Revision"
-#: templates/admin_models.html:139
+#: templates/admin_models.html:159
 #, fuzzy
 msgid "Vision"
 msgstr "Our Mission"
 
-#: templates/admin_models.html:144
-msgid ""
-"Reads rendered PDF pages for metadata auto-fill. Disabled falls back to "
-"the OCR + text path."
+#: templates/admin_models.html:161
+msgid "uses the Text key"
 msgstr ""
 
-# | msgid "Not provided"
-#: templates/admin_models.html:146
-#, fuzzy
-msgid "Provider"
-msgstr "Not provided"
-
-#: templates/admin_models.html:148
+#: templates/admin_models.html:166
 msgid "Same as the Text provider"
 msgstr ""
 
 # | msgid "Not provided"
-#: templates/admin_models.html:149
+#: templates/admin_models.html:167 templates/admin_models.html:172
 #, fuzzy
 msgid "Dedicated provider"
 msgstr "Not provided"
 
 # | msgid "Discard"
-#: templates/admin_models.html:150
+#: templates/admin_models.html:168
 #, fuzzy
 msgid "Disabled"
 msgstr "Discard"
 
 # | msgid "Search"
-#: templates/admin_models.html:183
+#: templates/admin_models.html:197
 #, fuzzy
 msgid "Web search"
 msgstr "Search"
 
-#: templates/admin_models.html:185
+#: templates/admin_models.html:199
 msgid "Tavily"
 msgstr ""
 
-#: templates/admin_models.html:188
-msgid ""
-"Grounds Ask-the-Library answers in web results. Tavily is the only "
-"provider implemented."
+#: templates/admin_models.html:203 templates/admin_models.html:238
+msgid "API key"
 msgstr ""
 
-#: templates/admin_models.html:193
-msgid "Leave empty and save to disable web access."
+#: templates/admin_models.html:205 templates/admin_models.html:240
+msgid "Configured — enter a new key to replace it"
 msgstr ""
+
+#: templates/admin_models.html:205
+msgid "Enter an API key"
+msgstr ""
+
+# | msgid "Reset"
+#: templates/admin_models.html:208 templates/admin_models.html:249
+#, fuzzy
+msgid "Test"
+msgstr "Reset"
+
+#: templates/admin_models.html:226 templates/admin_models.html:254
+#: templates/admin_users.html:134 templates/admin_users.html:157
+#: templates/ai.html:169 templates/news_manage.html:241
+#: templates/paper_manage.html:402 templates/paper_manage.html:439
+msgid "Close"
+msgstr "Close"
+
+#: templates/admin_models.html:234
+msgid "Base URL"
+msgstr ""
+
+# | msgid "Move"
+# | msgid "Model"
+#: templates/admin_models.html:243
+#, fuzzy
+msgid "Models"
+msgstr "Move"
+
+# | msgid "IA Details"
+# | msgid "AI models"
+#: templates/admin_models.html:245
+#, fuzzy
+msgid "Add model"
+msgstr "IA Details"
+
+#: templates/admin_models.html:248
+msgid "Fetch models"
+msgstr ""
+
+# | msgid "Save profile"
+#: templates/admin_models.html:255
+#, fuzzy
+msgid "Save provider"
+msgstr "Save profile"
 
 # ==================== ADMIN USER MANAGEMENT ====================
 #: templates/admin_users.html:2
@@ -2228,12 +2258,6 @@ msgstr "Username / Email"
 msgid "Role"
 msgstr "Role"
 
-#: templates/admin_users.html:30 templates/admin_users.html:83
-#: templates/my_submissions.html:28 templates/news_manage.html:153
-#: templates/paper_manage.html:295 templates/resource_manage.html:31
-msgid "Actions"
-msgstr "Actions"
-
 #: templates/admin_users.html:50 templates/admin_users.html:104
 #: templates/change_password.html:356
 msgid "New password"
@@ -2242,17 +2266,6 @@ msgstr "New password"
 #: templates/admin_users.html:52
 msgid "Reset"
 msgstr "Reset"
-
-#: templates/admin_users.html:57 templates/admin_users.html:113
-#: templates/guide_manage.html:183 templates/guide_manage.html:246
-#: templates/journal_manage.html:64 templates/my_submissions.html:64
-#: templates/news_article.html:594 templates/news_manage.html:136
-#: templates/news_manage.html:207 templates/news_manage.html:444
-#: templates/news_manage.html:513 templates/news_manage.html:526
-#: templates/paper_manage.html:365 templates/paper_manage.html:726
-#: templates/paper_manage.html:825 templates/resource_manage.html:59
-msgid "Delete"
-msgstr "Delete"
 
 #: templates/admin_users.html:64
 msgid "No local users found."
@@ -2284,12 +2297,6 @@ msgstr "Set password"
 #: templates/admin_users.html:120
 msgid "No Microsoft users found."
 msgstr "No Microsoft users found."
-
-#: templates/admin_users.html:134 templates/admin_users.html:157
-#: templates/ai.html:169 templates/news_manage.html:241
-#: templates/paper_manage.html:402 templates/paper_manage.html:439
-msgid "Close"
-msgstr "Close"
 
 #: templates/admin_users.html:158 templates/news_manage.html:249
 #: templates/paper_manage.html:450
@@ -2336,12 +2343,6 @@ msgstr "branch"
 #: templates/admin_version.html:46
 msgid "Latest on origin/main"
 msgstr "Latest on origin/main"
-
-#: templates/admin_version.html:54 templates/my_submissions.html:27
-#: templates/news_manage.html:150 templates/review_list.html:53
-#: templates/review_paper.html:54 templates/submission_detail.html:48
-msgid "Status"
-msgstr "Status"
 
 #: templates/admin_version.html:58
 #, python-format
@@ -5271,4 +5272,90 @@ msgstr ""
 
 #~ msgid "Articles"
 #~ msgstr "Articles"
+
+#~ msgid ""
+#~ "Chunks and queries embed through this"
+#~ " slot; the column stores VECTOR(%(dim)d)-d"
+#~ " vectors."
+#~ msgstr ""
+
+#~ msgid "leave empty to use the Text key"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Existing chunks were embedded with the"
+#~ " saved model — semantic search "
+#~ "degrades until a re-index runs "
+#~ "(tools/build_embeddings.py). A model with a"
+#~ " different vector dimension is refused "
+#~ "at save."
+#~ msgstr ""
+
+# | msgid "No papers in this journal yet."
+#~ msgid "No provider for this role yet"
+#~ msgstr "No papers in this journal yet."
+
+#~ msgid "follows Flash"
+#~ msgstr ""
+
+# | msgid "Role"
+#~ msgid "Roles"
+#~ msgstr "Role"
+
+#~ msgid "Which slots this provider can serve — it only appears in those pickers."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "One model id per line — the "
+#~ "pickers below offer this list. Fetch "
+#~ "fills it from the endpoint."
+#~ msgstr ""
+
+# | msgid "Keydion"
+#~ msgid "Key"
+#~ msgstr "Keydion"
+
+# | msgid "Submitted By"
+#~ msgid "Used by"
+#~ msgstr "Submitted By"
+
+#~ msgid ""
+#~ "The server cannot write %(file)s — "
+#~ "grants its user write access before "
+#~ "changing anything here."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Flash drafts abstracts and keywords; "
+#~ "Think handles EE and IA extraction."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Chunks and queries embed through this"
+#~ " slot. Existing chunks stay comparable "
+#~ "only after a re-index."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Reads rendered PDF pages for metadata"
+#~ " auto-fill. Disabled falls back to"
+#~ " the OCR + text path."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Grounds Ask-the-Library answers in "
+#~ "web results. Tavily is the only "
+#~ "provider implemented."
+#~ msgstr ""
+
+#~ msgid "Leave empty and save to disable web access."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Each model carries its role — the"
+#~ " slot pickers only offer models with"
+#~ " a matching role. Fetch fills the "
+#~ "list from the endpoint as text "
+#~ "models; adjust their roles after."
+#~ msgstr ""
 

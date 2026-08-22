@@ -2,8 +2,10 @@
 
 Covers the sidebar nav entry, the level-3 gate on every route, the
 template/JS DOM id contract, the partial-rendering convention, the write-only
-key posture (no key material ever rendered), env-file injection validation,
-the embedding dimension gate, and the probe SSRF guard.
+key posture (no key material ever rendered or echoed), env-file injection
+validation, provider registry CRUD (id derivation, assignment guard, legacy
+key normalization, derived key pattern), the embedding dimension gate, and
+the probe SSRF guard.
 No DB required (AST source lookup + bare-Jinja render + tmp-file units).
 """
 import os
@@ -24,8 +26,25 @@ ROOT = Path(__file__).resolve().parents[1]
 SNAP = {
     "env_file": ".env.prod",
     "env_mtime": 1770000000.123456,
-    "env_writable": True,
+    "json_mtime": 1770000000.223456,
     "embed_dim": 3072,
+    "providers": [
+        {"id": "deepseek", "name": "DeepSeek", "base_url": "https://api.deepseek.com",
+         "key_set": True, "used_by": ["text"],
+         "models": [{"id": "deepseek-v4-flash", "role": "text"},
+                    {"id": "deepseek-v4-pro", "role": "multimodal"}]},
+        {"id": "aliyun-dashscope", "name": "Aliyun DashScope",
+         "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+         "key_set": True, "used_by": ["embed", "vision"],
+         "models": [{"id": "qwen3.7-plus", "role": "multimodal"},
+                    {"id": "text-embedding-v4", "role": "embedding"}]},
+    ],
+    "assignments": {
+        "text": {"provider_id": "deepseek", "flash": "deepseek-v4-flash", "think": "deepseek-v4-pro"},
+        "embed": {"provider_id": "aliyun-dashscope", "model": "text-embedding-v4"},
+        "vision": {"mode": "dedicated", "provider_id": "aliyun-dashscope", "model": "qwen3.7-plus"},
+        "search": {},
+    },
     "slots": {
         "text": {"provider": "DeepSeek", "base_url": "https://api.deepseek.com",
                  "key_set": True, "flash": "deepseek-v4-flash",
@@ -83,10 +102,17 @@ class AdminModelsTemplateContract(unittest.TestCase):
             with self.subTest(element_id=element_id):
                 self.assertIn(f'id="{element_id}"', html)
 
-    def test_probe_and_save_urls_wired(self):
+    def test_endpoint_urls_wired(self):
         html = _render(SNAP)
         self.assertIn('data-probe-url="/admin_models_probe"', html)
         self.assertIn('data-save-url="/admin_models_save"', html)
+        self.assertIn('data-provider-save-url="/admin_models_provider_save"', html)
+        self.assertIn('data-provider-delete-url="/admin_models_provider_delete"', html)
+
+    def test_uses_manage_page_idiom(self):
+        html = _render(SNAP)
+        for cls in ("kp-head", "kp-title", "kp-crumb", "kp-card", "kp-table", "kp-btn--primary"):
+            self.assertIn(cls, html)
 
     def test_no_key_material_rendered(self):
         """Keys are write-only: configured slots show status text, never values,
@@ -96,7 +122,6 @@ class AdminModelsTemplateContract(unittest.TestCase):
         self.assertIsNone(re.search(r"tvly-[A-Za-z0-9]{8,}", html), "Tavily key leaked")
         for field in re.finditer(r'<input[^>]*type="password"[^>]*>', html):
             self.assertNotIn("value=", field.group(0), field.group(0))
-        # Configured slots say so via status labels, not stored secrets.
         self.assertIn("Configured", html)
 
     def test_capability_strip_pills_present(self):
@@ -105,6 +130,43 @@ class AdminModelsTemplateContract(unittest.TestCase):
             self.assertIn(f'id="{pill}"', html)
         self.assertIn("deepseek-v4-pro", html)
         self.assertIn("qwen3.7-plus", html)
+
+    def test_provider_table_and_modal_present(self):
+        html = _render(SNAP)
+        self.assertIn('id="providersBody"', html)
+        self.assertIn('id="providerModal"', html)
+        self.assertIn('data-edit-provider="deepseek"', html)
+        self.assertIn('data-delete-provider="deepseek"', html)
+
+    def test_status_column_shows_connection_state(self):
+        """The Status column is a live connection state (online/offline/error),
+        rendered as Checking… until the JS probe lands."""
+        html = _render(SNAP)
+        self.assertIn("<th>Status</th>", html)
+        self.assertIn('data-status-provider="deepseek"', html)
+        self.assertIn("models-status--checking", html)
+
+    def test_provider_selects_offer_all_providers_seeded(self):
+        html = _render(SNAP)
+        def options_of(select_id):
+            block = re.search(r'<select[^>]*id="' + select_id + r'".*?</select>', html, re.S).group(0)
+            return set(re.findall(r'value="([a-z0-9-]+)"', block))
+        for select_id in ("textProviderSel", "embedProviderSel", "visionProviderSel"):
+            self.assertEqual({"deepseek", "aliyun-dashscope"}, options_of(select_id))
+        self.assertIn('id="textProviderSel" data-selected="deepseek"', html)
+
+    def test_model_selects_present_and_slot_test_buttons_gone(self):
+        """Models are picked from lists the JS fills per provider+role; testing
+        lives on the provider editor, not the slot cards."""
+        html = _render(SNAP)
+        for select_id in ("textFlash", "textThink", "embedModel", "visionModel"):
+            self.assertRegex(html, r'<select[^>]*id="' + select_id + r'"')
+        for gone in ("textTestBtn", "embedTestBtn", "visionTestBtn"):
+            self.assertNotIn(gone, html)
+        self.assertIn('id="providerTestBtn"', html)  # Test stays on the provider editor
+        self.assertIn('id="providerModelsBody"', html)
+        self.assertIn('id="providerModelAddBtn"', html)
+        self.assertNotIn("datalist", html)  # free-text model entry is gone
 
     def test_vision_three_state_options(self):
         html = _render(SNAP)
@@ -117,13 +179,16 @@ class AdminModelsTemplateContract(unittest.TestCase):
 
 
 class AdminModelsRouteContract(unittest.TestCase):
+    ROUTES = ("admin_models", "admin_models_probe", "admin_models_save",
+              "admin_models_provider_save", "admin_models_provider_delete")
+
     def test_route_functions_require_level_3(self):
-        for name in ("admin_models", "admin_models_probe", "admin_models_save"):
+        for name in self.ROUTES:
             with self.subTest(route=name):
                 self.assertIn("require_login(level=3)", source_of(name))
 
     def test_route_functions_do_not_pass_partial(self):
-        for name in ("admin_models", "admin_models_probe", "admin_models_save"):
+        for name in self.ROUTES:
             with self.subTest(route=name):
                 self.assertNotIn("partial=", source_of(name))
 
@@ -179,7 +244,7 @@ class LLMAdminEnvWriterContract(unittest.TestCase):
     def mtime(self):
         return self.path.stat().st_mtime
 
-    def test_unknown_lines_preserved_byte_identical(self):
+    def test_unknown_lines_preserved(self):
         before = self.path.read_text(encoding="utf-8")
         self.la._write_env({"LLM_BASE_URL": "https://api.deepseek.com"}, expected_mtime=self.mtime())
         after = self.path.read_text(encoding="utf-8")
@@ -189,25 +254,30 @@ class LLMAdminEnvWriterContract(unittest.TestCase):
         self.assertIn("WEB_SEARCH_PROVIDER=tavily", after)
         self.assertIn("LLM_BASE_URL=https://api.deepseek.com", after)
         self.assertIn("LLM_API_KEY=sk-existing", after)
-        # Nothing removed except the one updated key's old value.
         self.assertEqual(len(after.splitlines()), len(before.splitlines()) + 1)
 
     def test_appends_missing_key_and_writes_empty_value(self):
         self.la._write_env({"LLM_VISION": ""}, expected_mtime=self.mtime())
-        after = self.path.read_text(encoding="utf-8")
-        self.assertIn("LLM_VISION=\n", after)
+        self.assertIn("LLM_VISION=\n", self.path.read_text(encoding="utf-8"))
 
     def test_updated_key_written_unquoted_and_duplicates_collapsed(self):
         self.path.write_text("LLM_API_KEY=old1\nLLM_API_KEY=old2\n", encoding="utf-8")
         self.la._write_env({"LLM_API_KEY": "sk-new"}, expected_mtime=self.mtime())
-        after = self.path.read_text(encoding="utf-8")
-        self.assertEqual(after, "LLM_API_KEY=sk-new\n")
+        self.assertEqual("LLM_API_KEY=sk-new\n", self.path.read_text(encoding="utf-8"))
 
     def test_write_is_atomic_with_mode_600(self):
         self.la._write_env({"LLM_API_KEY": "sk-new"}, expected_mtime=self.mtime())
         self.assertEqual(stat.S_IMODE(self.path.stat().st_mode), 0o600)
         leftovers = [p for p in self.path.parent.iterdir() if ".tmp-" in p.name]
         self.assertEqual([], leftovers)
+
+    def test_derived_provider_key_pattern_allowed_arbitrary_refused(self):
+        from services.llm_admin import LLMAdminError
+        self.la._write_env({"LLM_PROVIDER_DEEPSEEK_API_KEY": "sk-p"}, expected_mtime=self.mtime())
+        with self.assertRaises(LLMAdminError):
+            self.la._write_env({"LLM_PROVIDER_EVIL_NAME(x)_API_KEY": "sk-p"})
+        with self.assertRaises(LLMAdminError):
+            self.la._write_env({"PAPERQUERY_SECRET": "evil"})
 
     def test_injection_values_refused(self):
         from services.llm_admin import LLMAdminError
@@ -223,11 +293,6 @@ class LLMAdminEnvWriterContract(unittest.TestCase):
                 with self.assertRaises(LLMAdminError):
                     self.la._write_env({"LLM_API_KEY": value})
 
-    def test_non_whitelisted_key_refused(self):
-        from services.llm_admin import LLMAdminError
-        with self.assertRaises(LLMAdminError):
-            self.la._write_env({"PAPERQUERY_SECRET": "evil"})
-
     def test_mtime_conflict_refused_without_writing(self):
         from services.llm_admin import LLMAdminConflict
         before = self.path.read_text(encoding="utf-8")
@@ -237,66 +302,199 @@ class LLMAdminEnvWriterContract(unittest.TestCase):
         self.assertEqual(before, self.path.read_text(encoding="utf-8"))
 
 
-class LLMAdminSnapshotContract(unittest.TestCase):
+class LLMAdminRegistryContract(unittest.TestCase):
+    """Provider registry: derivation, CRUD, key normalization."""
+
+    ENV_TEXT = (
+        "LLM_API_KEY=sk-text-secret\n"
+        "LLM_BASE_URL=https://api.deepseek.com\n"
+        "LLM_DEFAULT_FLASH=deepseek-v4-flash\n"
+        "LLM_DEFAULT_THINK=\n"
+        "LLM_EMBED_API_KEY=sk-embed-secret\n"
+        "LLM_EMBED_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1\n"
+        "LLM_EMBED_MODEL=text-embedding-v4\n"
+        "LLM_VISION=qwen3.7-plus\n"
+        "WEB_SEARCH_API_KEY=tvly-search-secret\n"
+    )
+
     def setUp(self):
         import services.llm_admin as la
         self.la = la
         self.tmp = tempfile.TemporaryDirectory()
-        self.path = Path(self.tmp.name) / ".env.prod"
-        self.path.write_text(
-            "LLM_API_KEY=sk-text-secret\n"
-            "LLM_BASE_URL=https://api.deepseek.com\n"
-            "LLM_DEFAULT_FLASH=deepseek-v4-flash\n"
-            "LLM_DEFAULT_THINK=\n"
-            "LLM_EMBED_MODEL=text-embedding-v4\n"
-            "LLM_VISION=qwen3.7-plus\n"
-            "WEB_SEARCH_API_KEY=tvly-search-secret\n",
-            encoding="utf-8",
-        )
-        # Importing config loads the REAL env file into os.environ (override=True),
-        # so blank every slot var to keep snapshot tests independent of the host.
-        env = {key: "" for key in (
+        self.env_path = Path(self.tmp.name) / ".env"
+        self.env_path.write_text(self.ENV_TEXT, encoding="utf-8")
+        self.json_path = Path(self.tmp.name) / "llm_providers.json"
+        env_vars = {key: "" for key in (
             "LLM_API_KEY", "LLM_BASE_URL", "LLM_DEFAULT_FLASH", "LLM_DEFAULT_THINK",
             "LLM_EMBED_API_KEY", "LLM_EMBED_BASE_URL", "LLM_EMBED_MODEL",
             "LLM_VISION", "LLM_VISION_API_KEY", "LLM_VISION_BASE_URL",
             "WEB_SEARCH_PROVIDER", "WEB_SEARCH_API_KEY",
         )}
-        import unittest.mock as mock
-        env_patch = mock.patch.dict(os.environ, env, clear=False)
+        env_patch = unittest.mock.patch.dict(os.environ, env_vars, clear=False)
         env_patch.start()
         self.addCleanup(env_patch.stop)
-        self._patch = unittest.mock.patch.object(la, "active_env_path", return_value=self.path)
-        self._patch.start()
-        self.addCleanup(self._patch.stop)
+        patches = [
+            unittest.mock.patch.object(la, "active_env_path", return_value=self.env_path),
+            unittest.mock.patch.object(la, "_registry_path", return_value=self.json_path),
+            unittest.mock.patch.object(la.version_service, "request_graceful_restart", return_value=False),
+        ]
+        for p in patches:
+            p.start()
+            self.addCleanup(p.stop)
         self.addCleanup(self.tmp.cleanup)
+        self.addCleanup(lambda: [os.environ.pop(k, None) for k in tuple(os.environ)
+                                 if k.startswith("LLM_") or k.startswith("WEB_SEARCH_")])
+
+    def test_derived_registry_from_env(self):
+        reg, _ = self.la.load_registry()
+        ids = {p["id"] for p in reg["providers"]}
+        self.assertEqual({"deepseek", "aliyun-dashscope"}, ids)
+        by_id = {p["id"]: p for p in reg["providers"]}
+        self.assertEqual(by_id["deepseek"]["key_var"], "LLM_API_KEY")
+        self.assertEqual(by_id["deepseek"]["models"],
+                         [{"id": "deepseek-v4-flash", "role": "text"},
+                          {"id": "qwen3.7-plus", "role": "multimodal"}])  # vision text-mode upgrade
+        self.assertEqual(by_id["aliyun-dashscope"]["models"],
+                         [{"id": "text-embedding-v4", "role": "embedding"}])
+        self.assertEqual(reg["assignments"]["text"]["provider_id"], "deepseek")
+        self.assertEqual(reg["assignments"]["embed"]["provider_id"], "aliyun-dashscope")
+        self.assertEqual(reg["assignments"]["vision"]["mode"], "text")  # no dedicated creds
+
+    def test_save_provider_validates_model_roles(self):
+        from services.llm_admin import LLMAdminError
+        with self.assertRaises(LLMAdminError):
+            self.la.save_provider({"name": "Bad Role", "base_url": "https://x.example",
+                                   "models": [{"id": "m1", "role": "vision"}]})
+        with self.assertRaises(LLMAdminError):
+            self.la.save_provider({"name": "Dup", "base_url": "https://x.example",
+                                   "models": [{"id": "m1", "role": "text"},
+                                              {"id": "m1", "role": "embedding"}]})
+
+    def test_assign_rejects_wrong_model_role(self):
+        from services.llm_admin import LLMAdminError
+        result = self.la.save_provider(
+            {"name": "Embed Only", "base_url": "https://embed.example", "api_key": "sk-e",
+             "models": [{"id": "embed-m", "role": "embedding"}]},
+            expected_env_mtime=self.env_path.stat().st_mtime)
+        with self.assertRaises(LLMAdminError) as ctx:
+            self.la.apply_slot({"slot": "text", "provider_id": result["id"], "flash": "embed-m"},
+                               expected_env_mtime=self.env_path.stat().st_mtime)
+        self.assertIn("not configured", str(ctx.exception))
+        with self.assertRaises(LLMAdminError):
+            self.la.apply_slot({"slot": "vision", "mode": "dedicated",
+                                "provider_id": result["id"], "model": "embed-m"},
+                               expected_env_mtime=self.env_path.stat().st_mtime)
+
+    def test_multimodal_model_serves_text_and_vision(self):
+        result = self.la.save_provider(
+            {"name": "Google Gemini", "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
+             "api_key": "sk-g",
+             "models": [{"id": "gemini-3.1-pro", "role": "multimodal"},
+                        {"id": "text-embedding-001", "role": "embedding"}]},
+            expected_env_mtime=self.env_path.stat().st_mtime)
+        self.la.apply_slot({"slot": "text", "provider_id": result["id"],
+                            "flash": "gemini-3.1-pro", "think": ""},
+                           expected_env_mtime=self.env_path.stat().st_mtime)
+        outcome = self.la.apply_slot({"slot": "vision", "mode": "text", "model": "gemini-3.1-pro"},
+                                     expected_env_mtime=self.env_path.stat().st_mtime)
+        self.assertTrue(outcome["ok"])
+        self.assertIn("LLM_VISION=gemini-3.1-pro",
+                      self.env_path.read_text(encoding="utf-8"))
+
+    def test_model_removal_refused_while_assigned(self):
+        from services.llm_admin import LLMAdminError
+        result = self.la.save_provider(
+            {"name": "Open Router", "base_url": "https://openrouter.ai/api/v1", "api_key": "sk-or",
+             "models": [{"id": "m1", "role": "text"}, {"id": "m2", "role": "text"}]},
+            expected_env_mtime=self.env_path.stat().st_mtime)
+        self.la.apply_slot({"slot": "text", "provider_id": result["id"], "flash": "m1", "think": ""},
+                           expected_env_mtime=self.env_path.stat().st_mtime)
+        with self.assertRaises(LLMAdminError) as ctx:
+            self.la.save_provider({"id": result["id"], "name": "Open Router",
+                                   "base_url": "https://openrouter.ai/api/v1",
+                                   "models": [{"id": "m2", "role": "text"}]},
+                                  expected_env_mtime=self.env_path.stat().st_mtime)
+        self.assertIn("reassign", str(ctx.exception))
+
+    def test_derivation_uses_process_env_when_no_file(self):
+        """A dev container injects LLM vars via compose env_file with no env
+        file on disk; derivation must still see the real providers."""
+        self.env_path.unlink()
+        injected = {
+            "LLM_API_KEY": "sk-text-secret",
+            "LLM_BASE_URL": "https://api.deepseek.com",
+            "LLM_DEFAULT_FLASH": "deepseek-v4-flash",
+        }
+        with unittest.mock.patch.dict(os.environ, injected, clear=False):
+            reg, _ = self.la.load_registry()
+        self.assertEqual({p["id"] for p in reg["providers"]}, {"deepseek"})
+        self.assertEqual(reg["assignments"]["text"]["provider_id"], "deepseek")
 
     def test_snapshot_never_contains_key_material(self):
-        snap = self.la.snapshot()
-        blob = repr(snap)
+        blob = repr(self.la.snapshot())
         self.assertNotIn("sk-text-secret", blob)
+        self.assertNotIn("sk-embed-secret", blob)
         self.assertNotIn("tvly-search-secret", blob)
-        self.assertTrue(snap["slots"]["text"]["key_set"])
+        snap = self.la.snapshot()
+        self.assertTrue(snap["providers"][0]["key_set"])
         self.assertTrue(snap["slots"]["search"]["key_set"])
 
-    def test_vision_mode_and_defaults(self):
-        snap = self.la.snapshot()
-        # LLM_VISION set, dedicated creds unset → falls back to chat creds.
-        self.assertEqual(snap["slots"]["vision"]["mode"], "text")
-        self.assertTrue(snap["slots"]["vision"]["uses_text_key"])
-        # Empty think follows flash.
-        self.assertTrue(snap["slots"]["text"]["think_follows_flash"])
-        self.assertEqual(snap["slots"]["text"]["think"], snap["slots"]["text"]["flash"])
+    def test_create_provider_derives_id_and_key_var(self):
+        result = self.la.save_provider(
+            {"name": "Open Router", "base_url": "https://openrouter.ai/api/v1",
+             "api_key": "sk-or-new",
+             "models": [{"id": "m1", "role": "text"}]},
+            expected_env_mtime=self.env_path.stat().st_mtime)
+        self.assertEqual("open-router", result["id"])
+        env_text = self.env_path.read_text(encoding="utf-8")
+        self.assertIn("LLM_PROVIDER_OPEN_ROUTER_API_KEY=sk-or-new", env_text)
+        reg = __import__("json").loads(self.json_path.read_text(encoding="utf-8"))
+        stored = next(p for p in reg["providers"] if p["id"] == "open-router")
+        self.assertEqual("LLM_PROVIDER_OPEN_ROUTER_API_KEY", stored["key_var"])
 
-    def test_vision_dedicated_when_own_creds_set(self):
-        self.path.write_text("LLM_VISION=qwen\nLLM_VISION_API_KEY=sk-v\n", encoding="utf-8")
-        snap = self.la.snapshot()
-        self.assertEqual(snap["slots"]["vision"]["mode"], "dedicated")
+    def test_update_provider_keeps_id(self):
+        self.la.save_provider({"name": "DeepSeek", "base_url": "https://api.deepseek.com",
+                               "models": [{"id": "deepseek-v4-flash", "role": "text"}]},
+                              expected_env_mtime=self.env_path.stat().st_mtime)
+        result = self.la.save_provider({"id": "deepseek", "name": "DeepSeek v4",
+                                        "base_url": "https://api.deepseek.com",
+                                        "models": [{"id": "deepseek-v4-flash", "role": "text"},
+                                                   {"id": "qwen3.7-plus", "role": "multimodal"}]},
+                                       expected_env_mtime=self.env_path.stat().st_mtime)
+        self.assertEqual("deepseek", result["id"])
 
-    def test_vision_disabled_when_model_empty(self):
-        self.path.write_text("LLM_VISION=\n", encoding="utf-8")
-        snap = self.la.snapshot()
-        self.assertEqual(snap["slots"]["vision"]["mode"], "disabled")
-        self.assertFalse(snap["features"]["vision_first"]["on"])
+    def test_editing_migrated_provider_moves_key_off_slot_var(self):
+        """A derived provider reading LLM_API_KEY must get its own key on first
+        edit, so a later slot change cannot silently swap its key."""
+        result = self.la.save_provider({"id": "deepseek", "name": "DeepSeek",
+                                        "base_url": "https://api.deepseek.com",
+                                        "api_key": "sk-deepseek-own",
+                                        "models": [{"id": "deepseek-v4-flash", "role": "text"},
+                                                   {"id": "qwen3.7-plus", "role": "multimodal"}]},
+                                       expected_env_mtime=self.env_path.stat().st_mtime)
+        self.assertEqual("deepseek", result["id"])
+        reg = __import__("json").loads(self.json_path.read_text(encoding="utf-8"))
+        stored = next(p for p in reg["providers"] if p["id"] == "deepseek")
+        self.assertEqual("LLM_PROVIDER_DEEPSEEK_API_KEY", stored["key_var"])
+        self.assertIn("LLM_PROVIDER_DEEPSEEK_API_KEY=sk-deepseek-own",
+                      self.env_path.read_text(encoding="utf-8"))
+
+    def test_delete_refuses_while_assigned(self):
+        from services.llm_admin import LLMAdminError
+        with self.assertRaises(LLMAdminError) as ctx:
+            self.la.delete_provider({"id": "deepseek"})
+        self.assertIn("assigned", str(ctx.exception))
+
+    def test_delete_unassigned_clears_derived_key(self):
+        self.la.save_provider({"name": "Open Router", "base_url": "https://openrouter.ai/api/v1",
+                               "api_key": "sk-or",
+                               "models": [{"id": "m1", "role": "text"}]},
+                              expected_env_mtime=self.env_path.stat().st_mtime)
+        self.la.delete_provider({"id": "open-router"})
+        self.assertIn("LLM_PROVIDER_OPEN_ROUTER_API_KEY=",
+                      self.env_path.read_text(encoding="utf-8"))
+        reg = __import__("json").loads(self.json_path.read_text(encoding="utf-8"))
+        self.assertNotIn("open-router", {p["id"] for p in reg["providers"]})
 
 
 class LLMAdminApplyContract(unittest.TestCase):
@@ -304,96 +502,181 @@ class LLMAdminApplyContract(unittest.TestCase):
         import services.llm_admin as la
         self.la = la
         self.tmp = tempfile.TemporaryDirectory()
-        self.path = Path(self.tmp.name) / ".env"
-        self.path.write_text(
+        self.env_path = Path(self.tmp.name) / ".env"
+        self.env_path.write_text(
             "LLM_API_KEY=sk-text\n"
             "LLM_BASE_URL=https://api.deepseek.com\n"
+            "LLM_DEFAULT_FLASH=deepseek-v4-flash\n"
             "LLM_EMBED_MODEL=text-embedding-v4\n"
             "LLM_EMBED_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1\n"
-            "LLM_VISION=qwen3.7-plus\n",
+            "LLM_VISION=deepseek-v4-flash\n",
             encoding="utf-8",
         )
-        import unittest.mock as mock
+        self.json_path = Path(self.tmp.name) / "llm_providers.json"
+        # Importing config loads the REAL env file into os.environ; blank every
+        # slot/provider var so apply tests never see or copy real keys.
+        env_patch = unittest.mock.patch.dict(
+            os.environ,
+            {key: "" for key in (
+                "LLM_API_KEY", "LLM_BASE_URL", "LLM_DEFAULT_FLASH", "LLM_DEFAULT_THINK",
+                "LLM_EMBED_API_KEY", "LLM_EMBED_BASE_URL", "LLM_EMBED_MODEL",
+                "LLM_VISION", "LLM_VISION_API_KEY", "LLM_VISION_BASE_URL",
+                "WEB_SEARCH_PROVIDER", "WEB_SEARCH_API_KEY",
+            )},
+            clear=False)
+        env_patch.start()
+        self.addCleanup(env_patch.stop)
         patches = [
-            mock.patch.object(la, "active_env_path", return_value=self.path),
-            mock.patch.object(la.version_service, "request_graceful_restart", return_value=False),
+            unittest.mock.patch.object(la, "active_env_path", return_value=self.env_path),
+            unittest.mock.patch.object(la, "_registry_path", return_value=self.json_path),
+            unittest.mock.patch.object(la.version_service, "request_graceful_restart", return_value=False),
         ]
         for p in patches:
             p.start()
             self.addCleanup(p.stop)
-        env_patch = mock.patch.dict(os.environ, {}, clear=False)
-        env_patch.start()
-        self.addCleanup(env_patch.stop)
         self.addCleanup(self.tmp.cleanup)
-        self.addCleanup(lambda: [os.environ.pop(k, None) for k in
-                                 ("LLM_EMBED_MODEL", "LLM_VISION", "LLM_VISION_API_KEY",
-                                  "LLM_VISION_BASE_URL", "LLM_DEFAULT_FLASH", "LLM_DEFAULT_THINK",
-                                  "LLM_BASE_URL")])
+        self.addCleanup(lambda: [os.environ.pop(k, None) for k in tuple(os.environ)
+                                 if k.startswith("LLM_") or k.startswith("WEB_SEARCH_")])
 
-    def test_text_save_updates_file_and_process_env(self):
+    def _seed_provider(self):
+        """Create a provider through the public API; return its (unique) id."""
+        result = self.la.save_provider({"name": "Aliyun DashScope",
+                                        "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+                                        "api_key": "sk-dash",
+                                        "models": [{"id": "text-embedding-v4", "role": "embedding"},
+                                                   {"id": "same-dim-embedding", "role": "embedding"}]},
+                                       expected_env_mtime=self.env_path.stat().st_mtime)
+        return result["id"]
+
+    def test_text_save_resolves_provider_into_env_and_process_env(self):
         result = self.la.apply_slot({
-            "slot": "text", "base_url": "https://api.deepseek.com",
-            "flash": "deepseek-v4-flash", "think": "", "api_key": "",
-        }, expected_mtime=self.path.stat().st_mtime)
+            "slot": "text", "provider_id": "deepseek",
+            "flash": "deepseek-v4-flash", "think": "",
+        }, expected_env_mtime=self.env_path.stat().st_mtime)
         self.assertTrue(result["ok"])
         self.assertFalse(result["satellite_notice"])  # text is web-only
-        self.assertIn("LLM_DEFAULT_FLASH=deepseek-v4-flash", self.path.read_text(encoding="utf-8"))
-        self.assertEqual(os.environ.get("LLM_DEFAULT_FLASH"), "deepseek-v4-flash")
+        after = self.env_path.read_text(encoding="utf-8")
+        self.assertIn("LLM_BASE_URL=https://api.deepseek.com", after)
+        self.assertIn("LLM_DEFAULT_FLASH=deepseek-v4-flash", after)
         self.assertEqual(os.environ.get("LLM_DEFAULT_THINK"), "")
+        # The registry records the provider link.
+        reg = __import__("json").loads(self.json_path.read_text(encoding="utf-8"))
+        self.assertEqual("deepseek", reg["assignments"]["text"]["provider_id"])
 
     def test_vision_text_mode_clears_dedicated_creds(self):
         result = self.la.apply_slot({
-            "slot": "vision", "mode": "text", "model": "deepseek-v4-pro",
-        }, expected_mtime=self.path.stat().st_mtime)
+            "slot": "vision", "mode": "text", "model": "deepseek-v4-flash",
+        }, expected_env_mtime=self.env_path.stat().st_mtime)
         self.assertTrue(result["ok"])
-        after = self.path.read_text(encoding="utf-8")
-        self.assertIn("LLM_VISION=deepseek-v4-pro", after)
+        after = self.env_path.read_text(encoding="utf-8")
+        self.assertIn("LLM_VISION=deepseek-v4-flash", after)
         self.assertIn("LLM_VISION_API_KEY=", after)
         self.assertIn("LLM_VISION_BASE_URL=", after)
         self.assertEqual(os.environ.get("LLM_VISION_API_KEY"), "")
 
     def test_vision_disable_empties_model(self):
         self.la.apply_slot({"slot": "vision", "mode": "disabled"},
-                           expected_mtime=self.path.stat().st_mtime)
-        self.assertIn("LLM_VISION=\n", self.path.read_text(encoding="utf-8"))
+                           expected_env_mtime=self.env_path.stat().st_mtime)
+        self.assertIn("LLM_VISION=\n", self.env_path.read_text(encoding="utf-8"))
+
+    def test_unknown_provider_refused(self):
+        from services.llm_admin import LLMAdminError
+        with self.assertRaises(LLMAdminError):
+            self.la.apply_slot({"slot": "text", "provider_id": "ghost", "flash": "m"},
+                               expected_env_mtime=self.env_path.stat().st_mtime)
 
     def test_embed_dimension_mismatch_refused(self):
         from services.llm_admin import LLMAdminError
-        import unittest.mock as mock
-        before = self.path.read_text(encoding="utf-8")
-        with mock.patch.object(self.la, "probe",
-                               return_value={"ok": True, "dimension": 768,
-                                             "expected": 3072, "dimension_ok": False}):
+        pid = self._seed_provider()
+        before = self.env_path.read_text(encoding="utf-8")
+        with unittest.mock.patch.object(self.la, "probe",
+                                        return_value={"ok": True, "dimension": 768,
+                                                      "expected": 3072, "dimension_ok": False}):
             with self.assertRaises(LLMAdminError) as ctx:
                 self.la.apply_slot({
-                    "slot": "embed", "model": "other-embedding",
-                    "base_url": "", "api_key": "",
-                }, expected_mtime=self.path.stat().st_mtime)
+                    "slot": "embed", "provider_id": pid, "model": "same-dim-embedding",
+                }, expected_env_mtime=self.env_path.stat().st_mtime)
         self.assertIn("migration", str(ctx.exception))
-        self.assertEqual(before, self.path.read_text(encoding="utf-8"))
+        self.assertEqual(before, self.env_path.read_text(encoding="utf-8"))
 
     def test_embed_dimension_match_writes(self):
-        import unittest.mock as mock
-        with mock.patch.object(self.la, "probe",
-                               return_value={"ok": True, "dimension": 3072,
-                                             "expected": 3072, "dimension_ok": True}):
+        pid = self._seed_provider()
+        with unittest.mock.patch.object(self.la, "probe",
+                                        return_value={"ok": True, "dimension": 3072,
+                                                      "expected": 3072, "dimension_ok": True}):
             result = self.la.apply_slot({
-                "slot": "embed", "model": "same-dim-embedding",
-                "base_url": "", "api_key": "",
-            }, expected_mtime=self.path.stat().st_mtime)
+                "slot": "embed", "provider_id": pid, "model": "same-dim-embedding",
+            }, expected_env_mtime=self.env_path.stat().st_mtime)
         self.assertTrue(result["ok"])
         self.assertTrue(result["satellite_notice"])  # embedding feeds the workers
-        self.assertIn("LLM_EMBED_MODEL=same-dim-embedding", self.path.read_text(encoding="utf-8"))
+        after = self.env_path.read_text(encoding="utf-8")
+        self.assertIn("LLM_EMBED_MODEL=same-dim-embedding", after)
+        # The provider's stored key is resolved into the slot variable server-side.
+        self.assertIn("LLM_EMBED_API_KEY=sk-dash", after)
 
     def test_embed_probe_failure_refuses_save(self):
         from services.llm_admin import LLMAdminError
-        import unittest.mock as mock
-        with mock.patch.object(self.la, "probe",
-                               return_value={"ok": False, "error": "Endpoint rejected the request: 401"}):
+        pid = self._seed_provider()
+        with unittest.mock.patch.object(self.la, "probe",
+                                        return_value={"ok": False, "error": "Endpoint rejected the request: 401"}):
             with self.assertRaises(LLMAdminError):
                 self.la.apply_slot({
-                    "slot": "embed", "model": "new-model", "base_url": "", "api_key": "",
-                }, expected_mtime=self.path.stat().st_mtime)
+                    "slot": "embed", "provider_id": pid, "model": "same-dim-embedding",
+                }, expected_env_mtime=self.env_path.stat().st_mtime)
+
+
+class ProbeStateContract(unittest.TestCase):
+    """Provider probes classify failures: online / offline / error."""
+
+    def _fake_openai(self, list_result=None, error=None):
+        import types
+        from openai import APIConnectionError
+        def ctor(**kwargs):
+            if error is not None:
+                raise error
+            return types.SimpleNamespace(models=types.SimpleNamespace(list=lambda: list_result))
+        return types.SimpleNamespace(OpenAI=ctor, APIConnectionError=APIConnectionError)
+
+    def test_online_state_on_success(self):
+        import sys
+        import types
+        import services.llm_admin as la
+        from unittest import mock
+        resp = types.SimpleNamespace(data=[types.SimpleNamespace(id="m1")])
+        with mock.patch.dict(sys.modules, {"openai": self._fake_openai(list_result=resp)}):
+            result = la.probe({"slot": "provider", "base_url": "https://api.deepseek.com",
+                               "api_key": "sk-x"})
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["state"], "online")
+
+    def test_connection_failure_is_offline(self):
+        import sys
+        import services.llm_admin as la
+        from unittest import mock
+        from openai import APIConnectionError
+        failure = APIConnectionError(message="timeout", request=None)
+        with mock.patch.dict(sys.modules, {"openai": self._fake_openai(error=failure)}):
+            result = la.probe({"slot": "provider", "base_url": "https://api.deepseek.com",
+                               "api_key": "sk-x"})
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["state"], "offline")
+
+    def test_rejection_is_error(self):
+        import sys
+        import services.llm_admin as la
+        from unittest import mock
+        with mock.patch.dict(sys.modules, {"openai": self._fake_openai(error=RuntimeError("401"))}):
+            result = la.probe({"slot": "provider", "base_url": "https://api.deepseek.com",
+                               "api_key": "sk-bad"})
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["state"], "error")
+
+    def test_missing_key_is_offline(self):
+        import services.llm_admin as la
+        result = la.probe({"slot": "provider", "base_url": "https://api.deepseek.com",
+                           "api_key": ""})
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["state"], "offline")
 
 
 class ProbeSsrfGuardContract(unittest.TestCase):
@@ -413,7 +696,7 @@ class ProbeSsrfGuardContract(unittest.TestCase):
 
     def test_probe_refuses_internal_base_url(self):
         import services.llm_admin as la
-        result = la.probe({"slot": "text", "base_url": "http://169.254.169.254/v1",
+        result = la.probe({"slot": "provider", "base_url": "http://169.254.169.254/v1",
                            "api_key": "sk-x", "model": "m"})
         self.assertFalse(result["ok"])
         self.assertIn("public address", result["error"])

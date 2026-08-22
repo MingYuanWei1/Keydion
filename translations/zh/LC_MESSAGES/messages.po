@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Keydion 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-22 19:46+0800\n"
+"POT-Creation-Date: 2026-08-22 21:00+0800\n"
 "PO-Revision-Date: 2025-10-11 00:00+0000\n"
 "Last-Translator: \n"
 "Language: zh\n"
@@ -179,57 +179,57 @@ msgstr "本月新增 %(n)d 篇"
 msgid "Language not supported."
 msgstr "不支持此语言。"
 
-#: config.py:333
+#: config.py:345
 msgid "Please enter the paper title"
 msgstr "请输入论文标题"
 
-#: config.py:334
+#: config.py:346
 msgid "Please select a subject category"
 msgstr "请选择类别..."
 
-#: config.py:335
+#: config.py:347
 msgid "Please select a language"
 msgstr "请选择语言"
 
-#: config.py:336
+#: config.py:348
 msgid "Please enter keywords"
 msgstr "请输入关键词"
 
-#: config.py:337
+#: config.py:349
 msgid "Please enter the abstract"
 msgstr "请输入摘要"
 
-#: config.py:338
+#: config.py:350
 msgid "Please enter the author name"
 msgstr "请输入作者姓名"
 
-#: config.py:339
+#: config.py:351
 msgid "Please enter the contact email"
 msgstr "请输入联系邮箱"
 
-#: config.py:340
+#: config.py:352
 msgid "Please enter the school name"
 msgstr "请输入学校名称"
 
-#: config.py:368
+#: config.py:380
 msgid "Reader - View & Download"
 msgstr ""
 
-#: config.py:369
+#: config.py:381
 msgid "Contributor - Upload Enabled"
 msgstr ""
 
-#: config.py:370
+#: config.py:382
 msgid "Curator - Full Access"
 msgstr ""
 
 # ==================== LANGUAGE ====================
-#: config.py:373 routes/upload.py:173 templates/paper_modify.html:116
+#: config.py:385 routes/upload.py:173 templates/paper_modify.html:116
 #: templates/search.html:115
 msgid "English"
 msgstr "英语"
 
-#: config.py:374 routes/upload.py:174 templates/paper_modify.html:114
+#: config.py:386 routes/upload.py:174 templates/paper_modify.html:114
 #: templates/search.html:114
 msgid "Chinese"
 msgstr "中文"
@@ -1157,7 +1157,8 @@ msgstr "本论文的作者是谁？"
 msgid "The first author's contact details are required. Add co-authors as needed."
 msgstr "第一作者的联系信息为必填，可根据需要添加合作者。"
 
-#: routes/upload.py:226 templates/paper_modify.html:166
+#: routes/upload.py:226 templates/admin_models.html:230
+#: templates/paper_modify.html:166
 msgid "Name"
 msgstr "姓名"
 
@@ -1291,11 +1292,12 @@ msgstr "所有必填项已填写完成。"
 msgid "Click Submit Paper below to send your submission for review."
 msgstr "点击下方「提交论文」按钮发送您的提交以供审核。"
 
-#: routes/upload.py:258 templates/guide_manage.html:175
-#: templates/guide_manage.html:241 templates/guide_publish.html:20
-#: templates/journal_manage.html:61 templates/my_submissions.html:58
-#: templates/news_article.html:584 templates/news_manage.html:202
-#: templates/resource_manage.html:53 templates/resource_manage.html:121
+#: routes/upload.py:258 templates/admin_models.html:74
+#: templates/guide_manage.html:175 templates/guide_manage.html:241
+#: templates/guide_publish.html:20 templates/journal_manage.html:61
+#: templates/my_submissions.html:58 templates/news_article.html:584
+#: templates/news_manage.html:202 templates/resource_manage.html:53
+#: templates/resource_manage.html:121
 msgid "Edit"
 msgstr "编辑"
 
@@ -1753,7 +1755,7 @@ msgstr "撰写文章"
 msgid "Manage news"
 msgstr "管理新闻"
 
-#: templates/_dashboard_shell.html:165
+#: templates/_dashboard_shell.html:165 templates/admin_models.html:18
 msgid "Admin"
 msgstr "管理"
 
@@ -1761,6 +1763,7 @@ msgstr "管理"
 msgid "Manage users"
 msgstr "管理用户"
 
+#: templates/_dashboard_shell.html:176 templates/admin_models.html:20
 msgid "AI models"
 msgstr "AI 模型"
 
@@ -1905,151 +1908,216 @@ msgstr "例如 admin"
 msgid "← Back to regular login"
 msgstr "← 返回普通登录"
 
+#: templates/admin_models.html:2
 msgid "AI models · Keydion"
 msgstr "AI 模型 · Keydion"
 
+#: templates/admin_models.html:21
+#, python-format
 msgid ""
 "Providers, models and keys for the features Keydion runs on. Keys live in"
 " %(file)s and are never shown again once saved."
 msgstr "Keydion 各功能所用的服务商、模型与密钥。密钥保存在 %(file)s 中，保存后不再显示。"
 
-msgid ""
-"The server cannot write %(file)s — grants its user write access before "
-"changing anything here."
-msgstr "服务器无法写入 %(file)s —— 请先为服务用户授予写权限，再在此处更改配置。"
+#: templates/admin_models.html:24
+msgid "Add provider"
+msgstr "添加服务商"
 
+#: templates/admin_models.html:29
 msgid "What is running"
 msgstr "当前运行配置"
 
+#: templates/admin_models.html:32
 msgid "Ask and auto-fill"
 msgstr "问答与自动填充"
 
+#: templates/admin_models.html:37
 msgid "Semantic search"
 msgstr "语义搜索"
 
+#: templates/admin_models.html:42
 msgid "Vision-first extraction"
 msgstr "视觉优先提取"
 
+#: templates/admin_models.html:43
 msgid "off"
 msgstr "关闭"
 
-#: templates/admin_models.html:42 templates/ai.html:102
+#: templates/admin_models.html:47 templates/ai.html:102
 msgid "Web access"
 msgstr "联网访问"
 
+#: templates/admin_models.html:48
 msgid "visible"
 msgstr "已开启"
 
+#: templates/admin_models.html:48
 msgid "hidden"
 msgstr "已隐藏"
 
-#: templates/admin_models.html:56 templates/news_publish.html:1078
+#: templates/admin_models.html:60 templates/admin_models.html:99
+#: templates/admin_models.html:133 templates/admin_models.html:164
+#: templates/admin_models.html:225
+msgid "Provider"
+msgstr "服务商"
+
+#: templates/admin_models.html:61 templates/admin_version.html:54
+#: templates/my_submissions.html:27 templates/news_manage.html:150
+#: templates/review_list.html:53 templates/review_paper.html:54
+#: templates/submission_detail.html:48
+msgid "Status"
+msgstr "状态"
+
+#: templates/admin_models.html:62 templates/admin_users.html:30
+#: templates/admin_users.html:83 templates/my_submissions.html:28
+#: templates/news_manage.html:153 templates/paper_manage.html:295
+#: templates/resource_manage.html:31
+msgid "Actions"
+msgstr "操作"
+
+#: templates/admin_models.html:70
+msgid "Checking…"
+msgstr "检测中…"
+
+#: templates/admin_models.html:75 templates/admin_users.html:57
+#: templates/admin_users.html:113 templates/guide_manage.html:183
+#: templates/guide_manage.html:246 templates/journal_manage.html:64
+#: templates/my_submissions.html:64 templates/news_article.html:594
+#: templates/news_manage.html:136 templates/news_manage.html:207
+#: templates/news_manage.html:444 templates/news_manage.html:513
+#: templates/news_manage.html:526 templates/paper_manage.html:365
+#: templates/paper_manage.html:726 templates/paper_manage.html:825
+#: templates/resource_manage.html:59
+msgid "Delete"
+msgstr "删除"
+
+#: templates/admin_models.html:79
+msgid "No providers configured — add one to begin."
+msgstr "尚未配置服务商——请先添加一个。"
+
+#: templates/admin_models.html:87
+msgid "Slot assignments"
+msgstr "功能槽位分配"
+
+#: templates/admin_models.html:94 templates/news_publish.html:1078
 #: templates/news_publish.html:1319
 msgid "Text"
 msgstr "下一页"
 
+#: templates/admin_models.html:96 templates/admin_models.html:161
+#: templates/admin_models.html:200
 msgid "Configured"
 msgstr "已配置"
 
+#: templates/admin_models.html:96 templates/admin_models.html:161
+#: templates/admin_models.html:200
 msgid "Not set"
 msgstr "未设置"
 
-msgid "Flash drafts abstracts and keywords; Think handles EE and IA extraction."
-msgstr "Flash 负责摘要与关键词起草；Think 负责 EE 与 IA 提取。"
-
-msgid "Base URL"
-msgstr "接口地址"
-
-msgid "API key"
-msgstr "API 密钥"
-
-msgid "Configured — enter a new key to replace it"
-msgstr "已配置——输入新密钥可替换"
-
-msgid "Enter an API key"
-msgstr "输入 API 密钥"
-
+#: templates/admin_models.html:106
 msgid "Flash model"
 msgstr "Flash 模型"
 
+#: templates/admin_models.html:109
 msgid "Think model"
 msgstr "Think 模型"
 
-msgid "follows Flash"
-msgstr "跟随 Flash"
-
+#: templates/admin_models.html:113
 msgid "Follow Flash"
 msgstr "跟随 Flash"
 
-msgid "Fetch models"
-msgstr "获取模型列表"
-
-msgid "Test"
-msgstr "测试"
-
-#: templates/admin_models.html:86 templates/admin_models.html:127
-#: templates/admin_models.html:171 templates/admin_models.html:197
+#: templates/admin_models.html:117 templates/admin_models.html:148
+#: templates/admin_models.html:186 templates/admin_models.html:209
 #: templates/ee_subjects_manage.html:82 templates/ia_subjects_manage.html:120
 #: templates/journal_edit.html:75
 msgid "Save changes"
 msgstr "保存更改"
 
+#: templates/admin_models.html:128
 msgid "Embedding"
 msgstr "向量嵌入"
 
-msgid "uses the Text key"
-msgstr "使用文本模型密钥"
-
-msgid ""
-"Chunks and queries embed through this slot; the column stores "
-"VECTOR(%(dim)d)-d vectors."
-msgstr "文档分块与查询经此槽位生成向量；数据库列存储 %(dim)d 维向量。"
-
-msgid "leave empty to use the Text key"
-msgstr "留空则使用文本模型密钥"
-
+#: templates/admin_models.html:140 templates/admin_models.html:181
 msgid "Model"
 msgstr "模型"
 
+#: templates/admin_models.html:144
 msgid ""
-"Existing chunks were embedded with the saved model — semantic search "
-"degrades until a re-index runs (tools/build_embeddings.py). A model with "
-"a different vector dimension is refused at save."
-msgstr "已入库分块由原模型生成——重新索引（tools/build_embeddings.py）之前，语义搜索质量会下降。向量维度不同的模型将被拒绝保存。"
+"A different embedding model degrades semantic search until a re-index "
+"runs (tools/build_embeddings.py); a different vector dimension is refused"
+" at save."
+msgstr "更换嵌入模型后，重新索引（tools/build_embeddings.py）之前语义搜索质量会下降；向量维度不同的模型将被拒绝保存。"
 
+#: templates/admin_models.html:159
 msgid "Vision"
 msgstr "视觉"
 
-msgid ""
-"Reads rendered PDF pages for metadata auto-fill. Disabled falls back to "
-"the OCR + text path."
-msgstr "读取渲染后的 PDF 页面以自动填充元数据。停用后回退到 OCR + 文本路径。"
+#: templates/admin_models.html:161
+msgid "uses the Text key"
+msgstr "使用文本模型密钥"
 
-msgid "Provider"
-msgstr "服务商"
-
+#: templates/admin_models.html:166
 msgid "Same as the Text provider"
 msgstr "与文本模型相同"
 
+#: templates/admin_models.html:167 templates/admin_models.html:172
 msgid "Dedicated provider"
 msgstr "独立服务商"
 
+#: templates/admin_models.html:168
 msgid "Disabled"
 msgstr "停用"
 
+#: templates/admin_models.html:197
 msgid "Web search"
 msgstr "网页搜索"
 
+#: templates/admin_models.html:199
 msgid "Tavily"
 msgstr "Tavily"
 
-msgid ""
-"Grounds Ask-the-Library answers in web results. Tavily is the only "
-"provider implemented."
-msgstr "为图书馆问答的回答提供网页结果依据。目前仅支持 Tavily。"
+#: templates/admin_models.html:203 templates/admin_models.html:238
+msgid "API key"
+msgstr "API 密钥"
 
-msgid "Leave empty and save to disable web access."
-msgstr "留空并保存即可停用联网访问。"
+#: templates/admin_models.html:205 templates/admin_models.html:240
+msgid "Configured — enter a new key to replace it"
+msgstr "已配置——输入新密钥可替换"
+
+#: templates/admin_models.html:205
+msgid "Enter an API key"
+msgstr "输入 API 密钥"
+
+#: templates/admin_models.html:208 templates/admin_models.html:249
+msgid "Test"
+msgstr "测试"
+
+#: templates/admin_models.html:226 templates/admin_models.html:254
+#: templates/admin_users.html:134 templates/admin_users.html:157
+#: templates/ai.html:169 templates/news_manage.html:241
+#: templates/paper_manage.html:402 templates/paper_manage.html:439
+msgid "Close"
+msgstr "关闭"
+
+#: templates/admin_models.html:234
+msgid "Base URL"
+msgstr "接口地址"
+
+#: templates/admin_models.html:243
+msgid "Models"
+msgstr "模型"
+
+#: templates/admin_models.html:245
+msgid "Add model"
+msgstr "添加模型"
+
+#: templates/admin_models.html:248
+msgid "Fetch models"
+msgstr "获取模型列表"
+
+#: templates/admin_models.html:255
+msgid "Save provider"
+msgstr "保存服务商"
 
 # ==================== ADMIN USER MANAGEMENT ====================
 #: templates/admin_users.html:2
@@ -2085,12 +2153,6 @@ msgstr "用户名 / 邮箱"
 msgid "Role"
 msgstr "角色"
 
-#: templates/admin_users.html:30 templates/admin_users.html:83
-#: templates/my_submissions.html:28 templates/news_manage.html:153
-#: templates/paper_manage.html:295 templates/resource_manage.html:31
-msgid "Actions"
-msgstr "操作"
-
 #: templates/admin_users.html:50 templates/admin_users.html:104
 #: templates/change_password.html:356
 msgid "New password"
@@ -2099,17 +2161,6 @@ msgstr "新密码"
 #: templates/admin_users.html:52
 msgid "Reset"
 msgstr "重置"
-
-#: templates/admin_users.html:57 templates/admin_users.html:113
-#: templates/guide_manage.html:183 templates/guide_manage.html:246
-#: templates/journal_manage.html:64 templates/my_submissions.html:64
-#: templates/news_article.html:594 templates/news_manage.html:136
-#: templates/news_manage.html:207 templates/news_manage.html:444
-#: templates/news_manage.html:513 templates/news_manage.html:526
-#: templates/paper_manage.html:365 templates/paper_manage.html:726
-#: templates/paper_manage.html:825 templates/resource_manage.html:59
-msgid "Delete"
-msgstr "删除"
 
 #: templates/admin_users.html:64
 msgid "No local users found."
@@ -2140,12 +2191,6 @@ msgstr "设置密码"
 #: templates/admin_users.html:120
 msgid "No Microsoft users found."
 msgstr "未找到微软用户。"
-
-#: templates/admin_users.html:134 templates/admin_users.html:157
-#: templates/ai.html:169 templates/news_manage.html:241
-#: templates/paper_manage.html:402 templates/paper_manage.html:439
-msgid "Close"
-msgstr "关闭"
 
 #: templates/admin_users.html:158 templates/news_manage.html:249
 #: templates/paper_manage.html:450
@@ -2188,12 +2233,6 @@ msgstr "分支"
 #: templates/admin_version.html:46
 msgid "Latest on origin/main"
 msgstr "origin/main 最新版本"
-
-#: templates/admin_version.html:54 templates/my_submissions.html:27
-#: templates/news_manage.html:150 templates/review_list.html:53
-#: templates/review_paper.html:54 templates/submission_detail.html:48
-msgid "Status"
-msgstr "状态"
 
 #: templates/admin_version.html:58
 #, python-format
@@ -5059,4 +5098,72 @@ msgstr "更新安全设置"
 
 #~ msgid "Articles"
 #~ msgstr "篇"
+
+#~ msgid "leave empty to use the Text key"
+#~ msgstr "留空则使用文本模型密钥"
+
+#~ msgid "No provider for this role yet"
+#~ msgstr "该槽位暂无可用服务商"
+
+#~ msgid "follows Flash"
+#~ msgstr "跟随 Flash"
+
+#~ msgid "Roles"
+#~ msgstr "适用槽位"
+
+#~ msgid "Which slots this provider can serve — it only appears in those pickers."
+#~ msgstr "该服务商可用于哪些槽位——它只会出现在对应的选择器中。"
+
+#~ msgid ""
+#~ "One model id per line — the "
+#~ "pickers below offer this list. Fetch "
+#~ "fills it from the endpoint."
+#~ msgstr "每行一个模型 ID——下方选择器将引用此列表；“获取模型”会从接口填充。"
+
+# | msgid "Keydion"
+#~ msgid "Key"
+#~ msgstr "Keydion"
+
+#~ msgid "Used by"
+#~ msgstr "使用槽位"
+
+#~ msgid ""
+#~ "The server cannot write %(file)s — "
+#~ "grants its user write access before "
+#~ "changing anything here."
+#~ msgstr "服务器无法写入 %(file)s —— 请先为服务用户授予写权限，再在此处更改配置。"
+
+#~ msgid ""
+#~ "Flash drafts abstracts and keywords; "
+#~ "Think handles EE and IA extraction."
+#~ msgstr "Flash 负责摘要与关键词起草；Think 负责 EE 与 IA 提取。"
+
+#~ msgid ""
+#~ "Chunks and queries embed through this"
+#~ " slot. Existing chunks stay comparable "
+#~ "only after a re-index."
+#~ msgstr "文档分块与查询经此槽位生成向量。重新索引前，已入库分块与新模型不可比。"
+
+#~ msgid ""
+#~ "Reads rendered PDF pages for metadata"
+#~ " auto-fill. Disabled falls back to"
+#~ " the OCR + text path."
+#~ msgstr "读取渲染后的 PDF 页面以自动填充元数据。停用后回退到 OCR + 文本路径。"
+
+#~ msgid ""
+#~ "Grounds Ask-the-Library answers in "
+#~ "web results. Tavily is the only "
+#~ "provider implemented."
+#~ msgstr "为图书馆问答的回答提供网页结果依据。目前仅支持 Tavily。"
+
+#~ msgid "Leave empty and save to disable web access."
+#~ msgstr "留空并保存即可停用联网访问。"
+
+#~ msgid ""
+#~ "Each model carries its role — the"
+#~ " slot pickers only offer models with"
+#~ " a matching role. Fetch fills the "
+#~ "list from the endpoint as text "
+#~ "models; adjust their roles after."
+#~ msgstr "每个模型都标注其角色——槽位选择器只会列出角色匹配的模型。“获取模型”从接口拉取的模型默认为文本角色，可再调整。"
 

@@ -29,12 +29,57 @@ def register_routes(app):
             return jsonify(error="Unauthorized"), 401
         data = request.get_json(silent=True) or {}
         try:
-            mtime = data.get("env_mtime")
             result = llm_admin.apply_slot(
-                data, expected_mtime=float(mtime) if mtime not in (None, "") else None
+                data,
+                expected_env_mtime=_mtime(data, "env_mtime"),
+                expected_json_mtime=_mtime(data, "json_mtime"),
             )
         except llm_admin.LLMAdminConflict as exc:
             return jsonify(error=str(exc)), 409
-        except (llm_admin.LLMAdminError, ValueError) as exc:
+        except llm_admin.LLMAdminError as exc:
             return jsonify(error=str(exc)), 400
         return jsonify(result)
+
+    @app.route("/dashboard/admin/models/providers/save", methods=["POST"], endpoint="admin_models_provider_save")
+    def admin_models_provider_save():
+        user = require_login(level=3)
+        if not user:
+            return jsonify(error="Unauthorized"), 401
+        data = request.get_json(silent=True) or {}
+        try:
+            result = llm_admin.save_provider(
+                data,
+                expected_env_mtime=_mtime(data, "env_mtime"),
+                expected_json_mtime=_mtime(data, "json_mtime"),
+            )
+        except llm_admin.LLMAdminConflict as exc:
+            return jsonify(error=str(exc)), 409
+        except llm_admin.LLMAdminError as exc:
+            return jsonify(error=str(exc)), 400
+        return jsonify(result)
+
+    @app.route("/dashboard/admin/models/providers/delete", methods=["POST"], endpoint="admin_models_provider_delete")
+    def admin_models_provider_delete():
+        user = require_login(level=3)
+        if not user:
+            return jsonify(error="Unauthorized"), 401
+        data = request.get_json(silent=True) or {}
+        try:
+            result = llm_admin.delete_provider(
+                data,
+                expected_env_mtime=_mtime(data, "env_mtime"),
+                expected_json_mtime=_mtime(data, "json_mtime"),
+            )
+        except llm_admin.LLMAdminConflict as exc:
+            return jsonify(error=str(exc)), 409
+        except llm_admin.LLMAdminError as exc:
+            return jsonify(error=str(exc)), 400
+        return jsonify(result)
+
+
+def _mtime(data: dict, field: str) -> float | None:
+    value = data.get(field)
+    try:
+        return float(value) if value not in (None, "") else None
+    except (TypeError, ValueError):
+        return None
