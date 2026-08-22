@@ -329,7 +329,7 @@ def _run_update(previous_sha: str, target_sha: str) -> None:
             }
         )
         _log("Update applied - restarting the app")
-        _schedule_restart()
+        request_graceful_restart()
     except Exception as exc:  # noqa: BLE001 - the worker must record and exit cleanly
         _run["phase"] = "failed"
         _run["error"] = str(exc)
@@ -349,11 +349,17 @@ def _run_update(previous_sha: str, target_sha: str) -> None:
         _run["running"] = False
 
 
-def _schedule_restart() -> None:
+def request_graceful_restart() -> bool:
+    """Ask the gunicorn master to gracefully replace its workers (SIGHUP).
+
+    Shared by the Version page's update flow and the admin AI-models panel.
+    Returns True when a restart was scheduled; False when not running under
+    gunicorn (the Flask dev server has no master to signal — its reloader
+    only reacts to code-file changes, so a deps-only update needs a manual
+    dev-server restart).
+    """
     if "gunicorn" not in sys.modules:
-        # Flask dev: the werkzeug reloader restarts on the pulled file changes.
-        # A deps-only update needs a manual dev-server restart in that case.
-        return
+        return False
 
     def _signal_master():
         time.sleep(RESTART_DELAY_SECONDS)
@@ -363,3 +369,4 @@ def _schedule_restart() -> None:
             pass
 
     threading.Thread(target=_signal_master, name="version-restart", daemon=True).start()
+    return True

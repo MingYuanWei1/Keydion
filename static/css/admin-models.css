@@ -1,0 +1,119 @@
+/* =============================================================
+   Keydion · Admin AI-models page
+   Extends the dashboard's cream / hairline / Georgia language.
+   The capability strip is the page's signature element; everything
+   else stays quiet Bootstrap with site tokens.
+   ============================================================= */
+
+.models-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+  background: var(--paper-warm, #fffdf9);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.cap-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 12px;
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12.5px;
+}
+
+.cap-dot {
+  align-self: center;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #c9c2b4;
+  flex: 0 0 auto;
+}
+.cap-dot--on { background: var(--accent); }
+
+.cap-name {
+  color: var(--ink-soft);
+  letter-spacing: 0.02em;
+}
+
+.cap-model {
+  color: var(--muted);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Provider cards ────────────────────────────────────────────────── */
+
+.model-card {
+  background: var(--paper-warm, #fffdf9);
+  border: 1px solid var(--border);
+}
+
+.model-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.model-card__title {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--ink);
+  margin: 0;
+}
+
+.model-card__meta {
+  font-size: 12.5px;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #c9c2b4;
+}
+.dot--on { background: #2f7d4f; }
+
+.model-card__hint {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+.model-card__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.model-card__result {
+  margin-top: 10px;
+  min-height: 1.2em;
+  color: var(--muted);
+}
+.model-card__result--ok { color: #2f7d4f; }
+.model-card__result--err { color: var(--accent); }
+
+/* Keep the panel readable when the dashboard sidebar collapses to icons. */
+@media (max-width: 575.98px) {
+  .cap-model { max-width: 140px; }
+}

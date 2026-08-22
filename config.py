@@ -7,7 +7,7 @@ import os
 from datetime import timedelta
 from enum import IntEnum
 from pathlib import Path
-from dotenv import load_dotenv
+from dotenv import load_dotenv, dotenv_values
 
 # Prefer .env.prod (production) when present; fall back to .env only if it is absent.
 _ENV_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -15,6 +15,22 @@ _ENV_FILE = os.path.join(_ENV_DIR, ".env.prod")
 if not os.path.exists(_ENV_FILE):
     _ENV_FILE = os.path.join(_ENV_DIR, ".env")
 load_dotenv(_ENV_FILE)
+# File-wins semantics for the admin AI-models panel's keys ONLY: the panel
+# edits LLM_*/WEB_SEARCH_* in this file, and without re-applying them over the
+# process environment, values snapshotted by systemd's EnvironmentFile= at
+# master start would mask every panel edit even after a worker restart.
+# Everything else (secrets, DB URL, ...) keeps normal precedence, so external
+# environment overrides still win outside the panel's scope.
+PANEL_ENV_KEYS = (
+    "LLM_API_KEY", "LLM_BASE_URL", "LLM_DEFAULT_FLASH", "LLM_DEFAULT_THINK",
+    "LLM_EMBED_API_KEY", "LLM_EMBED_BASE_URL", "LLM_EMBED_MODEL", "LLM_EMBED_BATCH",
+    "LLM_VISION", "LLM_VISION_API_KEY", "LLM_VISION_BASE_URL",
+    "WEB_SEARCH_PROVIDER", "WEB_SEARCH_API_KEY",
+)
+_panel_env = dotenv_values(_ENV_FILE)
+for _panel_key in PANEL_ENV_KEYS:
+    if _panel_key in _panel_env:
+        os.environ[_panel_key] = _panel_env[_panel_key] or ""
 
 from flask_babel import lazy_gettext as _l  # noqa: E402  (ROLE_OPTIONS etc. use _l)
 

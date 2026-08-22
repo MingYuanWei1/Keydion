@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Keydion 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-22 14:48+0800\n"
+"POT-Creation-Date: 2026-08-22 19:46+0800\n"
 "PO-Revision-Date: 2025-10-11 00:00+0000\n"
 "Last-Translator: \n"
 "Language: zh\n"
@@ -179,57 +179,57 @@ msgstr "本月新增 %(n)d 篇"
 msgid "Language not supported."
 msgstr "不支持此语言。"
 
-#: config.py:329
+#: config.py:333
 msgid "Please enter the paper title"
 msgstr "请输入论文标题"
 
-#: config.py:330
+#: config.py:334
 msgid "Please select a subject category"
 msgstr "请选择类别..."
 
-#: config.py:331
+#: config.py:335
 msgid "Please select a language"
 msgstr "请选择语言"
 
-#: config.py:332
+#: config.py:336
 msgid "Please enter keywords"
 msgstr "请输入关键词"
 
-#: config.py:333
+#: config.py:337
 msgid "Please enter the abstract"
 msgstr "请输入摘要"
 
-#: config.py:334
+#: config.py:338
 msgid "Please enter the author name"
 msgstr "请输入作者姓名"
 
-#: config.py:335
+#: config.py:339
 msgid "Please enter the contact email"
 msgstr "请输入联系邮箱"
 
-#: config.py:336
+#: config.py:340
 msgid "Please enter the school name"
 msgstr "请输入学校名称"
 
-#: config.py:364
+#: config.py:368
 msgid "Reader - View & Download"
 msgstr ""
 
-#: config.py:365
+#: config.py:369
 msgid "Contributor - Upload Enabled"
 msgstr ""
 
-#: config.py:366
+#: config.py:370
 msgid "Curator - Full Access"
 msgstr ""
 
 # ==================== LANGUAGE ====================
-#: config.py:369 routes/upload.py:173 templates/paper_modify.html:116
+#: config.py:373 routes/upload.py:173 templates/paper_modify.html:116
 #: templates/search.html:115
 msgid "English"
 msgstr "英语"
 
-#: config.py:370 routes/upload.py:174 templates/paper_modify.html:114
+#: config.py:374 routes/upload.py:174 templates/paper_modify.html:114
 #: templates/search.html:114
 msgid "Chinese"
 msgstr "中文"
@@ -1761,26 +1761,29 @@ msgstr "管理"
 msgid "Manage users"
 msgstr "管理用户"
 
-#: templates/_dashboard_shell.html:176 templates/admin_version.html:11
+msgid "AI models"
+msgstr "AI 模型"
+
+#: templates/_dashboard_shell.html:182 templates/admin_version.html:11
 msgid "Version"
 msgstr "版本"
 
-#: templates/_dashboard_shell.html:183 templates/ai.html:25
+#: templates/_dashboard_shell.html:189 templates/ai.html:25
 #: templates/change_password.html:297
 msgid "Account"
 msgstr "账户"
 
-#: templates/_dashboard/overview.html:111 templates/_dashboard_shell.html:188
+#: templates/_dashboard/overview.html:111 templates/_dashboard_shell.html:194
 #: templates/change_password.html:297 templates/change_password.html:300
 msgid "Change password"
 msgstr "修改密码"
 
-#: templates/_dashboard_shell.html:196 templates/_header.html:164
+#: templates/_dashboard_shell.html:202 templates/_header.html:164
 #: templates/ai.html:32
 msgid "Sign out"
 msgstr "退出登录"
 
-#: templates/_dashboard_shell.html:202
+#: templates/_dashboard_shell.html:208
 msgid "Show sidebar"
 msgstr "显示侧边栏"
 
@@ -1901,6 +1904,152 @@ msgstr "例如 admin"
 #: templates/admin_login.html:26
 msgid "← Back to regular login"
 msgstr "← 返回普通登录"
+
+msgid "AI models · Keydion"
+msgstr "AI 模型 · Keydion"
+
+msgid ""
+"Providers, models and keys for the features Keydion runs on. Keys live in"
+" %(file)s and are never shown again once saved."
+msgstr "Keydion 各功能所用的服务商、模型与密钥。密钥保存在 %(file)s 中，保存后不再显示。"
+
+msgid ""
+"The server cannot write %(file)s — grants its user write access before "
+"changing anything here."
+msgstr "服务器无法写入 %(file)s —— 请先为服务用户授予写权限，再在此处更改配置。"
+
+msgid "What is running"
+msgstr "当前运行配置"
+
+msgid "Ask and auto-fill"
+msgstr "问答与自动填充"
+
+msgid "Semantic search"
+msgstr "语义搜索"
+
+msgid "Vision-first extraction"
+msgstr "视觉优先提取"
+
+msgid "off"
+msgstr "关闭"
+
+#: templates/admin_models.html:42 templates/ai.html:102
+msgid "Web access"
+msgstr "联网访问"
+
+msgid "visible"
+msgstr "已开启"
+
+msgid "hidden"
+msgstr "已隐藏"
+
+#: templates/admin_models.html:56 templates/news_publish.html:1078
+#: templates/news_publish.html:1319
+msgid "Text"
+msgstr "下一页"
+
+msgid "Configured"
+msgstr "已配置"
+
+msgid "Not set"
+msgstr "未设置"
+
+msgid "Flash drafts abstracts and keywords; Think handles EE and IA extraction."
+msgstr "Flash 负责摘要与关键词起草；Think 负责 EE 与 IA 提取。"
+
+msgid "Base URL"
+msgstr "接口地址"
+
+msgid "API key"
+msgstr "API 密钥"
+
+msgid "Configured — enter a new key to replace it"
+msgstr "已配置——输入新密钥可替换"
+
+msgid "Enter an API key"
+msgstr "输入 API 密钥"
+
+msgid "Flash model"
+msgstr "Flash 模型"
+
+msgid "Think model"
+msgstr "Think 模型"
+
+msgid "follows Flash"
+msgstr "跟随 Flash"
+
+msgid "Follow Flash"
+msgstr "跟随 Flash"
+
+msgid "Fetch models"
+msgstr "获取模型列表"
+
+msgid "Test"
+msgstr "测试"
+
+#: templates/admin_models.html:86 templates/admin_models.html:127
+#: templates/admin_models.html:171 templates/admin_models.html:197
+#: templates/ee_subjects_manage.html:82 templates/ia_subjects_manage.html:120
+#: templates/journal_edit.html:75
+msgid "Save changes"
+msgstr "保存更改"
+
+msgid "Embedding"
+msgstr "向量嵌入"
+
+msgid "uses the Text key"
+msgstr "使用文本模型密钥"
+
+msgid ""
+"Chunks and queries embed through this slot; the column stores "
+"VECTOR(%(dim)d)-d vectors."
+msgstr "文档分块与查询经此槽位生成向量；数据库列存储 %(dim)d 维向量。"
+
+msgid "leave empty to use the Text key"
+msgstr "留空则使用文本模型密钥"
+
+msgid "Model"
+msgstr "模型"
+
+msgid ""
+"Existing chunks were embedded with the saved model — semantic search "
+"degrades until a re-index runs (tools/build_embeddings.py). A model with "
+"a different vector dimension is refused at save."
+msgstr "已入库分块由原模型生成——重新索引（tools/build_embeddings.py）之前，语义搜索质量会下降。向量维度不同的模型将被拒绝保存。"
+
+msgid "Vision"
+msgstr "视觉"
+
+msgid ""
+"Reads rendered PDF pages for metadata auto-fill. Disabled falls back to "
+"the OCR + text path."
+msgstr "读取渲染后的 PDF 页面以自动填充元数据。停用后回退到 OCR + 文本路径。"
+
+msgid "Provider"
+msgstr "服务商"
+
+msgid "Same as the Text provider"
+msgstr "与文本模型相同"
+
+msgid "Dedicated provider"
+msgstr "独立服务商"
+
+msgid "Disabled"
+msgstr "停用"
+
+msgid "Web search"
+msgstr "网页搜索"
+
+msgid "Tavily"
+msgstr "Tavily"
+
+msgid ""
+"Grounds Ask-the-Library answers in web results. Tavily is the only "
+"provider implemented."
+msgstr "为图书馆问答的回答提供网页结果依据。目前仅支持 Tavily。"
+
+msgid "Leave empty and save to disable web access."
+msgstr "留空并保存即可停用联网访问。"
 
 # ==================== ADMIN USER MANAGEMENT ====================
 #: templates/admin_users.html:2
@@ -2268,10 +2417,6 @@ msgstr "引用你收藏中的论文"
 msgid "Toggle web access"
 msgstr "切换联网访问"
 
-#: templates/ai.html:102
-msgid "Web access"
-msgstr "联网访问"
-
 #: templates/ai.html:105
 msgid "Agent"
 msgstr "智能体"
@@ -2430,11 +2575,6 @@ msgstr "添加学科组"
 #: templates/ia_subjects_manage.html:114 templates/ia_subjects_manage.html:141
 msgid "Unsaved changes"
 msgstr "未保存的更改"
-
-#: templates/ee_subjects_manage.html:82 templates/ia_subjects_manage.html:120
-#: templates/journal_edit.html:75
-msgid "Save changes"
-msgstr "保存更改"
 
 #: templates/ee_subjects_manage.html:91 templates/ia_subjects_manage.html:129
 msgid "New group"
@@ -3537,10 +3677,6 @@ msgstr "下一个块"
 #: templates/news_publish.html:1068
 msgid "Article Content"
 msgstr "文章内容"
-
-#: templates/news_publish.html:1078 templates/news_publish.html:1319
-msgid "Text"
-msgstr "下一页"
 
 #: templates/news_publish.html:1086 templates/news_publish.html:1320
 msgid "Image"

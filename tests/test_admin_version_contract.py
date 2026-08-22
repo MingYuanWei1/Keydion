@@ -188,7 +188,7 @@ class AdminVersionServiceContract(unittest.TestCase):
         self.assertIn("--ff-only", source_of("_run_update"))
 
     def test_restart_uses_sighup_under_gunicorn_only(self):
-        src = source_of("_schedule_restart")
+        src = source_of("request_graceful_restart")
         self.assertIn('"gunicorn" not in sys.modules', src)
         self.assertIn("signal.SIGHUP", src)
         self.assertIn("os.getppid()", src)

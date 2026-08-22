@@ -15,7 +15,8 @@ POST_FORM_TEMPLATES = [
     "journal_edit.html", "review_paper.html", "my_submissions.html",
 ]
 FETCH_JS = ["dashboard.js", "ai.js", "upload-wizard.js",
-            "ee-subjects.js", "ia-subjects.js", "guides-editor.js"]
+            "ee-subjects.js", "ia-subjects.js", "guides-editor.js",
+            "admin-models.js"]
 
 
 class CsrfTokenContractTest(unittest.TestCase):

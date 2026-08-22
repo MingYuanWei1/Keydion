@@ -1,0 +1,207 @@
+{% extends "_bare.html" if partial else "_dashboard_shell.html" %}
+{% block title %}{{ _('AI models · Keydion') }}{% endblock %}
+{% block panel %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin-models.css') }}">
+<div id="modelsPanel"
+     data-probe-url="{{ url_for('admin_models_probe') }}"
+     data-save-url="{{ url_for('admin_models_save') }}"
+     data-env-file="{{ snap.env_file }}"
+     data-env-mtime="{{ '%f'|format(snap.env_mtime) if snap.env_mtime else '' }}">
+
+  <div class="row mb-3">
+    <div class="col">
+      <h1 class="h3">{{ _('AI models') }}</h1>
+      <p class="text-muted mb-1">{{ _('Providers, models and keys for the features Keydion runs on. Keys live in %(file)s and are never shown again once saved.', file=snap.env_file) }}</p>
+      {% if not snap.env_writable %}
+      <div class="alert alert-warning py-2 mb-0" id="envWritableWarn">
+        {{ _('The server cannot write %(file)s — grants its user write access before changing anything here.', file=snap.env_file) }}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── Capability strip: the feature each slot powers, live ────────────── #}
+  <div class="models-strip" role="status" aria-label="{{ _('What is running') }}">
+    <span class="cap-pill" id="capAsk">
+      <span class="cap-dot {{ 'cap-dot--on' if snap.features.ask.on }}" aria-hidden="true"></span>
+      <span class="cap-name">{{ _('Ask and auto-fill') }}</span>
+      <span class="cap-model mono">{{ snap.features.ask.model or '—' }}</span>
+    </span>
+    <span class="cap-pill" id="capSemantic">
+      <span class="cap-dot {{ 'cap-dot--on' if snap.features.semantic_search.on }}" aria-hidden="true"></span>
+      <span class="cap-name">{{ _('Semantic search') }}</span>
+      <span class="cap-model mono">{{ snap.features.semantic_search.model or '—' }}</span>
+    </span>
+    <span class="cap-pill" id="capVision">
+      <span class="cap-dot {{ 'cap-dot--on' if snap.features.vision_first.on }}" aria-hidden="true"></span>
+      <span class="cap-name">{{ _('Vision-first extraction') }}</span>
+      <span class="cap-model mono">{{ snap.features.vision_first.model or _('off') }}</span>
+    </span>
+    <span class="cap-pill" id="capWeb">
+      <span class="cap-dot {{ 'cap-dot--on' if snap.features.web_access.on }}" aria-hidden="true"></span>
+      <span class="cap-name">{{ _('Web access') }}</span>
+      <span class="cap-model mono">{{ _('visible') if snap.features.web_access.on else _('hidden') }}</span>
+    </span>
+  </div>
+
+  <div id="modelsBanner" class="alert alert-success d-none" role="status"></div>
+
+  <div class="row g-3 mb-4">
+
+    {# ── Text ───────────────────────────────────────────────────────────── #}
+    <div class="col-lg-6">
+      <div class="card model-card h-100">
+        <div class="card-body">
+          <div class="model-card__head">
+            <h2 class="model-card__title">{{ _('Text') }}</h2>
+            <span class="model-card__meta"><span class="dot {{ 'dot--on' if snap.slots.text.key_set }}" aria-hidden="true"></span>
+              <span id="textProvider">{{ snap.slots.text.provider }}</span> ·
+              <span id="textKeyStatus">{{ _('Configured') if snap.slots.text.key_set else _('Not set') }}</span></span>
+          </div>
+          <p class="model-card__hint">{{ _('Flash drafts abstracts and keywords; Think handles EE and IA extraction.') }}</p>
+
+          <label class="form-label" for="textBaseUrl">{{ _('Base URL') }}</label>
+          <input type="text" class="form-control mono mb-2" id="textBaseUrl" value="{{ snap.slots.text.base_url }}" placeholder="https://api.deepseek.com" autocomplete="off">
+
+          <label class="form-label" for="textApiKey">{{ _('API key') }}</label>
+          <input type="password" class="form-control mb-2" id="textApiKey" autocomplete="new-password"
+                 placeholder="{{ _('Configured — enter a new key to replace it') if snap.slots.text.key_set else _('Enter an API key') }}">
+
+          <label class="form-label" for="textFlash">{{ _('Flash model') }}</label>
+          <input type="text" class="form-control mono mb-2" id="textFlash" list="textModels" value="{{ snap.slots.text.flash }}" autocomplete="off">
+          <datalist id="textModels"></datalist>
+
+          <label class="form-label" for="textThink">{{ _('Think model') }}</label>
+          <input type="text" class="form-control mono mb-2" id="textThink" list="textModels"
+                 value="{{ '' if snap.slots.text.think_follows_flash else snap.slots.text.think }}"
+                 placeholder="{{ _('follows Flash') }}" autocomplete="off" {{ 'disabled' if snap.slots.text.think_follows_flash }}>
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="textThinkFollow" {{ 'checked' if snap.slots.text.think_follows_flash }}>
+            <label class="form-check-label" for="textThinkFollow">{{ _('Follow Flash') }}</label>
+          </div>
+
+          <div class="model-card__actions">
+            <button class="btn btn-outline-secondary btn-sm" type="button" id="textFetchBtn">{{ _('Fetch models') }}</button>
+            <button class="btn btn-outline-secondary btn-sm" type="button" id="textTestBtn">{{ _('Test') }}</button>
+            <button class="btn btn-primary btn-sm" type="button" id="textSaveBtn">{{ _('Save changes') }}</button>
+          </div>
+          <div class="model-card__result small" id="textResult" aria-live="polite"></div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Embedding ──────────────────────────────────────────────────────── #}
+    <div class="col-lg-6">
+      <div class="card model-card h-100">
+        <div class="card-body">
+          <div class="model-card__head">
+            <h2 class="model-card__title">{{ _('Embedding') }}</h2>
+            <span class="model-card__meta"><span class="dot {{ 'dot--on' if snap.features.semantic_search.on }}" aria-hidden="true"></span>
+              <span id="embedProvider">{{ snap.slots.embed.provider }}</span> ·
+              <span id="embedKeyStatus">{{ _('Configured') if snap.slots.embed.key_set else ( _('uses the Text key') if snap.slots.embed.uses_text_key else _('Not set') ) }}</span></span>
+          </div>
+          <p class="model-card__hint">
+            {{ _('Chunks and queries embed through this slot; the column stores VECTOR(%(dim)d)-d vectors.', dim=snap.embed_dim) }}
+            <span class="mono">VECTOR({{ snap.embed_dim }})</span>
+          </p>
+
+          <label class="form-label" for="embedBaseUrl">{{ _('Base URL') }}</label>
+          <input type="text" class="form-control mono mb-2" id="embedBaseUrl" value="{{ snap.slots.embed.base_url }}" autocomplete="off">
+
+          <label class="form-label" for="embedApiKey">{{ _('API key') }}</label>
+          <input type="password" class="form-control mb-2" id="embedApiKey" autocomplete="new-password"
+                 placeholder="{{ _('Configured — enter a new key to replace it') if snap.slots.embed.key_set else ( _('leave empty to use the Text key') if snap.slots.embed.uses_text_key else _('Enter an API key') ) }}">
+
+          <label class="form-label" for="embedModel">{{ _('Model') }}</label>
+          <input type="text" class="form-control mono mb-3" id="embedModel" list="embedModels"
+                 value="{{ snap.slots.embed.model }}" data-initial="{{ snap.slots.embed.model }}" autocomplete="off">
+          <datalist id="embedModels"></datalist>
+
+          <div class="alert alert-warning py-2 small d-none" id="embedReindexWarn">
+            {{ _('Existing chunks were embedded with the saved model — semantic search degrades until a re-index runs (tools/build_embeddings.py). A model with a different vector dimension is refused at save.') }}
+          </div>
+
+          <div class="model-card__actions">
+            <button class="btn btn-outline-secondary btn-sm" type="button" id="embedFetchBtn">{{ _('Fetch models') }}</button>
+            <button class="btn btn-outline-secondary btn-sm" type="button" id="embedTestBtn">{{ _('Test') }}</button>
+            <button class="btn btn-primary btn-sm" type="button" id="embedSaveBtn">{{ _('Save changes') }}</button>
+          </div>
+          <div class="model-card__result small" id="embedResult" aria-live="polite"></div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Vision ─────────────────────────────────────────────────────────── #}
+    <div class="col-lg-6">
+      <div class="card model-card h-100">
+        <div class="card-body">
+          <div class="model-card__head">
+            <h2 class="model-card__title">{{ _('Vision') }}</h2>
+            <span class="model-card__meta"><span class="dot {{ 'dot--on' if snap.features.vision_first.on }}" aria-hidden="true"></span>
+              <span id="visionProvider">{{ snap.slots.vision.provider }}</span> ·
+              <span id="visionKeyStatus">{{ _('uses the Text key') if snap.slots.vision.mode == 'text' else ( _('Configured') if snap.slots.vision.key_set else _('Not set') ) }}</span></span>
+          </div>
+          <p class="model-card__hint">{{ _('Reads rendered PDF pages for metadata auto-fill. Disabled falls back to the OCR + text path.') }}</p>
+
+          <label class="form-label" for="visionMode">{{ _('Provider') }}</label>
+          <select class="form-select mb-2" id="visionMode">
+            <option value="text" {{ 'selected' if snap.slots.vision.mode == 'text' }}>{{ _('Same as the Text provider') }}</option>
+            <option value="dedicated" {{ 'selected' if snap.slots.vision.mode == 'dedicated' }}>{{ _('Dedicated provider') }}</option>
+            <option value="disabled" {{ 'selected' if snap.slots.vision.mode == 'disabled' }}>{{ _('Disabled') }}</option>
+          </select>
+
+          <div id="visionModelGroup" {{ 'class="d-none"' if snap.slots.vision.mode == 'disabled' }}>
+            <label class="form-label" for="visionModel">{{ _('Model') }}</label>
+            <input type="text" class="form-control mono mb-2" id="visionModel" list="visionModels"
+                   value="{{ snap.slots.vision.model }}" autocomplete="off">
+            <datalist id="visionModels"></datalist>
+          </div>
+
+          <div id="visionDedicatedGroup" {{ 'class="d-none"' if snap.slots.vision.mode != 'dedicated' }}>
+            <label class="form-label" for="visionBaseUrl">{{ _('Base URL') }}</label>
+            <input type="text" class="form-control mono mb-2" id="visionBaseUrl" value="{{ snap.slots.vision.base_url }}" autocomplete="off">
+            <label class="form-label" for="visionApiKey">{{ _('API key') }}</label>
+            <input type="password" class="form-control mb-2" id="visionApiKey" autocomplete="new-password"
+                   placeholder="{{ _('Configured — enter a new key to replace it') if snap.slots.vision.key_set else _('Enter an API key') }}">
+          </div>
+
+          <div class="model-card__actions">
+            <button class="btn btn-outline-secondary btn-sm" type="button" id="visionFetchBtn" {{ 'disabled' if snap.slots.vision.mode == 'disabled' }}>{{ _('Fetch models') }}</button>
+            <button class="btn btn-outline-secondary btn-sm" type="button" id="visionTestBtn" {{ 'disabled' if snap.slots.vision.mode == 'disabled' }}>{{ _('Test') }}</button>
+            <button class="btn btn-primary btn-sm" type="button" id="visionSaveBtn">{{ _('Save changes') }}</button>
+          </div>
+          <div class="model-card__result small" id="visionResult" aria-live="polite"></div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Web search ─────────────────────────────────────────────────────── #}
+    <div class="col-lg-6">
+      <div class="card model-card h-100">
+        <div class="card-body">
+          <div class="model-card__head">
+            <h2 class="model-card__title">{{ _('Web search') }}</h2>
+            <span class="model-card__meta"><span class="dot {{ 'dot--on' if snap.features.web_access.on }}" aria-hidden="true"></span>
+              {{ _('Tavily') }} ·
+              <span id="searchKeyStatus">{{ _('Configured') if snap.slots.search.key_set else _('Not set') }}</span></span>
+          </div>
+          <p class="model-card__hint">{{ _('Grounds Ask-the-Library answers in web results. Tavily is the only provider implemented.') }}</p>
+
+          <label class="form-label" for="searchApiKey">{{ _('API key') }}</label>
+          <input type="password" class="form-control mb-3" id="searchApiKey" autocomplete="new-password"
+                 placeholder="{{ _('Configured — enter a new key to replace it') if snap.slots.search.key_set else _('Enter an API key') }}">
+          <p class="model-card__hint">{{ _('Leave empty and save to disable web access.') }}</p>
+
+          <div class="model-card__actions">
+            <button class="btn btn-outline-secondary btn-sm" type="button" id="searchTestBtn">{{ _('Test') }}</button>
+            <button class="btn btn-primary btn-sm" type="button" id="searchSaveBtn">{{ _('Save changes') }}</button>
+          </div>
+          <div class="model-card__result small" id="searchResult" aria-live="polite"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+<script src="{{ url_for('static', filename='js/admin-models.js') }}"></script>
+{% endblock %}
