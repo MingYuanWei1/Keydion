@@ -1,45 +1,8 @@
-# Database and uploaded files (DO NOT COMMIT THESE)
-static/uploads/
-static/uploads/guides/
-*.db
-*.sqlite3
-*.sqlite
-papers/
+# Secrets
+.env*
+!.env.example
 
-# Python environments and cache
-venv/
-venv_new/
-.venv/
-__pycache__/
-*.pyc
-*.pyo
-.mypy_cache/
-.pytest_cache/
-
-# Environment variables
-.env
-.env.prod
-.env.*.local
-
-# AI
-.claude/
-.qoder/
-.codex/
-.zcode/
-.gemini/
-
-# IDEs and Editors
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# MacOS files
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# TLS / SSL keys (DO NOT COMMIT)
+# TLS / SSL key material
 *.key
 *.pem
 *.crt
@@ -47,7 +10,35 @@ __pycache__/
 *.p12
 *.pfx
 
-# Operator backups, database exports, and ad-hoc archives
+# Local artifacts
+local/
+
+# Local development entry points
+start_local.sh
+docker-compose.yml
+
+# Runtime data & user uploads
+static/uploads/
+papers/
+resource_files/
+data/pending_papers/
+data/version_update_state.json
+*.db
+*.sqlite
+*.sqlite3
+
+# Curriculum / category configs — runtime-editable via the manage pages; admin/
+# local edits must NOT sync. The repo ships *.sample.json baselines; the app
+# self-seeds the live file from config.py defaults on first run (or copy the
+# sample over it). Don't re-track.
+data/ee_subjects.json
+data/ia_subjects.json
+data/paper_categories.json
+data/paper_journals.json
+data/news_categories.json
+data/guide_categories.json
+
+# ─── Operator backups, DB exports, and ad-hoc archives ──────────────────────
 backups/
 *.sql
 *.sql.gz
@@ -59,37 +50,36 @@ backups/
 *.zip
 !tests/fixtures/**/*.zip
 
-# Data — runtime files
-data/version_update_state.json
-data/active_sessions.json
-data/active_sessions
-data/pending_papers/
-data/papersz
-
-# Curriculum / category configs — runtime-editable via the manage pages; admin/local
-# edits must NOT sync. The repo ships *.sample.json baselines; the app self-seeds the
-# live file from config.py defaults on first run (or copy the sample over it). Don't re-track.
-data/ee_subjects.json
-data/ia_subjects.json
-data/paper_categories.json
-data/news_categories.json
-data/guide_categories.json
-
-# Superpowers plans/specs (local only)
-docs/review
-docs/superpowers
+# ─── AI assistant scaffolding ───────────────────────────────────────────────
+.claude/
+.qoder/
+.codex/
+.zcode/
+.gemini/
 .superpowers/
-LLM_DEPLOYMENT_IDEAS.md
-
-# Utility / migration scripts
-test_db.py
-remigrate_unicode.py
-update_db.py
-
-# Academic resources file blobs
-resource_files/
 AI_Prompts/
+docs/review/
+docs/superpowers/
 
-# Local development files (kept on disk locally, not shared on remote)
-start_local.sh
-docker-compose.yml
+# ─── Python ─────────────────────────────────────────────────────────────────
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ─── IDEs & editors ─────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ─── macOS ──────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
