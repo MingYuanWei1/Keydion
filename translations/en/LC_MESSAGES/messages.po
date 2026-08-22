@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Keydion 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-23 03:37+0800\n"
+"POT-Creation-Date: 2026-08-22 14:48+0800\n"
 "PO-Revision-Date: 2025-10-11 00:00+0000\n"
 "Last-Translator: \n"
 "Language: en\n"
@@ -14,174 +14,174 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: app.py:307 routes/ai.py:284 routes/ai.py:341 routes/upload.py:86
+#: app.py:308 routes/ai.py:277 routes/ai.py:334 routes/upload.py:86
 msgid "Too many requests — please slow down."
 msgstr ""
 
-#: app.py:376 app.py:392 app.py:507
+#: app.py:377 app.py:393 app.py:508
 msgid "Unable to sign in. Please try again."
 msgstr "Unable to sign in. Please try again."
 
 # ==================== AUTH FLASH MESSAGES ====================
-#: app.py:378 app.py:395
+#: app.py:379 app.py:396
 #, python-format
 msgid "Welcome back, %(username)s!"
 msgstr "Welcome back, %(username)s!"
 
-#: app.py:400
+#: app.py:401
 #, fuzzy
 msgid "Invalid email or password"
 msgstr "Invalid username or password"
 
-#: app.py:404 app.py:417 app.py:452
+#: app.py:405 app.py:418 app.py:453
 msgid "Microsoft sign-in is not configured. Please contact the administrator."
 msgstr "Microsoft sign-in is not configured. Please contact the administrator."
 
-#: app.py:409
+#: app.py:410
 msgid "Email-based registration is disabled. Please sign in with Microsoft."
 msgstr ""
 
-#: app.py:471
+#: app.py:472
 #, fuzzy
 msgid "Login session expired. Please try again."
 msgstr "Session expired. Please sign in again."
 
-#: app.py:479 app.py:494
+#: app.py:480 app.py:495
 #, python-format
 msgid "Microsoft sign-in failed: %(reason)s"
 msgstr ""
 
-#: app.py:484
+#: app.py:485
 msgid "Microsoft sign-in failed. Please try again."
 msgstr "Microsoft sign-in failed. Please try again."
 
-#: app.py:499
+#: app.py:500
 msgid "Microsoft sign-in did not return a valid profile."
 msgstr "Microsoft sign-in did not return a valid profile."
 
-#: app.py:531
+#: app.py:532
 msgid "Signed out successfully."
 msgstr "Signed out successfully."
 
-#: app.py:542
+#: app.py:543
 msgid "Unable to load your profile. Please sign in again."
 msgstr "Unable to load your profile. Please sign in again."
 
-#: app.py:551
+#: app.py:552
 msgid "Please enter your first and last name."
 msgstr "Please enter your first and last name."
 
-#: app.py:562
+#: app.py:563
 msgid "Profile saved successfully."
 msgstr "Profile saved successfully."
 
-#: app.py:601
+#: app.py:602
 msgid "Current password is incorrect."
 msgstr "Current password is incorrect."
 
-#: app.py:606
+#: app.py:607
 msgid "Please enter a new password."
 msgstr "Please enter a new password."
 
-#: app.py:609
+#: app.py:610
 msgid "Passwords do not match."
 msgstr "Passwords do not match."
 
-#: app.py:612
+#: app.py:613
 #, fuzzy
 msgid "Password must be at least 6 characters."
 msgstr "At least 6 characters"
 
-#: app.py:616
+#: app.py:617
 msgid "Password must contain both letters and numbers."
 msgstr "Password must contain both letters and numbers."
 
-#: app.py:621
+#: app.py:622
 msgid "New password must be different from your current password."
 msgstr "New password must be different from your current password."
 
-#: app.py:636
+#: app.py:637
 msgid "Password updated. Please sign in again."
 msgstr "Password updated. Please sign in again."
 
-#: app.py:639
+#: app.py:640
 #, fuzzy
 msgid "Unable to update password."
 msgstr "Unable to reset password."
 
-#: app.py:679
+#: app.py:680
 msgid "Role updates saved."
 msgstr "Role updates saved."
 
-#: app.py:691
+#: app.py:692
 msgid "Username and password are required."
 msgstr "Username and password are required."
 
-#: app.py:694
+#: app.py:695
 msgid "That username is already taken."
 msgstr "That username is already taken."
 
-#: app.py:697
+#: app.py:698
 msgid "Local user created."
 msgstr "Local user created."
 
-#: app.py:707 app.py:749
+#: app.py:708 app.py:750
 msgid "Role updated."
 msgstr "Role updated."
 
-#: app.py:709 app.py:751
+#: app.py:710 app.py:752
 msgid "Unable to update role."
 msgstr "Unable to update role."
 
-#: app.py:719 app.py:772
+#: app.py:720 app.py:773
 msgid "Password is required."
 msgstr "Password is required."
 
-#: app.py:722
+#: app.py:723
 msgid "Password reset successfully."
 msgstr "Password reset successfully."
 
-#: app.py:724
+#: app.py:725
 msgid "Unable to reset password."
 msgstr "Unable to reset password."
 
-#: app.py:733
+#: app.py:734
 msgid "Local user deleted."
 msgstr "Local user deleted."
 
-#: app.py:735
+#: app.py:736
 msgid "Unable to delete user."
 msgstr "Unable to delete user."
 
-#: app.py:760
+#: app.py:761
 msgid "Microsoft user deleted."
 msgstr "Microsoft user deleted."
 
-#: app.py:762
+#: app.py:763
 msgid "Unable to delete Microsoft user."
 msgstr "Unable to delete Microsoft user."
 
-#: app.py:775
+#: app.py:776
 #, fuzzy
 msgid "Password set successfully."
 msgstr "Password reset successfully."
 
-#: app.py:777
+#: app.py:778
 #, fuzzy
 msgid "Unable to set password."
 msgstr "Unable to reset password."
 
-#: app.py:811
+#: app.py:812
 #, python-format
 msgid "oldest %(n)d days ago"
 msgstr "oldest %(n)d days ago"
 
-#: app.py:827
+#: app.py:828
 #, python-format
 msgid "+%(n)d this month"
 msgstr "+%(n)d this month"
 
-#: app.py:845
+#: app.py:846
 msgid "Language not supported."
 msgstr "Language not supported."
 
@@ -244,199 +244,199 @@ msgstr "English"
 msgid "Chinese"
 msgstr "Chinese"
 
-#: routes/ai.py:63 services/auth.py:614
+#: routes/ai.py:56 services/auth.py:614
 msgid "Please sign in first."
 msgstr "Please sign in first."
 
-#: routes/ai.py:83
+#: routes/ai.py:76
 msgid "What does the research say about climate adaptation in plants?"
 msgstr ""
 
-#: routes/ai.py:84
+#: routes/ai.py:77
 msgid "Summarize recent Extended Essays in economics."
 msgstr ""
 
-#: routes/ai.py:85
+#: routes/ai.py:78
 msgid "Find papers about machine learning in healthcare."
 msgstr ""
 
-#: routes/ai.py:95
+#: routes/ai.py:88
 msgid "Ask a question and I'll answer from the published library, with citations."
 msgstr ""
 
 # ==================== ADMIN USER MANAGEMENT ====================
-#: routes/ai.py:96 templates/ai.html:86
+#: routes/ai.py:89 templates/ai.html:86
 msgid "Message Keydion AI…"
 msgstr "Message Keydion AI…"
 
-#: routes/ai.py:97 templates/ai.html:106
+#: routes/ai.py:90 templates/ai.html:106
 msgid "Flash"
 msgstr ""
 
-#: routes/ai.py:98 templates/ai.html:107
+#: routes/ai.py:91 templates/ai.html:107
 msgid "Thinking"
 msgstr ""
 
-#: routes/ai.py:99 templates/ai.html:109
+#: routes/ai.py:92 templates/ai.html:109
 msgid "Send"
 msgstr ""
 
-#: routes/ai.py:100
+#: routes/ai.py:93
 msgid "Cited from your library"
 msgstr ""
 
-#: routes/ai.py:101
+#: routes/ai.py:94
 msgid "Copy"
 msgstr ""
 
-#: routes/ai.py:102
+#: routes/ai.py:95
 msgid "Regenerate"
 msgstr "Regenerate"
 
-#: routes/ai.py:103 templates/news_manage.html:510
+#: routes/ai.py:96 templates/news_manage.html:510
 #: templates/paper_manage.html:824
 msgid "Rename"
 msgstr "Rename"
 
-#: routes/ai.py:104
+#: routes/ai.py:97
 msgid "Today"
 msgstr "Today"
 
-#: routes/ai.py:105
+#: routes/ai.py:98
 msgid "Yesterday"
 msgstr ""
 
-#: routes/ai.py:106
+#: routes/ai.py:99
 msgid "Previous 7 days"
 msgstr "Previous 7 days"
 
-#: routes/ai.py:107
+#: routes/ai.py:100
 msgid "Older"
 msgstr "Older"
 
-#: routes/ai.py:108
+#: routes/ai.py:101
 msgid "No conversations match."
 msgstr "No conversations match."
 
-#: routes/ai.py:109
+#: routes/ai.py:102
 msgid "Thinking…"
 msgstr ""
 
-#: routes/ai.py:110 routes/ai.py:304 routes/ai.py:739
+#: routes/ai.py:103 routes/ai.py:297 routes/ai.py:508
 msgid "Something went wrong. Please try again."
 msgstr "Something went wrong. Please try again."
 
-#: routes/ai.py:111 routes/ai.py:264 routes/ai.py:337 templates/ai.html:48
+#: routes/ai.py:104 routes/ai.py:257 routes/ai.py:330 templates/ai.html:48
 msgid "AI assistant is not configured."
 msgstr "AI assistant is not configured."
 
-#: routes/ai.py:112
+#: routes/ai.py:105
 #, fuzzy
 msgid "No matching papers were found in the library."
 msgstr "No matching papers found."
 
-#: routes/ai.py:113
+#: routes/ai.py:106
 msgid "Searched the web"
 msgstr "Searched the web"
 
-#: routes/ai.py:114 templates/ia_subjects_manage.html:155
+#: routes/ai.py:107 templates/ia_subjects_manage.html:155
 #: templates/paper_manage.html:412
 #, fuzzy
 msgid "selected"
 msgstr "None selected"
 
-#: routes/ai.py:115 templates/ai.html:183
+#: routes/ai.py:108 templates/ai.html:183
 msgid "Select papers to attach as citations"
 msgstr ""
 
-#: routes/ai.py:116 routes/upload.py:182 templates/paper_modify.html:127
+#: routes/ai.py:109 routes/upload.py:182 templates/paper_modify.html:127
 #: templates/preview.html:412 templates/review_paper.html:33
 #: templates/submission_detail.html:30
 msgid "Abstract"
 msgstr "Abstract"
 
-#: routes/ai.py:117 templates/preview.html:417 templates/search.html:274
+#: routes/ai.py:110 templates/preview.html:417 templates/search.html:274
 msgid "No abstract available."
 msgstr "No abstract available."
 
-#: routes/ai.py:118 templates/ai.html:179
+#: routes/ai.py:111 templates/ai.html:179
 msgid "Hover a paper to preview its abstract before citing."
 msgstr ""
 
-#: routes/ai.py:145 routes/ai.py:150 routes/ai.py:390 templates/ai.html:54
+#: routes/ai.py:138 routes/ai.py:143 routes/ai.py:383 templates/ai.html:54
 msgid "New conversation"
 msgstr "New conversation"
 
-#: routes/ai.py:169 routes/ai.py:321
+#: routes/ai.py:162 routes/ai.py:314
 msgid "Not found"
 msgstr "Not found"
 
-#: routes/ai.py:273
+#: routes/ai.py:266
 msgid "Conversation not found."
 msgstr "Conversation not found."
 
-#: routes/ai.py:288 routes/upload.py:735 routes/upload.py:761
+#: routes/ai.py:281 routes/upload.py:735 routes/upload.py:761
 #: routes/upload.py:788
 msgid "No file provided"
 msgstr "No file provided"
 
-#: routes/ai.py:291
+#: routes/ai.py:284
 msgid "Unsupported file type. Use PDF, DOCX, TXT, or Markdown."
 msgstr "Unsupported file type. Use PDF, DOCX, TXT, or Markdown."
 
-#: routes/ai.py:294
+#: routes/ai.py:287
 msgid "File is too large (max 5 MB)."
 msgstr "File is too large (max 5 MB)."
 
 # | msgid "Invalid destination."
-#: routes/ai.py:297
+#: routes/ai.py:290
 #, fuzzy
 msgid "Invalid filename."
 msgstr "Invalid destination."
 
-#: routes/ai.py:301
+#: routes/ai.py:294
 msgid "Could not read the file."
 msgstr "Could not read the file."
 
 # | msgid "Could not read the file."
-#: routes/ai.py:328
+#: routes/ai.py:321
 #, fuzzy
 msgid "Could not process the attachment."
 msgstr "Could not read the file."
 
-#: routes/ai.py:368
+#: routes/ai.py:361
 msgid "Please enter a question."
 msgstr "Please enter a question."
 
-#: routes/ai.py:370
+#: routes/ai.py:363
 msgid "Your question is too long."
 msgstr ""
 
-#: routes/guides.py:101 routes/guides.py:169
+#: routes/guides.py:105 routes/guides.py:173
 msgid "Guide not found."
 msgstr "Guide not found."
 
-#: routes/guides.py:127
+#: routes/guides.py:131
 msgid "Please enter a title in at least one language."
 msgstr "Please enter a title in at least one language."
 
-#: routes/guides.py:129
+#: routes/guides.py:133
 msgid "Please enter a slug."
 msgstr "Please enter a slug."
 
-#: routes/guides.py:131
+#: routes/guides.py:135
 msgid "That slug is already taken. Pick another."
 msgstr "That slug is already taken. Pick another."
 
-#: routes/guides.py:138
+#: routes/guides.py:142
 msgid "Guide updated."
 msgstr "Guide updated."
 
-#: routes/guides.py:141
+#: routes/guides.py:145
 msgid "Guide published."
 msgstr "Guide published."
 
-#: routes/guides.py:167
+#: routes/guides.py:171
 msgid "Guide deleted."
 msgstr "Guide deleted."
 
@@ -1360,7 +1360,8 @@ msgstr "Not provided"
 msgid "Not chosen"
 msgstr "Not chosen"
 
-#: routes/upload.py:265 templates/search.html:30
+#: routes/upload.py:265 templates/admin_version.html:93
+#: templates/search.html:30
 msgid "Subject"
 msgstr "Subject"
 
@@ -1388,9 +1389,10 @@ msgstr "Anonymous — author info skipped"
 msgid "No"
 msgstr "No"
 
-#: routes/upload.py:273 templates/news_manage.html:151
-#: templates/news_publish.html:1002 templates/paper_manage.html:293
-#: templates/review_paper.html:36 templates/submission_detail.html:33
+#: routes/upload.py:273 templates/admin_version.html:92
+#: templates/news_manage.html:151 templates/news_publish.html:1002
+#: templates/paper_manage.html:293 templates/review_paper.html:36
+#: templates/submission_detail.html:33
 #, fuzzy
 msgid "Author"
 msgstr "Authors"
@@ -1589,36 +1591,36 @@ msgstr "File must be a PDF"
 msgid "Unknown or unconfigured IA subject"
 msgstr "Unknown or unconfigured IA subject"
 
-#: services/ai.py:575
+#: services/ai.py:585
 msgid "Searching the library…"
 msgstr "Searching the library…"
 
-#: services/ai.py:595
+#: services/ai.py:605
 #, python-format
 msgid "Reading “%(title)s”…"
 msgstr "Reading “%(title)s”…"
 
-#: services/ai.py:596
+#: services/ai.py:606
 msgid "Reading a paper…"
 msgstr "Reading a paper…"
 
-#: services/ai.py:598
+#: services/ai.py:608
 msgid "Searching the web…"
 msgstr "Searching the web…"
 
-#: services/ai.py:600
+#: services/ai.py:610
 msgid "Reading a web page…"
 msgstr "Reading a web page…"
 
-#: services/ai.py:602
+#: services/ai.py:612
 msgid "Reading the attachment…"
 msgstr "Reading the attachment…"
 
-#: services/ai.py:603
+#: services/ai.py:613
 msgid "Working…"
 msgstr "Working…"
 
-#: services/ai.py:811
+#: services/ai.py:821
 msgid "Attached document"
 msgstr "Attached document"
 
@@ -1814,22 +1816,26 @@ msgstr "Admin"
 msgid "Manage users"
 msgstr "Manage users"
 
-#: templates/_dashboard_shell.html:177 templates/ai.html:25
+#: templates/_dashboard_shell.html:176 templates/admin_version.html:11
+msgid "Version"
+msgstr "Version"
+
+#: templates/_dashboard_shell.html:183 templates/ai.html:25
 #: templates/change_password.html:297
 msgid "Account"
 msgstr "Account"
 
-#: templates/_dashboard/overview.html:111 templates/_dashboard_shell.html:182
+#: templates/_dashboard/overview.html:111 templates/_dashboard_shell.html:188
 #: templates/change_password.html:297 templates/change_password.html:300
 msgid "Change password"
 msgstr "Change password"
 
-#: templates/_dashboard_shell.html:190 templates/_header.html:164
+#: templates/_dashboard_shell.html:196 templates/_header.html:164
 #: templates/ai.html:32
 msgid "Sign out"
 msgstr "Sign out"
 
-#: templates/_dashboard_shell.html:196
+#: templates/_dashboard_shell.html:202
 msgid "Show sidebar"
 msgstr "Show sidebar"
 
@@ -1861,34 +1867,34 @@ msgid "Dashboard"
 msgstr "Back to Dashboard"
 
 #: templates/_header.html:169 templates/_header.html:187
-#: templates/_header.html:207 templates/admin_login.html:23
+#: templates/_header.html:203 templates/admin_login.html:23
 #: templates/ai.html:37 templates/ai.html:128 templates/ai.html:132
-#: templates/ai.html:152 templates/landing.html:697 templates/register.html:50
+#: templates/ai.html:148 templates/landing.html:697 templates/register.html:50
 msgid "Sign in"
 msgstr "Sign in"
 
-#: templates/_header.html:190 templates/ai.html:135
-msgid "Stay logged in for 7 days"
-msgstr "Stay logged in for 7 days"
-
-#: templates/_header.html:193 templates/ai.html:138
+#: templates/_header.html:189 templates/ai.html:134
 msgid "Sign in with Microsoft"
 msgstr "Sign in with Microsoft"
 
-#: templates/_header.html:194 templates/ai.html:139
+#: templates/_header.html:190 templates/ai.html:135
 msgid "or sign in with email"
 msgstr "or sign in with email"
 
-#: templates/_header.html:200 templates/ai.html:145
+#: templates/_header.html:196 templates/ai.html:141
 #, fuzzy
 msgid "Email / Username"
 msgstr "Username"
 
-#: templates/_header.html:204 templates/account_register.html:17
+#: templates/_header.html:200 templates/account_register.html:17
 #: templates/admin_login.html:20 templates/admin_users.html:144
-#: templates/ai.html:149 templates/register.html:36
+#: templates/ai.html:145 templates/register.html:36
 msgid "Password"
 msgstr "Password"
+
+#: templates/_header.html:207 templates/ai.html:152
+msgid "Stay logged in for 7 days"
+msgstr "Stay logged in for 7 days"
 
 #: templates/_header.html:209 templates/ai.html:155 templates/ai.html:185
 #: templates/change_password.html:445 templates/guide_publish.html:149
@@ -2028,9 +2034,9 @@ msgstr "Microsoft Users (External)"
 msgid "Display Name"
 msgstr "Display Name"
 
-#: templates/admin_users.html:89 templates/journal_detail.html:190
-#: templates/journal_detail.html:222 templates/journal_edit.html:59
-#: templates/journal_edit.html:89
+#: templates/admin_users.html:89 templates/admin_version.html:56
+#: templates/journal_detail.html:190 templates/journal_detail.html:222
+#: templates/journal_edit.html:59 templates/journal_edit.html:89
 msgid "Unknown"
 msgstr "Unknown"
 
@@ -2057,6 +2063,110 @@ msgstr "Close"
 #: templates/paper_manage.html:450
 msgid "Add"
 msgstr "Add"
+
+# ==================== PAPER SUBMISSION ====================
+#: templates/admin_version.html:2
+msgid "Version · Keydion"
+msgstr "Version · Keydion"
+
+#: templates/admin_version.html:12
+msgid "Check for updates from the repository and apply them."
+msgstr "Check for updates from the repository and apply them."
+
+#: templates/admin_version.html:18
+msgid "Update check failed:"
+msgstr "Update check failed:"
+
+#: templates/admin_version.html:22
+msgid ""
+"This deployment is not a git checkout, so updates cannot be checked or "
+"applied."
+msgstr "This deployment is not a git checkout, so updates cannot be checked or applied."
+
+#: templates/admin_version.html:28
+msgid ""
+"The working tree has uncommitted changes — updates are disabled until it "
+"is clean:"
+msgstr "The working tree has uncommitted changes — updates are disabled until it is clean:"
+
+#: templates/admin_version.html:37
+msgid "Current version"
+msgstr "Current version"
+
+#: templates/admin_version.html:39
+msgid "branch"
+msgstr "branch"
+
+#: templates/admin_version.html:46
+msgid "Latest on origin/main"
+msgstr "Latest on origin/main"
+
+#: templates/admin_version.html:54 templates/my_submissions.html:27
+#: templates/news_manage.html:150 templates/review_list.html:53
+#: templates/review_paper.html:54 templates/submission_detail.html:48
+msgid "Status"
+msgstr "Status"
+
+#: templates/admin_version.html:58
+#, python-format
+msgid "%(count)s commit(s) behind"
+msgstr "%(count)s commit(s) behind"
+
+#: templates/admin_version.html:60
+msgid "Up to date"
+msgstr "Up to date"
+
+#: templates/admin_version.html:68
+msgid "Check again"
+msgstr "Check again"
+
+#: templates/admin_version.html:70
+msgid "Update"
+msgstr "Update"
+
+#: templates/admin_version.html:74
+msgid "An update is already running."
+msgstr "An update is already running."
+
+#: templates/admin_version.html:75
+msgid "Clean the working tree to enable updates."
+msgstr "Clean the working tree to enable updates."
+
+#: templates/admin_version.html:76
+msgid "Already up to date."
+msgstr "Already up to date."
+
+#: templates/admin_version.html:85
+msgid "Incoming commits"
+msgstr "Incoming commits"
+
+#: templates/admin_version.html:90
+msgid "Commit"
+msgstr "Commit"
+
+#: templates/admin_version.html:91 templates/search.html:43
+msgid "Date"
+msgstr "Date"
+
+#: templates/admin_version.html:116
+msgid "Starting…"
+msgstr "Starting…"
+
+#: templates/admin_version.html:124
+msgid "Last update:"
+msgstr "Last update:"
+
+#: templates/admin_version.html:126
+msgid "applied"
+msgstr "applied"
+
+#: templates/admin_version.html:130
+msgid "failed"
+msgstr "failed"
+
+#: templates/admin_version.html:132
+msgid "in progress"
+msgstr "in progress"
 
 #: templates/advanced_search.html:2
 msgid "Advanced Search · Keydion"
@@ -2743,19 +2853,15 @@ msgstr "help."
 
 #: templates/guides.html:15
 msgid ""
-"Discover and read research, ask questions about it, and submit your own work "
-"for review."
+"Discover and read research, ask questions about it, and submit your own "
+"work for review."
 msgstr ""
-"Discover and read research, ask questions about it, and submit your own work "
-"for review."
+"Discover and read research, ask questions about it, and submit your own "
+"work for review."
 
 #: templates/guides.html:20
 msgid "No guides published yet. Check back soon."
 msgstr "No guides published yet. Check back soon."
-
-#: templates/guides.html:27
-msgid "Articles"
-msgstr "Articles"
 
 # ==================== PAPER MANAGEMENT ====================
 #: templates/ia_subjects_manage.html:2
@@ -3130,12 +3236,6 @@ msgstr "Submit a New Paper"
 #: templates/review_paper.html:51 templates/submission_detail.html:44
 msgid "Submitted"
 msgstr "Submitted"
-
-#: templates/my_submissions.html:27 templates/news_manage.html:150
-#: templates/review_list.html:53 templates/review_paper.html:54
-#: templates/submission_detail.html:48
-msgid "Status"
-msgstr ""
 
 #: templates/my_submissions.html:47 templates/review_paper.html:57
 #: templates/submission_detail.html:51
@@ -4349,10 +4449,6 @@ msgstr "Refine Results"
 msgid "Search Within Results"
 msgstr "Search Within Results"
 
-#: templates/search.html:43
-msgid "Date"
-msgstr "Date"
-
 #: templates/search.html:113
 msgid "Any Language"
 msgstr "Any Language"
@@ -4949,3 +5045,7 @@ msgstr ""
 # | msgid "A category with that name already exists."
 #~ msgid "A paper with that public filename already exists."
 #~ msgstr "A category with that name already exists."
+
+#~ msgid "Articles"
+#~ msgstr "Articles"
+

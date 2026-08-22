@@ -1,0 +1,138 @@
+{% extends "_bare.html" if partial else "_dashboard_shell.html" %}
+{% block title %}{{ _('Version · Keydion') }}{% endblock %}
+{% block panel %}
+{% set can_update = info.is_git and not info.dirty and info.behind_count > 0 and not info.update_running and not info.check_error %}
+<div id="versionPanel"
+     data-update-url="{{ url_for('admin_version_update') }}"
+     data-status-url="{{ url_for('admin_version_status') }}"
+     data-head-sha="{{ info.head_sha or '' }}">
+  <div class="row mb-4">
+    <div class="col">
+      <h1 class="h3">{{ _('Version') }}</h1>
+      <p class="text-muted">{{ _('Check for updates from the repository and apply them.') }}</p>
+    </div>
+  </div>
+
+  {% if info.check_error %}
+  <div class="alert alert-danger">
+    {{ _('Update check failed:') }} <code>{{ info.check_error }}</code>
+  </div>
+  {% elif not info.is_git %}
+  <div class="alert alert-warning">
+    {{ _('This deployment is not a git checkout, so updates cannot be checked or applied.') }}
+  </div>
+  {% endif %}
+
+  {% if info.dirty %}
+  <div class="alert alert-warning">
+    <div class="fw-semibold mb-1">{{ _('The working tree has uncommitted changes — updates are disabled until it is clean:') }}</div>
+    <pre class="mb-0 small">{{ info.status_lines | join('\n') }}</pre>
+  </div>
+  {% endif %}
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="h6 text-muted">{{ _('Current version') }}</h2>
+          <div id="versionCurrentSha" class="font-monospace">{{ info.head_short or '—' }}</div>
+          <div class="text-muted small">{{ _('branch') }} <code>{{ info.branch or '—' }}</code></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="h6 text-muted">{{ _('Latest on origin/main') }}</h2>
+          <div class="font-monospace">{{ info.upstream_short or '—' }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="h6 text-muted">{{ _('Status') }}</h2>
+          {% if info.check_error %}
+          <span id="versionStatusBadge" class="badge bg-secondary">{{ _('Unknown') }}</span>
+          {% elif info.behind_count > 0 %}
+          <span id="versionStatusBadge" class="badge bg-warning text-dark">{{ _('%(count)s commit(s) behind', count=info.behind_count) }}</span>
+          {% else %}
+          <span id="versionStatusBadge" class="badge bg-success">{{ _('Up to date') }}</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 mb-4">
+    <button id="versionCheckBtn" class="btn btn-outline-secondary" type="button">{{ _('Check again') }}</button>
+    <button id="versionUpdateBtn" class="btn btn-primary" type="button" {% if not can_update %}disabled{% endif %}>
+      {{ _('Update') }}
+    </button>
+    {% if not can_update and info.is_git and not info.check_error %}
+    <span class="align-self-center text-muted small">
+      {% if info.update_running %}{{ _('An update is already running.') }}
+      {% elif info.dirty %}{{ _('Clean the working tree to enable updates.') }}
+      {% elif info.behind_count == 0 %}{{ _('Already up to date.') }}
+      {% endif %}
+    </span>
+    {% endif %}
+  </div>
+
+  {% if info.behind_count > 0 %}
+  <div class="card mb-4">
+    <div class="card-body">
+      <h2 class="h5">{{ _('Incoming commits') }}</h2>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              <th>{{ _('Commit') }}</th>
+              <th>{{ _('Date') }}</th>
+              <th>{{ _('Author') }}</th>
+              <th>{{ _('Subject') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for commit in info.commits %}
+            <tr>
+              <td class="font-monospace text-nowrap">{{ commit.short }}</td>
+              <td class="text-nowrap">{{ commit.date }}</td>
+              <td>{{ commit.author }}</td>
+              <td>{{ commit.subject }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div id="versionProgress" class="card mb-4 d-none">
+    <div class="card-body">
+      <h2 class="h5 d-flex align-items-center gap-2">
+        <span class="spinner-border spinner-border-sm" id="versionSpinner" role="status" aria-hidden="true"></span>
+        <span id="versionPhase">{{ _('Starting…') }}</span>
+      </h2>
+      <pre id="versionLog" class="small bg-light border rounded p-2 mb-0"></pre>
+    </div>
+  </div>
+
+  {% if info.last_update %}
+  <p class="text-muted small mb-0" id="versionLastUpdate">
+    {{ _('Last update:') }}
+    {% if info.last_update.status == 'restarting' %}
+      {{ _('applied') }} <code>{{ (info.last_update.previous_sha or '')[:7] }}</code> →
+      <code>{{ (info.last_update.target_sha or '')[:7] }}</code>
+      {% if info.last_update.finished_at %}({{ info.last_update.finished_at }}){% endif %}
+    {% elif info.last_update.status == 'failed' %}
+      {{ _('failed') }}{% if info.last_update.error %} — {{ info.last_update.error }}{% endif %}
+    {% else %}
+      {{ _('in progress') }}
+    {% endif %}
+  </p>
+  {% endif %}
+</div>
+<script src="{{ url_for('static', filename='js/admin-version.js') }}"></script>
+{% endblock %}

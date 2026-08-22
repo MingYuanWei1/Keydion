@@ -55,6 +55,7 @@ backups/
 !tests/fixtures/**/*.zip
 
 # Data — runtime files
+data/version_update_state.json
 data/active_sessions.json
 data/active_sessions
 data/pending_papers/

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Keydion 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-23 03:37+0800\n"
+"POT-Creation-Date: 2026-08-22 14:48+0800\n"
 "PO-Revision-Date: 2025-10-11 00:00+0000\n"
 "Last-Translator: \n"
 "Language: zh\n"
@@ -14,168 +14,168 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: app.py:307 routes/ai.py:284 routes/ai.py:341 routes/upload.py:86
+#: app.py:308 routes/ai.py:277 routes/ai.py:334 routes/upload.py:86
 msgid "Too many requests — please slow down."
 msgstr "请求过于频繁，请放慢速度。"
 
-#: app.py:376 app.py:392 app.py:507
+#: app.py:377 app.py:393 app.py:508
 msgid "Unable to sign in. Please try again."
 msgstr "无法登录，请重试。"
 
 # ==================== AUTH FLASH MESSAGES ====================
-#: app.py:378 app.py:395
+#: app.py:379 app.py:396
 #, python-format
 msgid "Welcome back, %(username)s!"
 msgstr "欢迎回来，%(username)s！"
 
-#: app.py:400
+#: app.py:401
 msgid "Invalid email or password"
 msgstr "用户名或密码错误"
 
-#: app.py:404 app.py:417 app.py:452
+#: app.py:405 app.py:418 app.py:453
 msgid "Microsoft sign-in is not configured. Please contact the administrator."
 msgstr "Microsoft 登录尚未配置，请联系管理员。"
 
-#: app.py:409
+#: app.py:410
 msgid "Email-based registration is disabled. Please sign in with Microsoft."
 msgstr "已禁用基于邮箱的注册。请使用 Microsoft 账户登录。"
 
-#: app.py:471
+#: app.py:472
 msgid "Login session expired. Please try again."
 msgstr "会话已过期，请重新登录。"
 
-#: app.py:479 app.py:494
+#: app.py:480 app.py:495
 #, python-format
 msgid "Microsoft sign-in failed: %(reason)s"
 msgstr "Microsoft 登录失败：%(reason)s"
 
-#: app.py:484
+#: app.py:485
 msgid "Microsoft sign-in failed. Please try again."
 msgstr "Microsoft 登录失败，请重试。"
 
-#: app.py:499
+#: app.py:500
 msgid "Microsoft sign-in did not return a valid profile."
 msgstr "Microsoft 登录未返回有效的个人资料。"
 
-#: app.py:531
+#: app.py:532
 msgid "Signed out successfully."
 msgstr "已成功退出登录。"
 
-#: app.py:542
+#: app.py:543
 msgid "Unable to load your profile. Please sign in again."
 msgstr "无法加载您的个人资料，请重新登录。"
 
-#: app.py:551
+#: app.py:552
 msgid "Please enter your first and last name."
 msgstr "请输入您的名字和姓氏。"
 
-#: app.py:562
+#: app.py:563
 msgid "Profile saved successfully."
 msgstr "个人资料保存成功。"
 
-#: app.py:601
+#: app.py:602
 msgid "Current password is incorrect."
 msgstr "当前密码不正确。"
 
-#: app.py:606
+#: app.py:607
 msgid "Please enter a new password."
 msgstr "请输入新密码。"
 
-#: app.py:609
+#: app.py:610
 msgid "Passwords do not match."
 msgstr "两次密码输入不一致。"
 
-#: app.py:612
+#: app.py:613
 msgid "Password must be at least 6 characters."
 msgstr "密码长度至少为6个字符。"
 
-#: app.py:616
+#: app.py:617
 msgid "Password must contain both letters and numbers."
 msgstr "密码必须包含字母和数字。"
 
-#: app.py:621
+#: app.py:622
 msgid "New password must be different from your current password."
 msgstr "新密码必须与当前密码不同。"
 
-#: app.py:636
+#: app.py:637
 msgid "Password updated. Please sign in again."
 msgstr "密码已更新，请重新登录。"
 
-#: app.py:639
+#: app.py:640
 msgid "Unable to update password."
 msgstr "无法重置密码。"
 
-#: app.py:679
+#: app.py:680
 msgid "Role updates saved."
 msgstr "角色更改已保存。"
 
-#: app.py:691
+#: app.py:692
 msgid "Username and password are required."
 msgstr "用户名和密码为必填项。"
 
-#: app.py:694
+#: app.py:695
 msgid "That username is already taken."
 msgstr "此用户名已被占用。"
 
-#: app.py:697
+#: app.py:698
 msgid "Local user created."
 msgstr "本地用户已创建。"
 
-#: app.py:707 app.py:749
+#: app.py:708 app.py:750
 msgid "Role updated."
 msgstr "角色已更新。"
 
-#: app.py:709 app.py:751
+#: app.py:710 app.py:752
 msgid "Unable to update role."
 msgstr "无法更新角色。"
 
-#: app.py:719 app.py:772
+#: app.py:720 app.py:773
 msgid "Password is required."
 msgstr "密码为必填项。"
 
-#: app.py:722
+#: app.py:723
 msgid "Password reset successfully."
 msgstr "密码重置成功。"
 
-#: app.py:724
+#: app.py:725
 msgid "Unable to reset password."
 msgstr "无法重置密码。"
 
-#: app.py:733
+#: app.py:734
 msgid "Local user deleted."
 msgstr "本地用户已删除。"
 
-#: app.py:735
+#: app.py:736
 msgid "Unable to delete user."
 msgstr "无法删除用户。"
 
-#: app.py:760
+#: app.py:761
 msgid "Microsoft user deleted."
 msgstr "微软用户已删除。"
 
-#: app.py:762
+#: app.py:763
 msgid "Unable to delete Microsoft user."
 msgstr "无法删除微软用户。"
 
-#: app.py:775
+#: app.py:776
 msgid "Password set successfully."
 msgstr "密码设置成功。"
 
-#: app.py:777
+#: app.py:778
 msgid "Unable to set password."
 msgstr "无法设置密码。"
 
-#: app.py:811
+#: app.py:812
 #, python-format
 msgid "oldest %(n)d days ago"
 msgstr "最早 %(n)d 天前"
 
-#: app.py:827
+#: app.py:828
 #, python-format
 msgid "+%(n)d this month"
 msgstr "本月新增 %(n)d 篇"
 
-#: app.py:845
+#: app.py:846
 msgid "Language not supported."
 msgstr "不支持此语言。"
 
@@ -234,197 +234,197 @@ msgstr "英语"
 msgid "Chinese"
 msgstr "中文"
 
-#: routes/ai.py:63 services/auth.py:614
+#: routes/ai.py:56 services/auth.py:614
 msgid "Please sign in first."
 msgstr "请先登录。"
 
-#: routes/ai.py:83
+#: routes/ai.py:76
 msgid "What does the research say about climate adaptation in plants?"
 msgstr "植物气候适应研究有哪些发现？"
 
-#: routes/ai.py:84
+#: routes/ai.py:77
 msgid "Summarize recent Extended Essays in economics."
 msgstr "总结近年来经济学延伸论文的主要内容。"
 
-#: routes/ai.py:85
+#: routes/ai.py:78
 msgid "Find papers about machine learning in healthcare."
 msgstr "查找医疗保健领域机器学习相关论文。"
 
-#: routes/ai.py:95
+#: routes/ai.py:88
 msgid "Ask a question and I'll answer from the published library, with citations."
 msgstr "提出问题，我会基于已发布的论文库作答并附引用。"
 
 # ==================== ADMIN USER MANAGEMENT ====================
-#: routes/ai.py:96 templates/ai.html:86
+#: routes/ai.py:89 templates/ai.html:86
 msgid "Message Keydion AI…"
 msgstr "向 Keydion AI 提问…"
 
-#: routes/ai.py:97 templates/ai.html:106
+#: routes/ai.py:90 templates/ai.html:106
 msgid "Flash"
 msgstr "快速"
 
-#: routes/ai.py:98 templates/ai.html:107
+#: routes/ai.py:91 templates/ai.html:107
 msgid "Thinking"
 msgstr "深度思考"
 
-#: routes/ai.py:99 templates/ai.html:109
+#: routes/ai.py:92 templates/ai.html:109
 msgid "Send"
 msgstr "发送"
 
-#: routes/ai.py:100
+#: routes/ai.py:93
 msgid "Cited from your library"
 msgstr "引用自资料库"
 
-#: routes/ai.py:101
+#: routes/ai.py:94
 msgid "Copy"
 msgstr "复制"
 
-#: routes/ai.py:102
+#: routes/ai.py:95
 msgid "Regenerate"
 msgstr "重新生成"
 
-#: routes/ai.py:103 templates/news_manage.html:510
+#: routes/ai.py:96 templates/news_manage.html:510
 #: templates/paper_manage.html:824
 msgid "Rename"
 msgstr "重命名"
 
-#: routes/ai.py:104
+#: routes/ai.py:97
 msgid "Today"
 msgstr "正文"
 
-#: routes/ai.py:105
+#: routes/ai.py:98
 msgid "Yesterday"
 msgstr ""
 
-#: routes/ai.py:106
+#: routes/ai.py:99
 msgid "Previous 7 days"
 msgstr "过去 7 天"
 
-#: routes/ai.py:107
+#: routes/ai.py:100
 msgid "Older"
 msgstr "更早"
 
-#: routes/ai.py:108
+#: routes/ai.py:101
 msgid "No conversations match."
 msgstr "对话"
 
-#: routes/ai.py:109
+#: routes/ai.py:102
 msgid "Thinking…"
 msgstr "思考中…"
 
-#: routes/ai.py:110 routes/ai.py:304 routes/ai.py:739
+#: routes/ai.py:103 routes/ai.py:297 routes/ai.py:508
 msgid "Something went wrong. Please try again."
 msgstr "出错了，请重试。"
 
-#: routes/ai.py:111 routes/ai.py:264 routes/ai.py:337 templates/ai.html:48
+#: routes/ai.py:104 routes/ai.py:257 routes/ai.py:330 templates/ai.html:48
 msgid "AI assistant is not configured."
 msgstr "AI 助手尚未配置。"
 
-#: routes/ai.py:112
+#: routes/ai.py:105
 msgid "No matching papers were found in the library."
 msgstr "未在资料库中找到匹配的论文。"
 
-#: routes/ai.py:113
+#: routes/ai.py:106
 msgid "Searched the web"
 msgstr "已检索网络"
 
-#: routes/ai.py:114 templates/ia_subjects_manage.html:155
+#: routes/ai.py:107 templates/ia_subjects_manage.html:155
 #: templates/paper_manage.html:412
 msgid "selected"
 msgstr "已选择"
 
-#: routes/ai.py:115 templates/ai.html:183
+#: routes/ai.py:108 templates/ai.html:183
 msgid "Select papers to attach as citations"
 msgstr "选择要作为引用附加的论文"
 
-#: routes/ai.py:116 routes/upload.py:182 templates/paper_modify.html:127
+#: routes/ai.py:109 routes/upload.py:182 templates/paper_modify.html:127
 #: templates/preview.html:412 templates/review_paper.html:33
 #: templates/submission_detail.html:30
 msgid "Abstract"
 msgstr "摘要"
 
-#: routes/ai.py:117 templates/preview.html:417 templates/search.html:274
+#: routes/ai.py:110 templates/preview.html:417 templates/search.html:274
 msgid "No abstract available."
 msgstr "暂无摘要。"
 
-#: routes/ai.py:118 templates/ai.html:179
+#: routes/ai.py:111 templates/ai.html:179
 msgid "Hover a paper to preview its abstract before citing."
 msgstr "将鼠标悬停在论文上，可在引用前预览其摘要。"
 
-#: routes/ai.py:145 routes/ai.py:150 routes/ai.py:390 templates/ai.html:54
+#: routes/ai.py:138 routes/ai.py:143 routes/ai.py:383 templates/ai.html:54
 msgid "New conversation"
 msgstr "新对话"
 
-#: routes/ai.py:169 routes/ai.py:321
+#: routes/ai.py:162 routes/ai.py:314
 msgid "Not found"
 msgstr "未找到"
 
-#: routes/ai.py:273
+#: routes/ai.py:266
 msgid "Conversation not found."
 msgstr "未找到对话。"
 
-#: routes/ai.py:288 routes/upload.py:735 routes/upload.py:761
+#: routes/ai.py:281 routes/upload.py:735 routes/upload.py:761
 #: routes/upload.py:788
 msgid "No file provided"
 msgstr "未提供文件"
 
-#: routes/ai.py:291
+#: routes/ai.py:284
 msgid "Unsupported file type. Use PDF, DOCX, TXT, or Markdown."
 msgstr "不支持的文件类型。请使用 PDF、DOCX、TXT 或 Markdown。"
 
-#: routes/ai.py:294
+#: routes/ai.py:287
 msgid "File is too large (max 5 MB)."
 msgstr "文件过大（上限 5 MB）。"
 
 # | msgid "Invalid destination."
-#: routes/ai.py:297
+#: routes/ai.py:290
 #, fuzzy
 msgid "Invalid filename."
 msgstr "目标位置无效。"
 
-#: routes/ai.py:301
+#: routes/ai.py:294
 msgid "Could not read the file."
 msgstr "无法读取该文件。"
 
 # | msgid "Could not read the file."
-#: routes/ai.py:328
+#: routes/ai.py:321
 #, fuzzy
 msgid "Could not process the attachment."
 msgstr "无法读取该文件。"
 
-#: routes/ai.py:368
+#: routes/ai.py:361
 msgid "Please enter a question."
 msgstr "请输入问题。"
 
-#: routes/ai.py:370
+#: routes/ai.py:363
 msgid "Your question is too long."
 msgstr "你的问题过长。"
 
-#: routes/guides.py:101 routes/guides.py:169
+#: routes/guides.py:105 routes/guides.py:173
 msgid "Guide not found."
 msgstr "未找到该指南。"
 
-#: routes/guides.py:127
+#: routes/guides.py:131
 msgid "Please enter a title in at least one language."
 msgstr "请至少输入一种语言的标题。"
 
-#: routes/guides.py:129
+#: routes/guides.py:133
 msgid "Please enter a slug."
 msgstr "请输入链接标识。"
 
-#: routes/guides.py:131
+#: routes/guides.py:135
 msgid "That slug is already taken. Pick another."
 msgstr "该链接标识已被使用，请换一个。"
 
-#: routes/guides.py:138
+#: routes/guides.py:142
 msgid "Guide updated."
 msgstr "指南已更新。"
 
-#: routes/guides.py:141
+#: routes/guides.py:145
 msgid "Guide published."
 msgstr "指南已发布。"
 
-#: routes/guides.py:167
+#: routes/guides.py:171
 msgid "Guide deleted."
 msgstr "指南已删除。"
 
@@ -1323,7 +1323,8 @@ msgstr "未填写"
 msgid "Not chosen"
 msgstr "未选择"
 
-#: routes/upload.py:265 templates/search.html:30
+#: routes/upload.py:265 templates/admin_version.html:93
+#: templates/search.html:30
 msgid "Subject"
 msgstr "学科"
 
@@ -1351,9 +1352,10 @@ msgstr "匿名 — 已跳过作者信息"
 msgid "No"
 msgstr "否"
 
-#: routes/upload.py:273 templates/news_manage.html:151
-#: templates/news_publish.html:1002 templates/paper_manage.html:293
-#: templates/review_paper.html:36 templates/submission_detail.html:33
+#: routes/upload.py:273 templates/admin_version.html:92
+#: templates/news_manage.html:151 templates/news_publish.html:1002
+#: templates/paper_manage.html:293 templates/review_paper.html:36
+#: templates/submission_detail.html:33
 msgid "Author"
 msgstr "作者"
 
@@ -1547,36 +1549,36 @@ msgstr "文件必须是 PDF"
 msgid "Unknown or unconfigured IA subject"
 msgstr "未知或未配置的 IA 科目"
 
-#: services/ai.py:575
+#: services/ai.py:585
 msgid "Searching the library…"
 msgstr "正在检索文献库…"
 
-#: services/ai.py:595
+#: services/ai.py:605
 #, python-format
 msgid "Reading “%(title)s”…"
 msgstr "正在阅读《%(title)s》…"
 
-#: services/ai.py:596
+#: services/ai.py:606
 msgid "Reading a paper…"
 msgstr "正在阅读论文…"
 
-#: services/ai.py:598
+#: services/ai.py:608
 msgid "Searching the web…"
 msgstr "正在搜索网络…"
 
-#: services/ai.py:600
+#: services/ai.py:610
 msgid "Reading a web page…"
 msgstr "正在阅读网页…"
 
-#: services/ai.py:602
+#: services/ai.py:612
 msgid "Reading the attachment…"
 msgstr "正在阅读附件…"
 
-#: services/ai.py:603
+#: services/ai.py:613
 msgid "Working…"
 msgstr "处理中…"
 
-#: services/ai.py:811
+#: services/ai.py:821
 msgid "Attached document"
 msgstr "附加文档"
 
@@ -1759,22 +1761,26 @@ msgstr "管理"
 msgid "Manage users"
 msgstr "管理用户"
 
-#: templates/_dashboard_shell.html:177 templates/ai.html:25
+#: templates/_dashboard_shell.html:176 templates/admin_version.html:11
+msgid "Version"
+msgstr "版本"
+
+#: templates/_dashboard_shell.html:183 templates/ai.html:25
 #: templates/change_password.html:297
 msgid "Account"
 msgstr "账户"
 
-#: templates/_dashboard/overview.html:111 templates/_dashboard_shell.html:182
+#: templates/_dashboard/overview.html:111 templates/_dashboard_shell.html:188
 #: templates/change_password.html:297 templates/change_password.html:300
 msgid "Change password"
 msgstr "修改密码"
 
-#: templates/_dashboard_shell.html:190 templates/_header.html:164
+#: templates/_dashboard_shell.html:196 templates/_header.html:164
 #: templates/ai.html:32
 msgid "Sign out"
 msgstr "退出登录"
 
-#: templates/_dashboard_shell.html:196
+#: templates/_dashboard_shell.html:202
 msgid "Show sidebar"
 msgstr "显示侧边栏"
 
@@ -1805,33 +1811,33 @@ msgid "Dashboard"
 msgstr "返回控制面板"
 
 #: templates/_header.html:169 templates/_header.html:187
-#: templates/_header.html:207 templates/admin_login.html:23
+#: templates/_header.html:203 templates/admin_login.html:23
 #: templates/ai.html:37 templates/ai.html:128 templates/ai.html:132
-#: templates/ai.html:152 templates/landing.html:697 templates/register.html:50
+#: templates/ai.html:148 templates/landing.html:697 templates/register.html:50
 msgid "Sign in"
 msgstr "登录"
 
-#: templates/_header.html:190 templates/ai.html:135
-msgid "Stay logged in for 7 days"
-msgstr "保持登录状态 7 天"
-
-#: templates/_header.html:193 templates/ai.html:138
+#: templates/_header.html:189 templates/ai.html:134
 msgid "Sign in with Microsoft"
 msgstr "使用微软账号登录"
 
-#: templates/_header.html:194 templates/ai.html:139
+#: templates/_header.html:190 templates/ai.html:135
 msgid "or sign in with email"
 msgstr "或使用邮箱登录"
 
-#: templates/_header.html:200 templates/ai.html:145
+#: templates/_header.html:196 templates/ai.html:141
 msgid "Email / Username"
 msgstr "邮箱 / 用户名"
 
-#: templates/_header.html:204 templates/account_register.html:17
+#: templates/_header.html:200 templates/account_register.html:17
 #: templates/admin_login.html:20 templates/admin_users.html:144
-#: templates/ai.html:149 templates/register.html:36
+#: templates/ai.html:145 templates/register.html:36
 msgid "Password"
 msgstr "密码"
+
+#: templates/_header.html:207 templates/ai.html:152
+msgid "Stay logged in for 7 days"
+msgstr "保持登录状态 7 天"
 
 #: templates/_header.html:209 templates/ai.html:155 templates/ai.html:185
 #: templates/change_password.html:445 templates/guide_publish.html:149
@@ -1968,9 +1974,9 @@ msgstr "微软用户（外部）"
 msgid "Display Name"
 msgstr "显示名称"
 
-#: templates/admin_users.html:89 templates/journal_detail.html:190
-#: templates/journal_detail.html:222 templates/journal_edit.html:59
-#: templates/journal_edit.html:89
+#: templates/admin_users.html:89 templates/admin_version.html:56
+#: templates/journal_detail.html:190 templates/journal_detail.html:222
+#: templates/journal_edit.html:59 templates/journal_edit.html:89
 msgid "Unknown"
 msgstr "未知"
 
@@ -1996,6 +2002,110 @@ msgstr "关闭"
 #: templates/paper_manage.html:450
 msgid "Add"
 msgstr "添加"
+
+# ==================== PAPER SUBMISSION ====================
+#: templates/admin_version.html:2
+msgid "Version · Keydion"
+msgstr "版本 · Keydion"
+
+#: templates/admin_version.html:12
+msgid "Check for updates from the repository and apply them."
+msgstr "从代码仓库检查更新并应用。"
+
+#: templates/admin_version.html:18
+msgid "Update check failed:"
+msgstr "更新检查失败："
+
+#: templates/admin_version.html:22
+msgid ""
+"This deployment is not a git checkout, so updates cannot be checked or "
+"applied."
+msgstr "当前部署不是 git 检出，无法检查或应用更新。"
+
+#: templates/admin_version.html:28
+msgid ""
+"The working tree has uncommitted changes — updates are disabled until it "
+"is clean:"
+msgstr "工作区存在未提交的更改——清理完成前已禁用更新："
+
+#: templates/admin_version.html:37
+msgid "Current version"
+msgstr "当前版本"
+
+#: templates/admin_version.html:39
+msgid "branch"
+msgstr "分支"
+
+#: templates/admin_version.html:46
+msgid "Latest on origin/main"
+msgstr "origin/main 最新版本"
+
+#: templates/admin_version.html:54 templates/my_submissions.html:27
+#: templates/news_manage.html:150 templates/review_list.html:53
+#: templates/review_paper.html:54 templates/submission_detail.html:48
+msgid "Status"
+msgstr "状态"
+
+#: templates/admin_version.html:58
+#, python-format
+msgid "%(count)s commit(s) behind"
+msgstr "落后 %(count)s 个提交"
+
+#: templates/admin_version.html:60
+msgid "Up to date"
+msgstr "已是最新"
+
+#: templates/admin_version.html:68
+msgid "Check again"
+msgstr "重新检查"
+
+#: templates/admin_version.html:70
+msgid "Update"
+msgstr "更新"
+
+#: templates/admin_version.html:74
+msgid "An update is already running."
+msgstr "已有更新正在运行。"
+
+#: templates/admin_version.html:75
+msgid "Clean the working tree to enable updates."
+msgstr "请清理工作区以启用更新。"
+
+#: templates/admin_version.html:76
+msgid "Already up to date."
+msgstr "已是最新版本。"
+
+#: templates/admin_version.html:85
+msgid "Incoming commits"
+msgstr "待更新的提交"
+
+#: templates/admin_version.html:90
+msgid "Commit"
+msgstr "提交"
+
+#: templates/admin_version.html:91 templates/search.html:43
+msgid "Date"
+msgstr "日期"
+
+#: templates/admin_version.html:116
+msgid "Starting…"
+msgstr "正在启动…"
+
+#: templates/admin_version.html:124
+msgid "Last update:"
+msgstr "上次更新："
+
+#: templates/admin_version.html:126
+msgid "applied"
+msgstr "已应用"
+
+#: templates/admin_version.html:130
+msgid "failed"
+msgstr "失败"
+
+#: templates/admin_version.html:132
+msgid "in progress"
+msgstr "进行中"
 
 #: templates/advanced_search.html:2
 msgid "Advanced Search · Keydion"
@@ -2662,17 +2772,13 @@ msgstr "帮助。"
 
 #: templates/guides.html:15
 msgid ""
-"Discover and read research, ask questions about it, and submit your own work "
-"for review."
+"Discover and read research, ask questions about it, and submit your own "
+"work for review."
 msgstr "发现并阅读研究成果，针对研究内容提出问题，也可以提交自己的研究作品供审核。"
 
 #: templates/guides.html:20
 msgid "No guides published yet. Check back soon."
 msgstr "暂无指南，请稍后查看。"
-
-#: templates/guides.html:27
-msgid "Articles"
-msgstr "篇"
 
 #: templates/ia_subjects_manage.html:2
 msgid "Manage IA Subjects · Keydion"
@@ -3036,12 +3142,6 @@ msgstr "提交新论文"
 #: templates/review_paper.html:51 templates/submission_detail.html:44
 msgid "Submitted"
 msgstr "提交时间"
-
-#: templates/my_submissions.html:27 templates/news_manage.html:150
-#: templates/review_list.html:53 templates/review_paper.html:54
-#: templates/submission_detail.html:48
-msgid "Status"
-msgstr "状态"
 
 #: templates/my_submissions.html:47 templates/review_paper.html:57
 #: templates/submission_detail.html:51
@@ -4235,10 +4335,6 @@ msgstr "筛选结果"
 msgid "Search Within Results"
 msgstr "在结果中搜索"
 
-#: templates/search.html:43
-msgid "Date"
-msgstr "日期"
-
 #: templates/search.html:113
 msgid "Any Language"
 msgstr "所有语言"
@@ -4824,3 +4920,7 @@ msgstr "更新安全设置"
 # | msgid "A category with that name already exists."
 #~ msgid "A paper with that public filename already exists."
 #~ msgstr "已存在同名分类。"
+
+#~ msgid "Articles"
+#~ msgstr "篇"
+
