@@ -50,6 +50,10 @@ backups/
 *.zip
 !tests/fixtures/**/*.zip
 
+# ─── Local planning artifacts — never stage or commit ───────────────────────
+docs/plans/
+docs/specs/
+
 # ─── AI assistant scaffolding ───────────────────────────────────────────────
 .claude/
 .qoder/
