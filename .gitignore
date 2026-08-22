@@ -20,8 +20,13 @@ __pycache__/
 .env
 .env.prod
 .env.*.local
+
+# AI
 .claude/
 .qoder/
+.codex/
+.zcode/
+.gemini/
 
 # IDEs and Editors
 .vscode/
