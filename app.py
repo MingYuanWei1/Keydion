@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime, timedelta
+import unicodedata
+from datetime import datetime, timedelta, timezone
 from typing import Dict
 from uuid import uuid4
 from urllib.parse import unquote, urljoin, urlsplit, urlunsplit
@@ -338,27 +339,48 @@ def create_app() -> Flask:
             password = request.form.get("password", "").strip()
             remember = request.form.get("remember_me") == "1"
             login_ip_key = request.remote_addr or "unknown"
-            login_account_key = email.casefold() or "empty"
-            for scope, key, limit in (
-                ("login.ip", login_ip_key, 20),
-                ("login.account", login_account_key, 8),
-            ):
-                limited = _consume_request_limit(
-                    scope,
-                    key,
-                    limit=limit,
-                    window_seconds=300,
-                    base_block_seconds=2,
-                    max_block_seconds=900,
-                )
-                if limited is not None:
-                    return limited
+            limited = _consume_request_limit(
+                "login.ip",
+                login_ip_key,
+                limit=20,
+                window_seconds=300,
+                base_block_seconds=2,
+                max_block_seconds=900,
+            )
+            if limited is not None:
+                return limited
 
             # 1. Try local user by email
             user_record = get_local_user_by_email(email)
             if not user_record:
                 # 2. Try local user by username (for admin accounts like "admin")
                 user_record = get_local_user(email)
+            ms_record = None if user_record else get_ms_user_by_email(email)
+
+            # Throttle per RESOLVED account identity, not per submitted text:
+            # the documented production collation (utf8mb4_unicode_ci) matches
+            # case/accent variants, so identifiers that resolve to the same
+            # account must share one bucket (security finding: collation-
+            # equivalent identifiers bypassed the per-account throttle).
+            # Unknown identifiers fall back to the NFKC-casefolded text.
+            if user_record:
+                login_account_key = f"local:{user_record.get('username', '')}"
+            elif ms_record:
+                login_account_key = f"ms:{ms_record.get('ms_id', '')}"
+            else:
+                login_account_key = (
+                    unicodedata.normalize("NFKC", email).casefold() or "empty"
+                )
+            limited = _consume_request_limit(
+                "login.account",
+                login_account_key,
+                limit=8,
+                window_seconds=300,
+                base_block_seconds=2,
+                max_block_seconds=900,
+            )
+            if limited is not None:
+                return limited
 
             if user_record:
                 user = authenticate(user_record.get("username", ""), password)
@@ -377,26 +399,26 @@ def create_app() -> Flask:
                         flash(_("Unable to sign in. Please try again."), "danger")
                         return redirect(url_for("index", login=1))
                     flash(_("Welcome back, %(username)s!", username=display), "success")
-                    clear_rate_limit("login.ip", login_ip_key)
+                    # Only the account bucket is cleared on success: a login
+                    # with any one valid credential must not reset the shared
+                    # IP failure state, or a low-role attacker could launder
+                    # guesses against other accounts (security finding).
                     clear_rate_limit("login.account", login_account_key)
                     return redirect(_safe_redirect_path(saved_next) or url_for("index"))
-            else:
-                # 3. Try MS user by email (if they have set a password)
-                ms_record = get_ms_user_by_email(email)
-                if ms_record and ms_record.get("password"):
-                    if verify_password(password, ms_record["password"]):
-                        saved_next = session.get("next") or request.form.get("next", "")
-                        try:
-                            start_ms_session(ms_record, remember=remember)
-                        except SQLAlchemyError:
-                            app.logger.exception("Unable to create Microsoft password login session")
-                            flash(_("Unable to sign in. Please try again."), "danger")
-                            return redirect(url_for("index", login=1))
-                        display = ms_record.get("display_name", "") or ms_record.get("email", "")
-                        flash(_("Welcome back, %(username)s!", username=display), "success")
-                        clear_rate_limit("login.ip", login_ip_key)
-                        clear_rate_limit("login.account", login_account_key)
-                        return redirect(_safe_redirect_path(saved_next) or url_for("index"))
+            elif ms_record and ms_record.get("password"):
+                # 3. MS user with a password set
+                if verify_password(password, ms_record["password"]):
+                    saved_next = session.get("next") or request.form.get("next", "")
+                    try:
+                        start_ms_session(ms_record, remember=remember)
+                    except SQLAlchemyError:
+                        app.logger.exception("Unable to create Microsoft password login session")
+                        flash(_("Unable to sign in. Please try again."), "danger")
+                        return redirect(url_for("index", login=1))
+                    display = ms_record.get("display_name", "") or ms_record.get("email", "")
+                    flash(_("Welcome back, %(username)s!", username=display), "success")
+                    clear_rate_limit("login.account", login_account_key)
+                    return redirect(_safe_redirect_path(saved_next) or url_for("index"))
 
             flash(_("Invalid email or password"), "danger")
             return redirect(url_for("index", login=1))
