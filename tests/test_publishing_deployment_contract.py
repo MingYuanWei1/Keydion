@@ -95,7 +95,7 @@ class PublishingDeploymentContract(unittest.TestCase):
     def test_workflow_pins_mysql_and_keeps_generated_urls_child_only(self):
         workflow = self._required_text(WORKFLOW)
         self.assertGreaterEqual(
-            len(re.findall(r"python-version:\s*['\"]?3\.11['\"]?", workflow)),
+            len(re.findall(r"python-version:\s*['\"]?3\.14['\"]?", workflow)),
             2,
         )
         self.assertIn("image: mysql:9.7.1", workflow)
@@ -200,6 +200,9 @@ WantedBy=multi-user.target
         compose = (ROOT / "docker-compose.prod.yml").read_text(encoding="utf-8")
         self.assertIn("attachment-worker:", compose)
         self.assertIn('command: ["python", "-m", "tools.attachment_worker"]', compose)
+        self.assertIn("publishing-worker:", compose)
+        self.assertIn('command: ["python", "-m", "tools.publishing_worker"]', compose)
+        self.assertIn("tools.verify_paper_integrity", compose)
 
     def test_environment_documents_the_approved_worker_defaults(self):
         env_example = (ROOT / ".env.example").read_text(encoding="utf-8")
@@ -269,8 +272,9 @@ WantedBy=multi-user.target
         self.assertIn("start again at section 1 in a new root bash", lower)
         self.assertRegex(lower, r"new\s+`?keydion_backup_id")
         self.assertIn('-m pip install', lower)
+        self.assertIn('--require-hashes', lower)
         self.assertIn(
-            '--requirement "$keydion_root/requirements.txt"',
+            '--requirement "$keydion_root/requirements.lock"',
             lower,
         )
         self.assertIn('-m pip check', lower)

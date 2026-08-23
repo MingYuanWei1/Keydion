@@ -19,7 +19,7 @@ Keydion is a robust, scholarly-focused web application for managing, searching, 
 
 ## Prerequisites
 
-- **Python 3.11+** (the production container pins Python 3.14)
+- **Python 3.14+** (the production container pins Python 3.14)
 - **MySQL 9.x** (CI pins the official `mysql:9.7.1` image)
 - **Tesseract OCR** (optional) — enables local text extraction from *scanned* PDFs (chat attachments, the abstract/keyword generator, and the papers index). Install the engine plus the Chinese language data:
   - Debian/Ubuntu: `apt-get install -y tesseract-ocr tesseract-ocr-chi-sim`
@@ -81,7 +81,12 @@ through to Flask so auth checks run.
    ```bash
    python3 -m venv .venv
    .venv/bin/pip install --require-hashes -r requirements.lock
+   .venv/bin/python -m pip check
    ```
+
+   Install the Tesseract OCR engine and Chinese language data (see
+   Prerequisites) so the scanned-PDF OCR fallback matches the containerized
+   reference stack.
 
    For a database that has just been created and is still completely empty,
    bootstrap it explicitly, then verify the single Alembic head. Never run the
@@ -212,8 +217,9 @@ code failed to import — fix on disk and reload again.
 `docker-compose.prod.yml` is **not authoritative for production**. Production
 operations, migration, worker supervision, and rollback use the tracked host
 systemd units and the migration runbook. The Compose file runs Gunicorn, the
-attachment worker, and nginx; it still does not replace the publishing-worker
-or integrity-timer operations defined for the host deployment.
+publishing worker, the attachment worker, a daily integrity-scan loop, and
+nginx; the host systemd units remain the authoritative operations (systemd
+supervises the workers and the daily timer instead of a container loop).
 
 For an explicitly non-production reference environment, the stack builds the
 bundled [`Dockerfile`](Dockerfile) (Python 3.14 + Tesseract), so the OCR engine

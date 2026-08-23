@@ -9,15 +9,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# System deps: build tools for PyMySQL/pymssql + Tesseract OCR engine and
-# Chinese language data for scanned-PDF extraction. The apt cache mounts reuse
-# downloaded .debs and the package index across rebuilds (and keep them out of
-# the final image, so no rm of /var/lib/apt/lists is needed).
+# System deps: Tesseract OCR engine and Chinese language data for scanned-PDF
+# extraction, plus gcc as the build fallback for source distributions (every
+# locked binary package ships wheels; PyMySQL is pure Python). The apt cache
+# mounts reuse downloaded .debs and the package index across rebuilds (and
+# keep them out of the final image, so no rm of /var/lib/apt/lists is needed).
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get install -y --no-install-recommends \
     gcc \
-    freetds-dev \
     tesseract-ocr \
     tesseract-ocr-chi-sim \
     && groupadd --gid "$KEYDION_GID" keydion \

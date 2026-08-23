@@ -19,7 +19,7 @@ Keydion 是一款健壮、面向学术的 Web 应用，用于管理、检索和�
 
 ## 环境要求
 
-- **Python 3.11+**（生产容器固定使用 Python 3.14）
+- **Python 3.14+**（生产容器固定使用 Python 3.14）
 - **MySQL 9.x**（CI 固定使用官方 `mysql:9.7.1` 镜像）
 - **Tesseract OCR**（可选）：支持对*扫描版* PDF 进行本地文本提取（供聊天附件、摘要/关键词生成器和论文索引使用）。安装引擎和中文语言数据：
   - Debian/Ubuntu：`apt-get install -y tesseract-ocr tesseract-ocr-chi-sim`
@@ -62,7 +62,11 @@ PAPERQUERY_DATABASE_URL="mysql+pymysql://keydion:change-me@127.0.0.1:3306/keydio
    ```bash
    python3 -m venv .venv
    .venv/bin/pip install --require-hashes -r requirements.lock
+   .venv/bin/python -m pip check
    ```
+
+   安装 Tesseract OCR 引擎和中文语言数据（见「环境要求」），使扫描版 PDF 的 OCR
+   回退能力与容器化参考栈保持一致。
 
    对于刚创建、仍完全为空的数据库，请显式执行引导，然后验证唯一的 Alembic head。切勿对已有安装运行引导命令：
 
@@ -163,7 +167,7 @@ curl -sI https://www.keydion.com/ | head -5   # 200/302, Server: nginx
 
 ## Docker 参考栈
 
-`docker-compose.prod.yml` **不是生产环境的权威方案**。生产运维、迁移、工作进程监管和回滚使用纳入版本管理的宿主机 systemd 单元和迁移运维手册。该 Compose 文件运行 Gunicorn、附件工作进程和 nginx；它仍然不能替代为宿主机部署定义的发布工作进程与完整性 timer 运维操作。
+`docker-compose.prod.yml` **不是生产环境的权威方案**。生产运维、迁移、工作进程监管和回滚使用纳入版本管理的宿主机 systemd 单元和迁移运维手册。该 Compose 文件运行 Gunicorn、发布工作进程、附件工作进程、每日完整性扫描循环和 nginx；宿主机 systemd 单元仍是权威的运维方案（由 systemd 而非容器循环监管工作进程和每日 timer）。
 
 对于明确为非生产的参考环境，该栈构建随附的 [`Dockerfile`](Dockerfile)（Python 3.14 + Tesseract），OCR 引擎和中文语言数据已内置其中。
 

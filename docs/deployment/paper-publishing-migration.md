@@ -1660,7 +1660,8 @@ test "$(sudo -u keydion git -C "$KEYDION_ROOT" rev-parse --verify HEAD)" \
 cd "$KEYDION_ROOT"
 sudo -u keydion "$KEYDION_ROOT/.venv/bin/python" -m pip install \
   --disable-pip-version-check \
-  --requirement "$KEYDION_ROOT/requirements.txt"
+  --require-hashes \
+  --requirement "$KEYDION_ROOT/requirements.lock"
 sudo -u keydion "$KEYDION_ROOT/.venv/bin/python" -m pip check
 sudo -u keydion "$KEYDION_ROOT/.venv/bin/python" \
   -m tools.verify_alembic_state --code-only
