@@ -13,7 +13,9 @@ Two layers:
 
 API keys are write-only everywhere: a key, once saved, is never rendered or
 echoed — only booleans. Copying a provider key into a slot variable happens
-file-to-file server side.
+file-to-file server side. A stored key is also origin-bound: probes never pair
+it with a request-supplied endpoint different from the one it was saved for,
+and persisted/assigned endpoints pass public-address + HTTPS vetting.
 
 Write safety: only whitelisted or pattern-validated variable names are ever
 written, and values must match a strict charset (no newlines, control
@@ -458,6 +460,9 @@ def save_provider(payload: dict, expected_env_mtime: float | None = None,
         raise LLMAdminError("Provider name must be 1-64 characters.")
     base_url = (payload.get("base_url") or "").strip()
     _validate_value("Base URL", base_url)
+    # Persisted endpoints later receive stored credentials at runtime, so they
+    # pass the same public/HTTPS vetting as probes — never character checks only.
+    _vetted_base_url(base_url)
     models = _parse_models(payload)
 
     env_updates: dict[str, str] = {}
@@ -642,6 +647,28 @@ def _vetted_base_url(base_url: str) -> None:
         raise LLMAdminError("Base URL contains unsafe characters.")
     if base_url and not web_search.url_targets_public_host(base_url):
         raise LLMAdminError("That endpoint is not a public address — internal hosts cannot be probed.")
+    if base_url and not base_url.lower().startswith("https://"):
+        raise LLMAdminError("Provider endpoints must use HTTPS — cleartext HTTP would expose the API key.")
+
+
+def _origin_bound_pair(payload_base: str, payload_key: str,
+                       saved_base: str, saved_key: str) -> tuple[str, str]:
+    """Effective (base_url, api_key) for a probe, keeping stored credentials
+    bound to the origin they were saved for.
+
+    A stored (write-only) key may only ever travel to its own saved endpoint.
+    Combining it with a different request-supplied origin would send the
+    operator's secret to an attacker-chosen host. To test another endpoint the
+    key must be re-entered explicitly.
+    """
+    if payload_key:
+        return payload_base or saved_base, payload_key
+    if payload_base and saved_key and payload_base != saved_base:
+        raise LLMAdminError(
+            "The saved API key can only be tested against its saved endpoint — "
+            "enter the key again to test a different endpoint."
+        )
+    return payload_base or saved_base, saved_key
 
 
 def _probe_fail(message: str, state: str = "error") -> dict:
@@ -674,12 +701,12 @@ def probe(payload: dict) -> dict:
         if slot == "provider":
             pid = (payload.get("provider_id") or "").strip()
             base_url = (payload.get("base_url") or "").strip()
+            api_key = (payload.get("api_key") or "").strip()
             if pid:
                 saved_base, saved_key = _provider_credentials(pid)
-                base_url = base_url or saved_base
             else:
-                saved_key = ""
-            api_key = (payload.get("api_key") or "").strip() or saved_key
+                saved_base, saved_key = "", ""
+            base_url, api_key = _origin_bound_pair(base_url, api_key, saved_base, saved_key)
             return _probe_models(base_url, api_key, (payload.get("model") or "").strip())
 
         if slot == "search":
@@ -700,24 +727,23 @@ def probe(payload: dict) -> dict:
 
 def _slot_credentials(payload: dict, slot: str) -> tuple[str, str]:
     """Effective base URL + key for a slot probe: form values first, then the
-    payload's provider_id, then the saved slot variables."""
+    payload's provider_id, then the saved slot variables. Stored credentials
+    stay bound to their saved origin (see _origin_bound_pair)."""
     pid = (payload.get("provider_id") or "").strip()
     base_url = (payload.get("base_url") or "").strip()
     api_key = (payload.get("api_key") or "").strip()
     if pid:
         saved_base, saved_key = _provider_credentials(pid)
-        base_url = base_url or saved_base
-        api_key = api_key or saved_key
-        return base_url, api_key
+        return _origin_bound_pair(base_url, api_key, saved_base, saved_key)
     if slot == "embed":
         fallback_base, fallback_key = "LLM_EMBED_BASE_URL", "LLM_EMBED_API_KEY"
     elif slot == "vision":
         fallback_base, fallback_key = "LLM_VISION_BASE_URL", "LLM_VISION_API_KEY"
     else:
         fallback_base, fallback_key = "LLM_BASE_URL", "LLM_API_KEY"
-    base_url = base_url or _saved_values().get(fallback_base, "")
-    api_key = api_key or _env_value(fallback_key) or os.environ.get("LLM_API_KEY", "")
-    return base_url, api_key
+    saved_base = _saved_values().get(fallback_base, "")
+    saved_key = _env_value(fallback_key) or os.environ.get("LLM_API_KEY", "")
+    return _origin_bound_pair(base_url, api_key, saved_base, saved_key)
 
 
 def _effective(payload: dict, field: str, saved_key: str) -> str:
@@ -831,6 +857,10 @@ def _build_updates(slot: str, payload: dict, reg: dict, saved: dict) -> tuple[di
         provider = _provider_by_id(reg, pid)
         if provider is None:
             raise LLMAdminError("Choose a provider first (save it if it is new).")
+        # Assignment copies the provider's stored key to the runtime client, so
+        # the endpoint is re-vetted here too — legacy registries may predate
+        # save-time vetting and must not become an SSRF/cleartext path.
+        _vetted_base_url(provider.get("base_url", ""))
         return provider
 
     def require_model(provider: dict, model_id: str, slot_name: str) -> str:

@@ -82,6 +82,15 @@ def _render(snap):
     )
 
 
+def _stub_public_dns(test_case):
+    """Endpoint vetting resolves DNS; keep admin-model tests hermetic."""
+    import web_search
+    dns_patch = unittest.mock.patch.object(
+        web_search, "_resolve_public_ips", return_value=("93.184.216.34",))
+    dns_patch.start()
+    test_case.addCleanup(dns_patch.stop)
+
+
 class AdminModelsTemplateContract(unittest.TestCase):
     def test_partial_flag_first_line(self):
         src = (ROOT / "templates" / "admin_models.html").read_text(encoding="utf-8")
@@ -344,6 +353,7 @@ class LLMAdminRegistryContract(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.addCleanup(lambda: [os.environ.pop(k, None) for k in tuple(os.environ)
                                  if k.startswith("LLM_") or k.startswith("WEB_SEARCH_")])
+        _stub_public_dns(self)
 
     def test_derived_registry_from_env(self):
         reg, _ = self.la.load_registry()
@@ -553,6 +563,7 @@ class LLMAdminApplyContract(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.addCleanup(lambda: [os.environ.pop(k, None) for k in tuple(os.environ)
                                  if k.startswith("LLM_") or k.startswith("WEB_SEARCH_")])
+        _stub_public_dns(self)
 
     def _seed_provider(self):
         """Create a provider through the public API; return its (unique) id."""
