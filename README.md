@@ -9,7 +9,7 @@ Keydion is a robust, scholarly-focused web application for managing, searching, 
 - **Academic Search**: Advanced search interface with filters for subjects, dates, and languages.
 - **Paper Preview**: In-browser PDF preview with a custom sidebar for metadata.
 - **IB Extended Essay Support**: Specialized metadata fields for IB EE, IA, CP and other academic papers.
-- **Ask the Library**: RAG chat over the paper collection at `/ask` with conversations, citations, PDF attachments, and optional agentic web/document tools, plus semantic search and semantic "related papers" backed by embeddings in MySQL `VECTOR` columns.
+- **Keydion AI**: RAG chat over the paper collection at `/ask` with conversations, citations, PDF attachments, and optional agentic web/document tools, plus semantic search and semantic "related papers" backed by embeddings in MySQL `VECTOR` columns.
 - **AI-Assisted Metadata**: Vision-first extraction of abstracts, keywords, and EE/IA scoring data from paper PDFs (OCR + text-LLM fallback); all AI features degrade gracefully when no LLM key is configured.
 - **Guides, Resources & Journals**: Published guides, a browsable Academic Resources file tree, and an academic journals listing.
 - **Submission & Review Workflow**: Readers submit papers for review, Contributors publish directly, and Curators manage the collection.
@@ -55,7 +55,7 @@ For an existing installation, follow the coordinated
 [Paper publishing migration runbook](docs/deployment/paper-publishing-migration.md)
 before starting the new release. It owns preflight, backup, baseline stamping,
 Alembic upgrade, validation, smoke tests, and rollback. Semantic search and
-"Ask the Library" use MySQL 9.x binary `VECTOR` columns; unsupported MySQL or
+Keydion AI use MySQL 9.x binary `VECTOR` columns; unsupported MySQL or
 schema shapes fail validation instead of silently degrading the migration.
 
 ## Production Deployment (gunicorn under systemd, host nginx)

@@ -1,4 +1,4 @@
-"""Ask-the-Library page + conversation/ask API routes."""
+"""Keydion AI page + conversation/ask API routes."""
 import json
 from datetime import datetime
 
@@ -48,7 +48,7 @@ from services.search import search_papers
 
 def register_routes(app):
 
-    # ==================== ASK-THE-LIBRARY ROUTES ====================
+    # ==================== KEYDION AI ROUTES ====================
 
     def require_ask_api_access():
         if OPEN_ACCESS or get_active_user():

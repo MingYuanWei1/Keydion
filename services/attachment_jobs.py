@@ -1,4 +1,4 @@
-"""Durable extraction and embedding jobs for Ask-the-Library attachments."""
+"""Durable extraction and embedding jobs for Keydion AI attachments."""
 
 from __future__ import annotations
 

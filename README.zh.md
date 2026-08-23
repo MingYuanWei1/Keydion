@@ -9,7 +9,7 @@ Keydion 是一款健壮、面向学术的 Web 应用，用于管理、检索和�
 - **学术检索**：高级检索界面，支持按学科、日期和语言筛选。
 - **论文预览**：在浏览器内预览 PDF，配有显示元数据的自定义侧边栏。
 - **IB 拓展论文（EE）支持**：为 IB EE、IA、CP 和其他学术论文提供专门的元数据字段。
-- **Ask the Library**：在 `/ask` 对资料库进行 RAG（检索增强生成）对话，支持会话、引用、PDF 附件，以及可选的 agent（智能体）网络/文档工具；还提供语义搜索和语义「相关论文」，由存储在 MySQL `VECTOR` 列中的 embedding 支撑。
+- **Keydion AI**：在 `/ask` 对资料库进行 RAG（检索增强生成）对话，支持会话、引用、PDF 附件，以及可选的 agent（智能体）网络/文档工具；还提供语义搜索和语义「相关论文」，由存储在 MySQL `VECTOR` 列中的 embedding 支撑。
 - **AI（人工智能）辅助元数据**：优先由视觉模型从论文 PDF 中提取摘要、关键词和 EE/IA 评分数据，以 OCR + 文本 LLM（大语言模型）作为回退；未配置 LLM 密钥时，所有 AI 功能均可优雅降级。
 - **指南、学术资源与期刊**：已发布的指南、可浏览的学术资源文件树，以及学术期刊列表。
 - **投稿与审核工作流**：读者提交论文供审核，贡献者直接发布，管理员管理资料库。
@@ -47,7 +47,7 @@ FLUSH PRIVILEGES;
 PAPERQUERY_DATABASE_URL="mysql+pymysql://keydion:change-me@127.0.0.1:3306/keydion?charset=utf8mb4"
 ```
 
-对于已有安装，在启动新版本之前，请先遵循协同的[论文发布迁移运维手册](docs/deployment/paper-publishing-migration.md)。该手册涵盖预检、备份、基线标记、Alembic 升级、验证、冒烟测试和回滚。语义搜索和 Ask the Library 使用 MySQL 9.x 的二进制 `VECTOR` 列；不受支持的 MySQL 或 schema 形态会直接校验失败，而不是让迁移静默降级。
+对于已有安装，在启动新版本之前，请先遵循协同的[论文发布迁移运维手册](docs/deployment/paper-publishing-migration.md)。该手册涵盖预检、备份、基线标记、Alembic 升级、验证、冒烟测试和回滚。语义搜索和 Keydion AI 使用 MySQL 9.x 的二进制 `VECTOR` 列；不受支持的 MySQL 或 schema 形态会直接校验失败，而不是让迁移静默降级。
 
 ## 生产部署（systemd 下的 gunicorn，宿主机 nginx）
 

@@ -1,14 +1,14 @@
 """The Ask conversation turn.
 
 One deep module behind a small interface: `run_ask_turn(input)` runs a single
-Ask-the-Library turn — the streaming tool loop, the legacy single-shot
+Keydion AI turn — the streaming tool loop, the legacy single-shot
 fallback, the round-cap forced answer, the citation split, and assistant-message
 persistence — and yields typed event dicts. The HTTP route serializes those
 dicts to SSE.
 
 No Flask, no ORM models, no `db_session`: HTTP entry, retrieval, web search,
 user-message persistence, and assistant-message persistence are the caller's
-job. The turn owns only what a turn *is*. See CONTEXT.md § Ask-the-Library.
+job. The turn owns only what a turn *is*. See CONTEXT.md § Keydion AI.
 """
 import json
 

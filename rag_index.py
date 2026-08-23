@@ -1,5 +1,5 @@
 # rag_index.py
-"""In-process RAG index for Ask-the-Library.
+"""In-process RAG index for Keydion AI.
 
 Paper text -> overlapping chunks -> embeddings (Gemini OpenAI-compatible) stored
 in MySQL (papers_chunks). Vectors are stored in MySQL as binary VECTOR columns;

@@ -1,5 +1,5 @@
 # web_search.py
-"""Pluggable web search for Ask-the-Library (Phase 5).
+"""Pluggable web search for Keydion AI (Phase 5).
 
 Default provider is Tavily (purpose-built for LLM grounding). Disabled entirely
 when WEB_SEARCH_API_KEY is unset, so the feature ships off and the UI toggle is

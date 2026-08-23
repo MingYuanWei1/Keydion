@@ -112,7 +112,7 @@ Environment variables: see `.env.example` for the full annotated list. **Gotcha:
 - `LLM_DEFAULT_FLASH` / `LLM_DEFAULT_THINK` — model tiers (cheap/fast vs. reasoning)
 - `LLM_EMBED_API_KEY` / `LLM_EMBED_BASE_URL` / `LLM_EMBED_MODEL` — separate embedding provider (defaults to Gemini's OpenAI-compatible endpoint; falls back to chat credentials when unset)
 - `LLM_VISION` / `LLM_VISION_API_KEY` / `LLM_VISION_BASE_URL` — separate **vision** (multimodal) provider for reading rendered PDF pages; falls back to chat credentials when the `*_VISION_*` values are unset. Empty `LLM_VISION` ⇒ `vision_enabled()` is false and everything uses the legacy OCR/text path
-- `WEB_SEARCH_PROVIDER` / `WEB_SEARCH_API_KEY` — Ask-the-Library web access (Tavily default); empty key hides the web toggle
+- `WEB_SEARCH_PROVIDER` / `WEB_SEARCH_API_KEY` — Keydion AI web access (Tavily default); empty key hides the web toggle
 - `PAPERQUERY_DATA_DIR` / `PAPERQUERY_UPLOAD_DIR` / `PAPERQUERY_RESOURCES_DIR` — path overrides
 
 ## Architecture
@@ -132,10 +132,10 @@ Self-contained concerns remain factored into satellite modules:
 - `llm_metadata.py` — abstract + keyword drafting from a paper PDF (vision-first when `vision_enabled()`; OCR+text-LLM fallback)
 - `vision_read.py` — vision-model PDF reading: `transcribe_pdf()` (vision-as-OCR, `""` on failure) and `extract_with_vision()` (structured `json_object` extraction over page images, raises `VisionError`). Used by the extractors and the scanned-page RAG ingestion fallback
 - `rag_index.py` — RAG index: chunking, embeddings stored in MySQL 9 binary `VECTOR` columns (`papers_chunks.embedding_vec`), numpy cosine (normalized mat-vec) over a per-process snapshot that auto-refreshes when the `rag_index_meta.chunks_version` stamp moves (any process's write invalidates all gunicorn workers within one request)
-- `library_tools.py` — tool-calling core for Ask-the-Library agentic mode (tool schemas + dispatch)
-- `web_search.py` — pluggable web search for Ask-the-Library (disabled when unconfigured)
+- `library_tools.py` — tool-calling core for Keydion AI agentic mode (tool schemas + dispatch)
+- `web_search.py` — pluggable web search for Keydion AI (disabled when unconfigured)
 
-**LLM features** (all degrade gracefully when `LLM_API_KEY` is unset): Ask-the-Library RAG chat at `/ask` + `/api/ask` (conversations, citations, PDF attachments, optional agentic web/document tools), semantic search + semantic "related papers", abstract/keyword auto-fill (`/api/upload/generate-abstract-keywords`), EE metadata extraction (`/api/upload/extract-ee-metadata`), and IA score/comment extraction (`/api/upload/extract-ia-metadata`). The three PDF-reading extractors are **vision-first**: when `vision_enabled()` they read rendered page images via the vision model, otherwise they fall back to the OCR+text-LLM path. The abstract/IA/EE auto-extract buttons show when `(vision_enabled() or llm_enabled())` for a contributor; RAG ingestion transcribes **scanned** pages with the vision model when configured, else Tesseract. The idea backlog and implementation status live in `local/LLM_DEPLOYMENT_IDEAS.md` (machine-local, not tracked).
+**LLM features** (all degrade gracefully when `LLM_API_KEY` is unset): Keydion AI RAG chat at `/ask` + `/api/ask` (conversations, citations, PDF attachments, optional agentic web/document tools), semantic search + semantic "related papers", abstract/keyword auto-fill (`/api/upload/generate-abstract-keywords`), EE metadata extraction (`/api/upload/extract-ee-metadata`), and IA score/comment extraction (`/api/upload/extract-ia-metadata`). The three PDF-reading extractors are **vision-first**: when `vision_enabled()` they read rendered page images via the vision model, otherwise they fall back to the OCR+text-LLM path. The abstract/IA/EE auto-extract buttons show when `(vision_enabled() or llm_enabled())` for a contributor; RAG ingestion transcribes **scanned** pages with the vision model when configured, else Tesseract. The idea backlog and implementation status live in `local/LLM_DEPLOYMENT_IDEAS.md` (machine-local, not tracked).
 
 **Dashboard URL nesting** — authenticated admin routes live under `/dashboard/...` (e.g. `/dashboard/admin/users`, `/dashboard/admin/guides`). Bare `/admin/*` paths exist only as 301-redirect legacy endpoints. Enforced by `test_dashboard_url_nesting_contract.py`.
 
@@ -145,7 +145,7 @@ Self-contained concerns remain factored into satellite modules:
 - `LocalUser` / `MsUser` — local password auth and Microsoft Graph OAuth users
 - `PaperMetadataModel` — published papers (JSON fields stored as text: `ib_ee_data`, `cp_data`, `ia_data`)
 - `PaperChunkModel` — RAG chunk embeddings per published paper (vectors stored as JSON text)
-- `ConversationModel` / `ChatMessageModel` — Ask-the-Library chat history
+- `ConversationModel` / `ChatMessageModel` — Keydion AI chat history
 - `AttachmentChunkModel` — embeddings for per-conversation uploaded attachments
 - `SubmissionModel` — user-submitted papers pending review
 - `NewsArticleModel` — news/articles with block-based body (JSON array of text/image blocks)

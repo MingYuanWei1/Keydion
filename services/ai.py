@@ -1,4 +1,4 @@
-"""Ask-the-Library: RAG index glue, prompt building, attachments, rate limiting."""
+"""Keydion AI: RAG index glue, prompt building, attachments, rate limiting."""
 import json
 import logging
 import re
