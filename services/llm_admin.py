@@ -23,6 +23,7 @@ here, systemd EnvironmentFile= at boot).
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -50,7 +51,11 @@ _LEGACY_KEY_VARS = frozenset({"LLM_API_KEY", "LLM_EMBED_API_KEY", "LLM_VISION_AP
 # Values that parse identically for python-dotenv and systemd EnvironmentFile=:
 # no quoting is ever needed, so no value can alter line structure.
 _VALUE_RE = re.compile(r"^[A-Za-z0-9._:/~@+-]{1,512}$")
-_SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,31}$")
+_PROVIDER_ID_MAX_LENGTH = 32
+_PROVIDER_ID_HASH_LENGTH = 8
+_SLUG_RE = re.compile(
+    rf"^[a-z0-9][a-z0-9-]{{0,{_PROVIDER_ID_MAX_LENGTH - 1}}}$"
+)
 
 _PROBE_TIMEOUT_SECONDS = 15
 _SLOTS = ("text", "embed", "vision", "search")
@@ -249,6 +254,10 @@ def _registry_path() -> Path:
 
 def _slugify(text: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", (text or "").lower()).strip("-")
+    if len(slug) > _PROVIDER_ID_MAX_LENGTH:
+        digest = hashlib.sha256(slug.encode("utf-8")).hexdigest()[:_PROVIDER_ID_HASH_LENGTH]
+        prefix_length = _PROVIDER_ID_MAX_LENGTH - _PROVIDER_ID_HASH_LENGTH - 1
+        slug = f"{slug[:prefix_length].rstrip('-')}-{digest}"
     if not _SLUG_RE.match(slug):
         raise LLMAdminError("Could not derive a valid provider id from that name.")
     return slug
@@ -271,9 +280,8 @@ def _unique_slug(base: str, taken: set[str]) -> str:
     slug, n = base, 2
     while slug in taken:
         suffix = f"-{n}"
-        if len(base) + len(suffix) > 32:
-            raise LLMAdminError("Could not derive a unique provider id; choose another name.")
-        slug = base + suffix
+        prefix_length = _PROVIDER_ID_MAX_LENGTH - len(suffix)
+        slug = base[:prefix_length].rstrip("-") + suffix
         n += 1
     return slug
 

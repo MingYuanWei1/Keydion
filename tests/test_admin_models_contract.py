@@ -360,6 +360,22 @@ class LLMAdminRegistryContract(unittest.TestCase):
         self.assertEqual(reg["assignments"]["embed"]["provider_id"], "aliyun-dashscope")
         self.assertEqual(reg["assignments"]["vision"]["mode"], "text")  # no dedicated creds
 
+    def test_snapshot_derives_bounded_id_for_dynamic_aliyun_hostname(self):
+        """First load must handle deployment-specific hosts longer than an id."""
+        with self.env_path.open("a", encoding="utf-8") as env_file:
+            env_file.write(
+                "LLM_VISION_API_KEY=sk-vision-secret\n"
+                "LLM_VISION_BASE_URL="
+                "https://abc123def456gh789xy.cn-shanghai.pai-eas.aliyuncs.com/v1\n"
+            )
+
+        snap = self.la.snapshot()
+
+        vision_id = snap["assignments"]["vision"]["provider_id"]
+        self.assertEqual("abc123def456gh789xy-cn-ee7f9796", vision_id)
+        self.assertRegex(vision_id, r"^[a-z0-9][a-z0-9-]{0,31}$")
+        self.assertIn(vision_id, {provider["id"] for provider in snap["providers"]})
+
     def test_save_provider_validates_model_roles(self):
         from services.llm_admin import LLMAdminError
         with self.assertRaises(LLMAdminError):
