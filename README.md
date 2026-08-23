@@ -1,5 +1,7 @@
 # Keydion - Academic Paper Management System
 
+English | [中文](README.zh.md)
+
 Keydion is a robust, scholarly-focused web application for managing, searching, and previewing academic papers. Built with Flask and MySQL, it features multi-language support, a premium design aesthetic, and specialized support for IB Essays.
 
 ## Features
