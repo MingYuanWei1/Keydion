@@ -26,9 +26,11 @@ here, systemd EnvironmentFile= at boot).
 from __future__ import annotations
 
 import hashlib
+import http.client
 import json
 import os
 import re
+import ssl
 import threading
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -60,6 +62,7 @@ _SLUG_RE = re.compile(
 )
 
 _PROBE_TIMEOUT_SECONDS = 15
+_PROBE_MAX_RESPONSE_BYTES = 512 * 1024   # a model list / one embedding is tiny
 _SLOTS = ("text", "embed", "vision", "search")
 # Role each MODEL plays; "multimodal" covers text+vision in one model.
 _MODEL_ROLES = ("text", "multimodal", "embedding")
@@ -675,16 +678,72 @@ def _probe_fail(message: str, state: str = "error") -> dict:
     return {"ok": False, "state": state, "error": message[:400]}
 
 
-def _classify_failure(exc: Exception) -> tuple[str, str]:
-    """(state, message) — offline means the endpoint could not be reached at
-    all; error means it answered but rejected the request."""
-    try:
-        from openai import APIConnectionError
-        if isinstance(exc, APIConnectionError):
-            return "offline", f"Cannot reach the endpoint: {exc}"
-    except Exception:  # noqa: BLE001 — openai unavailable; keep generic state
-        pass
-    return "error", f"Endpoint rejected the request: {exc}"
+def _pinned_probe_request(
+    base_url: str,
+    api_key: str,
+    method: str,
+    path: str,
+    body: bytes | None = None,
+) -> tuple[int, bytes]:
+    """One probe HTTP request over a socket pinned to a vetted public address.
+
+    (security finding: the probe validated DNS answers and then handed the
+    hostname to a normal HTTP client, which re-resolves — an attacker-
+    controlled name can answer public during validation and private at connect
+    time.) Resolve once, connect only to the vetted numeric addresses, verify
+    the connected peer, and bind TLS to the original hostname. Raises
+    LLMAdminError when the destination cannot be reached safely.
+    """
+    normalized = web_search.normalize_fetch_url(base_url)
+    if normalized is None:
+        raise LLMAdminError("Base URL is not a valid endpoint.")
+    parts = urlsplit(normalized)
+    if parts.scheme != "https":
+        raise LLMAdminError("Provider endpoints must use HTTPS.")
+    port = parts.port or 443
+    addresses = web_search._resolve_public_ips(parts.hostname or "", port)
+    if not addresses:
+        raise LLMAdminError(
+            "That endpoint is not a public address — internal hosts cannot be probed."
+        )
+    target = (parts.path or "").rstrip("/") + "/" + path.lstrip("/")
+    if parts.query:
+        target += "?" + parts.query
+    last_error = None
+    for address in addresses:
+        connection = None
+        try:
+            connection = web_search._open_pinned_connection(
+                parts, address, _PROBE_TIMEOUT_SECONDS
+            )
+            connection.putrequest(
+                method, target, skip_host=True, skip_accept_encoding=True
+            )
+            connection.putheader("Host", parts.hostname or "")
+            connection.putheader("Authorization", f"Bearer {api_key}")
+            connection.putheader("Accept", "application/json")
+            if body is not None:
+                connection.putheader("Content-Type", "application/json")
+                connection.putheader("Content-Length", str(len(body)))
+            connection.endheaders(body)
+            response = connection.getresponse()
+            payload = response.read(_PROBE_MAX_RESPONSE_BYTES + 1)
+            status = response.status
+            connection.close()
+            connection = None
+            if len(payload) > _PROBE_MAX_RESPONSE_BYTES:
+                raise LLMAdminError("The endpoint response was too large.")
+            return status, payload
+        except LLMAdminError:
+            raise
+        except (OSError, ssl.SSLError, http.client.HTTPException) as exc:
+            last_error = exc
+            if connection is not None:
+                try:
+                    connection.close()
+                except Exception:
+                    pass
+    raise LLMAdminError(f"Cannot reach the endpoint: {last_error}")
 
 
 def probe(payload: dict) -> dict:
@@ -755,17 +814,24 @@ def _probe_models(base_url: str, api_key: str, model: str) -> dict:
     if not api_key:
         return _probe_fail("No API key configured for this slot.", "offline")
     try:
-        from openai import OpenAI  # lazy, matching llm_client
-    except Exception as exc:
-        return _probe_fail(f"openai package unavailable: {exc}")
+        status, payload = _pinned_probe_request(base_url, api_key, "GET", "models")
+    except LLMAdminError as exc:
+        return _probe_fail(str(exc), "offline")
+    if status in (401, 403):
+        return _probe_fail("The endpoint rejected the API key.", "error")
+    if status != 200:
+        return _probe_fail(f"The endpoint answered with HTTP {status}.", "error")
     try:
-        client = OpenAI(api_key=api_key, base_url=base_url or None,
-                        timeout=_PROBE_TIMEOUT_SECONDS, max_retries=0)
-        resp = client.models.list()
-    except Exception as exc:  # noqa: BLE001 — provider/auth/network errors
-        state, message = _classify_failure(exc)
-        return _probe_fail(message, state)
-    ids = sorted({m.id for m in resp.data if getattr(m, "id", None)})[:200]
+        data = json.loads(payload) if payload else {}
+    except (ValueError, TypeError):
+        return _probe_fail("The endpoint did not return valid JSON.", "error")
+    ids = sorted({
+        str(item.get("id"))
+        for item in (data.get("data") or [])
+        if isinstance(item, dict) and item.get("id")
+    })[:200]
+    if not ids:
+        return _probe_fail("The endpoint returned no model list.", "error")
     return {
         "ok": True,
         "state": "online",
@@ -778,17 +844,28 @@ def _probe_embedding(base_url: str, api_key: str, model: str) -> dict:
     _vetted_base_url(base_url)
     if not api_key:
         return _probe_fail("No API key configured for this slot.")
+    body = json.dumps({"model": model, "input": ["dimension probe"]}).encode("utf-8")
     try:
-        from openai import OpenAI
-    except Exception as exc:
-        return _probe_fail(f"openai package unavailable: {exc}")
+        status, payload = _pinned_probe_request(
+            base_url, api_key, "POST", "embeddings", body=body
+        )
+    except LLMAdminError as exc:
+        return _probe_fail(str(exc), "offline")
+    if status in (401, 403):
+        return _probe_fail("The endpoint rejected the API key.", "error")
+    if status != 200:
+        return _probe_fail(f"The endpoint answered with HTTP {status}.", "error")
     try:
-        client = OpenAI(api_key=api_key, base_url=base_url or None,
-                        timeout=_PROBE_TIMEOUT_SECONDS, max_retries=0)
-        resp = client.embeddings.create(model=model, input=["dimension probe"])
-        dimension = len(resp.data[0].embedding)
-    except Exception as exc:  # noqa: BLE001
-        return _probe_fail(f"Embedding request failed: {exc}")
+        data = json.loads(payload) if payload else {}
+    except (ValueError, TypeError):
+        return _probe_fail("The endpoint did not return valid JSON.", "error")
+    rows = data.get("data") or []
+    if not isinstance(rows, list) or not rows or not isinstance(rows[0], dict):
+        return _probe_fail("The endpoint returned no embedding.", "error")
+    embedding = rows[0].get("embedding") or []
+    if not isinstance(embedding, list) or not embedding:
+        return _probe_fail("The endpoint returned an empty embedding.", "error")
+    dimension = len(embedding)
     return {
         "ok": True,
         "dimension": dimension,

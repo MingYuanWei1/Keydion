@@ -653,55 +653,57 @@ class LLMAdminApplyContract(unittest.TestCase):
 
 
 class ProbeStateContract(unittest.TestCase):
-    """Provider probes classify failures: online / offline / error."""
+    """Provider probes classify failures: online / offline / error.
 
-    def _fake_openai(self, list_result=None, error=None):
-        import types
-        from openai import APIConnectionError
-        def ctor(**kwargs):
-            if error is not None:
-                raise error
-            return types.SimpleNamespace(models=types.SimpleNamespace(list=lambda: list_result))
-        return types.SimpleNamespace(OpenAI=ctor, APIConnectionError=APIConnectionError)
+    Probes run over the pinned-transport helper (security finding: DNS
+    rebinding), so these tests intercept _pinned_probe_request — the single
+    network seam — and stub the pre-flight public-address vetting to stay
+    hermetic (no DNS, no sockets).
+    """
+
+    def _run_probe(self, pinned_kwargs, api_key="sk-x"):
+        import services.llm_admin as la
+        from unittest import mock
+        with mock.patch.object(la.web_search, "url_targets_public_host",
+                               return_value=True), \
+             mock.patch.object(la, "_pinned_probe_request", **pinned_kwargs):
+            return la.probe({"slot": "provider",
+                             "base_url": "https://api.deepseek.com",
+                             "api_key": api_key})
 
     def test_online_state_on_success(self):
-        import sys
-        import types
+        payload = b'{"data": [{"id": "m1"}, {"id": "m2"}]}'
         import services.llm_admin as la
         from unittest import mock
-        resp = types.SimpleNamespace(data=[types.SimpleNamespace(id="m1")])
-        with mock.patch.dict(sys.modules, {"openai": self._fake_openai(list_result=resp)}):
-            result = la.probe({"slot": "provider", "base_url": "https://api.deepseek.com",
-                               "api_key": "sk-x"})
+        with mock.patch.object(la.web_search, "url_targets_public_host",
+                               return_value=True), \
+             mock.patch.object(la, "_pinned_probe_request",
+                               return_value=(200, payload)):
+            result = la.probe({"slot": "provider",
+                               "base_url": "https://api.deepseek.com",
+                               "api_key": "sk-x", "model": "m1"})
         self.assertTrue(result["ok"])
         self.assertEqual(result["state"], "online")
+        self.assertTrue(result["model_listed"])
 
     def test_connection_failure_is_offline(self):
-        import sys
-        import services.llm_admin as la
-        from unittest import mock
-        from openai import APIConnectionError
-        failure = APIConnectionError(message="timeout", request=None)
-        with mock.patch.dict(sys.modules, {"openai": self._fake_openai(error=failure)}):
-            result = la.probe({"slot": "provider", "base_url": "https://api.deepseek.com",
-                               "api_key": "sk-x"})
+        from services.llm_admin import LLMAdminError
+        result = self._run_probe(
+            {"side_effect": LLMAdminError("Cannot reach the endpoint: boom")})
         self.assertFalse(result["ok"])
         self.assertEqual(result["state"], "offline")
 
     def test_rejection_is_error(self):
-        import sys
-        import services.llm_admin as la
-        from unittest import mock
-        with mock.patch.dict(sys.modules, {"openai": self._fake_openai(error=RuntimeError("401"))}):
-            result = la.probe({"slot": "provider", "base_url": "https://api.deepseek.com",
-                               "api_key": "sk-bad"})
+        result = self._run_probe({"return_value": (401, b"{}")})
         self.assertFalse(result["ok"])
         self.assertEqual(result["state"], "error")
 
     def test_missing_key_is_offline(self):
-        import services.llm_admin as la
-        result = la.probe({"slot": "provider", "base_url": "https://api.deepseek.com",
-                           "api_key": ""})
+        # The missing-key classification happens before any network activity,
+        # so it must never reach the transport seam.
+        result = self._run_probe(
+            {"side_effect": AssertionError("must not probe without a key")},
+            api_key="")
         self.assertFalse(result["ok"])
         self.assertEqual(result["state"], "offline")
 
