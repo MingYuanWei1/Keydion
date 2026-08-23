@@ -74,6 +74,10 @@ from services.publishing_contracts import (
 
 _RESERVATION_TTL = timedelta(hours=1)
 _REQUEST_LEASE_TTL = timedelta(seconds=1800)
+# Immutable revisions are retained forever, so each Paper gets a hard revision
+# ceiling: tiny restore/revise requests must not be able to duplicate large
+# PDFs without bound (security finding: uncontrolled resource consumption).
+MAX_REVISIONS_PER_PAPER = 25
 _METADATA_STRING_LIMITS = {
     "filename": 255,
     "title": 255,
@@ -2511,6 +2515,18 @@ class PublishingLifecycle:
                 )
                 if source is None:
                     raise NotFound("Paper revision not found")
+                current = session.get(
+                    PaperRevisionModel, (paper.id, paper.current_revision)
+                )
+                if (
+                    current is not None
+                    and source.sha256 == current.sha256
+                ):
+                    # Restoring bytes identical to the current revision would
+                    # only duplicate an immutable PDF for zero benefit.
+                    raise InvalidInput(
+                        {"revision": "that revision is already the current content"}
+                    )
                 source_sha256 = source.sha256
                 source_size_bytes = source.size_bytes
             else:
@@ -2636,6 +2652,10 @@ class PublishingLifecycle:
                     expected_row_version,
                 )
                 attempted_revision = paper.current_revision + 1
+                if attempted_revision > MAX_REVISIONS_PER_PAPER:
+                    raise InvalidInput(
+                        {"revision": f"papers keep at most {MAX_REVISIONS_PER_PAPER} revisions"}
+                    )
                 self._reconcile_unowned_next_locked(
                     session,
                     paper,

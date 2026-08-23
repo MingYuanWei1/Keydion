@@ -235,16 +235,21 @@ class PublishingRevisionTests(PublishingLifecycleTestCase, unittest.TestCase):
 
     def test_restoration_rejects_valid_pdf_tampering_against_revision_record(self):
         published = self.publish()
+        # Revise first so the restore targets a NON-current revision: restoring
+        # the current revision is refused as an identical-content duplicate.
+        revised = self.lifecycle.change_paper(
+            self.revise_intent(published, self.valid_pdf_bytes("second"))
+        )
         source_path = self.storage.revision_path(published.paper_id, 1)
         source_path.write_bytes(self.valid_pdf_bytes("tampered-but-valid"))
 
         with self.assertRaises(StorageFailed):
-            self.lifecycle.change_paper(self.restore_intent(published, 1))
+            self.lifecycle.change_paper(self.restore_intent(revised, 1))
 
         paper = self.paper_row(published.paper_id)
-        self.assertEqual((paper.current_revision, paper.row_version), (1, 1))
-        self.assertEqual(self.revisions(published.paper_id), [1])
-        self.assertFalse(self.storage.revision_path(published.paper_id, 2).exists())
+        self.assertEqual((paper.current_revision, paper.row_version), (2, 2))
+        self.assertEqual(self.revisions(published.paper_id), [1, 2])
+        self.assertFalse(self.storage.revision_path(published.paper_id, 3).exists())
         self.assertEqual(self.jobs(published.paper_id), [])
         self.assertEqual(self.staged_entries(), [])
 

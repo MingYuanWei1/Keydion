@@ -28,6 +28,8 @@ from config import (
     IB_EE_CRITERIA_DEFS,
     MAX_SEARCH_QUERY_CHARS,
     OPEN_ACCESS,
+    RESTORE_RATE_LIMIT,
+    RESTORE_RATE_WINDOW,
     SEARCH_RATE_LIMIT,
     SEARCH_RATE_WINDOW,
 )
@@ -1111,6 +1113,20 @@ def register_routes(app):
         if not user:
             return redirect(url_for("login"))
         return_endpoint = change_return_endpoint(user)
+        # Restore duplicates an entire immutable PDF server-side per call; a
+        # tiny repeated request must not be able to churn storage and indexing
+        # without bound (security finding: uncontrolled resource consumption).
+        decision = consume_rate_limit(
+            "paper.restore",
+            user.get("username") or request.remote_addr or "?",
+            limit=RESTORE_RATE_LIMIT,
+            window_seconds=RESTORE_RATE_WINDOW,
+            base_block_seconds=10,
+            max_block_seconds=3600,
+        )
+        if not decision.allowed:
+            flash(_("Too many requests — please slow down."), "warning")
+            return redirect(url_for(return_endpoint))
         try:
             expected_version = int(request.form.get("row_version", ""))
         except (TypeError, ValueError):

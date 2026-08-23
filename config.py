@@ -289,6 +289,11 @@ MIN_SEMANTIC_QUERY_LEN = 2   # skip embedding for 1-char queries (idea #4)
 MAX_SEARCH_QUERY_CHARS = 200
 SEARCH_RATE_LIMIT = 30       # query searches per window
 SEARCH_RATE_WINDOW = 60      # seconds
+# Restore duplicates whole immutable PDFs server-side; throttle it per user so
+# tiny repeated requests cannot churn storage/indexing (see publishing's
+# MAX_REVISIONS_PER_PAPER for the hard cap).
+RESTORE_RATE_LIMIT = 10      # restores per window
+RESTORE_RATE_WINDOW = 600    # seconds
 # VECTOR(n) column dimension for RAG chunk embeddings. Must match the embedding
 # model's output (gemini-embedding-001: 3072). Changing it requires a column
 # migration + full re-index, not just an env flip.

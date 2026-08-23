@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import io
 import itertools
 import tempfile
@@ -101,9 +102,16 @@ class PublishingLifecycleTestCase:
 
     @staticmethod
     def valid_pdf_bytes(label="paper"):
+        # Page geometry varies with the label so distinct labels produce
+        # genuinely distinct content hashes: a /Subject-only difference would
+        # be stripped by PaperStorage.apply_metadata, collapsing "different"
+        # revisions onto identical bytes. Deterministic per label.
+        digest = hashlib.sha256(label.encode("utf-8")).digest()
+        width = 72 + int.from_bytes(digest[0:2], "big") % 300
+        height = 72 + int.from_bytes(digest[2:4], "big") % 300
         stream = io.BytesIO()
         writer = PdfWriter()
-        writer.add_blank_page(width=72, height=72)
+        writer.add_blank_page(width=width, height=height)
         writer.add_metadata({"/Subject": label})
         writer.write(stream)
         return stream.getvalue()
