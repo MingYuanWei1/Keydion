@@ -267,7 +267,14 @@
   var BULK_URL = "{{ url_for('news_bulk_action') }}";
 
   /* ============ Helpers ============ */
-  function escHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+  /* Attribute-safe HTML encoder: category names are interpolated into
+     double-quoted attributes and reparsed via innerHTML, so quotes must be
+     escaped too — a text-node-only encoder (textContent/innerHTML) would let
+     a name like  x" onmouseover="alert(1)  break out of the attribute. */
+  function escHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
   function showToast(msg) {
     var t = document.getElementById('catToast');
     t.textContent = msg;

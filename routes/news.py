@@ -22,6 +22,7 @@ from db import db_session
 from models import NewsArticleModel
 from services.auth import get_active_user, require_login
 from services.news import (
+    category_name_validation_error,
     delete_news_article,
     get_news_article,
     load_categories,
@@ -254,8 +255,13 @@ def register_routes(app):
         if not user:
             return jsonify(error="Unauthorized"), 401
         name = (request.json or {}).get("name", "").strip()
-        if not name:
+        error = category_name_validation_error(name)
+        if error == "required":
             return jsonify(error=str(_("Category name is required."))), 400
+        if error == "too_long":
+            return jsonify(error=str(_("Category name must be 50 characters or fewer."))), 400
+        if error:
+            return jsonify(error=str(_("Category name contains unsupported characters."))), 400
         cats = load_categories()
         if name in cats:
             return jsonify(error=str(_("Category already exists."))), 409
@@ -273,6 +279,11 @@ def register_routes(app):
         new_name = data.get("new_name", "").strip()
         if not old_name or not new_name:
             return jsonify(error=str(_("Both old and new names are required."))), 400
+        error = category_name_validation_error(new_name)
+        if error == "too_long":
+            return jsonify(error=str(_("Category name must be 50 characters or fewer."))), 400
+        if error:
+            return jsonify(error=str(_("Category name contains unsupported characters."))), 400
         cats = load_categories()
         if old_name not in cats:
             return jsonify(error=str(_("Category not found."))), 404

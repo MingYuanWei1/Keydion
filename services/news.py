@@ -35,6 +35,26 @@ def sanitize_news_body(raw: str) -> str:
             block["content"] = _sanitize_guide_html(block.get("content", ""))
     return json.dumps(blocks, ensure_ascii=False)
 
+CATEGORY_NAME_MAX_LENGTH = 50
+# Characters that can break out of the manager's attribute-context string
+# building (security finding: stored XSS via category names). Names carrying
+# them are rejected at add/rename instead of relying on client escaping alone.
+_CATEGORY_NAME_FORBIDDEN = frozenset('<>"\'')
+
+
+def category_name_validation_error(name: str) -> Optional[str]:
+    """Why a news category name is unsafe to persist, or None when it is safe."""
+    if not isinstance(name, str) or not name:
+        return "required"
+    if len(name) > CATEGORY_NAME_MAX_LENGTH:
+        return "too_long"
+    if any(character in _CATEGORY_NAME_FORBIDDEN for character in name):
+        return "unsafe_characters"
+    if any(ord(character) < 32 for character in name):
+        return "unsafe_characters"
+    return None
+
+
 def load_categories() -> list:
     """Load categories from JSON file, seeding from defaults if needed."""
     if CATEGORIES_JSON.exists():
