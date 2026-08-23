@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-23 23:33+0800\n"
+"POT-Creation-Date: 2026-08-24 00:15+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,387 +17,401 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: app.py:308 routes/ai.py:278 routes/ai.py:338 routes/papers.py:287
-#: routes/papers.py:1128 routes/upload.py:86
+#: app.py:309 routes/ai.py:293 routes/ai.py:353 routes/papers.py:287
+#: routes/papers.py:1128 routes/upload.py:91
 msgid "Too many requests — please slow down."
 msgstr ""
 
-#: app.py:377 app.py:393 app.py:508
+#: app.py:413 app.py:430 app.py:544
 msgid "Unable to sign in. Please try again."
 msgstr ""
 
-#: app.py:379 app.py:396
+#: app.py:415 app.py:433
 #, python-format
 msgid "Welcome back, %(username)s!"
 msgstr ""
 
-#: app.py:401
+#: app.py:437
 msgid "Invalid email or password"
 msgstr ""
 
-#: app.py:405 app.py:418 app.py:453
+#: app.py:441 app.py:454 app.py:489
 msgid "Microsoft sign-in is not configured. Please contact the administrator."
 msgstr ""
 
-#: app.py:410
+#: app.py:446
 msgid "Email-based registration is disabled. Please sign in with Microsoft."
 msgstr ""
 
-#: app.py:472
+#: app.py:508
 msgid "Login session expired. Please try again."
 msgstr ""
 
-#: app.py:480 app.py:495
+#: app.py:516 app.py:531
 #, python-format
 msgid "Microsoft sign-in failed: %(reason)s"
 msgstr ""
 
-#: app.py:485
+#: app.py:521
 msgid "Microsoft sign-in failed. Please try again."
 msgstr ""
 
-#: app.py:500
+#: app.py:536
 msgid "Microsoft sign-in did not return a valid profile."
 msgstr ""
 
-#: app.py:532
+#: app.py:568
 msgid "Signed out successfully."
 msgstr ""
 
-#: app.py:543
+#: app.py:579
 msgid "Unable to load your profile. Please sign in again."
 msgstr ""
 
-#: app.py:552
+#: app.py:588
 msgid "Please enter your first and last name."
 msgstr ""
 
-#: app.py:563
+#: app.py:599
 msgid "Profile saved successfully."
 msgstr ""
 
-#: app.py:602
+#: app.py:635
+msgid "Password setup is not available. Please contact the administrator."
+msgstr ""
+
+#: app.py:638
+msgid ""
+"For your security, sign in with Microsoft again before setting your first"
+" password."
+msgstr ""
+
+#: app.py:653
 msgid "Current password is incorrect."
 msgstr ""
 
-#: app.py:607
+#: app.py:658
 msgid "Please enter a new password."
 msgstr ""
 
-#: app.py:610
+#: app.py:661
 msgid "Passwords do not match."
 msgstr ""
 
-#: app.py:613
+#: app.py:664
 msgid "Password must be at least 6 characters."
 msgstr ""
 
-#: app.py:617
+#: app.py:668
 msgid "Password must contain both letters and numbers."
 msgstr ""
 
-#: app.py:622
+#: app.py:673
 msgid "New password must be different from your current password."
 msgstr ""
 
-#: app.py:637
+#: app.py:692
 msgid "Password updated. Please sign in again."
 msgstr ""
 
-#: app.py:640
+#: app.py:695
 msgid "Unable to update password."
 msgstr ""
 
-#: app.py:680
+#: app.py:735
 msgid "Role updates saved."
 msgstr ""
 
-#: app.py:692
+#: app.py:747
 msgid "Username and password are required."
 msgstr ""
 
-#: app.py:695
+#: app.py:750
 msgid "That username is already taken."
 msgstr ""
 
-#: app.py:698
+#: app.py:753
 msgid "Local user created."
 msgstr ""
 
-#: app.py:708 app.py:750
+#: app.py:763 app.py:805
 msgid "Role updated."
 msgstr ""
 
-#: app.py:710 app.py:752
+#: app.py:765 app.py:807
 msgid "Unable to update role."
 msgstr ""
 
-#: app.py:720 app.py:773
+#: app.py:775 app.py:828
 msgid "Password is required."
 msgstr ""
 
-#: app.py:723
+#: app.py:778
 msgid "Password reset successfully."
 msgstr ""
 
-#: app.py:725
+#: app.py:780
 msgid "Unable to reset password."
 msgstr ""
 
-#: app.py:734
+#: app.py:789
 msgid "Local user deleted."
 msgstr ""
 
-#: app.py:736
+#: app.py:791
 msgid "Unable to delete user."
 msgstr ""
 
-#: app.py:761
+#: app.py:816
 msgid "Microsoft user deleted."
 msgstr ""
 
-#: app.py:763
+#: app.py:818
 msgid "Unable to delete Microsoft user."
 msgstr ""
 
-#: app.py:776
+#: app.py:831
 msgid "Password set successfully."
 msgstr ""
 
-#: app.py:778
+#: app.py:833
 msgid "Unable to set password."
 msgstr ""
 
-#: app.py:812
+#: app.py:867
 #, python-format
 msgid "oldest %(n)d days ago"
 msgstr ""
 
-#: app.py:828
+#: app.py:883
 #, python-format
 msgid "+%(n)d this month"
 msgstr ""
 
-#: app.py:846
+#: app.py:901
 msgid "Language not supported."
 msgstr ""
 
-#: config.py:356
+#: config.py:380
 msgid "Please enter the paper title"
 msgstr ""
 
-#: config.py:357
+#: config.py:381
 msgid "Please select a subject category"
 msgstr ""
 
-#: config.py:358
+#: config.py:382
 msgid "Please select a language"
 msgstr ""
 
-#: config.py:359
+#: config.py:383
 msgid "Please enter keywords"
 msgstr ""
 
-#: config.py:360
+#: config.py:384
 msgid "Please enter the abstract"
 msgstr ""
 
-#: config.py:361
+#: config.py:385
 msgid "Please enter the author name"
 msgstr ""
 
-#: config.py:362
+#: config.py:386
 msgid "Please enter the contact email"
 msgstr ""
 
-#: config.py:363
+#: config.py:387
 msgid "Please enter the school name"
 msgstr ""
 
-#: config.py:391
+#: config.py:415
 msgid "Reader - View & Download"
 msgstr ""
 
-#: config.py:392
+#: config.py:416
 msgid "Contributor - Upload Enabled"
 msgstr ""
 
-#: config.py:393
+#: config.py:417
 msgid "Curator - Full Access"
 msgstr ""
 
-#: config.py:396 routes/upload.py:173 templates/paper_modify.html:116
+#: config.py:420 routes/upload.py:188 templates/paper_modify.html:116
 #: templates/search.html:115
 msgid "English"
 msgstr ""
 
-#: config.py:397 routes/upload.py:174 templates/paper_modify.html:114
+#: config.py:421 routes/upload.py:189 templates/paper_modify.html:114
 #: templates/search.html:114
 msgid "Chinese"
 msgstr ""
 
-#: routes/ai.py:57 services/auth.py:614
+#: routes/ai.py:62 services/auth.py:624
 msgid "Please sign in first."
 msgstr ""
 
-#: routes/ai.py:77
+#: routes/ai.py:82
 msgid "What does the research say about climate adaptation in plants?"
 msgstr ""
 
-#: routes/ai.py:78
+#: routes/ai.py:83
 msgid "Summarize recent Extended Essays in economics."
 msgstr ""
 
-#: routes/ai.py:79
+#: routes/ai.py:84
 msgid "Find papers about machine learning in healthcare."
 msgstr ""
 
-#: routes/ai.py:89
+#: routes/ai.py:94
 msgid "Ask a question and I'll answer from the published library, with citations."
 msgstr ""
 
-#: routes/ai.py:90 templates/ai.html:86
+#: routes/ai.py:95 templates/ai.html:86
 msgid "Message Keydion AI…"
 msgstr ""
 
-#: routes/ai.py:91 templates/ai.html:106
+#: routes/ai.py:96 templates/ai.html:106
 msgid "Flash"
 msgstr ""
 
-#: routes/ai.py:92 templates/ai.html:107
+#: routes/ai.py:97 templates/ai.html:107
 msgid "Thinking"
 msgstr ""
 
-#: routes/ai.py:93 templates/ai.html:109
+#: routes/ai.py:98 templates/ai.html:109
 msgid "Send"
 msgstr ""
 
-#: routes/ai.py:94
+#: routes/ai.py:99
 msgid "Cited from your library"
 msgstr ""
 
-#: routes/ai.py:95
+#: routes/ai.py:100
 msgid "Copy"
 msgstr ""
 
-#: routes/ai.py:96
+#: routes/ai.py:101
 msgid "Regenerate"
 msgstr ""
 
-#: routes/ai.py:97 templates/news_manage.html:517
+#: routes/ai.py:102 templates/news_manage.html:517
 #: templates/paper_manage.html:824
 msgid "Rename"
 msgstr ""
 
-#: routes/ai.py:98
+#: routes/ai.py:103
 msgid "Today"
 msgstr ""
 
-#: routes/ai.py:99
+#: routes/ai.py:104
 msgid "Yesterday"
 msgstr ""
 
-#: routes/ai.py:100
+#: routes/ai.py:105
 msgid "Previous 7 days"
 msgstr ""
 
-#: routes/ai.py:101
+#: routes/ai.py:106
 msgid "Older"
 msgstr ""
 
-#: routes/ai.py:102
+#: routes/ai.py:107
 msgid "No conversations match."
 msgstr ""
 
-#: routes/ai.py:103
+#: routes/ai.py:108
 msgid "Thinking…"
 msgstr ""
 
-#: routes/ai.py:104 routes/ai.py:301 routes/ai.py:512
+#: routes/ai.py:109 routes/ai.py:316 routes/ai.py:538
 msgid "Something went wrong. Please try again."
 msgstr ""
 
-#: routes/ai.py:105 routes/ai.py:258 routes/ai.py:334 templates/ai.html:48
+#: routes/ai.py:110 routes/ai.py:273 routes/ai.py:349 templates/ai.html:48
 msgid "AI assistant is not configured."
 msgstr ""
 
-#: routes/ai.py:106
+#: routes/ai.py:111
 msgid "No matching papers were found in the library."
 msgstr ""
 
-#: routes/ai.py:107
+#: routes/ai.py:112
 msgid "Searched the web"
 msgstr ""
 
-#: routes/ai.py:108 templates/ia_subjects_manage.html:155
+#: routes/ai.py:113 templates/ia_subjects_manage.html:155
 #: templates/paper_manage.html:412
 msgid "selected"
 msgstr ""
 
-#: routes/ai.py:109 templates/ai.html:183
+#: routes/ai.py:114 templates/ai.html:183
 msgid "Select papers to attach as citations"
 msgstr ""
 
-#: routes/ai.py:110 routes/upload.py:182 templates/paper_modify.html:127
+#: routes/ai.py:115 routes/upload.py:197 templates/paper_modify.html:127
 #: templates/preview.html:412 templates/review_paper.html:33
 #: templates/submission_detail.html:30
 msgid "Abstract"
 msgstr ""
 
-#: routes/ai.py:111 templates/preview.html:417 templates/search.html:274
+#: routes/ai.py:116 templates/preview.html:417 templates/search.html:274
 msgid "No abstract available."
 msgstr ""
 
-#: routes/ai.py:112 templates/ai.html:179
+#: routes/ai.py:117 templates/ai.html:179
 msgid "Hover a paper to preview its abstract before citing."
 msgstr ""
 
-#: routes/ai.py:139 routes/ai.py:144 routes/ai.py:387 templates/ai.html:54
+#: routes/ai.py:150
+msgid "You have too many conversations — delete one before starting a new one."
+msgstr ""
+
+#: routes/ai.py:154 routes/ai.py:159 routes/ai.py:402 templates/ai.html:54
 msgid "New conversation"
 msgstr ""
 
-#: routes/ai.py:163 routes/ai.py:318
+#: routes/ai.py:178 routes/ai.py:333
 msgid "Not found"
 msgstr ""
 
-#: routes/ai.py:267
+#: routes/ai.py:282
 msgid "Conversation not found."
 msgstr ""
 
-#: routes/ai.py:282 routes/upload.py:735 routes/upload.py:761
-#: routes/upload.py:788
+#: routes/ai.py:297 routes/upload.py:776 routes/upload.py:809
+#: routes/upload.py:843
 msgid "No file provided"
 msgstr ""
 
-#: routes/ai.py:285
+#: routes/ai.py:300
 msgid "Unsupported file type. Use PDF, DOCX, TXT, or Markdown."
 msgstr ""
 
-#: routes/ai.py:288
+#: routes/ai.py:303
 msgid "File is too large (max 5 MB)."
 msgstr ""
 
-#: routes/ai.py:291
+#: routes/ai.py:306
 msgid "Invalid filename."
 msgstr ""
 
-#: routes/ai.py:296
+#: routes/ai.py:311
 msgid "Attachment limit reached — remove an attachment or try a smaller file."
 msgstr ""
 
-#: routes/ai.py:298
+#: routes/ai.py:313
 msgid "Could not read the file."
 msgstr ""
 
-#: routes/ai.py:325
+#: routes/ai.py:340
 msgid "Could not process the attachment."
 msgstr ""
 
-#: routes/ai.py:365
+#: routes/ai.py:380
 msgid "Please enter a question."
 msgstr ""
 
-#: routes/ai.py:367
+#: routes/ai.py:382
 msgid "Your question is too long."
 msgstr ""
 
@@ -450,73 +464,81 @@ msgstr ""
 msgid "Journal updated."
 msgstr ""
 
-#: routes/news.py:101 routes/news.py:189
+#: routes/news.py:66
+msgid "Image is too large (max 5 MB)."
+msgstr ""
+
+#: routes/news.py:68
+msgid "News image storage is full — delete unused images first."
+msgstr ""
+
+#: routes/news.py:134 routes/news.py:233
 msgid "Please enter a title."
 msgstr ""
 
-#: routes/news.py:103 routes/news.py:191
+#: routes/news.py:136 routes/news.py:235
 msgid "Please select a category."
 msgstr ""
 
-#: routes/news.py:105 routes/news.py:193
+#: routes/news.py:138 routes/news.py:237
 msgid "Please enter an abstract."
 msgstr ""
 
-#: routes/news.py:107 routes/news.py:195
+#: routes/news.py:140 routes/news.py:239
 msgid "Please write the article body."
 msgstr ""
 
-#: routes/news.py:120 routes/news.py:206
+#: routes/news.py:164 routes/news.py:261
 msgid "Cover image must be PNG, JPG, GIF, or WebP."
 msgstr ""
 
-#: routes/news.py:141 routes/news.py:219
+#: routes/news.py:185 routes/news.py:274
 msgid "Draft saved."
 msgstr ""
 
-#: routes/news.py:143
+#: routes/news.py:187
 msgid "Article published successfully."
 msgstr ""
 
-#: routes/news.py:163 routes/news.py:240 routes/news.py:369 routes/news.py:378
+#: routes/news.py:207 routes/news.py:295 routes/news.py:424 routes/news.py:433
 msgid "Article not found."
 msgstr ""
 
-#: routes/news.py:221
+#: routes/news.py:276
 msgid "Article updated."
 msgstr ""
 
-#: routes/news.py:238
+#: routes/news.py:293
 msgid "Article deleted."
 msgstr ""
 
-#: routes/news.py:260 routes/news.py:318 routes/papers.py:180
+#: routes/news.py:315 routes/news.py:373 routes/papers.py:180
 #: routes/papers.py:236
 msgid "Category name is required."
 msgstr ""
 
-#: routes/news.py:262 routes/news.py:284
+#: routes/news.py:317 routes/news.py:339
 msgid "Category name must be 50 characters or fewer."
 msgstr ""
 
-#: routes/news.py:264 routes/news.py:286
+#: routes/news.py:319 routes/news.py:341
 msgid "Category name contains unsupported characters."
 msgstr ""
 
-#: routes/news.py:267 routes/papers.py:183
+#: routes/news.py:322 routes/papers.py:183
 msgid "Category already exists."
 msgstr ""
 
-#: routes/news.py:281 routes/papers.py:197
+#: routes/news.py:336 routes/papers.py:197
 msgid "Both old and new names are required."
 msgstr ""
 
-#: routes/news.py:289 routes/news.py:321 routes/papers.py:200
+#: routes/news.py:344 routes/news.py:376 routes/papers.py:200
 #: routes/papers.py:239
 msgid "Category not found."
 msgstr ""
 
-#: routes/news.py:291 routes/papers.py:202
+#: routes/news.py:346 routes/papers.py:202
 msgid "A category with that name already exists."
 msgstr ""
 
@@ -532,29 +554,29 @@ msgstr ""
 msgid "No matching papers found."
 msgstr ""
 
-#: routes/papers.py:869 routes/upload.py:517
+#: routes/papers.py:869 routes/upload.py:536
 msgid ""
 "A paper can only be one of: Extended Essay, Community Project, or "
 "Internal Assessment."
 msgstr ""
 
-#: routes/papers.py:874 routes/upload.py:522
+#: routes/papers.py:874 routes/upload.py:541
 msgid "Please select an EE core subject."
 msgstr ""
 
-#: routes/papers.py:879 routes/upload.py:527
+#: routes/papers.py:879 routes/upload.py:546
 msgid "Please select a Global Context."
 msgstr ""
 
-#: routes/papers.py:884 routes/upload.py:530
+#: routes/papers.py:884 routes/upload.py:549
 msgid "Please select at least one Type of Action."
 msgstr ""
 
-#: routes/papers.py:891 routes/upload.py:535
+#: routes/papers.py:891 routes/upload.py:554
 msgid "Please select an IA subject."
 msgstr ""
 
-#: routes/papers.py:896 routes/upload.py:538
+#: routes/papers.py:896 routes/upload.py:557
 msgid "The selected IA subject has no assessment criteria configured."
 msgstr ""
 
@@ -688,613 +710,625 @@ msgstr ""
 msgid "Paper rejected."
 msgstr ""
 
-#: routes/upload.py:112 routes/upload.py:239 templates/advanced_search.html:14
+#: routes/upload.py:102
+msgid ""
+"You have too many drafts and pending submissions. Delete one before "
+"adding another."
+msgstr ""
+
+#: routes/upload.py:104
+msgid ""
+"Your pending submissions use too much storage. Delete one before "
+"uploading more."
+msgstr ""
+
+#: routes/upload.py:127 routes/upload.py:254 templates/advanced_search.html:14
 #: templates/search.html:51
 msgid "Paper Type"
 msgstr ""
 
-#: routes/upload.py:113 routes/upload.py:260
+#: routes/upload.py:128 routes/upload.py:275
 msgid "Metadata"
 msgstr ""
 
-#: routes/upload.py:114 routes/upload.py:272 templates/landing.html:671
+#: routes/upload.py:129 routes/upload.py:287 templates/landing.html:671
 msgid "Authors"
 msgstr ""
 
-#: routes/upload.py:115 routes/upload.py:274 templates/resource_manage.html:101
+#: routes/upload.py:130 routes/upload.py:289 templates/resource_manage.html:101
 msgid "File"
 msgstr ""
 
-#: routes/upload.py:116 templates/_dashboard_shell.html:81
+#: routes/upload.py:131 templates/_dashboard_shell.html:81
 #: templates/review_list.html:84
 msgid "Review"
 msgstr ""
 
-#: routes/upload.py:117
+#: routes/upload.py:132
 #, python-format
 msgid "Step %(n)s"
 msgstr ""
 
-#: routes/upload.py:118
+#: routes/upload.py:133
 msgid "Submit Paper"
 msgstr ""
 
-#: routes/upload.py:119
+#: routes/upload.py:134
 msgid "Continue →"
 msgstr ""
 
-#: routes/upload.py:120
+#: routes/upload.py:135
 msgid "← Back"
 msgstr ""
 
-#: routes/upload.py:121 templates/news_publish.html:975
+#: routes/upload.py:136 templates/news_publish.html:975
 msgid "Save Draft"
 msgstr ""
 
-#: routes/upload.py:122
+#: routes/upload.py:137
 msgid "Choose paper type"
 msgstr ""
 
-#: routes/upload.py:123
+#: routes/upload.py:138
 msgid "What kind of paper are you submitting?"
 msgstr ""
 
-#: routes/upload.py:124
+#: routes/upload.py:139
 msgid ""
 "The fields you'll be asked for next depend on this. You can come back and"
 " change it before submitting."
 msgstr ""
 
-#: routes/upload.py:125 templates/advanced_search.html:21
+#: routes/upload.py:140 templates/advanced_search.html:21
 #: templates/paper_manage.html:339 templates/search.html:58
 #: templates/search.html:265
 msgid "Independent Research"
 msgstr ""
 
-#: routes/upload.py:126
+#: routes/upload.py:141
 msgid "Standard Paper"
 msgstr ""
 
-#: routes/upload.py:127
+#: routes/upload.py:142
 msgid "A self-directed research paper, conference paper, or article."
 msgstr ""
 
-#: routes/upload.py:128
+#: routes/upload.py:143
 msgid "Title · authors · abstract · subject"
 msgstr ""
 
-#: routes/upload.py:129 routes/upload.py:133 routes/upload.py:137
+#: routes/upload.py:144 routes/upload.py:148 routes/upload.py:152
 msgid "IB Diploma"
 msgstr ""
 
-#: routes/upload.py:130
+#: routes/upload.py:145
 msgid "Extended Essay (EE)"
 msgstr ""
 
-#: routes/upload.py:131
+#: routes/upload.py:146
 msgid ""
 "A 4,000-word IB Diploma research essay with structured criterion scores "
 "(A–E) and an EE subject from the six IB subject groups."
 msgstr ""
 
-#: routes/upload.py:132
+#: routes/upload.py:147
 msgid "Research Question · EE subject · criterion scores A–E"
 msgstr ""
 
-#: routes/upload.py:134
+#: routes/upload.py:149
 msgid "Community Project (CP)"
 msgstr ""
 
-#: routes/upload.py:135
+#: routes/upload.py:150
 msgid ""
 "An IB MYP Community Project graded against Criteria A–D, with a Global "
 "Context and a chosen type of action."
 msgstr ""
 
-#: routes/upload.py:136
+#: routes/upload.py:151
 msgid "Title · Global Context · type of action · criteria A–D"
 msgstr ""
 
-#: routes/upload.py:138
+#: routes/upload.py:153
 msgid "Internal Assessment (IA)"
 msgstr ""
 
-#: routes/upload.py:139
+#: routes/upload.py:154
 msgid ""
 "A subject-specific IB Internal Assessment graded against that subject's "
 "assessment criteria."
 msgstr ""
 
-#: routes/upload.py:140
+#: routes/upload.py:155
 msgid "Title · IA subject · per-criterion scores"
 msgstr ""
 
-#: routes/upload.py:141
+#: routes/upload.py:156
 msgid "IB Internal Assessment"
 msgstr ""
 
-#: routes/upload.py:142
+#: routes/upload.py:157
 msgid "Tell us about your assessment"
 msgstr ""
 
-#: routes/upload.py:143 templates/advanced_search.html:60
+#: routes/upload.py:158 templates/advanced_search.html:60
 #: templates/paper_modify.html:289 templates/preview.html:340
 #: templates/search.html:81
 msgid "IA Subject"
 msgstr ""
 
-#: routes/upload.py:144
+#: routes/upload.py:159
 msgid "Select an IA subject…"
 msgstr ""
 
-#: routes/upload.py:145 routes/upload.py:207
+#: routes/upload.py:160 routes/upload.py:222
 msgid "Calculated server-side from the criteria above"
 msgstr ""
 
-#: routes/upload.py:146
+#: routes/upload.py:161
 msgid "IA Details"
 msgstr ""
 
-#: routes/upload.py:147
+#: routes/upload.py:162
 #, python-format
 msgid "IA criterion score %(k)s"
 msgstr ""
 
-#: routes/upload.py:148
+#: routes/upload.py:163
 msgid "Enter the overall score directly"
 msgstr ""
 
-#: routes/upload.py:149
+#: routes/upload.py:164
 msgid ""
 "Skip per-criterion scoring and enter just the total mark for the "
 "assessment."
 msgstr ""
 
-#: routes/upload.py:150
+#: routes/upload.py:165
 msgid "Enter the overall mark for the assessment"
 msgstr ""
 
-#: routes/upload.py:151
+#: routes/upload.py:166
 msgid "Overall Score"
 msgstr ""
 
-#: routes/upload.py:152
+#: routes/upload.py:167
 msgid "IA overall score"
 msgstr ""
 
-#: routes/upload.py:153
+#: routes/upload.py:168
 msgid ""
 "This subject has no assessment criteria configured yet. Choose another "
 "subject or ask an administrator to add criteria."
 msgstr ""
 
-#: routes/upload.py:154
+#: routes/upload.py:169
 msgid "IA subject has no criteria"
 msgstr ""
 
-#: routes/upload.py:155
+#: routes/upload.py:170
 msgid "Commentary for this criterion…"
 msgstr ""
 
-#: routes/upload.py:156
+#: routes/upload.py:171
 msgid "Auto-fill scores from PDF"
 msgstr ""
 
-#: routes/upload.py:157 routes/upload.py:290
+#: routes/upload.py:172 routes/upload.py:305
 msgid "Extracting…"
 msgstr ""
 
-#: routes/upload.py:158
+#: routes/upload.py:173
 msgid "Extracted scores."
 msgstr ""
 
-#: routes/upload.py:159 routes/upload.py:293
+#: routes/upload.py:174 routes/upload.py:308
 msgid "Auto-fill failed — try again or fill manually."
 msgstr ""
 
-#: routes/upload.py:160
+#: routes/upload.py:175
 msgid "Choose an IA subject first."
 msgstr ""
 
-#: routes/upload.py:161
+#: routes/upload.py:176
 msgid "Research Question"
 msgstr ""
 
-#: routes/upload.py:162 templates/my_submissions.html:25
+#: routes/upload.py:177 templates/my_submissions.html:25
 #: templates/review_list.html:50
 msgid "Paper Title"
 msgstr ""
 
-#: routes/upload.py:163
+#: routes/upload.py:178
 msgid ""
 "e.g. To what extent did monetary policy contribute to the 2008 financial "
 "crisis?"
 msgstr ""
 
-#: routes/upload.py:164
+#: routes/upload.py:179
 msgid "Enter the complete paper title"
 msgstr ""
 
-#: routes/upload.py:165
+#: routes/upload.py:180
 msgid "Tell us about your essay"
 msgstr ""
 
-#: routes/upload.py:166
+#: routes/upload.py:181
 msgid "Tell us about your community project"
 msgstr ""
 
-#: routes/upload.py:167
+#: routes/upload.py:182
 msgid "Tell us about your paper"
 msgstr ""
 
-#: routes/upload.py:168
+#: routes/upload.py:183
 msgid "IB grading information and bibliographic details for the submission."
 msgstr ""
 
-#: routes/upload.py:169
+#: routes/upload.py:184
 msgid "Bibliographic information that will appear on the public paper page."
 msgstr ""
 
-#: routes/upload.py:170
+#: routes/upload.py:185
 msgid "Paper details"
 msgstr ""
 
-#: routes/upload.py:171
+#: routes/upload.py:186
 msgid "Bibliographic"
 msgstr ""
 
-#: routes/upload.py:172 templates/paper_modify.html:110
+#: routes/upload.py:187 templates/paper_modify.html:110
 #: templates/search.html:110
 msgid "Language"
 msgstr ""
 
-#: routes/upload.py:175
+#: routes/upload.py:190
 msgid "Subject Category"
 msgstr ""
 
-#: routes/upload.py:176
+#: routes/upload.py:191
 msgid "Choose a subject category…"
 msgstr ""
 
-#: routes/upload.py:177 templates/paper_modify.html:121
+#: routes/upload.py:192 templates/paper_modify.html:121
 #: templates/preview.html:444 templates/review_paper.html:30
 #: templates/submission_detail.html:27
 msgid "Keywords"
 msgstr ""
 
-#: routes/upload.py:178
+#: routes/upload.py:193
 msgid "Add another…"
 msgstr ""
 
-#: routes/upload.py:179
+#: routes/upload.py:194
 msgid "Type a keyword and press Enter"
 msgstr ""
 
-#: routes/upload.py:180
+#: routes/upload.py:195
 msgid "Press Enter or comma to add. Aim for 3–6 keywords."
 msgstr ""
 
-#: routes/upload.py:181 templates/ee_subjects_manage.html:102
+#: routes/upload.py:196 templates/ee_subjects_manage.html:102
 #: templates/ia_subjects_manage.html:139
 msgid "added"
 msgstr ""
 
-#: routes/upload.py:183
+#: routes/upload.py:198
 msgid "Briefly describe your research background, methods, and conclusions…"
 msgstr ""
 
-#: routes/upload.py:184
+#: routes/upload.py:199
 msgid "A short summary that appears in search results."
 msgstr ""
 
-#: routes/upload.py:185 templates/paper_modify.html:139
+#: routes/upload.py:200 templates/paper_modify.html:139
 msgid "This is an IB Sample Paper"
 msgstr ""
 
-#: routes/upload.py:186
+#: routes/upload.py:201
 msgid "Sample papers are reference essays without an identified author."
 msgstr ""
 
-#: routes/upload.py:187
+#: routes/upload.py:202
 msgid "Named authors"
 msgstr ""
 
-#: routes/upload.py:188
+#: routes/upload.py:203
 msgid "List the authors with their contact details."
 msgstr ""
 
-#: routes/upload.py:189 templates/paper_modify.html:150
+#: routes/upload.py:204 templates/paper_modify.html:150
 msgid "Upload as anonymous"
 msgstr ""
 
-#: routes/upload.py:190 templates/paper_modify.html:152
+#: routes/upload.py:205 templates/paper_modify.html:152
 msgid "The paper is published without any author information."
 msgstr ""
 
-#: routes/upload.py:191
+#: routes/upload.py:206
 msgid "Framework for the essay"
 msgstr ""
 
-#: routes/upload.py:192
+#: routes/upload.py:207
 msgid "Knowledge and understanding"
 msgstr ""
 
-#: routes/upload.py:193
+#: routes/upload.py:208
 msgid "Analysis and line of argument"
 msgstr ""
 
-#: routes/upload.py:194
+#: routes/upload.py:209
 msgid "Discussion and evaluation"
 msgstr ""
 
-#: routes/upload.py:195
+#: routes/upload.py:210
 msgid "Reflection"
 msgstr ""
 
-#: routes/upload.py:196 templates/advanced_search.html:48
+#: routes/upload.py:211 templates/advanced_search.html:48
 #: templates/preview.html:151 templates/search.html:66
 msgid "EE Subject"
 msgstr ""
 
-#: routes/upload.py:197 templates/paper_modify.html:199
+#: routes/upload.py:212 templates/paper_modify.html:199
 msgid "Core Subject"
 msgstr ""
 
-#: routes/upload.py:198
+#: routes/upload.py:213
 msgid "Select a core subject…"
 msgstr ""
 
-#: routes/upload.py:199 templates/ee_subjects_manage.html:100
+#: routes/upload.py:214 templates/ee_subjects_manage.html:100
 msgid "Interdisciplinary"
 msgstr ""
 
-#: routes/upload.py:200 templates/resource_manage.html:102
+#: routes/upload.py:215 templates/resource_manage.html:102
 #: templates/review_paper.html:77
 msgid "Optional"
 msgstr ""
 
-#: routes/upload.py:201
+#: routes/upload.py:216
 msgid "Optional — select if applicable…"
 msgstr ""
 
-#: routes/upload.py:202
+#: routes/upload.py:217
 msgid "Criterion Scores"
 msgstr ""
 
-#: routes/upload.py:203 templates/paper_modify.html:239
+#: routes/upload.py:218 templates/paper_modify.html:239
 #: templates/paper_modify.html:402 templates/preview.html:292
 msgid "Crit."
 msgstr ""
 
-#: routes/upload.py:204
+#: routes/upload.py:219
 msgid "Criterion"
 msgstr ""
 
-#: routes/upload.py:205 templates/paper_modify.html:241
+#: routes/upload.py:220 templates/paper_modify.html:241
 #: templates/paper_modify.html:316 templates/paper_modify.html:404
 msgid "Score"
 msgstr ""
 
-#: routes/upload.py:206
+#: routes/upload.py:221
 msgid "Overall Grade"
 msgstr ""
 
-#: routes/upload.py:208
+#: routes/upload.py:223
 msgid "Criterion Commentaries"
 msgstr ""
 
-#: routes/upload.py:209
+#: routes/upload.py:224
 msgid "Include commentaries for all criteria"
 msgstr ""
 
-#: routes/upload.py:210
+#: routes/upload.py:225
 msgid ""
 "Provide short remarks on each criterion plus an optional overall holistic"
 " commentary."
 msgstr ""
 
-#: routes/upload.py:211
+#: routes/upload.py:226
 #, python-format
 msgid "Commentary for Criterion %(k)s…"
 msgstr ""
 
-#: routes/upload.py:212 templates/paper_modify.html:271
+#: routes/upload.py:227 templates/paper_modify.html:271
 #: templates/paper_modify.html:356 templates/preview.html:218
 #: templates/preview.html:390
 msgid "Holistic Commentary"
 msgstr ""
 
-#: routes/upload.py:213
+#: routes/upload.py:228
 msgid "An overall holistic commentary for the essay…"
 msgstr ""
 
-#: routes/upload.py:214
+#: routes/upload.py:229
 msgid "Investigating"
 msgstr ""
 
-#: routes/upload.py:215
+#: routes/upload.py:230
 msgid "Planning"
 msgstr ""
 
-#: routes/upload.py:216
+#: routes/upload.py:231
 msgid "Taking Action"
 msgstr ""
 
-#: routes/upload.py:217
+#: routes/upload.py:232
 msgid "Reflecting"
 msgstr ""
 
-#: routes/upload.py:218 templates/advanced_search.html:72
+#: routes/upload.py:233 templates/advanced_search.html:72
 #: templates/paper_modify.html:375 templates/preview.html:265
 #: templates/search.html:96
 msgid "Global Context"
 msgstr ""
 
-#: routes/upload.py:219
+#: routes/upload.py:234
 msgid "Select a Global Context…"
 msgstr ""
 
-#: routes/upload.py:220
+#: routes/upload.py:235
 msgid "Global Contexts"
 msgstr ""
 
-#: routes/upload.py:221 templates/paper_modify.html:386
+#: routes/upload.py:236 templates/paper_modify.html:386
 #: templates/preview.html:273
 msgid "Type of Action"
 msgstr ""
 
-#: routes/upload.py:222
+#: routes/upload.py:237
 msgid "Mean of the four criterion scores, rounded"
 msgstr ""
 
-#: routes/upload.py:223
+#: routes/upload.py:238
 msgid "Author information"
 msgstr ""
 
-#: routes/upload.py:224
+#: routes/upload.py:239
 msgid "Who wrote this?"
 msgstr ""
 
-#: routes/upload.py:225
+#: routes/upload.py:240
 msgid "The first author's contact details are required. Add co-authors as needed."
 msgstr ""
 
-#: routes/upload.py:226 templates/admin_models.html:230
+#: routes/upload.py:241 templates/admin_models.html:230
 #: templates/paper_modify.html:166
 msgid "Name"
 msgstr ""
 
-#: routes/upload.py:227 templates/admin_users.html:81
+#: routes/upload.py:242 templates/admin_users.html:81
 #: templates/paper_modify.html:170 templates/register.html:15
 #: templates/review_paper.html:40 templates/submission_detail.html:37
 msgid "Email"
 msgstr ""
 
-#: routes/upload.py:228
+#: routes/upload.py:243
 msgid "School / Institution"
 msgstr ""
 
-#: routes/upload.py:229
+#: routes/upload.py:244
 msgid "Remove author"
 msgstr ""
 
-#: routes/upload.py:230
+#: routes/upload.py:245
 msgid "+ Add another author"
 msgstr ""
 
-#: routes/upload.py:231
+#: routes/upload.py:246
 msgid "File upload"
 msgstr ""
 
-#: routes/upload.py:232
+#: routes/upload.py:247
 msgid "Upload your PDF"
 msgstr ""
 
-#: routes/upload.py:233
+#: routes/upload.py:248
 msgid "Submit a single PDF, up to 50 MB. You can change this before publishing."
 msgstr ""
 
-#: routes/upload.py:234
+#: routes/upload.py:249
 msgid "No file chosen"
 msgstr ""
 
-#: routes/upload.py:235
+#: routes/upload.py:250
 msgid "PDF only · single file"
 msgstr ""
 
-#: routes/upload.py:236
+#: routes/upload.py:251
 msgid "Replace"
 msgstr ""
 
-#: routes/upload.py:237
+#: routes/upload.py:252
 msgid "Choose file"
 msgstr ""
 
-#: routes/upload.py:238
+#: routes/upload.py:253
 msgid ""
 "If you'd like to come back to this later, click Save Draft below — your "
 "form will be restored next time you visit."
 msgstr ""
 
-#: routes/upload.py:240
+#: routes/upload.py:255
 msgid "First author (name, email, school)"
 msgstr ""
 
-#: routes/upload.py:241
+#: routes/upload.py:256
 msgid "EE core subject"
 msgstr ""
 
-#: routes/upload.py:242
+#: routes/upload.py:257
 #, python-format
 msgid "EE criterion score %(k)s"
 msgstr ""
 
-#: routes/upload.py:243
+#: routes/upload.py:258
 msgid "Global context"
 msgstr ""
 
-#: routes/upload.py:244
+#: routes/upload.py:259
 msgid "Type of action"
 msgstr ""
 
-#: routes/upload.py:245
+#: routes/upload.py:260
 #, python-format
 msgid "CP criterion score %(k)s"
 msgstr ""
 
-#: routes/upload.py:246
+#: routes/upload.py:261
 msgid "PDF file"
 msgstr ""
 
-#: routes/upload.py:247
+#: routes/upload.py:262
 msgid "Independent Research Paper"
 msgstr ""
 
-#: routes/upload.py:248 templates/preview.html:125
+#: routes/upload.py:263 templates/preview.html:125
 msgid "IB Extended Essay"
 msgstr ""
 
-#: routes/upload.py:249
+#: routes/upload.py:264
 msgid "IB Community Project"
 msgstr ""
 
-#: routes/upload.py:250
+#: routes/upload.py:265
 msgid "Review & submit"
 msgstr ""
 
-#: routes/upload.py:251
+#: routes/upload.py:266
 msgid "Almost there — review your submission"
 msgstr ""
 
-#: routes/upload.py:252
+#: routes/upload.py:267
 msgid ""
 "Make sure everything looks right. You can jump back to any section to "
 "make changes."
 msgstr ""
 
-#: routes/upload.py:253
+#: routes/upload.py:268
 msgid "1 field still needs attention"
 msgstr ""
 
-#: routes/upload.py:254
+#: routes/upload.py:269
 #, python-format
 msgid "%(n)s fields still need attention"
 msgstr ""
 
-#: routes/upload.py:255
+#: routes/upload.py:270
 #, python-format
 msgid "go to %(step)s"
 msgstr ""
 
-#: routes/upload.py:256
+#: routes/upload.py:271
 msgid "Everything required is filled in."
 msgstr ""
 
-#: routes/upload.py:257
+#: routes/upload.py:272
 msgid "Click Submit Paper below to send your submission for review."
 msgstr ""
 
-#: routes/upload.py:258 templates/admin_models.html:74
+#: routes/upload.py:273 templates/admin_models.html:74
 #: templates/guide_manage.html:175 templates/guide_manage.html:241
 #: templates/guide_publish.html:20 templates/journal_manage.html:61
 #: templates/my_submissions.html:58 templates/news_article.html:584
@@ -1303,292 +1337,299 @@ msgstr ""
 msgid "Edit"
 msgstr ""
 
-#: routes/upload.py:259 templates/paper_manage.html:291
+#: routes/upload.py:274 templates/paper_manage.html:291
 msgid "Type"
 msgstr ""
 
-#: routes/upload.py:261
+#: routes/upload.py:276
 msgid "Research Q."
 msgstr ""
 
-#: routes/upload.py:262 templates/guide_publish.html:85
+#: routes/upload.py:277 templates/guide_publish.html:85
 #: templates/guide_publish.html:117 templates/news_publish.html:987
 #: templates/paper_modify.html:81 templates/preview.html:436
 #: templates/review_paper.html:24 templates/submission_detail.html:21
 msgid "Title"
 msgstr ""
 
-#: routes/upload.py:263
+#: routes/upload.py:278
 msgid "Not provided"
 msgstr ""
 
-#: routes/upload.py:264
+#: routes/upload.py:279
 msgid "Not chosen"
 msgstr ""
 
-#: routes/upload.py:265 templates/admin_version.html:93
+#: routes/upload.py:280 templates/admin_version.html:93
 #: templates/search.html:30
 msgid "Subject"
 msgstr ""
 
-#: routes/upload.py:266 templates/paper_modify.html:214
+#: routes/upload.py:281 templates/paper_modify.html:214
 msgid "None"
 msgstr ""
 
-#: routes/upload.py:267
+#: routes/upload.py:282
 msgid "Not written"
 msgstr ""
 
-#: routes/upload.py:268
+#: routes/upload.py:283
 msgid "IB Sample"
 msgstr ""
 
-#: routes/upload.py:269
+#: routes/upload.py:284
 msgid "Yes — author info skipped"
 msgstr ""
 
-#: routes/upload.py:270
+#: routes/upload.py:285
 msgid "Anonymous — author info skipped"
 msgstr ""
 
-#: routes/upload.py:271
+#: routes/upload.py:286
 msgid "No"
 msgstr ""
 
-#: routes/upload.py:273 templates/admin_version.html:92
+#: routes/upload.py:288 templates/admin_version.html:92
 #: templates/news_manage.html:151 templates/news_publish.html:1002
 #: templates/paper_manage.html:293 templates/review_paper.html:36
 #: templates/submission_detail.html:33
 msgid "Author"
 msgstr ""
 
-#: routes/upload.py:275
+#: routes/upload.py:290
 msgid "No file uploaded"
 msgstr ""
 
-#: routes/upload.py:276
+#: routes/upload.py:291
 msgid "EE Details"
 msgstr ""
 
-#: routes/upload.py:277
+#: routes/upload.py:292
 msgid "Total"
 msgstr ""
 
-#: routes/upload.py:278
+#: routes/upload.py:293
 msgid "CP Details"
 msgstr ""
 
-#: routes/upload.py:279
+#: routes/upload.py:294
 msgid "None selected"
 msgstr ""
 
-#: routes/upload.py:280
+#: routes/upload.py:295
 msgid "Avg. Grade"
 msgstr ""
 
-#: routes/upload.py:281
+#: routes/upload.py:296
 msgid "Saving…"
 msgstr ""
 
-#: routes/upload.py:282
+#: routes/upload.py:297
 #, python-format
 msgid "Draft saved · %(time)s"
 msgstr ""
 
-#: routes/upload.py:283
+#: routes/upload.py:298
 msgid "Unsaved changes from earlier"
 msgstr ""
 
-#: routes/upload.py:284
+#: routes/upload.py:299
 msgid ""
 "Your last session in this browser had changes you didn't save. Restore "
 "them?"
 msgstr ""
 
-#: routes/upload.py:285 templates/ee_subjects_manage.html:79
+#: routes/upload.py:300 templates/ee_subjects_manage.html:79
 #: templates/ia_subjects_manage.html:117
 msgid "Discard"
 msgstr ""
 
-#: routes/upload.py:286 templates/paper_modify.html:48
+#: routes/upload.py:301 templates/paper_modify.html:48
 msgid "Restore"
 msgstr ""
 
-#: routes/upload.py:287
+#: routes/upload.py:302
 msgid "Search…"
 msgstr ""
 
-#: routes/upload.py:288
+#: routes/upload.py:303
 msgid "No matches"
 msgstr ""
 
-#: routes/upload.py:289
+#: routes/upload.py:304
 msgid "Auto-fill from commentary PDF"
 msgstr ""
 
-#: routes/upload.py:291
+#: routes/upload.py:306
 msgid "Extracted all fields."
 msgstr ""
 
-#: routes/upload.py:292
+#: routes/upload.py:307
 #, python-format
 msgid "Extracted %(filled)s of %(total)s fields."
 msgstr ""
 
-#: routes/upload.py:294
+#: routes/upload.py:309
 msgid "Replace your existing EE entries with values from the PDF?"
 msgstr ""
 
-#: routes/upload.py:295
+#: routes/upload.py:310
 msgid "Generate abstract & keywords from PDF"
 msgstr ""
 
-#: routes/upload.py:296
+#: routes/upload.py:311
 msgid "Generating…"
 msgstr ""
 
-#: routes/upload.py:297
+#: routes/upload.py:312
 msgid "Generated abstract and keywords."
 msgstr ""
 
-#: routes/upload.py:298
+#: routes/upload.py:313
 msgid "Generation failed — try again or fill manually."
 msgstr ""
 
-#: routes/upload.py:299
+#: routes/upload.py:314
 msgid "Upload your PDF in the File step first."
 msgstr ""
 
-#: routes/upload.py:300
+#: routes/upload.py:315
 msgid ""
 "Replace your existing title, authors, abstract and keywords with AI-"
 "generated ones?"
 msgstr ""
 
-#: routes/upload.py:301 templates/advanced_search.html:85
+#: routes/upload.py:316 templates/advanced_search.html:85
 #: templates/paper_manage.html:292 templates/paper_modify.html:88
 #: templates/search.html:123
 msgid "Journal"
 msgstr ""
 
-#: routes/upload.py:302
+#: routes/upload.py:317
 msgid "— None —"
 msgstr ""
 
-#: routes/upload.py:303
+#: routes/upload.py:318
 msgid "Optional — assign this paper to a journal."
 msgstr ""
 
-#: routes/upload.py:304
+#: routes/upload.py:319
 #, python-format
 msgid "Uploading… %(pct)s%"
 msgstr ""
 
-#: routes/upload.py:305
+#: routes/upload.py:320
 msgid "Finishing up…"
 msgstr ""
 
-#: routes/upload.py:306
+#: routes/upload.py:321
 msgid "Upload failed. Please check your connection and try again."
 msgstr ""
 
-#: routes/upload.py:307
+#: routes/upload.py:322
 msgid "Upload successful!"
 msgstr ""
 
-#: routes/upload.py:308
+#: routes/upload.py:323
 msgid "Try again"
 msgstr ""
 
-#: routes/upload.py:441
+#: routes/upload.py:456
 msgid "Please enter at least a paper title to save a draft."
 msgstr ""
 
-#: routes/upload.py:500
+#: routes/upload.py:519
 msgid "Draft saved successfully."
 msgstr ""
 
-#: routes/upload.py:549
+#: routes/upload.py:568
 msgid "Please select a file to upload"
 msgstr ""
 
-#: routes/upload.py:557
+#: routes/upload.py:576
 msgid "Only PDF files are supported"
 msgstr ""
 
-#: routes/upload.py:559 routes/upload.py:741 routes/upload.py:767
-#: routes/upload.py:794
+#: routes/upload.py:578 routes/upload.py:782 routes/upload.py:815
+#: routes/upload.py:849
 msgid "File is not a valid PDF"
 msgstr ""
 
-#: routes/upload.py:611
+#: routes/upload.py:587 routes/upload.py:789 routes/upload.py:822
+#: routes/upload.py:856
+msgid ""
+"This PDF cannot be processed — it is corrupt, encrypted, or exceeds the "
+"page limit."
+msgstr ""
+
+#: routes/upload.py:642
 #, python-format
 msgid "%(paper_name)s uploaded successfully, but RAG indexing failed."
 msgstr ""
 
-#: routes/upload.py:617
+#: routes/upload.py:648
 #, python-format
 msgid "Paper %(filename)s uploaded successfully!"
 msgstr ""
 
-#: routes/upload.py:706
+#: routes/upload.py:747
 msgid "Your paper has been submitted and is now pending review."
 msgstr ""
 
-#: routes/upload.py:716
+#: routes/upload.py:757
 msgid "Upload failed. Please try again."
 msgstr ""
 
-#: routes/upload.py:728 routes/upload.py:754 routes/upload.py:781
+#: routes/upload.py:769 routes/upload.py:802 routes/upload.py:836
 msgid "Unauthorized"
 msgstr ""
 
-#: routes/upload.py:737 routes/upload.py:763 routes/upload.py:790
+#: routes/upload.py:778 routes/upload.py:811 routes/upload.py:845
 msgid "File must be a PDF"
 msgstr ""
 
-#: routes/upload.py:800
+#: routes/upload.py:862
 msgid "Unknown or unconfigured IA subject"
 msgstr ""
 
-#: services/ai.py:585
+#: services/ai.py:593
 msgid "Searching the library…"
 msgstr ""
 
-#: services/ai.py:605
+#: services/ai.py:613
 #, python-format
 msgid "Reading “%(title)s”…"
 msgstr ""
 
-#: services/ai.py:606
+#: services/ai.py:614
 msgid "Reading a paper…"
 msgstr ""
 
-#: services/ai.py:608
+#: services/ai.py:616
 msgid "Searching the web…"
 msgstr ""
 
-#: services/ai.py:610
+#: services/ai.py:618
 msgid "Reading a web page…"
 msgstr ""
 
-#: services/ai.py:612
+#: services/ai.py:620
 msgid "Reading the attachment…"
 msgstr ""
 
-#: services/ai.py:613
+#: services/ai.py:621
 msgid "Working…"
 msgstr ""
 
-#: services/ai.py:821
+#: services/ai.py:835
 msgid "Attached document"
 msgstr ""
 
-#: services/auth.py:612
+#: services/auth.py:622
 msgid "Session expired. Please sign in again."
 msgstr ""
 
-#: services/auth.py:622
+#: services/auth.py:632
 msgid "You do not have access to that action."
 msgstr ""
 
