@@ -1,7 +1,6 @@
 # tests/test_search_fulltext_chunks.py
 import os
 import inspect
-import pathlib
 import unittest
 from unittest import mock
 
@@ -53,55 +52,43 @@ class FulltextIndex(unittest.TestCase):
 class SearchPapersFallback(unittest.TestCase):
     def _run(self, fulltext, extract_mock, query="mitochondria", filename="a.pdf"):
         record = _rec(filename)
-        revision_path = pathlib.Path("/safe/revisions") / PAPER_A / "2.pdf"
         with mock.patch.object(
             search_module,
             "_visible_paper_records",
             return_value=[record],
         ), \
              mock.patch.object(search_module, "_fulltext_index", return_value=fulltext), \
-             mock.patch.object(search_module, "extract_pdf_text", extract_mock), \
-             mock.patch.object(
-                 search_module,
-                 "_revision_path",
-                 return_value=revision_path,
-             ) as revision:
+             mock.patch.object(search_module, "extract_pdf_text", extract_mock,
+                               create=True):
             result = app_module.search_papers(query)
-        return result, revision, revision_path
+        return result
 
     def test_prefers_indexed_chunks_without_extracting(self):
         extract = mock.Mock(side_effect=AssertionError("must not extract indexed paper"))
-        out, revision, _path = self._run(
-            {PAPER_A: (2, "cells contain mitochondria")}, extract
-        )
+        out = self._run({PAPER_A: (2, "cells contain mitochondria")}, extract)
         self.assertEqual([r["filename"] for r in out], ["a.pdf"])
         extract.assert_not_called()
-        revision.assert_not_called()
 
-    def test_ocr_fallback_for_unindexed_paper(self):
-        extract = mock.Mock(return_value="Cells contain MITOCHONDRIA.")
-        out, revision, revision_path = self._run({}, extract)
-        self.assertEqual([r["filename"] for r in out], ["a.pdf"])
-        revision.assert_called_once_with(PAPER_A, 2)
-        extract.assert_called_once_with(revision_path)
+    def test_unindexed_paper_never_triggers_request_time_extraction(self):
+        # Security: /search is anonymous; parsing/OCR-ing an unindexed PDF per
+        # request is an unbounded-work sink. Unindexed papers match on metadata
+        # only until the async indexer catches up.
+        extract = mock.Mock(side_effect=AssertionError("must not extract on search"))
+        out = self._run({}, extract)
+        self.assertEqual(out, [])
+        extract.assert_not_called()
 
     def test_revision_mismatch_never_matches_obsolete_indexed_text(self):
-        extract = mock.Mock(return_value="current revision body")
-        out, revision, revision_path = self._run(
-            {PAPER_A: (1, "obsolete")},
-            extract,
-            query="obsolete",
-        )
-
+        extract = mock.Mock(side_effect=AssertionError("must not extract on search"))
+        out = self._run({PAPER_A: (1, "obsolete")}, extract, query="obsolete")
         self.assertEqual(out, [])
-        revision.assert_called_once_with(PAPER_A, 2)
-        extract.assert_called_once_with(revision_path)
+        extract.assert_not_called()
 
-    def test_search_never_globs_flat_pdfs(self):
+    def test_search_never_globs_flat_pdfs_or_parses_them(self):
         source = inspect.getsource(search_module.search_papers)
         self.assertNotIn("glob(", source)
+        self.assertNotIn("extract_pdf_text", source)
         self.assertIn("_visible_paper_records", source)
-        self.assertIn("_revision_path", source)
 
 
 class ChunkPathEquivalence(unittest.TestCase):
@@ -129,8 +116,8 @@ class ChunkPathEquivalence(unittest.TestCase):
         ), \
              mock.patch.object(search_module, "_fulltext_index",
                                return_value={PAPER_A: (2, reassembled)}), \
-             mock.patch.object(search_module, "extract_pdf_text", extract), \
-             mock.patch.object(search_module, "_revision_path"):
+             mock.patch.object(search_module, "extract_pdf_text", extract,
+                               create=True):
             out = app_module.search_papers(term)
 
         self.assertEqual([r["filename"] for r in out], ["a.pdf"])
@@ -149,8 +136,8 @@ class IndexedEmptyString(unittest.TestCase):
              mock.patch.object(
                  search_module, "_fulltext_index", return_value={PAPER_A: (2, "")}
              ), \
-             mock.patch.object(search_module, "extract_pdf_text", extract), \
-             mock.patch.object(search_module, "_revision_path"):
+             mock.patch.object(search_module, "extract_pdf_text", extract,
+                               create=True):
             out = app_module.search_papers("mitochondria")
         self.assertEqual(out, [])              # indexed, empty -> no match
         extract.assert_not_called()            # and crucially, no OCR fallback

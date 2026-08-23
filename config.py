@@ -283,6 +283,12 @@ PREVIEWABLE_MIMES = {"application/pdf", "image/png", "image/jpeg", "image/gif", 
 RESOURCE_MAX_BYTES = int(os.environ.get("PAPERQUERY_RESOURCE_MAX_MB", "50")) * 1024 * 1024
 MAX_SEARCH_RESULTS = 20
 MIN_SEMANTIC_QUERY_LEN = 2   # skip embedding for 1-char queries (idea #4)
+# Public /search admission control (security finding: anonymous queries drove
+# corpus-wide work + paid embeddings with no budget). Query work is throttled
+# per account/IP and over-long queries are rejected before any corpus work.
+MAX_SEARCH_QUERY_CHARS = 200
+SEARCH_RATE_LIMIT = 30       # query searches per window
+SEARCH_RATE_WINDOW = 60      # seconds
 # VECTOR(n) column dimension for RAG chunk embeddings. Must match the embedding
 # model's output (gemini-embedding-001: 3072). Changing it requires a column
 # migration + full re-index, not just an env flip.

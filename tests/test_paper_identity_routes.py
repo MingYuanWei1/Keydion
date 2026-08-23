@@ -644,6 +644,9 @@ class CanonicalPaperPdfRouteTest(unittest.TestCase):
             "routes.papers.get_active_user",
             return_value=None,
         ), mock.patch(
+            "routes.papers.consume_rate_limit",
+            return_value=SimpleNamespace(allowed=True, retry_after=0, count=1),
+        ), mock.patch(
             "routes.papers.load_journals",
             return_value=[],
         ), mock.patch(
