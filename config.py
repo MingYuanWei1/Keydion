@@ -294,6 +294,11 @@ SEARCH_RATE_WINDOW = 60      # seconds
 # MAX_REVISIONS_PER_PAPER for the hard cap).
 RESTORE_RATE_LIMIT = 10      # restores per window
 RESTORE_RATE_WINDOW = 600    # seconds
+# Untrusted PDF structural budgets (security finding: synchronous parsing
+# without structural limits). Intake and interactive parse paths reject a PDF
+# whose page count exceeds this before any rewrite/extraction work. Real
+# EE/IA/CP/research papers are far shorter; overridable for odd corpora.
+MAX_PDF_PAGES = int(os.environ.get("PAPERQUERY_MAX_PDF_PAGES", "1000"))
 # VECTOR(n) column dimension for RAG chunk embeddings. Must match the embedding
 # model's output (gemini-embedding-001: 3072). Changing it requires a column
 # migration + full re-index, not just an env flip.

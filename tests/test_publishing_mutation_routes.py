@@ -127,7 +127,20 @@ class DirectPublicationRouteTest(unittest.TestCase):
         self.temp.cleanup()
 
     @staticmethod
-    def _valid_form():
+    def _minimal_pdf_bytes():
+        # Intake runs a strict structural budget (security finding: untrusted
+        # parser without isolation), so the fixture must be a real PDF, not
+        # magic-bytes-only placeholder bytes.
+        from pypdf import PdfWriter
+
+        stream = io.BytesIO()
+        writer = PdfWriter()
+        writer.add_blank_page(width=72, height=72)
+        writer.write(stream)
+        return stream.getvalue()
+
+    @classmethod
+    def _valid_form(cls):
         return {
             "publishing_idempotency_key": "publish-request-0001",
             "title": "Canonical Paper",
@@ -138,7 +151,7 @@ class DirectPublicationRouteTest(unittest.TestCase):
             "author_name": "Ada Author",
             "author_email": "ada@example.test",
             "author_school": "Example School",
-            "paper": (io.BytesIO(b"%PDF-1.4\n%%EOF\n"), "upload.pdf"),
+            "paper": (io.BytesIO(cls._minimal_pdf_bytes()), "upload.pdf"),
         }
 
     def test_contributor_post_maps_exact_direct_publish_intent(self):

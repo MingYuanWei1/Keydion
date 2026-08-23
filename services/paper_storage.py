@@ -23,6 +23,7 @@ from typing import BinaryIO, Callable, Iterable, Iterator
 
 from pypdf import PdfReader, PdfWriter
 
+from config import MAX_PDF_PAGES
 from services.paper_identity import validate_paper_id
 from services.papers import resolve_contained
 from services.publishing_contracts import PdfUpload
@@ -153,6 +154,11 @@ def _strict_pdf(stream: BinaryIO) -> int:
         raise StorageError("PDF cannot be parsed strictly") from exc
     if page_count < 1:
         raise StorageError("PDF must contain at least one page")
+    # Structural budget shared by every lifecycle ingest (publish/revise/
+    # restore): refuse pathological documents before rewrite and promotion
+    # (security finding: untrusted parser without isolation).
+    if page_count > MAX_PDF_PAGES:
+        raise StorageError(f"PDF has too many pages (limit {MAX_PDF_PAGES})")
     return page_count
 
 

@@ -1,4 +1,5 @@
 """Upload wizard + upload-related API routes."""
+import io
 import json
 from uuid import uuid4
 
@@ -25,6 +26,7 @@ from config import (
 from ee_pdf_extractor import EePdfExtractionError, extract_ee_metadata
 from ia_metadata import IAMetadataError, generate_ia_scores
 from llm_metadata import LLMMetadataError, generate_abstract_keywords
+from pdf_text import PdfStructureError, check_pdf_bytes
 from services.auth import get_active_user, require_login
 from services.journals import get_journal_names
 from services.publishing_contracts import (
@@ -558,6 +560,18 @@ def register_routes(app):
                 elif not magic.startswith(b"%PDF-"):
                     flash(_("File is not a valid PDF"), "danger")
                 else:
+                    raw_pdf = file.stream.read()
+                    try:
+                        # Structural budgets run BEFORE any synchronous parse,
+                        # rewrite, or storage work (security finding: untrusted
+                        # parser without isolation).
+                        check_pdf_bytes(raw_pdf)
+                    except PdfStructureError:
+                        message = _("This PDF cannot be processed — it is corrupt, encrypted, or exceeds the page limit.")
+                        flash(message, "danger")
+                        if is_ajax:
+                            return jsonify(ok=False, error=message), 400
+                        return _render_upload(user, form_data, draft_id)
                     # Build a safe filename: try title+author first, fall back to UUID
                     filename = _build_safe_paper_filename(
                         form_data["title"], form_data["author_name"]
@@ -588,7 +602,7 @@ def register_routes(app):
                             ),
                             pdf=PdfUpload(
                                 filename=original_filename,
-                                stream=file.stream,
+                                stream=io.BytesIO(raw_pdf),
                             ),
                         )
                         try:
@@ -637,7 +651,7 @@ def register_routes(app):
                             abort(400)  # unreachable for server-minted names; defense-in-depth
                         def write_pending_pdf():
                             _store_pending_submission_pdf(
-                                file,
+                                raw_pdf,
                                 pending_path,
                                 title=form_data["title"],
                                 author=form_data["author_name"],
@@ -739,6 +753,13 @@ def register_routes(app):
         raw = upload.read()
         if not raw.startswith(b"%PDF-"):
             return jsonify({"error": str(_("File is not a valid PDF"))}), 400
+        try:
+            # Structural budgets before any extraction work (security finding:
+            # untrusted parser without isolation).
+            check_pdf_bytes(raw)
+        except PdfStructureError:
+            return jsonify({"error": str(_(
+                "This PDF cannot be processed — it is corrupt, encrypted, or exceeds the page limit."))}), 400
 
         try:
             result = extract_ee_metadata(raw)
@@ -765,6 +786,13 @@ def register_routes(app):
         raw = upload.read()
         if not raw.startswith(b"%PDF-"):
             return jsonify({"error": str(_("File is not a valid PDF"))}), 400
+        try:
+            # Structural budgets before any extraction work (security finding:
+            # untrusted parser without isolation).
+            check_pdf_bytes(raw)
+        except PdfStructureError:
+            return jsonify({"error": str(_(
+                "This PDF cannot be processed — it is corrupt, encrypted, or exceeds the page limit."))}), 400
 
         language = request.form.get("language", "en")
         try:
@@ -792,6 +820,13 @@ def register_routes(app):
         raw = upload.read()
         if not raw.startswith(b"%PDF-"):
             return jsonify({"error": str(_("File is not a valid PDF"))}), 400
+        try:
+            # Structural budgets before any extraction work (security finding:
+            # untrusted parser without isolation).
+            check_pdf_bytes(raw)
+        except PdfStructureError:
+            return jsonify({"error": str(_(
+                "This PDF cannot be processed — it is corrupt, encrypted, or exceeds the page limit."))}), 400
 
         language = request.form.get("language", "en")
         subject = request.form.get("subject", "").strip()

@@ -15,6 +15,7 @@ from config import (
     CP_CRITERIA_DEFS,
     DATA_DIR,
     IB_EE_CRITERIA_DEFS,
+    MAX_PDF_PAGES,
     METADATA_FIELDS,
     PAPERS_DIR,
     _DEFAULT_PAPER_CATEGORIES,
@@ -631,6 +632,11 @@ def set_pdf_metadata(pdf_path: Path, title: str, author: str) -> None:
 
     try:
         reader = PdfReader(str(pdf_path))
+        # Structural budget: never rewrite a pathological document in a web
+        # worker (security finding: untrusted parser without isolation).
+        if len(reader.pages) > MAX_PDF_PAGES:
+            print(f"Skipping metadata rewrite for {pdf_path}: too many pages")
+            return
         writer = PdfWriter()
         for page in reader.pages:
             writer.add_page(page)
