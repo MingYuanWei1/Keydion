@@ -28,6 +28,10 @@ ACCOUNT_LOCAL = "local"
 ACCOUNT_MICROSOFT = "microsoft"
 PASSWORD_MIN_LENGTH = 6
 OAUTH_ATTEMPT_LIFETIME = timedelta(minutes=10)
+# Browser-session marker proving a fresh Microsoft login, consumed single-use
+# when a Microsoft-only account enrolls its first local password (security
+# finding: a stolen SSO session could enroll a durable password otherwise).
+MS_RECENT_AUTH_SESSION_KEY = "ms_recent_auth"
 
 
 def password_validation_error(password: str) -> str | None:
@@ -289,6 +293,12 @@ def start_ms_session(
         ACCOUNT_MICROSOFT,
         ms_user["ms_id"],
         remember=remember,
+    )
+    # Record the fresh Microsoft authentication for step-up actions (the
+    # session was just cleared, so this marker belongs to exactly this login).
+    session[MS_RECENT_AUTH_SESSION_KEY] = "{}:{}".format(
+        ms_user["ms_id"],
+        int(datetime.now(timezone.utc).timestamp()),
     )
 
 

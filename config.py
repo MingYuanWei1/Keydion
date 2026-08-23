@@ -314,6 +314,10 @@ MAX_CONVERSATIONS_PER_OWNER = 100
 MAX_ASK_HISTORY_MESSAGES = 40          # prior messages resent to the model
 MAX_ASK_HISTORY_MESSAGE_CHARS = 8000   # per-history-message content cap
 MAX_FORCED_PAPERS_PER_TURN = 8         # cited papers reread into context
+# Microsoft first-password enrollment requires a fresh Microsoft login within
+# this window (security finding: a stolen SSO session could enroll a durable
+# password without reauthentication).
+MS_STEP_UP_WINDOW_SECONDS = 600
 # VECTOR(n) column dimension for RAG chunk embeddings. Must match the embedding
 # model's output (gemini-embedding-001: 3072). Changing it requires a column
 # migration + full re-index, not just an env flip.

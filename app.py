@@ -43,7 +43,7 @@ from config import (  # noqa: F401
     MS_USER_FIELDS, MS_CLIENT_ID, MS_CLIENT_SECRET, MS_REDIRECT_URI, MS_AUTHORITY,
     MS_SCOPES, MS_GRAPH_ME_URL, ROLE_OPTIONS, _MISSING_FIELD_MESSAGES,
     IB_EE_CRITERIA_DEFS, CP_GLOBAL_CONTEXTS, CP_ACTION_TYPES, CP_CRITERIA_DEFS,
-    ROLE_LABELS, LANGUAGE_NAMES,
+    ROLE_LABELS, LANGUAGE_NAMES, MS_STEP_UP_WINDOW_SECONDS,
 )
 import db
 from db import BASE, DB_URL, db_session, get_engine  # noqa: F401
@@ -66,7 +66,7 @@ from services.auth import (  # noqa: F401
     create_oauth_login_attempt, consume_oauth_login_attempt,
     ACCOUNT_LOCAL, ACCOUNT_MICROSOFT, session_identity,
     register_active_session, release_active_session, refresh_session,
-    _clear_browser_session,
+    _clear_browser_session, MS_RECENT_AUTH_SESSION_KEY,
 )
 from services.session_cookie import AuthExpirySessionInterface
 from services.rate_limit import clear as clear_rate_limit
@@ -313,6 +313,20 @@ def create_app() -> Flask:
     def _consume_request_limit(scope: str, key: str, **policy):
         decision = consume_rate_limit(scope, key, **policy)
         return None if decision.allowed else _too_many_requests(decision.retry_after)
+
+    def _ms_recent_login_marker_valid(ms_id: str) -> bool:
+        """Fresh-Microsoft-login proof for step-up actions (age-bounded; the
+        caller consumes the marker when the sensitive change is applied)."""
+        raw = str(session.get(MS_RECENT_AUTH_SESSION_KEY, ""))
+        marker_ms_id, _sep, stamp_raw = raw.rpartition(":")
+        if not marker_ms_id or marker_ms_id != ms_id:
+            return False
+        try:
+            stamp = int(stamp_raw)
+        except (TypeError, ValueError):
+            return False
+        age = int(datetime.now(timezone.utc).timestamp()) - stamp
+        return 0 <= age <= MS_STEP_UP_WINDOW_SECONDS
 
     @app.route("/")
     def index():
@@ -610,6 +624,21 @@ def create_app() -> Flask:
             has_password = bool(ms_record and ms_record.get("password"))
 
         if request.method == "POST":
+            # Enrolling a FIRST local password on a Microsoft-only account is a
+            # step-up action: it converts a session into a durable credential.
+            # Require proof of a recent Microsoft login so a stolen or
+            # script-controlled session cannot enroll its own password
+            # (security finding: password enrollment without reauthentication).
+            needs_ms_step_up = is_ms_user and not has_password
+            if needs_ms_step_up:
+                if not is_ms_configured():
+                    flash(_("Password setup is not available. Please contact the administrator."), "danger")
+                    return redirect(url_for("index"))
+                if not _ms_recent_login_marker_valid(ms_id):
+                    flash(_("For your security, sign in with Microsoft again before setting your first password."), "warning")
+                    session["next"] = url_for("change_password")
+                    return redirect(url_for("ms_login"))
+
             current_password = request.form.get("current_password", "")
             new_password = request.form.get("new_password", "").strip()
             confirm_password = request.form.get("confirm_password", "").strip()
@@ -646,6 +675,10 @@ def create_app() -> Flask:
                 )
                 return redirect(url_for("change_password"))
 
+            if needs_ms_step_up:
+                # Consume the single-use marker at the moment the durable
+                # credential is actually installed.
+                session.pop(MS_RECENT_AUTH_SESSION_KEY, None)
             if is_ms_user:
                 success = update_ms_user_password(ms_id, new_password)
             else:
