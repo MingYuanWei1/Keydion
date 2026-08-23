@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Keydion 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-22 21:00+0800\n"
+"POT-Creation-Date: 2026-08-23 23:33+0800\n"
 "PO-Revision-Date: 2025-10-11 00:00+0000\n"
 "Last-Translator: \n"
 "Language: en\n"
@@ -14,7 +14,8 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: app.py:308 routes/ai.py:277 routes/ai.py:334 routes/upload.py:86
+#: app.py:308 routes/ai.py:278 routes/ai.py:338 routes/papers.py:287
+#: routes/papers.py:1128 routes/upload.py:86
 msgid "Too many requests — please slow down."
 msgstr ""
 
@@ -185,230 +186,234 @@ msgstr "+%(n)d this month"
 msgid "Language not supported."
 msgstr "Language not supported."
 
-#: config.py:345
+#: config.py:356
 #, fuzzy
 msgid "Please enter the paper title"
 msgstr "Please enter the paper title"
 
-#: config.py:346
+#: config.py:357
 #, fuzzy
 msgid "Please select a subject category"
 msgstr "Please select a category..."
 
-#: config.py:347
+#: config.py:358
 #, fuzzy
 msgid "Please select a language"
 msgstr "Please select a language"
 
-#: config.py:348
+#: config.py:359
 msgid "Please enter keywords"
 msgstr "Please enter keywords"
 
-#: config.py:349
+#: config.py:360
 #, fuzzy
 msgid "Please enter the abstract"
 msgstr "Please enter the abstract"
 
-#: config.py:350
+#: config.py:361
 msgid "Please enter the author name"
 msgstr "Please enter the author name"
 
-#: config.py:351
+#: config.py:362
 msgid "Please enter the contact email"
 msgstr "Please enter the contact email"
 
-#: config.py:352
+#: config.py:363
 msgid "Please enter the school name"
 msgstr "Please enter the school name"
 
-#: config.py:380
+#: config.py:391
 msgid "Reader - View & Download"
 msgstr ""
 
-#: config.py:381
+#: config.py:392
 msgid "Contributor - Upload Enabled"
 msgstr ""
 
-#: config.py:382
+#: config.py:393
 msgid "Curator - Full Access"
 msgstr ""
 
 # ==================== LANGUAGE ====================
-#: config.py:385 routes/upload.py:173 templates/paper_modify.html:116
+#: config.py:396 routes/upload.py:173 templates/paper_modify.html:116
 #: templates/search.html:115
 msgid "English"
 msgstr "English"
 
-#: config.py:386 routes/upload.py:174 templates/paper_modify.html:114
+#: config.py:397 routes/upload.py:174 templates/paper_modify.html:114
 #: templates/search.html:114
 msgid "Chinese"
 msgstr "Chinese"
 
-#: routes/ai.py:56 services/auth.py:614
+#: routes/ai.py:57 services/auth.py:614
 msgid "Please sign in first."
 msgstr "Please sign in first."
 
-#: routes/ai.py:76
+#: routes/ai.py:77
 msgid "What does the research say about climate adaptation in plants?"
 msgstr ""
 
-#: routes/ai.py:77
+#: routes/ai.py:78
 msgid "Summarize recent Extended Essays in economics."
 msgstr ""
 
-#: routes/ai.py:78
+#: routes/ai.py:79
 msgid "Find papers about machine learning in healthcare."
 msgstr ""
 
-#: routes/ai.py:88
+#: routes/ai.py:89
 msgid "Ask a question and I'll answer from the published library, with citations."
 msgstr ""
 
 # ==================== ADMIN USER MANAGEMENT ====================
-#: routes/ai.py:89 templates/ai.html:86
+#: routes/ai.py:90 templates/ai.html:86
 msgid "Message Keydion AI…"
 msgstr "Message Keydion AI…"
 
-#: routes/ai.py:90 templates/ai.html:106
+#: routes/ai.py:91 templates/ai.html:106
 msgid "Flash"
 msgstr ""
 
-#: routes/ai.py:91 templates/ai.html:107
+#: routes/ai.py:92 templates/ai.html:107
 msgid "Thinking"
 msgstr ""
 
-#: routes/ai.py:92 templates/ai.html:109
+#: routes/ai.py:93 templates/ai.html:109
 msgid "Send"
 msgstr ""
 
-#: routes/ai.py:93
+#: routes/ai.py:94
 msgid "Cited from your library"
 msgstr ""
 
-#: routes/ai.py:94
+#: routes/ai.py:95
 msgid "Copy"
 msgstr ""
 
-#: routes/ai.py:95
+#: routes/ai.py:96
 msgid "Regenerate"
 msgstr "Regenerate"
 
-#: routes/ai.py:96 templates/news_manage.html:510
+#: routes/ai.py:97 templates/news_manage.html:517
 #: templates/paper_manage.html:824
 msgid "Rename"
 msgstr "Rename"
 
-#: routes/ai.py:97
+#: routes/ai.py:98
 msgid "Today"
 msgstr "Today"
 
-#: routes/ai.py:98
+#: routes/ai.py:99
 msgid "Yesterday"
 msgstr ""
 
-#: routes/ai.py:99
+#: routes/ai.py:100
 msgid "Previous 7 days"
 msgstr "Previous 7 days"
 
-#: routes/ai.py:100
+#: routes/ai.py:101
 msgid "Older"
 msgstr "Older"
 
-#: routes/ai.py:101
+#: routes/ai.py:102
 msgid "No conversations match."
 msgstr "No conversations match."
 
-#: routes/ai.py:102
+#: routes/ai.py:103
 msgid "Thinking…"
 msgstr ""
 
-#: routes/ai.py:103 routes/ai.py:297 routes/ai.py:508
+#: routes/ai.py:104 routes/ai.py:301 routes/ai.py:512
 msgid "Something went wrong. Please try again."
 msgstr "Something went wrong. Please try again."
 
-#: routes/ai.py:104 routes/ai.py:257 routes/ai.py:330 templates/ai.html:48
+#: routes/ai.py:105 routes/ai.py:258 routes/ai.py:334 templates/ai.html:48
 msgid "AI assistant is not configured."
 msgstr "AI assistant is not configured."
 
-#: routes/ai.py:105
+#: routes/ai.py:106
 #, fuzzy
 msgid "No matching papers were found in the library."
 msgstr "No matching papers found."
 
-#: routes/ai.py:106
+#: routes/ai.py:107
 msgid "Searched the web"
 msgstr "Searched the web"
 
-#: routes/ai.py:107 templates/ia_subjects_manage.html:155
+#: routes/ai.py:108 templates/ia_subjects_manage.html:155
 #: templates/paper_manage.html:412
 #, fuzzy
 msgid "selected"
 msgstr "None selected"
 
-#: routes/ai.py:108 templates/ai.html:183
+#: routes/ai.py:109 templates/ai.html:183
 msgid "Select papers to attach as citations"
 msgstr ""
 
-#: routes/ai.py:109 routes/upload.py:182 templates/paper_modify.html:127
+#: routes/ai.py:110 routes/upload.py:182 templates/paper_modify.html:127
 #: templates/preview.html:412 templates/review_paper.html:33
 #: templates/submission_detail.html:30
 msgid "Abstract"
 msgstr "Abstract"
 
-#: routes/ai.py:110 templates/preview.html:417 templates/search.html:274
+#: routes/ai.py:111 templates/preview.html:417 templates/search.html:274
 msgid "No abstract available."
 msgstr "No abstract available."
 
-#: routes/ai.py:111 templates/ai.html:179
+#: routes/ai.py:112 templates/ai.html:179
 msgid "Hover a paper to preview its abstract before citing."
 msgstr ""
 
-#: routes/ai.py:138 routes/ai.py:143 routes/ai.py:383 templates/ai.html:54
+#: routes/ai.py:139 routes/ai.py:144 routes/ai.py:387 templates/ai.html:54
 msgid "New conversation"
 msgstr "New conversation"
 
-#: routes/ai.py:162 routes/ai.py:314
+#: routes/ai.py:163 routes/ai.py:318
 msgid "Not found"
 msgstr "Not found"
 
-#: routes/ai.py:266
+#: routes/ai.py:267
 msgid "Conversation not found."
 msgstr "Conversation not found."
 
-#: routes/ai.py:281 routes/upload.py:735 routes/upload.py:761
+#: routes/ai.py:282 routes/upload.py:735 routes/upload.py:761
 #: routes/upload.py:788
 msgid "No file provided"
 msgstr "No file provided"
 
-#: routes/ai.py:284
+#: routes/ai.py:285
 msgid "Unsupported file type. Use PDF, DOCX, TXT, or Markdown."
 msgstr "Unsupported file type. Use PDF, DOCX, TXT, or Markdown."
 
-#: routes/ai.py:287
+#: routes/ai.py:288
 msgid "File is too large (max 5 MB)."
 msgstr "File is too large (max 5 MB)."
 
 # | msgid "Invalid destination."
-#: routes/ai.py:290
+#: routes/ai.py:291
 #, fuzzy
 msgid "Invalid filename."
 msgstr "Invalid destination."
 
-#: routes/ai.py:294
+#: routes/ai.py:296
+msgid "Attachment limit reached — remove an attachment or try a smaller file."
+msgstr "Attachment limit reached — remove an attachment or try a smaller file."
+
+#: routes/ai.py:298
 msgid "Could not read the file."
 msgstr "Could not read the file."
 
 # | msgid "Could not read the file."
-#: routes/ai.py:321
+#: routes/ai.py:325
 #, fuzzy
 msgid "Could not process the attachment."
 msgstr "Could not read the file."
 
-#: routes/ai.py:361
+#: routes/ai.py:365
 msgid "Please enter a question."
 msgstr "Please enter a question."
 
-#: routes/ai.py:363
+#: routes/ai.py:367
 msgid "Your question is too long."
 msgstr ""
 
@@ -461,151 +466,163 @@ msgstr "Journal not found."
 msgid "Journal updated."
 msgstr "Journal updated."
 
-#: routes/news.py:100 routes/news.py:188
+#: routes/news.py:101 routes/news.py:189
 #, fuzzy
 msgid "Please enter a title."
 msgstr "Please enter the paper title"
 
-#: routes/news.py:102 routes/news.py:190
+#: routes/news.py:103 routes/news.py:191
 #, fuzzy
 msgid "Please select a category."
 msgstr "Please select a category..."
 
-#: routes/news.py:104 routes/news.py:192
+#: routes/news.py:105 routes/news.py:193
 #, fuzzy
 msgid "Please enter an abstract."
 msgstr "Please enter the abstract"
 
-#: routes/news.py:106 routes/news.py:194
+#: routes/news.py:107 routes/news.py:195
 msgid "Please write the article body."
 msgstr "Please write the article body."
 
-#: routes/news.py:119 routes/news.py:205
+#: routes/news.py:120 routes/news.py:206
 msgid "Cover image must be PNG, JPG, GIF, or WebP."
 msgstr ""
 
-#: routes/news.py:140 routes/news.py:218
+#: routes/news.py:141 routes/news.py:219
 msgid "Draft saved."
 msgstr "Draft saved."
 
-#: routes/news.py:142
+#: routes/news.py:143
 msgid "Article published successfully."
 msgstr "Article published successfully."
 
-#: routes/news.py:162 routes/news.py:239 routes/news.py:358 routes/news.py:367
+#: routes/news.py:163 routes/news.py:240 routes/news.py:369 routes/news.py:378
 msgid "Article not found."
 msgstr "Article not found."
 
-#: routes/news.py:220
+#: routes/news.py:221
 msgid "Article updated."
 msgstr "Article updated."
 
-#: routes/news.py:237
+#: routes/news.py:238
 msgid "Article deleted."
 msgstr "Article deleted."
 
-#: routes/news.py:258 routes/news.py:307 routes/papers.py:173
-#: routes/papers.py:229
+#: routes/news.py:260 routes/news.py:318 routes/papers.py:180
+#: routes/papers.py:236
 msgid "Category name is required."
 msgstr "Category name is required."
 
-#: routes/news.py:261 routes/papers.py:176
+#: routes/news.py:262 routes/news.py:284
+msgid "Category name must be 50 characters or fewer."
+msgstr "Category name must be 50 characters or fewer."
+
+#: routes/news.py:264 routes/news.py:286
+msgid "Category name contains unsupported characters."
+msgstr "Category name contains unsupported characters."
+
+#: routes/news.py:267 routes/papers.py:183
 msgid "Category already exists."
 msgstr "Category already exists."
 
-#: routes/news.py:275 routes/papers.py:190
+#: routes/news.py:281 routes/papers.py:197
 msgid "Both old and new names are required."
 msgstr ""
 
-#: routes/news.py:278 routes/news.py:310 routes/papers.py:193
-#: routes/papers.py:232
+#: routes/news.py:289 routes/news.py:321 routes/papers.py:200
+#: routes/papers.py:239
 msgid "Category not found."
 msgstr "Category not found."
 
-#: routes/news.py:280 routes/papers.py:195
+#: routes/news.py:291 routes/papers.py:202
 msgid "A category with that name already exists."
 msgstr "A category with that name already exists."
 
 # ==================== SEARCH ====================
-#: routes/papers.py:255
+#: routes/papers.py:262
 msgid "Enter a keyword to search."
 msgstr "Enter a keyword to search."
 
-#: routes/papers.py:337
+#: routes/papers.py:273
+msgid "Search query is too long."
+msgstr "Search query is too long."
+
+#: routes/papers.py:367
 msgid "No matching papers found."
 msgstr "No matching papers found."
 
-#: routes/papers.py:839 routes/upload.py:517
+#: routes/papers.py:869 routes/upload.py:517
 msgid ""
 "A paper can only be one of: Extended Essay, Community Project, or "
 "Internal Assessment."
 msgstr ""
 
-#: routes/papers.py:844 routes/upload.py:522
+#: routes/papers.py:874 routes/upload.py:522
 #, fuzzy
 msgid "Please select an EE core subject."
 msgstr "Select a core subject…"
 
-#: routes/papers.py:849 routes/upload.py:527
+#: routes/papers.py:879 routes/upload.py:527
 #, fuzzy
 msgid "Please select a Global Context."
 msgstr "Select a Global Context…"
 
-#: routes/papers.py:854 routes/upload.py:530
+#: routes/papers.py:884 routes/upload.py:530
 msgid "Please select at least one Type of Action."
 msgstr "Please select at least one Type of Action."
 
-#: routes/papers.py:861 routes/upload.py:535
+#: routes/papers.py:891 routes/upload.py:535
 msgid "Please select an IA subject."
 msgstr "Please select an IA subject."
 
-#: routes/papers.py:866 routes/upload.py:538
+#: routes/papers.py:896 routes/upload.py:538
 msgid "The selected IA subject has no assessment criteria configured."
 msgstr "The selected IA subject has no assessment criteria configured."
 
-#: routes/papers.py:894 templates/paper_modify.html:452
+#: routes/papers.py:924 templates/paper_modify.html:452
 msgid "Save metadata changes separately before uploading a replacement PDF."
 msgstr ""
 
-#: routes/papers.py:959
+#: routes/papers.py:989
 msgid "Paper PDF revised, but RAG indexing failed."
 msgstr ""
 
 # | msgid "Paper Preview"
-#: routes/papers.py:963
+#: routes/papers.py:993
 #, fuzzy
 msgid "Paper PDF revised."
 msgstr "Paper Preview"
 
-#: routes/papers.py:965
+#: routes/papers.py:995
 msgid "Paper information updated."
 msgstr "Paper information updated."
 
 # | msgid "Paper rejected."
-#: routes/papers.py:1031
+#: routes/papers.py:1061
 #, fuzzy
 msgid "Paper deleted."
 msgstr "Paper rejected."
 
-#: routes/papers.py:1033
+#: routes/papers.py:1063
 msgid "Paper deletion is in progress."
 msgstr ""
 
-#: routes/papers.py:1109
+#: routes/papers.py:1153
 msgid "Paper revision restored, but RAG indexing failed."
 msgstr ""
 
 # | msgid "Paper rejected."
-#: routes/papers.py:1113
+#: routes/papers.py:1157
 #, fuzzy
 msgid "Paper revision restored."
 msgstr "Paper rejected."
 
-#: routes/papers.py:1194 routes/papers.py:1233
+#: routes/papers.py:1238 routes/papers.py:1277
 msgid "Please fix the highlighted fields before saving."
 msgstr ""
 
-#: routes/papers.py:1202 routes/papers.py:1241
+#: routes/papers.py:1246 routes/papers.py:1285
 msgid "Some subjects are still used by papers."
 msgstr ""
 
@@ -1907,8 +1924,8 @@ msgstr "Stay logged in for 7 days"
 #: templates/_header.html:209 templates/ai.html:155 templates/ai.html:185
 #: templates/change_password.html:445 templates/guide_publish.html:149
 #: templates/ia_subjects_manage.html:154 templates/my_submissions.html:64
-#: templates/news_manage.html:137 templates/news_manage.html:520
-#: templates/news_manage.html:525 templates/news_publish.html:970
+#: templates/news_manage.html:137 templates/news_manage.html:527
+#: templates/news_manage.html:532 templates/news_publish.html:970
 #: templates/paper_manage.html:278 templates/paper_manage.html:418
 #: templates/paper_modify.html:464 templates/resource_manage.html:89
 #: templates/resource_manage.html:113 templates/resource_manage.html:135
@@ -2060,8 +2077,8 @@ msgstr "Check again"
 #: templates/guide_manage.html:246 templates/journal_manage.html:64
 #: templates/my_submissions.html:64 templates/news_article.html:594
 #: templates/news_manage.html:136 templates/news_manage.html:207
-#: templates/news_manage.html:444 templates/news_manage.html:513
-#: templates/news_manage.html:526 templates/paper_manage.html:365
+#: templates/news_manage.html:451 templates/news_manage.html:520
+#: templates/news_manage.html:533 templates/paper_manage.html:365
 #: templates/paper_manage.html:726 templates/paper_manage.html:825
 #: templates/resource_manage.html:59
 msgid "Delete"
@@ -2875,7 +2892,7 @@ msgstr ""
 
 #: templates/guide_manage.html:86 templates/guide_publish.html:52
 #: templates/news_manage.html:99 templates/news_manage.html:152
-#: templates/news_manage.html:192 templates/news_manage.html:350
+#: templates/news_manage.html:192 templates/news_manage.html:357
 #: templates/paper_manage.html:294 templates/paper_manage.html:557
 #: templates/paper_modify.html:443
 #, fuzzy
@@ -2894,7 +2911,7 @@ msgid "Filter by category"
 msgstr "Filter by category"
 
 #: templates/guide_manage.html:93 templates/news_manage.html:109
-#: templates/news_manage.html:549
+#: templates/news_manage.html:556
 msgid "Category: All"
 msgstr "Category: All"
 
@@ -3062,7 +3079,7 @@ msgstr "All changes saved"
 msgid "Preview"
 msgstr "Preview"
 
-#: templates/guide_publish.html:152 templates/news_manage.html:519
+#: templates/guide_publish.html:152 templates/news_manage.html:526
 #: templates/resource_manage.html:134
 msgid "Save"
 msgstr "Save"
@@ -3650,7 +3667,7 @@ msgstr "Title A → Z"
 msgid "Title Z → A"
 msgstr "Title Z → A"
 
-#: templates/news_manage.html:132 templates/news_manage.html:365
+#: templates/news_manage.html:132 templates/news_manage.html:372
 msgid "articles selected"
 msgstr "articles selected"
 
@@ -3683,18 +3700,18 @@ msgstr "Select article"
 msgid "Archived"
 msgstr ""
 
-#: templates/news_manage.html:220 templates/news_manage.html:312
+#: templates/news_manage.html:220 templates/news_manage.html:319
 #: templates/paper_manage.html:380 templates/paper_manage.html:520
 msgid "Showing"
 msgstr "Showing"
 
-#: templates/news_manage.html:220 templates/news_manage.html:312
+#: templates/news_manage.html:220 templates/news_manage.html:319
 #: templates/paper_manage.html:380 templates/paper_manage.html:520
 msgid "of"
 msgstr ""
 
-#: templates/news_manage.html:220 templates/news_manage.html:312
-#: templates/news_manage.html:508
+#: templates/news_manage.html:220 templates/news_manage.html:319
+#: templates/news_manage.html:515
 msgid "articles"
 msgstr "articles"
 
@@ -3715,38 +3732,38 @@ msgstr ""
 msgid "New category name…"
 msgstr "New category name..."
 
-#: templates/news_manage.html:365
+#: templates/news_manage.html:372
 msgid "article selected"
 msgstr "article selected"
 
-#: templates/news_manage.html:444
+#: templates/news_manage.html:451
 msgid "articles? This cannot be undone."
 msgstr "articles? This cannot be undone."
 
-#: templates/news_manage.html:453
+#: templates/news_manage.html:460
 msgid "Bulk action failed."
 msgstr ""
 
-#: templates/news_manage.html:497
+#: templates/news_manage.html:504
 #, fuzzy
 msgid "No categories yet. Add one above."
 msgstr "No categories yet. Add one below."
 
-#: templates/news_manage.html:523
+#: templates/news_manage.html:530
 msgid ""
 "Delete this category? Articles using it will keep their current category "
 "label."
 msgstr ""
 
-#: templates/news_manage.html:573
+#: templates/news_manage.html:580
 msgid "Category added"
 msgstr "Category added"
 
-#: templates/news_manage.html:612
+#: templates/news_manage.html:619
 msgid "Category renamed"
 msgstr "Category renamed"
 
-#: templates/news_manage.html:627
+#: templates/news_manage.html:634
 msgid "Category deleted"
 msgstr "Category deleted"
 

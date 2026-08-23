@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Keydion 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-22 21:00+0800\n"
+"POT-Creation-Date: 2026-08-23 23:33+0800\n"
 "PO-Revision-Date: 2025-10-11 00:00+0000\n"
 "Last-Translator: \n"
 "Language: zh\n"
@@ -14,7 +14,8 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: app.py:308 routes/ai.py:277 routes/ai.py:334 routes/upload.py:86
+#: app.py:308 routes/ai.py:278 routes/ai.py:338 routes/papers.py:287
+#: routes/papers.py:1128 routes/upload.py:86
 msgid "Too many requests — please slow down."
 msgstr "请求过于频繁，请放慢速度。"
 
@@ -179,224 +180,228 @@ msgstr "本月新增 %(n)d 篇"
 msgid "Language not supported."
 msgstr "不支持此语言。"
 
-#: config.py:345
+#: config.py:356
 msgid "Please enter the paper title"
 msgstr "请输入论文标题"
 
-#: config.py:346
+#: config.py:357
 msgid "Please select a subject category"
 msgstr "请选择类别..."
 
-#: config.py:347
+#: config.py:358
 msgid "Please select a language"
 msgstr "请选择语言"
 
-#: config.py:348
+#: config.py:359
 msgid "Please enter keywords"
 msgstr "请输入关键词"
 
-#: config.py:349
+#: config.py:360
 msgid "Please enter the abstract"
 msgstr "请输入摘要"
 
-#: config.py:350
+#: config.py:361
 msgid "Please enter the author name"
 msgstr "请输入作者姓名"
 
-#: config.py:351
+#: config.py:362
 msgid "Please enter the contact email"
 msgstr "请输入联系邮箱"
 
-#: config.py:352
+#: config.py:363
 msgid "Please enter the school name"
 msgstr "请输入学校名称"
 
-#: config.py:380
+#: config.py:391
 msgid "Reader - View & Download"
 msgstr ""
 
-#: config.py:381
+#: config.py:392
 msgid "Contributor - Upload Enabled"
 msgstr ""
 
-#: config.py:382
+#: config.py:393
 msgid "Curator - Full Access"
 msgstr ""
 
 # ==================== LANGUAGE ====================
-#: config.py:385 routes/upload.py:173 templates/paper_modify.html:116
+#: config.py:396 routes/upload.py:173 templates/paper_modify.html:116
 #: templates/search.html:115
 msgid "English"
 msgstr "英语"
 
-#: config.py:386 routes/upload.py:174 templates/paper_modify.html:114
+#: config.py:397 routes/upload.py:174 templates/paper_modify.html:114
 #: templates/search.html:114
 msgid "Chinese"
 msgstr "中文"
 
-#: routes/ai.py:56 services/auth.py:614
+#: routes/ai.py:57 services/auth.py:614
 msgid "Please sign in first."
 msgstr "请先登录。"
 
-#: routes/ai.py:76
+#: routes/ai.py:77
 msgid "What does the research say about climate adaptation in plants?"
 msgstr "植物气候适应研究有哪些发现？"
 
-#: routes/ai.py:77
+#: routes/ai.py:78
 msgid "Summarize recent Extended Essays in economics."
 msgstr "总结近年来经济学延伸论文的主要内容。"
 
-#: routes/ai.py:78
+#: routes/ai.py:79
 msgid "Find papers about machine learning in healthcare."
 msgstr "查找医疗保健领域机器学习相关论文。"
 
-#: routes/ai.py:88
+#: routes/ai.py:89
 msgid "Ask a question and I'll answer from the published library, with citations."
 msgstr "提出问题，我会基于已发布的论文库作答并附引用。"
 
 # ==================== ADMIN USER MANAGEMENT ====================
-#: routes/ai.py:89 templates/ai.html:86
+#: routes/ai.py:90 templates/ai.html:86
 msgid "Message Keydion AI…"
 msgstr "向 Keydion AI 提问…"
 
-#: routes/ai.py:90 templates/ai.html:106
+#: routes/ai.py:91 templates/ai.html:106
 msgid "Flash"
 msgstr "快速"
 
-#: routes/ai.py:91 templates/ai.html:107
+#: routes/ai.py:92 templates/ai.html:107
 msgid "Thinking"
 msgstr "深度思考"
 
-#: routes/ai.py:92 templates/ai.html:109
+#: routes/ai.py:93 templates/ai.html:109
 msgid "Send"
 msgstr "发送"
 
-#: routes/ai.py:93
+#: routes/ai.py:94
 msgid "Cited from your library"
 msgstr "引用自资料库"
 
-#: routes/ai.py:94
+#: routes/ai.py:95
 msgid "Copy"
 msgstr "复制"
 
-#: routes/ai.py:95
+#: routes/ai.py:96
 msgid "Regenerate"
 msgstr "重新生成"
 
-#: routes/ai.py:96 templates/news_manage.html:510
+#: routes/ai.py:97 templates/news_manage.html:517
 #: templates/paper_manage.html:824
 msgid "Rename"
 msgstr "重命名"
 
-#: routes/ai.py:97
+#: routes/ai.py:98
 msgid "Today"
 msgstr "正文"
 
-#: routes/ai.py:98
+#: routes/ai.py:99
 msgid "Yesterday"
 msgstr ""
 
-#: routes/ai.py:99
+#: routes/ai.py:100
 msgid "Previous 7 days"
 msgstr "过去 7 天"
 
-#: routes/ai.py:100
+#: routes/ai.py:101
 msgid "Older"
 msgstr "更早"
 
-#: routes/ai.py:101
+#: routes/ai.py:102
 msgid "No conversations match."
 msgstr "对话"
 
-#: routes/ai.py:102
+#: routes/ai.py:103
 msgid "Thinking…"
 msgstr "思考中…"
 
-#: routes/ai.py:103 routes/ai.py:297 routes/ai.py:508
+#: routes/ai.py:104 routes/ai.py:301 routes/ai.py:512
 msgid "Something went wrong. Please try again."
 msgstr "出错了，请重试。"
 
-#: routes/ai.py:104 routes/ai.py:257 routes/ai.py:330 templates/ai.html:48
+#: routes/ai.py:105 routes/ai.py:258 routes/ai.py:334 templates/ai.html:48
 msgid "AI assistant is not configured."
 msgstr "AI 助手尚未配置。"
 
-#: routes/ai.py:105
+#: routes/ai.py:106
 msgid "No matching papers were found in the library."
 msgstr "未在资料库中找到匹配的论文。"
 
-#: routes/ai.py:106
+#: routes/ai.py:107
 msgid "Searched the web"
 msgstr "已检索网络"
 
-#: routes/ai.py:107 templates/ia_subjects_manage.html:155
+#: routes/ai.py:108 templates/ia_subjects_manage.html:155
 #: templates/paper_manage.html:412
 msgid "selected"
 msgstr "已选择"
 
-#: routes/ai.py:108 templates/ai.html:183
+#: routes/ai.py:109 templates/ai.html:183
 msgid "Select papers to attach as citations"
 msgstr "选择要作为引用附加的论文"
 
-#: routes/ai.py:109 routes/upload.py:182 templates/paper_modify.html:127
+#: routes/ai.py:110 routes/upload.py:182 templates/paper_modify.html:127
 #: templates/preview.html:412 templates/review_paper.html:33
 #: templates/submission_detail.html:30
 msgid "Abstract"
 msgstr "摘要"
 
-#: routes/ai.py:110 templates/preview.html:417 templates/search.html:274
+#: routes/ai.py:111 templates/preview.html:417 templates/search.html:274
 msgid "No abstract available."
 msgstr "暂无摘要。"
 
-#: routes/ai.py:111 templates/ai.html:179
+#: routes/ai.py:112 templates/ai.html:179
 msgid "Hover a paper to preview its abstract before citing."
 msgstr "将鼠标悬停在论文上，可在引用前预览其摘要。"
 
-#: routes/ai.py:138 routes/ai.py:143 routes/ai.py:383 templates/ai.html:54
+#: routes/ai.py:139 routes/ai.py:144 routes/ai.py:387 templates/ai.html:54
 msgid "New conversation"
 msgstr "新对话"
 
-#: routes/ai.py:162 routes/ai.py:314
+#: routes/ai.py:163 routes/ai.py:318
 msgid "Not found"
 msgstr "未找到"
 
-#: routes/ai.py:266
+#: routes/ai.py:267
 msgid "Conversation not found."
 msgstr "未找到对话。"
 
-#: routes/ai.py:281 routes/upload.py:735 routes/upload.py:761
+#: routes/ai.py:282 routes/upload.py:735 routes/upload.py:761
 #: routes/upload.py:788
 msgid "No file provided"
 msgstr "未提供文件"
 
-#: routes/ai.py:284
+#: routes/ai.py:285
 msgid "Unsupported file type. Use PDF, DOCX, TXT, or Markdown."
 msgstr "不支持的文件类型。请使用 PDF、DOCX、TXT 或 Markdown。"
 
-#: routes/ai.py:287
+#: routes/ai.py:288
 msgid "File is too large (max 5 MB)."
 msgstr "文件过大（上限 5 MB）。"
 
 # | msgid "Invalid destination."
-#: routes/ai.py:290
+#: routes/ai.py:291
 #, fuzzy
 msgid "Invalid filename."
 msgstr "目标位置无效。"
 
-#: routes/ai.py:294
+#: routes/ai.py:296
+msgid "Attachment limit reached — remove an attachment or try a smaller file."
+msgstr "附件数量已达上限——请删除部分附件或上传更小的文件。"
+
+#: routes/ai.py:298
 msgid "Could not read the file."
 msgstr "无法读取该文件。"
 
 # | msgid "Could not read the file."
-#: routes/ai.py:321
+#: routes/ai.py:325
 #, fuzzy
 msgid "Could not process the attachment."
 msgstr "无法读取该文件。"
 
-#: routes/ai.py:361
+#: routes/ai.py:365
 msgid "Please enter a question."
 msgstr "请输入问题。"
 
-#: routes/ai.py:363
+#: routes/ai.py:367
 msgid "Your question is too long."
 msgstr "你的问题过长。"
 
@@ -449,146 +454,158 @@ msgstr "未找到该期刊。"
 msgid "Journal updated."
 msgstr "期刊已更新。"
 
-#: routes/news.py:100 routes/news.py:188
+#: routes/news.py:101 routes/news.py:189
 msgid "Please enter a title."
 msgstr "请输入论文标题"
 
-#: routes/news.py:102 routes/news.py:190
+#: routes/news.py:103 routes/news.py:191
 msgid "Please select a category."
 msgstr "请选择类别..."
 
-#: routes/news.py:104 routes/news.py:192
+#: routes/news.py:105 routes/news.py:193
 msgid "Please enter an abstract."
 msgstr "请输入摘要"
 
-#: routes/news.py:106 routes/news.py:194
+#: routes/news.py:107 routes/news.py:195
 msgid "Please write the article body."
 msgstr "请填写文章正文。"
 
-#: routes/news.py:119 routes/news.py:205
+#: routes/news.py:120 routes/news.py:206
 msgid "Cover image must be PNG, JPG, GIF, or WebP."
 msgstr "封面图片格式必须为 PNG、JPG、GIF 或 WebP。"
 
-#: routes/news.py:140 routes/news.py:218
+#: routes/news.py:141 routes/news.py:219
 msgid "Draft saved."
 msgstr "草稿已保存。"
 
-#: routes/news.py:142
+#: routes/news.py:143
 msgid "Article published successfully."
 msgstr "文章发布成功。"
 
-#: routes/news.py:162 routes/news.py:239 routes/news.py:358 routes/news.py:367
+#: routes/news.py:163 routes/news.py:240 routes/news.py:369 routes/news.py:378
 msgid "Article not found."
 msgstr "未找到文章。"
 
-#: routes/news.py:220
+#: routes/news.py:221
 msgid "Article updated."
 msgstr "文章已更新。"
 
-#: routes/news.py:237
+#: routes/news.py:238
 msgid "Article deleted."
 msgstr "文章已删除。"
 
-#: routes/news.py:258 routes/news.py:307 routes/papers.py:173
-#: routes/papers.py:229
+#: routes/news.py:260 routes/news.py:318 routes/papers.py:180
+#: routes/papers.py:236
 msgid "Category name is required."
 msgstr "请输入分类名称。"
 
-#: routes/news.py:261 routes/papers.py:176
+#: routes/news.py:262 routes/news.py:284
+msgid "Category name must be 50 characters or fewer."
+msgstr "分类名称不能超过 50 个字符。"
+
+#: routes/news.py:264 routes/news.py:286
+msgid "Category name contains unsupported characters."
+msgstr "分类名称包含不支持的字符。"
+
+#: routes/news.py:267 routes/papers.py:183
 msgid "Category already exists."
 msgstr "该分类已存在。"
 
-#: routes/news.py:275 routes/papers.py:190
+#: routes/news.py:281 routes/papers.py:197
 msgid "Both old and new names are required."
 msgstr "旧名称和新名称都为必填项。"
 
-#: routes/news.py:278 routes/news.py:310 routes/papers.py:193
-#: routes/papers.py:232
+#: routes/news.py:289 routes/news.py:321 routes/papers.py:200
+#: routes/papers.py:239
 msgid "Category not found."
 msgstr "未找到分类。"
 
-#: routes/news.py:280 routes/papers.py:195
+#: routes/news.py:291 routes/papers.py:202
 msgid "A category with that name already exists."
 msgstr "已存在同名分类。"
 
 # ==================== SEARCH ====================
-#: routes/papers.py:255
+#: routes/papers.py:262
 msgid "Enter a keyword to search."
 msgstr "请输入搜索关键词。"
 
-#: routes/papers.py:337
+#: routes/papers.py:273
+msgid "Search query is too long."
+msgstr "搜索关键词过长。"
+
+#: routes/papers.py:367
 msgid "No matching papers found."
 msgstr "未找到匹配的论文。"
 
-#: routes/papers.py:839 routes/upload.py:517
+#: routes/papers.py:869 routes/upload.py:517
 msgid ""
 "A paper can only be one of: Extended Essay, Community Project, or "
 "Internal Assessment."
 msgstr "论文只能属于以下类型之一：延伸论文、社区项目或内部评估。"
 
-#: routes/papers.py:844 routes/upload.py:522
+#: routes/papers.py:874 routes/upload.py:522
 msgid "Please select an EE core subject."
 msgstr "请选择核心学科…"
 
-#: routes/papers.py:849 routes/upload.py:527
+#: routes/papers.py:879 routes/upload.py:527
 msgid "Please select a Global Context."
 msgstr "请选择全球背景…"
 
-#: routes/papers.py:854 routes/upload.py:530
+#: routes/papers.py:884 routes/upload.py:530
 msgid "Please select at least one Type of Action."
 msgstr "请至少选择一种行动类型。"
 
-#: routes/papers.py:861 routes/upload.py:535
+#: routes/papers.py:891 routes/upload.py:535
 msgid "Please select an IA subject."
 msgstr "请选择 IA 科目。"
 
-#: routes/papers.py:866 routes/upload.py:538
+#: routes/papers.py:896 routes/upload.py:538
 msgid "The selected IA subject has no assessment criteria configured."
 msgstr "所选 IA 科目尚未配置评分标准。"
 
-#: routes/papers.py:894 templates/paper_modify.html:452
+#: routes/papers.py:924 templates/paper_modify.html:452
 msgid "Save metadata changes separately before uploading a replacement PDF."
 msgstr ""
 
-#: routes/papers.py:959
+#: routes/papers.py:989
 msgid "Paper PDF revised, but RAG indexing failed."
 msgstr ""
 
 # | msgid "Paper Preview"
-#: routes/papers.py:963
+#: routes/papers.py:993
 #, fuzzy
 msgid "Paper PDF revised."
 msgstr "论文预览"
 
-#: routes/papers.py:965
+#: routes/papers.py:995
 msgid "Paper information updated."
 msgstr "论文信息已更新。"
 
 # | msgid "paper selected"
-#: routes/papers.py:1031
+#: routes/papers.py:1061
 #, fuzzy
 msgid "Paper deleted."
 msgstr "篇论文已选中"
 
-#: routes/papers.py:1033
+#: routes/papers.py:1063
 msgid "Paper deletion is in progress."
 msgstr ""
 
-#: routes/papers.py:1109
+#: routes/papers.py:1153
 msgid "Paper revision restored, but RAG indexing failed."
 msgstr ""
 
 # | msgid "Paper rejected."
-#: routes/papers.py:1113
+#: routes/papers.py:1157
 #, fuzzy
 msgid "Paper revision restored."
 msgstr "论文已拒绝。"
 
-#: routes/papers.py:1194 routes/papers.py:1233
+#: routes/papers.py:1238 routes/papers.py:1277
 msgid "Please fix the highlighted fields before saving."
 msgstr "请先修正高亮的字段再保存。"
 
-#: routes/papers.py:1202 routes/papers.py:1241
+#: routes/papers.py:1246 routes/papers.py:1285
 msgid "Some subjects are still used by papers."
 msgstr "部分学科仍被论文使用。"
 
@@ -1848,8 +1865,8 @@ msgstr "保持登录状态 7 天"
 #: templates/_header.html:209 templates/ai.html:155 templates/ai.html:185
 #: templates/change_password.html:445 templates/guide_publish.html:149
 #: templates/ia_subjects_manage.html:154 templates/my_submissions.html:64
-#: templates/news_manage.html:137 templates/news_manage.html:520
-#: templates/news_manage.html:525 templates/news_publish.html:970
+#: templates/news_manage.html:137 templates/news_manage.html:527
+#: templates/news_manage.html:532 templates/news_publish.html:970
 #: templates/paper_manage.html:278 templates/paper_manage.html:418
 #: templates/paper_modify.html:464 templates/resource_manage.html:89
 #: templates/resource_manage.html:113 templates/resource_manage.html:135
@@ -1984,8 +2001,8 @@ msgstr "检测中…"
 #: templates/guide_manage.html:246 templates/journal_manage.html:64
 #: templates/my_submissions.html:64 templates/news_article.html:594
 #: templates/news_manage.html:136 templates/news_manage.html:207
-#: templates/news_manage.html:444 templates/news_manage.html:513
-#: templates/news_manage.html:526 templates/paper_manage.html:365
+#: templates/news_manage.html:451 templates/news_manage.html:520
+#: templates/news_manage.html:533 templates/paper_manage.html:365
 #: templates/paper_manage.html:726 templates/paper_manage.html:825
 #: templates/resource_manage.html:59
 msgid "Delete"
@@ -2746,7 +2763,7 @@ msgstr "按状态筛选"
 
 #: templates/guide_manage.html:86 templates/guide_publish.html:52
 #: templates/news_manage.html:99 templates/news_manage.html:152
-#: templates/news_manage.html:192 templates/news_manage.html:350
+#: templates/news_manage.html:192 templates/news_manage.html:357
 #: templates/paper_manage.html:294 templates/paper_manage.html:557
 #: templates/paper_modify.html:443
 msgid "Published"
@@ -2764,7 +2781,7 @@ msgid "Filter by category"
 msgstr "按分类筛选"
 
 #: templates/guide_manage.html:93 templates/news_manage.html:109
-#: templates/news_manage.html:549
+#: templates/news_manage.html:556
 msgid "Category: All"
 msgstr "分类：全部"
 
@@ -2932,7 +2949,7 @@ msgstr "已保存所有更改"
 msgid "Preview"
 msgstr "预览"
 
-#: templates/guide_publish.html:152 templates/news_manage.html:519
+#: templates/guide_publish.html:152 templates/news_manage.html:526
 #: templates/resource_manage.html:134
 msgid "Save"
 msgstr "保存"
@@ -3503,7 +3520,7 @@ msgstr "标题 A → Z"
 msgid "Title Z → A"
 msgstr "标题 Z → A"
 
-#: templates/news_manage.html:132 templates/news_manage.html:365
+#: templates/news_manage.html:132 templates/news_manage.html:372
 msgid "articles selected"
 msgstr "已选择文章"
 
@@ -3535,18 +3552,18 @@ msgstr "选择文章"
 msgid "Archived"
 msgstr "已归档"
 
-#: templates/news_manage.html:220 templates/news_manage.html:312
+#: templates/news_manage.html:220 templates/news_manage.html:319
 #: templates/paper_manage.html:380 templates/paper_manage.html:520
 msgid "Showing"
 msgstr "显示"
 
-#: templates/news_manage.html:220 templates/news_manage.html:312
+#: templates/news_manage.html:220 templates/news_manage.html:319
 #: templates/paper_manage.html:380 templates/paper_manage.html:520
 msgid "of"
 msgstr "共"
 
-#: templates/news_manage.html:220 templates/news_manage.html:312
-#: templates/news_manage.html:508
+#: templates/news_manage.html:220 templates/news_manage.html:319
+#: templates/news_manage.html:515
 msgid "articles"
 msgstr "篇文章"
 
@@ -3566,37 +3583,37 @@ msgstr "试试不同的状态、分类或日期范围 — 或清空搜索框。"
 msgid "New category name…"
 msgstr "新分类名称…"
 
-#: templates/news_manage.html:365
+#: templates/news_manage.html:372
 msgid "article selected"
 msgstr "已选择文章"
 
-#: templates/news_manage.html:444
+#: templates/news_manage.html:451
 msgid "articles? This cannot be undone."
 msgstr "篇文章？此操作无法撤销。"
 
-#: templates/news_manage.html:453
+#: templates/news_manage.html:460
 msgid "Bulk action failed."
 msgstr "批量操作失败。"
 
-#: templates/news_manage.html:497
+#: templates/news_manage.html:504
 msgid "No categories yet. Add one above."
 msgstr "还没有分类，请在上方添加。"
 
-#: templates/news_manage.html:523
+#: templates/news_manage.html:530
 msgid ""
 "Delete this category? Articles using it will keep their current category "
 "label."
 msgstr "删除此分类？使用该分类的文章将保留当前分类标签。"
 
-#: templates/news_manage.html:573
+#: templates/news_manage.html:580
 msgid "Category added"
 msgstr "分类已添加"
 
-#: templates/news_manage.html:612
+#: templates/news_manage.html:619
 msgid "Category renamed"
 msgstr "分类已重命名"
 
-#: templates/news_manage.html:627
+#: templates/news_manage.html:634
 msgid "Category deleted"
 msgstr "分类已删除"
 
