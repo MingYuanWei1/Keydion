@@ -10,6 +10,8 @@ import numpy as np
 from flask import current_app, session, url_for
 from flask_babel import gettext as _
 
+from config import MAX_ASK_HISTORY_MESSAGE_CHARS
+
 import llm_client
 import pdf_text
 import rag_index
@@ -446,6 +448,12 @@ def _ask_rate_ok(ip: str, *, scope: str = "ask") -> bool:
 MAX_TOOL_ROUNDS = 5
 WEB_SEARCH_CALL_CAP = 3   # max web_search calls per Ask turn
 FETCH_URL_CALL_CAP = 3   # max fetch_url calls per Ask turn
+# Turn-wide budgets (security finding: unbounded per-round dispatch and
+# tool-result growth — every result was appended to the next provider
+# request with no aggregate cap).
+MAX_TOOL_CALLS_PER_ROUND = 8      # tool calls one model round may execute
+LIBRARY_TOOL_CALL_CAP = 20        # total non-web tool calls per Ask turn
+MAX_TOOL_RESULT_CHARS = 20_000    # each tool result appended to the model
 
 
 # Shared style/formatting guidance appended to both Ask prompts, adapted from a
@@ -663,8 +671,14 @@ def _ask_llm_messages(question, history_rows):
             raw_content = row.content
         role = raw_role if raw_role in ("user", "assistant") else ""
         content = (raw_content or "").strip()
-        if role and content:
-            messages.append({"role": role, "content": content})
+        if not role or not content:
+            continue
+        # Per-message budget: a single oversized history row must not be able
+        # to dominate the provider request (security finding: unbounded
+        # history accumulation).
+        if len(content) > MAX_ASK_HISTORY_MESSAGE_CHARS:
+            content = content[:MAX_ASK_HISTORY_MESSAGE_CHARS] + "…"
+        messages.append({"role": role, "content": content})
     if not messages or messages[-1] != {"role": "user", "content": question}:
         messages.append({"role": "user", "content": question})
     return messages

@@ -15,6 +15,9 @@ import json
 import library_tools
 from services.ai import (
     FETCH_URL_CALL_CAP,
+    LIBRARY_TOOL_CALL_CAP,
+    MAX_TOOL_CALLS_PER_ROUND,
+    MAX_TOOL_RESULT_CHARS,
     MAX_TOOL_ROUNDS,
     WEB_SEARCH_CALL_CAP,
     _build_agentic_ask_prompt,
@@ -100,8 +103,16 @@ def run_ask_turn(inp):
         include_web = inp.include_web
         tool_schemas = library_tools.build_tool_schemas(
             include_web=include_web, include_attachment=include_attachment)
+        # The advertised schema set is the ONLY executable capability set for
+        # this turn: a model can emit tool names it was never offered (web
+        # tools included), and the dispatcher must not honor them. This also
+        # makes withheld web consent a server-side fact, not model guidance.
+        allowed_tools = {
+            schema["function"]["name"] for schema in tool_schemas
+        }
         web_call_count = 0
         fetch_call_count = 0
+        library_call_count = 0
         registry = library_tools.SourceRegistry()
 
         # Seed the registry from the retrieved hits (library + attachment
@@ -260,25 +271,53 @@ def run_ask_turn(inp):
                         for idx, c in enumerate(calls)
                     ],
                 })
+                round_calls = 0
                 for idx, c in enumerate(calls):
                     cid = c["id"] or f"call_{idx}"
-                    if c["name"] == "web_search":
+                    name = c["name"]
+                    if round_calls >= MAX_TOOL_CALLS_PER_ROUND:
+                        messages.append({"role": "tool", "tool_call_id": cid,
+                            "content": "Error: too many tool calls in one round; "
+                                       "answer with what you have."})
+                        continue
+                    if name not in allowed_tools:
+                        # Never execute a tool the model was not offered this
+                        # turn (web tools without consent included); a
+                        # prompt-influenced or non-conforming model cannot
+                        # reach unadvertised capabilities.
+                        messages.append({"role": "tool", "tool_call_id": cid,
+                            "content": "Error: unknown tool; use only the tools "
+                                       "listed in the instructions."})
+                        continue
+                    if name == "web_search":
                         if web_call_count >= WEB_SEARCH_CALL_CAP:
                             messages.append({"role": "tool", "tool_call_id": cid,
                                 "content": "Error: web_search limit reached for "
                                            "this turn; answer with what you have."})
                             continue
                         web_call_count += 1
-                    if c["name"] == "fetch_url":
+                    elif name == "fetch_url":
                         if fetch_call_count >= FETCH_URL_CALL_CAP:
                             messages.append({"role": "tool", "tool_call_id": cid,
                                 "content": "Error: fetch_url limit reached for "
                                            "this turn; answer with what you have."})
                             continue
                         fetch_call_count += 1
+                    else:
+                        if library_call_count >= LIBRARY_TOOL_CALL_CAP:
+                            messages.append({"role": "tool", "tool_call_id": cid,
+                                "content": "Error: library tool limit reached for "
+                                           "this turn; answer with what you have."})
+                            continue
+                        library_call_count += 1
+                    round_calls += 1
                     yield {"type": "status",
-                           "text": _tool_status_text(c["name"], c["arguments"], registry, deps)}
-                    result = library_tools.run_tool(c["name"], c["arguments"], registry, deps)
+                           "text": _tool_status_text(name, c["arguments"], registry, deps)}
+                    result = library_tools.run_tool(name, c["arguments"], registry, deps)
+                    # Budget each tool result appended to the next provider
+                    # request (security finding: unbounded tool-output growth).
+                    if len(result) > MAX_TOOL_RESULT_CHARS:
+                        result = result[:MAX_TOOL_RESULT_CHARS] + "\n[truncated]"
                     messages.append({"role": "tool", "tool_call_id": cid,
                                      "content": result})
                 continue

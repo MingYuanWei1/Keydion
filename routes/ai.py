@@ -16,7 +16,12 @@ from flask_babel import get_locale, gettext as _
 import llm_client
 import rag_index
 import web_search
-from config import OPEN_ACCESS
+from config import (
+    MAX_ASK_HISTORY_MESSAGES,
+    MAX_CONVERSATIONS_PER_OWNER,
+    MAX_FORCED_PAPERS_PER_TURN,
+    OPEN_ACCESS,
+)
 from db import db_session
 from models import AttachmentChunkModel, ChatMessageModel, ConversationModel
 from routes.shared import is_partial_request
@@ -133,6 +138,16 @@ def register_routes(app):
             import secrets
             now = datetime.utcnow().isoformat()
             with db_session() as db:
+                # Per-owner conversation quota (security finding: unbounded
+                # persistent conversation rows without admission control).
+                existing = (
+                    db.query(ConversationModel)
+                    .filter(ConversationModel.owner_key == owner)
+                    .count()
+                )
+                if existing >= MAX_CONVERSATIONS_PER_OWNER:
+                    return jsonify({"error": str(_(
+                        "You have too many conversations — delete one before starting a new one."))}), 429
                 serial = secrets.token_urlsafe(5)[:6]
                 conv = ConversationModel(owner_key=owner,
                                          serial=serial,
@@ -391,7 +406,14 @@ def register_routes(app):
                     history_rows = (db.query(ChatMessageModel)
                                       .filter(ChatMessageModel.conversation_id == db_conv_id)
                                       .order_by(ChatMessageModel.id.asc()).all())
-                    history_rows = [{"role": row.role, "content": row.content} for row in history_rows]
+                    # History window: every turn resent the whole
+                    # conversation to the provider with no bound (security
+                    # finding: unbounded history accumulation). Only the most
+                    # recent messages travel; the rest stay in the DB.
+                    history_rows = [
+                        {"role": row.role, "content": row.content}
+                        for row in history_rows[-MAX_ASK_HISTORY_MESSAGES:]
+                    ]
                     # Forced grounding = union of every message's cited papers, so a
                     # paper cited earlier stays in context even after its composer
                     # chip moved onto that message.
@@ -415,6 +437,10 @@ def register_routes(app):
                             if paper_id not in seen_forced:
                                 seen_forced.add(paper_id)
                                 forced.append(paper_id)
+                    # Bound the forced-grounding set: every cited paper is
+                    # reread and appended to the prompt each turn (security
+                    # finding: unbounded source accumulation).
+                    forced = forced[:MAX_FORCED_PAPERS_PER_TURN]
                 else:
                     conv_serial = None
         llm_messages = _ask_llm_messages(question, history_rows)

@@ -308,6 +308,12 @@ MAX_PENDING_BYTES_PER_USER = 200 * 1024 * 1024
 NEWS_IMAGE_MAX_BYTES = 5 * 1024 * 1024              # one image
 NEWS_IMAGES_MAX_FILES = 2000                        # directory-wide count
 NEWS_IMAGES_MAX_TOTAL_BYTES = 1024 * 1024 * 1024    # directory-wide bytes
+# Keydion AI budgets (security finding: no owner/conversation/turn-wide
+# limits on history, sources, tool output, or conversation rows).
+MAX_CONVERSATIONS_PER_OWNER = 100
+MAX_ASK_HISTORY_MESSAGES = 40          # prior messages resent to the model
+MAX_ASK_HISTORY_MESSAGE_CHARS = 8000   # per-history-message content cap
+MAX_FORCED_PAPERS_PER_TURN = 8         # cited papers reread into context
 # VECTOR(n) column dimension for RAG chunk embeddings. Must match the embedding
 # model's output (gemini-embedding-001: 3072). Changing it requires a column
 # migration + full re-index, not just an env flip.
