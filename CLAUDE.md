@@ -200,6 +200,7 @@ Importing `app`, `routes/*`, or `services/*` is side-effect free with respect to
 **CSRF test gotcha:** global `CSRFProtect` breaks naive tests — Flask test-client tests that POST must set `app.config["WTF_CSRF_ENABLED"] = False`, and standalone Jinja-render tests must stub `env.globals["csrf_token"] = lambda: ""` (else templates calling `{{ csrf_token() }}` raise). Existing test files already do this; follow the pattern when adding tests.
 
 Conventional commits (`feat:`, `fix:`, with optional scope like `fix(i18n):`) are used.
+The commit message should be brief and targeted, avoid long paragraph-like description messages;
 
 ## Noteworthy patterns
 
