@@ -35,6 +35,7 @@ from services.ai import (
 )
 from services.ask_turn import AskTurnInput, run_ask_turn
 from services.attachment_jobs import (
+    AttachmentQuotaExceeded,
     attachment_job_status_for_owner,
     cancel_attachment,
     delete_conversation_attachment_jobs,
@@ -290,6 +291,9 @@ def register_routes(app):
             return jsonify({"error": str(_("Invalid filename."))}), 400
         try:
             job_id = queue_attachment(conv_id, display, raw)
+        except AttachmentQuotaExceeded:
+            return jsonify({"error": str(_(
+                "Attachment limit reached — remove an attachment or try a smaller file."))}), 429
         except AttachmentProcessingError:
             return jsonify({"error": str(_("Could not read the file."))}), 400
         except Exception:
