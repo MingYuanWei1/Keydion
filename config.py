@@ -299,6 +299,15 @@ RESTORE_RATE_WINDOW = 600    # seconds
 # whose page count exceeds this before any rewrite/extraction work. Real
 # EE/IA/CP/research papers are far shorter; overridable for odd corpora.
 MAX_PDF_PAGES = int(os.environ.get("PAPERQUERY_MAX_PDF_PAGES", "1000"))
+# Cumulative Reader-intake storage budgets (security finding: uploads
+# allocated unbounded persistent storage). Draft + pending rows share the
+# count cap; the byte cap covers the pending PDFs one submitter holds.
+MAX_ACTIVE_SUBMISSIONS_PER_USER = 25
+MAX_PENDING_BYTES_PER_USER = 200 * 1024 * 1024
+# News inline/cover images (security finding: unowned assets without quota).
+NEWS_IMAGE_MAX_BYTES = 5 * 1024 * 1024              # one image
+NEWS_IMAGES_MAX_FILES = 2000                        # directory-wide count
+NEWS_IMAGES_MAX_TOTAL_BYTES = 1024 * 1024 * 1024    # directory-wide bytes
 # VECTOR(n) column dimension for RAG chunk embeddings. Must match the embedding
 # model's output (gemini-embedding-001: 3072). Changing it requires a column
 # migration + full re-index, not just an env flip.
