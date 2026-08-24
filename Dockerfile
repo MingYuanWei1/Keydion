@@ -16,7 +16,8 @@ WORKDIR /app
 # keep them out of the final image, so no rm of /var/lib/apt/lists is needed).
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && apt-get install -y --no-install-recommends \
+    apt-get update && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends \
     gcc \
     tesseract-ocr \
     tesseract-ocr-chi-sim \
