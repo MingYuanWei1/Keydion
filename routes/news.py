@@ -30,6 +30,7 @@ from services.news import (
     get_news_article,
     load_categories,
     load_news_articles,
+    news_body_html,
     sanitize_news_body,
     save_categories,
     save_news_article,
@@ -87,7 +88,7 @@ def register_routes(app):
 
     @app.route("/dashboard/news/upload-inline-image", methods=["POST"])
     def news_upload_inline_image():
-        """AJAX endpoint: upload an image for the block editor and return its URL."""
+        """Upload an image for the news editor and return its URL."""
         user = require_login(level=2)
         if not user:
             return jsonify({"error": "Unauthorized"}), 401
@@ -211,7 +212,7 @@ def register_routes(app):
             "title": article["title"],
             "category": article["category"],
             "abstract": article["abstract"],
-            "body": article["body"],
+            "body": news_body_html(article["body"]),
             "author": article["author"],
             "image_url": article["image_url"],
             "status": article.get("status", "published"),

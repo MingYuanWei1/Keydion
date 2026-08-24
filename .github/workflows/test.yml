@@ -8,28 +8,6 @@ permissions:
   contents: read
 
 jobs:
-  fast:
-    name: Fast contracts (Python 3.14)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: "3.14"
-          cache: pip
-          cache-dependency-path: requirements.lock
-      - name: Install dependencies
-        run: python3 -m pip install --require-hashes -r requirements.lock
-      - name: Run deployment, Alembic runtime, and legacy migration contracts
-        run: >-
-          python3 -m unittest
-          tests/test_publishing_deployment_contract.py
-          tests/test_alembic_runtime.py
-          tests/test_publishing_migration.py
-          -v
-      - name: Verify the single Alembic head
-        run: python3 -m alembic heads
-
   mysql:
     name: MySQL 9.7.1 (Python 3.14)
     runs-on: ubuntu-latest
@@ -56,43 +34,6 @@ jobs:
           cache-dependency-path: requirements.lock
       - name: Install dependencies
         run: python3 -m pip install --require-hashes -r requirements.lock
-      - name: Run Alembic runtime and legacy migration tests in isolation
-        run: >-
-          python3 tools/run_isolated_tests.py
-          tests/test_alembic_runtime.py
-          tests/test_publishing_migration.py
-          -v
-      - name: Run real-MySQL migration and concurrency tests in isolation
-        run: >-
-          python3 tools/run_isolated_tests.py
-          tests/test_publishing_migration_mysql.py
-          tests/test_publishing_mysql_concurrency.py
-          -v
-      - name: Run the focused publishing suite in isolation
-        run: >-
-          python3 tools/run_isolated_tests.py
-          tests/test_publishing_contracts.py
-          tests/test_publishing_models.py
-          tests/test_alembic_runtime.py
-          tests/test_publishing_migration.py
-          tests/test_paper_storage.py
-          tests/test_publishing_publish.py
-          tests/test_publishing_submissions.py
-          tests/test_publishing_revisions.py
-          tests/test_publishing_delete.py
-          tests/test_publishing_jobs.py
-          tests/test_publishing_worker.py
-          tests/test_rag_revision_identity.py
-          tests/test_publishing_http.py
-          tests/test_paper_library.py
-          tests/test_paper_identity_routes.py
-          tests/test_publishing_mutation_routes.py
-          tests/test_publishing_revision_ui.py
-          tests/test_publishing_legacy_writers.py
-          tests/test_paper_id_consumers.py
-          tests/test_publishing_i18n.py
-          tests/test_publishing_deployment_contract.py
-          -v
       - name: Run the full unittest suite in isolation
         run: >-
           python3 tools/run_isolated_tests.py discover -s tests -p "test_*.py" -v

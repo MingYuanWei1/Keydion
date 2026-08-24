@@ -3,9 +3,7 @@ _lib_paper_url, and _build_library_deps — the DB-backed deps for library_tools
 
 No real DB is needed; collaborators are mocked at the module attribute level.
 Read helpers intentionally run in Flask request contexts so they can exercise
-the injected PaperLibrary boundary. The helpers live in services.ai (split
-refactor), while public objects stay reachable as app_module.<name> through the
-back-compat re-exports.
+the injected PaperLibrary boundary. The helpers live in services.ai.
 """
 import os
 import types
@@ -16,11 +14,13 @@ from unittest import mock
 from flask import Flask
 
 os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
-import app as app_module
-import services.ai as ask_module
+import rag_index
+import services.ai as app_module
 from models import PaperChunkModel, PaperMetadataModel, PaperRevisionModel
 from services.publishing_contracts import NotFound
 from tests.publishing_support import PublishingLifecycleTestCase
+
+ask_module = app_module
 
 
 PAPER_A_ID = "00000000-0000-4000-8000-000000000801"
@@ -89,7 +89,7 @@ class TestLibFullText(unittest.TestCase):
             "db_session",
             return_value=cm,
         ):
-            result = app_module._lib_full_text(PAPER_A_ID)
+            result = ask_module._lib_full_text(PAPER_A_ID)
 
         self.assertEqual(result, "")
         library.current_pdf.assert_called_once_with(PAPER_A_ID)
@@ -103,9 +103,9 @@ class TestLibFullText(unittest.TestCase):
         with app.test_request_context(), \
              mock.patch.object(ask_module, "db_session", return_value=cm), \
              mock.patch.object(ask_module, "_rag_paper_text") as mock_fallback:
-            result = app_module._lib_full_text(PAPER_A_ID)
-        expected = app_module.rag_index.reassemble(["hello world this is chunk A extra text here",
-                                                    "extra text here and some more content B"])
+            result = ask_module._lib_full_text(PAPER_A_ID)
+        expected = rag_index.reassemble(["hello world this is chunk A extra text here",
+                                         "extra text here and some more content B"])
         self.assertEqual(result, expected)
         mock_fallback.assert_not_called()
 
@@ -173,11 +173,11 @@ class TestLibFullText(unittest.TestCase):
              mock.patch.object(ask_module, "_rag_paper_text"):
             app_module._lib_full_text(PAPER_A_ID)
         join_args = fake_db.query.return_value.join.call_args.args
-        self.assertIs(join_args[0], app_module.PaperMetadataModel)
+        self.assertIs(join_args[0], PaperMetadataModel)
         self.assertTrue(
             join_args[1].compare(
-                app_module.PaperMetadataModel.id
-                == app_module.PaperChunkModel.paper_id,
+                PaperMetadataModel.id
+                == PaperChunkModel.paper_id,
             )
         )
         filters = (
@@ -190,13 +190,13 @@ class TestLibFullText(unittest.TestCase):
         self.assertEqual(filters[3].right.value, 2)
         self.assertTrue(
             filters[4].compare(
-                app_module.PaperMetadataModel.current_revision
-                == app_module.PaperChunkModel.revision_number,
+                PaperMetadataModel.current_revision
+                == PaperChunkModel.revision_number,
             )
         )
         (
             fake_db.query.return_value.join.return_value.filter.return_value
-            .order_by.assert_called_once_with(app_module.PaperChunkModel.chunk_index)
+            .order_by.assert_called_once_with(PaperChunkModel.chunk_index)
         )
 
     def test_db_error_returns_empty_string(self):
@@ -242,7 +242,7 @@ class TestLibFullText(unittest.TestCase):
              mock.patch.object(ask_module, "_rag_paper_text") as mock_fallback:
             result = app_module._lib_full_text(PAPER_A_ID)
         # Single chunk with None content — reassemble([""])
-        self.assertEqual(result, app_module.rag_index.reassemble([""]))
+        self.assertEqual(result, rag_index.reassemble([""]))
         mock_fallback.assert_not_called()
 
 

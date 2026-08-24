@@ -11,6 +11,8 @@ user-message persistence, and assistant-message persistence are the caller's
 job. The turn owns only what a turn *is*. See CONTEXT.md § Keydion AI.
 """
 import json
+from dataclasses import dataclass
+from typing import Any
 
 import library_tools
 from services.ai import (
@@ -27,6 +29,7 @@ from services.ai import (
 )
 
 
+@dataclass(slots=True, eq=False)
 class AskTurnInput:
     """Plain carrier for the inputs `run_ask_turn` needs.
 
@@ -35,30 +38,21 @@ class AskTurnInput:
     can drive the turn with a fake OpenAI client and a recording persist callable.
     """
 
-    __slots__ = (
-        "question", "llm_messages", "mode", "model", "forced", "hits",
-        "citations", "web_results", "locale_code", "include_web",
-        "attachment_names", "client", "deps", "persist_assistant", "logger",
-    )
-
-    def __init__(self, *, question, llm_messages, mode, model, forced, hits,
-                 citations, web_results, locale_code, include_web,
-                 attachment_names, client, deps, persist_assistant, logger):
-        self.question = question
-        self.llm_messages = llm_messages
-        self.mode = mode
-        self.model = model
-        self.forced = forced
-        self.hits = hits
-        self.citations = citations
-        self.web_results = web_results
-        self.locale_code = locale_code
-        self.include_web = include_web
-        self.attachment_names = attachment_names
-        self.client = client
-        self.deps = deps
-        self.persist_assistant = persist_assistant
-        self.logger = logger
+    question: str
+    llm_messages: list[dict]
+    mode: str
+    model: str
+    forced: list
+    hits: list[dict]
+    citations: list[dict]
+    web_results: list[dict]
+    locale_code: str
+    include_web: bool
+    attachment_names: list[str]
+    client: Any
+    deps: Any
+    persist_assistant: Any
+    logger: Any
 
 
 def run_ask_turn(inp):

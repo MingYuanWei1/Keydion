@@ -9,7 +9,7 @@ import unittest
 
 os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
 
-import app as app_module
+import services.ai as app_module
 
 
 class NoSourcesPrompt(unittest.TestCase):

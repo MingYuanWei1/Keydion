@@ -16,16 +16,13 @@ from __future__ import annotations
 
 import json
 from functools import lru_cache
-from pathlib import Path
 from typing import Optional
 
 from pdf_text import extract_pdf_text, PdfTextError
 
-from config import _EE_SUBJECTS_DEFAULT
+from config import EE_SUBJECTS_SAMPLE_JSON, _EE_SUBJECTS_PATH
 import llm_client
 from vision_extractor import VisionFirstExtractor
-
-_DATA_DIR = Path(__file__).resolve().parent / "data"
 
 MAX_PDF_CHARS = 12_000          # bound the prompt size / token cost
 
@@ -93,11 +90,10 @@ def _empty_result() -> dict:
 @lru_cache(maxsize=1)
 def _canonical_subjects() -> dict:
     """Return a {lowercase_name: CanonicalName} mapping from ee_subjects.json."""
-    path = _DATA_DIR / "ee_subjects.json"
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
+        data = json.loads(_EE_SUBJECTS_PATH.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        data = _EE_SUBJECTS_DEFAULT
+        data = json.loads(EE_SUBJECTS_SAMPLE_JSON.read_text(encoding="utf-8"))
     out: dict[str, str] = {}
     for group in data.get("groups", []):
         for subject in group.get("subjects", []):

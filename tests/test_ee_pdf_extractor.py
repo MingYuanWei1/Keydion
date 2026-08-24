@@ -192,12 +192,14 @@ class FallbackEndToEndTest(unittest.TestCase):
 class SubjectNormalisationTest(unittest.TestCase):
     """Subjects are matched (case-insensitive exact) against ee_subjects.json."""
 
-    def test_builtin_catalog_is_used_when_runtime_file_is_missing(self):
+    def test_tracked_sample_is_used_when_runtime_file_is_missing(self):
         from ee_pdf_extractor import _canonical_subjects, _normalise_subject
 
         _canonical_subjects.cache_clear()
         try:
-            with mock.patch.object(__import__("pathlib").Path, "read_text", side_effect=FileNotFoundError):
+            missing = mock.Mock()
+            missing.read_text.side_effect = FileNotFoundError
+            with mock.patch.object(ee_pdf_extractor, "_EE_SUBJECTS_PATH", missing):
                 self.assertEqual(_normalise_subject("biology")[0], "Biology")
         finally:
             _canonical_subjects.cache_clear()

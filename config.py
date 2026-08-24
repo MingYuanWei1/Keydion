@@ -66,193 +66,23 @@ GUIDE_FIELDS = [
     "body_en", "body_zh", "created_at", "updated_at",
 ]
 GUIDE_CATEGORIES_JSON = DATA_DIR / "guide_categories.json"
-_DEFAULT_GUIDE_CATEGORIES = [
-    "Getting Started", "Account", "Submissions", "News", "Other",
-]
-_DEFAULT_NEWS_CATEGORIES = [
-    "活动回顾", "期刊发布", "讲座预告", "成果展示",
-    "公告通知", "学术动态", "社团新闻", "其他",
-]
+GUIDE_CATEGORIES_SAMPLE_JSON = BASE_DIR / "data" / "guide_categories.sample.json"
 CATEGORIES_JSON = DATA_DIR / "news_categories.json"
+NEWS_CATEGORIES_SAMPLE_JSON = BASE_DIR / "data" / "news_categories.sample.json"
 JOURNALS_JSON = DATA_DIR / "paper_journals.json"
-_DEFAULT_PAPER_CATEGORIES = ["literature", "natural-science", "social-science", "humanities"]
+PAPER_CATEGORIES_JSON = DATA_DIR / "paper_categories.json"
+PAPER_CATEGORIES_SAMPLE_JSON = BASE_DIR / "data" / "paper_categories.sample.json"
 PENDING_PAPERS_DIR = DATA_DIR / "pending_papers"
 
 
 # ---- IB EE Subject helpers ----
 
 _EE_SUBJECTS_PATH = DATA_DIR / "ee_subjects.json"
-
-_EE_SUBJECTS_DEFAULT = {
-    "groups": [
-        {
-            "id": 1,
-            "name": "Group 1: Studies in Language and Literature",
-            "subjects": [
-                "Language A: Literature",
-                "Language A: Language and Literature",
-                "Literature and Performance"
-            ]
-        },
-        {
-            "id": 2,
-            "name": "Group 2: Language Acquisition",
-            "subjects": [
-                "Language B",
-                "Language ab initio",
-                "Classical Languages"
-            ]
-        },
-        {
-            "id": 3,
-            "name": "Group 3: Individuals and Societies",
-            "subjects": [
-                "Business Management",
-                "Economics",
-                "Geography",
-                "Global Politics",
-                "History",
-                "Information Technology in a Global Society",
-                "Philosophy",
-                "Psychology",
-                "Social and Cultural Anthropology",
-                "World Religions"
-            ]
-        },
-        {
-            "id": 4,
-            "name": "Group 4: Sciences",
-            "subjects": [
-                "Biology",
-                "Chemistry",
-                "Computer Science",
-                "Design Technology",
-                "Environmental Systems and Societies",
-                "Physics",
-                "Sports, Exercise and Health Science"
-            ]
-        },
-        {
-            "id": 5,
-            "name": "Group 5: Mathematics",
-            "subjects": [
-                "Mathematics: Analysis and Approaches",
-                "Mathematics: Applications and Interpretation"
-            ]
-        },
-        {
-            "id": 6,
-            "name": "Group 6: The Arts",
-            "subjects": [
-                "Dance",
-                "Film",
-                "Music",
-                "Theatre",
-                "Visual Arts"
-            ]
-        }
-    ],
-    "interdisciplinary_subjects": [
-        "Environmental Systems and Societies",
-        "Literature and Performance",
-        "World Studies"
-    ]
-}
+EE_SUBJECTS_SAMPLE_JSON = BASE_DIR / "data" / "ee_subjects.sample.json"
 
 # ---- IB IA (Internal Assessment) Subject helpers ----
-# Mirrors the EE group/subject NAMES, but each subject carries its own IA rubric.
-# Rubrics pre-filled ONLY where the IB internal-assessment criteria are well
-# established; every other subject ships with an empty criteria list for an
-# admin to fill via the manage page.  # verify against current IB subject guides
 _IA_SUBJECTS_PATH = DATA_DIR / "ia_subjects.json"
-
-# Group 4 Sciences individual-investigation rubric (24 marks).
-_IA_SCIENCE_CRITERIA = [
-    {"name": "Personal engagement", "max": 2},
-    {"name": "Exploration", "max": 6},
-    {"name": "Analysis", "max": 6},
-    {"name": "Evaluation", "max": 6},
-    {"name": "Communication", "max": 4},
-]
-# Mathematics exploration rubric (20 marks).
-_IA_MATH_CRITERIA = [
-    {"name": "Presentation", "max": 4},
-    {"name": "Mathematical communication", "max": 4},
-    {"name": "Personal engagement", "max": 3},
-    {"name": "Reflection", "max": 3},
-    {"name": "Use of mathematics", "max": 6},
-]
-
-_IA_SUBJECTS_DEFAULT = {
-    "groups": [
-        {
-            "id": 1,
-            "name": "Group 1: Studies in Language and Literature",
-            "subjects": [
-                {"name": "Language A: Literature", "criteria": []},
-                {"name": "Language A: Language and Literature", "criteria": []},
-                {"name": "Literature and Performance", "criteria": []},
-            ],
-        },
-        {
-            "id": 2,
-            "name": "Group 2: Language Acquisition",
-            "subjects": [
-                {"name": "Language B", "criteria": []},
-                {"name": "Language ab initio", "criteria": []},
-                {"name": "Classical Languages", "criteria": []},
-            ],
-        },
-        {
-            "id": 3,
-            "name": "Group 3: Individuals and Societies",
-            "subjects": [
-                {"name": "Business Management", "criteria": []},
-                {"name": "Economics", "criteria": []},
-                {"name": "Geography", "criteria": []},
-                {"name": "Global Politics", "criteria": []},
-                {"name": "History", "criteria": []},
-                {"name": "Information Technology in a Global Society", "criteria": []},
-                {"name": "Philosophy", "criteria": []},
-                {"name": "Psychology", "criteria": []},
-                {"name": "Social and Cultural Anthropology", "criteria": []},
-                {"name": "World Religions", "criteria": []},
-            ],
-        },
-        {
-            "id": 4,
-            "name": "Group 4: Sciences",
-            "subjects": [
-                {"name": "Biology", "criteria": list(_IA_SCIENCE_CRITERIA)},
-                {"name": "Chemistry", "criteria": list(_IA_SCIENCE_CRITERIA)},
-                {"name": "Computer Science", "criteria": list(_IA_SCIENCE_CRITERIA)},
-                {"name": "Design Technology", "criteria": list(_IA_SCIENCE_CRITERIA)},
-                {"name": "Environmental Systems and Societies", "criteria": list(_IA_SCIENCE_CRITERIA)},
-                {"name": "Physics", "criteria": list(_IA_SCIENCE_CRITERIA)},
-                {"name": "Sports, Exercise and Health Science", "criteria": list(_IA_SCIENCE_CRITERIA)},
-            ],
-        },
-        {
-            "id": 5,
-            "name": "Group 5: Mathematics",
-            "subjects": [
-                {"name": "Mathematics: Analysis and Approaches", "criteria": list(_IA_MATH_CRITERIA)},
-                {"name": "Mathematics: Applications and Interpretation", "criteria": list(_IA_MATH_CRITERIA)},
-            ],
-        },
-        {
-            "id": 6,
-            "name": "Group 6: The Arts",
-            "subjects": [
-                {"name": "Dance", "criteria": []},
-                {"name": "Film", "criteria": []},
-                {"name": "Music", "criteria": []},
-                {"name": "Theatre", "criteria": []},
-                {"name": "Visual Arts", "criteria": []},
-            ],
-        },
-    ],
-}
+IA_SUBJECTS_SAMPLE_JSON = BASE_DIR / "data" / "ia_subjects.sample.json"
 
 JOURNAL_COVERS_DIR = BASE_DIR / "static" / "uploads" / "journal_covers"
 ALLOWED_EXTENSIONS = {"pdf"}

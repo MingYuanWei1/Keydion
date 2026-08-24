@@ -5,13 +5,14 @@ from unittest import mock
 
 os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
 
-import app as app_module
+from app import create_app
+from services import auth
 
 
 def _make_client():
     """Build a test client, self-skipping if MySQL is unreachable in this env."""
     try:
-        app = app_module.create_app()
+        app = create_app()
     except Exception as exc:  # pragma: no cover - environment dependent
         msg = str(exc).lower()
         if "connect" in msg or "refused" in msg or "mysql" in msg or "2003" in msg:
@@ -23,10 +24,10 @@ def _make_client():
 
 
 def _authenticate(client, username):
-    if app_module.get_local_user(username) is None:
-        app_module.create_local_user(username, "test-password1", role="1")
-    token, _ = app_module.register_active_session(
-        app_module.ACCOUNT_LOCAL,
+    if auth.get_local_user(username) is None:
+        auth.create_local_user(username, "test-password1", role="1")
+    token, _ = auth.register_active_session(
+        auth.ACCOUNT_LOCAL,
         username,
     )
     with client.session_transaction() as session:

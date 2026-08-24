@@ -1,5 +1,3 @@
-import importlib
-import os
 import sys
 import tempfile
 import unittest
@@ -7,22 +5,15 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import support
+import services.resources as resource_service
 
 ROOT = Path(__file__).resolve().parents[1]
-
-
-def _load_app():
-    os.environ["PAPERQUERY_SECRET"] = "test-secret"
-    os.environ.setdefault("PAPERQUERY_DATABASE_URL", "sqlite:///:memory:")
-    import app as app_module
-    importlib.reload(app_module)
-    return app_module
 
 
 class CanViewNodeTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.m = _load_app()
+        cls.m = resource_service
 
     def test_guest_sees_only_reader_level(self):
         can = self.m._can_view_node

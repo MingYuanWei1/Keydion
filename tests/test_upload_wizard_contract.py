@@ -8,7 +8,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import support  # noqa: E402
-from app import parse_ib_ee_data_for_form, parse_cp_data_for_form  # noqa: E402
+from services.papers import parse_ib_ee_data_for_form, parse_cp_data_for_form  # noqa: E402
 
 
 class ParseHelpersContractTest(unittest.TestCase):

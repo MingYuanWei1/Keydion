@@ -32,6 +32,20 @@
   function ic(name) { return '<svg class="ia-ic" aria-hidden="true"><use href="#ia-' + name + '"></use></svg>'; }
   function find(arr, u) { for (var i = 0; i < arr.length; i++) if (arr[i].uid === u) return arr[i]; return null; }
   function groupByUid(u) { return find(model.groups, u); }
+  function move(items, item, offset, kind, action) {
+    var from = items.indexOf(item);
+    var to = from + offset;
+    if (from < 0 || to < 0 || to >= items.length) return;
+    items.splice(to, 0, items.splice(from, 1)[0]);
+    markDirty(); render();
+    var selector = kind === 'group'
+      ? '.ia-card[data-guid="' + item.uid + '"]'
+      : '.ia-subj[data-suid="' + item.uid + '"]';
+    var host = groupsEl.querySelector(selector);
+    var focus = host && (host.querySelector('[data-act="' + action + '"]:not(:disabled)') ||
+      host.querySelector('.ia-moves button:not(:disabled)'));
+    if (focus) focus.focus();
+  }
 
   function buildModel(data) {
     return { groups: (data.groups || []).map(function (g) {
@@ -82,7 +96,6 @@
     renderSelBar();
     model.groups.forEach(function (g) { groupsEl.appendChild(renderGroup(g)); });
     refreshSaveBar();
-    initSortables();
   }
 
   function renderSelBar() {
@@ -107,8 +120,13 @@
     card.dataset.guid = g.uid;
     var head = document.createElement('div');
     head.className = 'ia-ghead';
+    var groupIndex = model.groups.indexOf(g);
+    var groupLabel = g.name || t('groupName', 'Group name');
     head.innerHTML =
-      '<span class="ia-grip" data-grip="group" title="' + attr(t('drag', 'Drag to reorder')) + '">' + ic('grip') + '</span>' +
+      '<span class="ia-moves">' +
+        '<button type="button" class="ia-iconbtn" data-act="move-group-up" aria-label="' + attr(t('moveUp', 'Move up') + ': ' + groupLabel) + '"' + (groupIndex === 0 ? ' disabled aria-disabled="true"' : '') + '>' + ic('chev-up') + '</button>' +
+        '<button type="button" class="ia-iconbtn" data-act="move-group-down" aria-label="' + attr(t('moveDown', 'Move down') + ': ' + groupLabel) + '"' + (groupIndex === model.groups.length - 1 ? ' disabled aria-disabled="true"' : '') + '>' + ic('chev-down') + '</button>' +
+      '</span>' +
       '<input class="ia-gname" value="' + attr(g.name) + '" placeholder="' + attr(t('groupName', 'Group name')) + '">' +
       '<span class="ia-count">' + g.subjects.length + '</span>' +
       '<button class="ia-iconbtn" data-act="bulk-toggle" title="' + attr(t('bulkAdd', 'Bulk add')) + '">' + ic('plus') + '</button>' +
@@ -118,7 +136,7 @@
     if (!g.collapsed) {
       var list = document.createElement('div');
       list.className = 'ia-subjects';
-      g.subjects.forEach(function (s) { renderSubject(s).forEach(function (n) { list.appendChild(n); }); });
+      g.subjects.forEach(function (s) { renderSubject(g, s).forEach(function (n) { list.appendChild(n); }); });
       var addRow = document.createElement('div');
       addRow.className = 'ia-addrow';
       addRow.innerHTML = ic('plus') + '<input class="ia-addinput" placeholder="' + attr(t('addSubject', 'Add a subject to this group…')) + '">';
@@ -138,15 +156,18 @@
     return card;
   }
 
-  /* A subject renders as a row (header) + a body (criteria editor).
-     Returns an array of nodes so SortableJS can keep them together by
-     wrapping is unnecessary — both carry data-suid and we move both on drop. */
-  function renderSubject(s) {
+  /* A subject renders as a row (header) + a body (criteria editor). */
+  function renderSubject(g, s) {
     var row = document.createElement('div');
     row.className = 'ia-subj';
     row.dataset.suid = s.uid;
+    var subjectIndex = g.subjects.indexOf(s);
+    var subjectLabel = s.name || t('subject', 'Subject');
     row.innerHTML =
-      '<span class="ia-grip" data-grip="subject" title="' + attr(t('drag', 'Drag to reorder')) + '">' + ic('grip') + '</span>' +
+      '<span class="ia-moves">' +
+        '<button type="button" class="ia-iconbtn" data-act="move-subj-up" aria-label="' + attr(t('moveUp', 'Move up') + ': ' + subjectLabel) + '"' + (subjectIndex === 0 ? ' disabled aria-disabled="true"' : '') + '>' + ic('chev-up') + '</button>' +
+        '<button type="button" class="ia-iconbtn" data-act="move-subj-down" aria-label="' + attr(t('moveDown', 'Move down') + ': ' + subjectLabel) + '"' + (subjectIndex === g.subjects.length - 1 ? ' disabled aria-disabled="true"' : '') + '>' + ic('chev-down') + '</button>' +
+      '</span>' +
       '<input class="ia-selcheck" type="checkbox" data-act="sel-toggle"' + (s.selected ? ' checked' : '') + '>' +
       '<input class="ia-name" value="' + attr(s.name) + '">' +
       '<span class="ia-summary" data-act="toggle-subj">' + ic(s.collapsed ? 'chev-down' : 'chev-up') + summaryText(s) + '</span>' +
@@ -277,7 +298,12 @@
     var card = btn.closest('.ia-card');
     var g = card && groupByUid(+card.dataset.guid); if (!g) return;
 
-    if (act === 'del-group') {
+    if (act === 'move-group-up' || act === 'move-group-down') {
+      move(model.groups, g, act === 'move-group-up' ? -1 : 1, 'group', act);
+    } else if (act === 'move-subj-up' || act === 'move-subj-down') {
+      var reordered = subjFromNode(card, btn);
+      if (reordered && reordered.s) move(g.subjects, reordered.s, act === 'move-subj-up' ? -1 : 1, 'subject', act);
+    } else if (act === 'del-group') {
       if (g.subjects.length && !confirm(t('confirmDeleteGroup', 'Delete this group and all its subjects?'))) return;
       model.groups = model.groups.filter(function (x) { return x.uid !== g.uid; });
       markDirty(); render();
@@ -319,49 +345,6 @@
   function focusAdd(guid) {
     var c = groupsEl.querySelector('.ia-card[data-guid="' + guid + '"]');
     if (c) { var inp = c.querySelector('.ia-addinput'); if (inp) inp.focus(); }
-  }
-
-  /* ── Drag-reorder via SortableJS — live animation, same-group only ──
-     Each subject is a header row (.ia-subj) plus a body (.ia-subjbody).
-     We make ONLY the header rows draggable; on drop we re-derive order
-     from the header rows and re-render so each body follows its row. */
-  var sortables = [];
-  function initSortables() {
-    sortables.forEach(function (s) { try { s.destroy(); } catch (e) {} });
-    sortables = [];
-    if (!window.Sortable) return;
-    var opts = {
-      animation: 160, easing: 'cubic-bezier(.2,.7,.3,1)',
-      ghostClass: 'ia-ghost', chosenClass: 'ia-chosen', dragClass: 'ia-drag',
-      onEnd: commitOrder
-    };
-    sortables.push(Sortable.create(groupsEl, Object.assign({
-      handle: '.ia-grip[data-grip="group"]', draggable: '.ia-card'
-    }, opts)));
-    groupsEl.querySelectorAll('.ia-subjects').forEach(function (list) {
-      sortables.push(Sortable.create(list, Object.assign({
-        handle: '.ia-grip[data-grip="subject"]', draggable: '.ia-subj', filter: '.ia-addrow'
-      }, opts)));
-    });
-  }
-
-  /* On drop, re-read group order and per-group subject order from the
-     header rows, then re-render so each detached body re-attaches under
-     its row in the new order. */
-  function commitOrder() {
-    var newGroups = [];
-    groupsEl.querySelectorAll('.ia-card').forEach(function (card) {
-      var g = groupByUid(+card.dataset.guid); if (!g) return;
-      var subs = [];
-      card.querySelectorAll('.ia-subj').forEach(function (rowEl) {
-        var s = find(g.subjects, +rowEl.dataset.suid); if (s) subs.push(s);
-      });
-      if (subs.length === g.subjects.length) g.subjects = subs;
-      newGroups.push(g);
-    });
-    if (newGroups.length === model.groups.length) model.groups = newGroups;
-    markDirty();
-    render();
   }
 
   if (addGroupBtn) addGroupBtn.addEventListener('click', function () {

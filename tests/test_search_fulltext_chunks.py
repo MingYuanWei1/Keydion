@@ -5,7 +5,7 @@ import unittest
 from unittest import mock
 
 os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
-import app as app_module
+import services.search as app_module
 import services.search as search_module
 
 

@@ -5,7 +5,7 @@ import unittest
 from unittest import mock
 
 os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
-import app as app_module
+import services.ai as app_module
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import support

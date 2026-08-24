@@ -3,6 +3,12 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
+
+from db import db_session
+from models import GuideModel, LocalUser, NewsArticleModel, SessionModel
+from services.auth import hash_password
+from services.papers import load_ee_subjects, load_ia_subjects
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -32,24 +38,24 @@ def _build_app():
     importlib.reload(app_module)
     app = app_module.create_app()
     app.config["WTF_CSRF_ENABLED"] = False
-    return app, app_module
+    return app
 
 
-def _login_as(client, app_module, level):
+def _login_as(client, level):
     """Insert a local user at the given level and stash a session token."""
-    with app_module.db_session() as db:
+    with db_session() as db:
         # Remove any prior fixture user/session (tests share the app/DB at class scope).
-        existing = db.get(app_module.LocalUser, f"u{level}")
+        existing = db.get(LocalUser, f"u{level}")
         if existing is not None:
             db.delete(existing)
-        db.query(app_module.SessionModel).filter(
-            app_module.SessionModel.account_type == "local",
-            app_module.SessionModel.account_id == f"u{level}",
+        db.query(SessionModel).filter(
+            SessionModel.account_type == "local",
+            SessionModel.account_id == f"u{level}",
         ).delete()
         db.commit()
-        u = app_module.LocalUser(
+        u = LocalUser(
             username=f"u{level}",
-            password=app_module.hash_password("pw"),
+            password=hash_password("pw"),
             role=str(level),
             first_name=f"User",
             last_name=f"{level}",
@@ -70,12 +76,12 @@ def _login_as(client, app_module, level):
 class NewsBulkActionEndpointTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app, cls.app_module = _build_app()
+        cls.app = _build_app()
 
     def _seed_articles(self, ids_and_status):
-        with self.app_module.db_session() as db:
+        with db_session() as db:
             for nid, status in ids_and_status:
-                db.add(self.app_module.NewsArticleModel(
+                db.add(NewsArticleModel(
                     id=nid, title=f"T-{nid}", status=status,
                     abstract="", body="", author="a", category="c",
                     image_url="", published_at="" if status == "pending" else "2026-01-01",
@@ -90,7 +96,7 @@ class NewsBulkActionEndpointTest(unittest.TestCase):
     def test_publish_op_sets_status_published_and_stamps_published_at(self):
         self._seed_articles([("art-pub-1", "pending")])
         client = self.app.test_client()
-        _login_as(client, self.app_module, level=2)
+        _login_as(client, level=2)
         resp = client.post("/dashboard/news/bulk_action",
                            data=json.dumps({"ids": ["art-pub-1"], "op": "publish"}),
                            content_type="application/json")
@@ -98,39 +104,39 @@ class NewsBulkActionEndpointTest(unittest.TestCase):
         body = resp.get_json()
         self.assertTrue(body["ok"])
         self.assertEqual(body["affected"], 1)
-        with self.app_module.db_session() as db:
-            row = db.query(self.app_module.NewsArticleModel).filter_by(id="art-pub-1").first()
+        with db_session() as db:
+            row = db.query(NewsArticleModel).filter_by(id="art-pub-1").first()
             self.assertEqual(row.status, "published")
             self.assertTrue(row.published_at)  # stamped
 
     def test_unpublish_op_sets_status_pending(self):
         self._seed_articles([("art-unp-1", "published")])
         client = self.app.test_client()
-        _login_as(client, self.app_module, level=2)
+        _login_as(client, level=2)
         resp = client.post("/dashboard/news/bulk_action",
                            data=json.dumps({"ids": ["art-unp-1"], "op": "unpublish"}),
                            content_type="application/json")
         self.assertEqual(resp.status_code, 200)
-        with self.app_module.db_session() as db:
-            row = db.query(self.app_module.NewsArticleModel).filter_by(id="art-unp-1").first()
+        with db_session() as db:
+            row = db.query(NewsArticleModel).filter_by(id="art-unp-1").first()
             self.assertEqual(row.status, "pending")
 
     def test_delete_op_removes_rows(self):
         self._seed_articles([("art-del-1", "published"), ("art-del-2", "pending")])
         client = self.app.test_client()
-        _login_as(client, self.app_module, level=2)
+        _login_as(client, level=2)
         resp = client.post("/dashboard/news/bulk_action",
                            data=json.dumps({"ids": ["art-del-1", "art-del-2"], "op": "delete"}),
                            content_type="application/json")
         self.assertEqual(resp.status_code, 200)
-        with self.app_module.db_session() as db:
-            remaining = db.query(self.app_module.NewsArticleModel).filter(
-                self.app_module.NewsArticleModel.id.in_(["art-del-1", "art-del-2"])).count()
+        with db_session() as db:
+            remaining = db.query(NewsArticleModel).filter(
+                NewsArticleModel.id.in_(["art-del-1", "art-del-2"])).count()
             self.assertEqual(remaining, 0)
 
     def test_bad_op_returns_400(self):
         client = self.app.test_client()
-        _login_as(client, self.app_module, level=2)
+        _login_as(client, level=2)
         resp = client.post("/dashboard/news/bulk_action",
                            data=json.dumps({"ids": ["x"], "op": "garbage"}),
                            content_type="application/json")
@@ -147,35 +153,126 @@ class NewsBulkActionEndpointTest(unittest.TestCase):
         # An article that's already published keeps its original published_at
         # when re-published via bulk action (idempotent re-publish).
         original_ts = "2024-01-15 09:00"
-        with self.app_module.db_session() as db:
-            db.add(self.app_module.NewsArticleModel(
+        with db_session() as db:
+            db.add(NewsArticleModel(
                 id="art-already-pub", title="T", status="published",
                 abstract="", body="", author="a", category="c",
                 image_url="", published_at=original_ts,
             ))
             db.commit()
         client = self.app.test_client()
-        _login_as(client, self.app_module, level=2)
+        _login_as(client, level=2)
         resp = client.post("/dashboard/news/bulk_action",
                            data=json.dumps({"ids": ["art-already-pub"], "op": "publish"}),
                            content_type="application/json")
         self.assertEqual(resp.status_code, 200)
-        with self.app_module.db_session() as db:
-            row = db.query(self.app_module.NewsArticleModel).filter_by(id="art-already-pub").first()
+        with db_session() as db:
+            row = db.query(NewsArticleModel).filter_by(id="art-already-pub").first()
             self.assertEqual(row.published_at, original_ts)
             self.assertEqual(row.status, "published")
+
+
+class NewsPublishingWorkflowTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = _build_app()
+
+    def test_quill_body_is_sanitized_persisted_and_rendered(self):
+        client = self.app.test_client()
+        _login_as(client, level=2)
+        response = client.post(
+            "/dashboard/news/publish",
+            data={
+                "title": "Quill article",
+                "category": "News",
+                "abstract": "Summary",
+                "author": "Editor",
+                "body": '<p>Hello <strong>reader</strong></p><script>bad()</script>',
+                "action": "publish",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        with db_session() as db:
+            row = db.query(NewsArticleModel).filter_by(title="Quill article").one()
+            article_id = row.id
+            self.assertIn("<strong>reader</strong>", row.body)
+            self.assertNotIn("bad()", row.body)
+        rendered = client.get(f"/news/{article_id}")
+        self.assertIn(b"<strong>reader</strong>", rendered.data)
+
+    def test_incomplete_article_saves_as_draft_but_cannot_publish(self):
+        client = self.app.test_client()
+        _login_as(client, level=2)
+        draft = client.post(
+            "/dashboard/news/publish",
+            data={"title": "Incomplete draft", "action": "draft"},
+        )
+        self.assertEqual(draft.status_code, 302)
+        with db_session() as db:
+            row = db.query(NewsArticleModel).filter_by(title="Incomplete draft").one()
+            self.assertEqual(row.status, "pending")
+            self.assertEqual(row.published_at, "")
+
+        rejected = client.post(
+            "/dashboard/news/publish",
+            data={"title": "Incomplete publish", "action": "publish"},
+        )
+        self.assertEqual(rejected.status_code, 200)
+        with db_session() as db:
+            self.assertIsNone(
+                db.query(NewsArticleModel).filter_by(title="Incomplete publish").first()
+            )
+
+    def test_draft_is_hidden_from_readers_but_visible_to_editors(self):
+        with db_session() as db:
+            db.add(NewsArticleModel(
+                id="private-draft", title="Private draft", category="", abstract="",
+                body="", author="", image_url="", published_at="", status="pending",
+            ))
+            db.commit()
+        reader = self.app.test_client()
+        _login_as(reader, level=1)
+        hidden = reader.get("/news/private-draft")
+        self.assertEqual(hidden.status_code, 302)
+        self.assertTrue(hidden.headers["Location"].endswith("/news"))
+        self.assertNotIn(b"Private draft", reader.get("/news").data)
+
+        editor = self.app.test_client()
+        _login_as(editor, level=2)
+        self.assertEqual(editor.get("/news/private-draft").status_code, 200)
+
+    def test_legacy_blocks_render_and_open_in_quill_editor(self):
+        legacy = json.dumps([
+            {"type": "text", "content": "<p>Legacy body</p>"},
+            {"type": "divider"},
+        ])
+        with db_session() as db:
+            db.add(NewsArticleModel(
+                id="legacy-news", title="Legacy", category="News", abstract="Summary",
+                body=legacy, author="Editor", image_url="", published_at="2026-01-01",
+                status="published",
+            ))
+            db.commit()
+        client = self.app.test_client()
+        _login_as(client, level=2)
+        rendered = client.get("/news/legacy-news")
+        self.assertIn(b"Legacy body", rendered.data)
+        editor = client.get("/dashboard/news/legacy-news/edit")
+        self.assertIn(b"vendor/quill/quill.min.js", editor.data)
+        self.assertIn(b"Legacy body", editor.data)
+        self.assertNotIn(b'"type": "text"', editor.data)
 
 
 class GuideReorderEndpointTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app, cls.app_module = _build_app()
+        cls.app = _build_app()
 
     def _seed_guides(self, rows):
         ids = []
-        with self.app_module.db_session() as db:
+        with db_session() as db:
             for slug, category, sort_order in rows:
-                g = self.app_module.GuideModel(
+                g = GuideModel(
                     slug=slug, category=category, sort_order=sort_order,
                     published=False, title_en=slug, title_zh="", summary_en="",
                     summary_zh="", body_en="", body_zh="", created_at="", updated_at="",
@@ -183,7 +280,7 @@ class GuideReorderEndpointTest(unittest.TestCase):
                 db.add(g)
             db.commit()
             for slug, _c, _s in rows:
-                g = db.query(self.app_module.GuideModel).filter_by(slug=slug).first()
+                g = db.query(GuideModel).filter_by(slug=slug).first()
                 ids.append(g.id)
         return ids
 
@@ -195,7 +292,7 @@ class GuideReorderEndpointTest(unittest.TestCase):
     def test_reorder_updates_sort_order_and_category(self):
         ids = self._seed_guides([("g-a", "cat1", 10), ("g-b", "cat1", 20)])
         client = self.app.test_client()
-        _login_as(client, self.app_module, level=3)
+        _login_as(client, level=3)
         payload = {"items": [
             {"id": ids[0], "sort_order": 2, "category": "cat2"},
             {"id": ids[1], "sort_order": 1, "category": "cat1"},
@@ -205,9 +302,9 @@ class GuideReorderEndpointTest(unittest.TestCase):
                            content_type="application/json")
         self.assertEqual(resp.status_code, 200)
         self.assertTrue(resp.get_json()["ok"])
-        with self.app_module.db_session() as db:
-            a = db.query(self.app_module.GuideModel).filter_by(id=ids[0]).first()
-            b = db.query(self.app_module.GuideModel).filter_by(id=ids[1]).first()
+        with db_session() as db:
+            a = db.query(GuideModel).filter_by(id=ids[0]).first()
+            b = db.query(GuideModel).filter_by(id=ids[1]).first()
             self.assertEqual(a.sort_order, 2)
             self.assertEqual(a.category, "cat2")
             self.assertEqual(b.sort_order, 1)
@@ -215,7 +312,7 @@ class GuideReorderEndpointTest(unittest.TestCase):
 
     def test_unknown_id_is_skipped_silently(self):
         client = self.app.test_client()
-        _login_as(client, self.app_module, level=3)
+        _login_as(client, level=3)
         resp = client.post("/dashboard/admin/guides/reorder",
                            data=json.dumps({"items": [{"id": 999999, "sort_order": 1}]}),
                            content_type="application/json")
@@ -224,7 +321,7 @@ class GuideReorderEndpointTest(unittest.TestCase):
 
     def test_level_2_user_is_forbidden(self):
         client = self.app.test_client()
-        _login_as(client, self.app_module, level=2)
+        _login_as(client, level=2)
         resp = client.post("/dashboard/admin/guides/reorder",
                            data=json.dumps({"items": []}),
                            content_type="application/json")
@@ -234,11 +331,11 @@ class GuideReorderEndpointTest(unittest.TestCase):
 class GuideTogglePublishedEndpointTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.app, cls.app_module = _build_app()
+        cls.app = _build_app()
 
     def _seed_guide(self, slug, published):
-        with self.app_module.db_session() as db:
-            g = self.app_module.GuideModel(
+        with db_session() as db:
+            g = GuideModel(
                 slug=slug, category="c", sort_order=10,
                 published=published, title_en=slug, title_zh="",
                 summary_en="", summary_zh="", body_en="", body_zh="",
@@ -246,7 +343,7 @@ class GuideTogglePublishedEndpointTest(unittest.TestCase):
             )
             db.add(g)
             db.commit()
-            return db.query(self.app_module.GuideModel).filter_by(slug=slug).first().id
+            return db.query(GuideModel).filter_by(slug=slug).first().id
 
     def test_route_is_registered(self):
         rules = [r.rule for r in self.app.url_map.iter_rules()
@@ -256,7 +353,7 @@ class GuideTogglePublishedEndpointTest(unittest.TestCase):
     def test_toggle_with_explicit_published_true_publishes(self):
         gid = self._seed_guide("toggle-1", published=False)
         client = self.app.test_client()
-        _login_as(client, self.app_module, level=3)
+        _login_as(client, level=3)
         resp = client.post(f"/dashboard/admin/guides/{gid}/toggle",
                            data=json.dumps({"published": True}),
                            content_type="application/json")
@@ -264,14 +361,14 @@ class GuideTogglePublishedEndpointTest(unittest.TestCase):
         body = resp.get_json()
         self.assertTrue(body["ok"])
         self.assertTrue(body["published"])
-        with self.app_module.db_session() as db:
-            row = db.query(self.app_module.GuideModel).filter_by(id=gid).first()
+        with db_session() as db:
+            row = db.query(GuideModel).filter_by(id=gid).first()
             self.assertTrue(row.published)
 
     def test_toggle_without_body_flips_current_state(self):
         gid = self._seed_guide("toggle-2", published=True)
         client = self.app.test_client()
-        _login_as(client, self.app_module, level=3)
+        _login_as(client, level=3)
         resp = client.post(f"/dashboard/admin/guides/{gid}/toggle",
                            data="",
                            content_type="application/json")
@@ -280,7 +377,7 @@ class GuideTogglePublishedEndpointTest(unittest.TestCase):
 
     def test_unknown_guide_returns_404(self):
         client = self.app.test_client()
-        _login_as(client, self.app_module, level=3)
+        _login_as(client, level=3)
         resp = client.post("/dashboard/admin/guides/9999999/toggle",
                            data=json.dumps({}),
                            content_type="application/json")
@@ -289,49 +386,11 @@ class GuideTogglePublishedEndpointTest(unittest.TestCase):
     def test_level_2_user_is_forbidden(self):
         gid = self._seed_guide("toggle-3", published=False)
         client = self.app.test_client()
-        _login_as(client, self.app_module, level=2)
+        _login_as(client, level=2)
         resp = client.post(f"/dashboard/admin/guides/{gid}/toggle",
                            data=json.dumps({"published": True}),
                            content_type="application/json")
         self.assertEqual(resp.status_code, 401)
-
-
-class RevampedTemplateWiringTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.news_tpl = (ROOT / "templates" / "news_manage.html").read_text(encoding="utf-8")
-        cls.guide_tpl = (ROOT / "templates" / "guide_manage.html").read_text(encoding="utf-8")
-
-    def test_news_template_loads_manage_css(self):
-        self.assertIn("css/manage.css", self.news_tpl)
-
-    def test_news_template_wires_bulk_url(self):
-        self.assertIn("BULK_URL =", self.news_tpl)
-        self.assertIn("url_for('news_bulk_action')", self.news_tpl)
-        # The fragile conditional and the dead feature-flag branch must be gone.
-        self.assertNotIn("config.get('ROUTES')", self.news_tpl)
-        self.assertNotIn("BULK_ENABLED", self.news_tpl)
-        self.assertNotIn("chainDelete", self.news_tpl)
-
-    def test_news_template_does_not_parseInt_row_ids(self):
-        # NewsArticleModel.id is a 12-char hex string; parseInt would yield NaN.
-        # Specifically the bulk-op collector must not call parseInt on c.value.
-        self.assertNotRegex(self.news_tpl, r"parseInt\(\s*c\.value")
-
-    def test_guide_template_loads_manage_css(self):
-        self.assertIn("css/manage.css", self.guide_tpl)
-
-    def test_guide_template_wires_reorder_url(self):
-        self.assertIn("REORDER_URL =", self.guide_tpl)
-        self.assertIn("url_for('admin_guides_reorder')", self.guide_tpl)
-        # Must not still be `null` on either var.
-        self.assertNotIn("REORDER_URL = null", self.guide_tpl)
-
-    def test_guide_template_wires_toggle_url_template(self):
-        self.assertIn("TOGGLE_URL_TEMPLATE =", self.guide_tpl)
-        self.assertIn("admin_guide_toggle_published", self.guide_tpl)
-        self.assertIn("{id}", self.guide_tpl)
-        self.assertNotIn("TOGGLE_URL_TEMPLATE = null", self.guide_tpl)
 
 
 class CurriculumManagePagesRenderTest(unittest.TestCase):
@@ -345,21 +404,62 @@ class CurriculumManagePagesRenderTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.app, cls.app_module = _build_app()
+        cls.app = _build_app()
 
     def test_ia_subjects_manage_renders(self):
         client = self.app.test_client()
-        _login_as(client, self.app_module, level=3)
+        _login_as(client, level=3)
         resp = client.get("/dashboard/admin/ia-subjects")
         self.assertEqual(resp.status_code, 200, resp.data[:400])
         self.assertIn(b"iaData", resp.data)
 
     def test_ee_subjects_manage_renders(self):
         client = self.app.test_client()
-        _login_as(client, self.app_module, level=3)
+        _login_as(client, level=3)
         resp = client.get("/dashboard/admin/ee-subjects")
         self.assertEqual(resp.status_code, 200, resp.data[:400])
         self.assertIn(b"eeData", resp.data)
+
+    def test_reordered_subject_payloads_are_persisted(self):
+        client = self.app.test_client()
+        _login_as(client, level=3)
+        with tempfile.TemporaryDirectory() as directory, \
+             mock.patch("services.papers._EE_SUBJECTS_PATH", Path(directory) / "ee.json"), \
+             mock.patch("services.papers._IA_SUBJECTS_PATH", Path(directory) / "ia.json"):
+            cases = (
+                (
+                    "/dashboard/admin/ee-subjects/save",
+                    {"groups": [
+                        {"id": 2, "name": "Second", "subjects": [
+                            {"name": "Beta", "original_name": None, "interdisciplinary": False},
+                        ]},
+                        {"id": 1, "name": "First", "subjects": [
+                            {"name": "Alpha", "original_name": None, "interdisciplinary": False},
+                        ]},
+                    ]},
+                    load_ee_subjects,
+                ),
+                (
+                    "/dashboard/admin/ia-subjects/save",
+                    {"groups": [
+                        {"id": 2, "name": "Second", "subjects": [
+                            {"name": "Beta", "original_name": None, "criteria": []},
+                        ]},
+                        {"id": 1, "name": "First", "subjects": [
+                            {"name": "Alpha", "original_name": None, "criteria": []},
+                        ]},
+                    ]},
+                    load_ia_subjects,
+                ),
+            )
+            for url, payload, load in cases:
+                with self.subTest(url=url):
+                    response = client.post(url, json=payload)
+                    self.assertEqual(response.status_code, 200, response.data[:400])
+                    self.assertEqual(
+                        [group["name"] for group in load()["groups"]],
+                        ["Second", "First"],
+                    )
 
 
 if __name__ == "__main__":

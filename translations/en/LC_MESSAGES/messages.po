@@ -4609,6 +4609,14 @@ msgstr "Reader"
 msgid "Move"
 msgstr "Move"
 
+#: templates/ee_subjects_manage.html templates/ia_subjects_manage.html
+msgid "Move up"
+msgstr "Move up"
+
+#: templates/ee_subjects_manage.html templates/ia_subjects_manage.html
+msgid "Move down"
+msgstr "Move down"
+
 #: templates/resource_manage.html:57
 msgid "Delete this item?"
 msgstr "Delete this item?"
@@ -5421,4 +5429,3 @@ msgstr ""
 #~ "list from the endpoint as text "
 #~ "models; adjust their roles after."
 #~ msgstr ""
-

@@ -63,7 +63,6 @@ class SearchNeverParsesPdfs(unittest.TestCase):
                          "public search must not parse PDFs on the request path")
 
     def test_unindexed_paper_matches_metadata_only(self):
-        import app as app_module
         record = _rec("a.pdf")
         extract = mock.Mock(side_effect=AssertionError("must not extract on search"))
         with mock.patch.object(search_module, "_visible_paper_records",
@@ -71,12 +70,11 @@ class SearchNeverParsesPdfs(unittest.TestCase):
              mock.patch.object(search_module, "_fulltext_index", return_value={}), \
              mock.patch.object(search_module, "extract_pdf_text", extract,
                                create=True):
-            out = app_module.search_papers("bodyterm")
+            out = search_module.search_papers("bodyterm")
         self.assertEqual(out, [])
         extract.assert_not_called()
 
     def test_unindexed_paper_with_metadata_hit_still_matches(self):
-        import app as app_module
         record = _rec("a.pdf", title="Mitochondria Survey")
         extract = mock.Mock(side_effect=AssertionError("must not extract on search"))
         with mock.patch.object(search_module, "_visible_paper_records",
@@ -84,7 +82,7 @@ class SearchNeverParsesPdfs(unittest.TestCase):
              mock.patch.object(search_module, "_fulltext_index", return_value={}), \
              mock.patch.object(search_module, "extract_pdf_text", extract,
                                create=True):
-            out = app_module.search_papers("mitochondria")
+            out = search_module.search_papers("mitochondria")
         self.assertEqual([r["filename"] for r in out], ["a.pdf"])
         extract.assert_not_called()
 

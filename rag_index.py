@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import logging
 import math
+from dataclasses import dataclass
 import numpy as np
 
 from services.publishing_contracts import (
@@ -105,41 +106,18 @@ def configure(**deps) -> None:
 _SNAPSHOT = None   # _Snapshot | None — per-process; rebuilt when the DB stamp moves
 
 
+@dataclass(slots=True, eq=False)
 class _Snapshot:
     """Immutable per-process view of the chunk index at one DB version."""
-    __slots__ = (
-        "version",
-        "ids",
-        "paper_ids",
-        "revision_numbers",
-        "chunk_indexes",
-        "matrix",
-        "pooled_paper_ids",
-        "pooled_revisions",
-        "paper_matrix",
-    )
-
-    def __init__(
-        self,
-        version,
-        ids,
-        paper_ids,
-        revision_numbers,
-        chunk_indexes,
-        matrix,
-        pooled_paper_ids,
-        pooled_revisions,
-        paper_matrix,
-    ):
-        self.version = version
-        self.ids = ids
-        self.paper_ids = paper_ids
-        self.revision_numbers = revision_numbers
-        self.chunk_indexes = chunk_indexes
-        self.matrix = matrix                  # (N, dim) float32, L2-normalized rows; None if empty
-        self.pooled_paper_ids = pooled_paper_ids
-        self.pooled_revisions = pooled_revisions
-        self.paper_matrix = paper_matrix      # (P, dim) float32, L2-normalized rows; None if empty
+    version: object
+    ids: list
+    paper_ids: list
+    revision_numbers: list
+    chunk_indexes: list
+    matrix: object
+    pooled_paper_ids: list
+    pooled_revisions: list
+    paper_matrix: object
 
 
 def invalidate_cache() -> None:

@@ -8,11 +8,12 @@ import bleach
 
 from config import (
     GUIDE_CATEGORIES_JSON,
+    GUIDE_CATEGORIES_SAMPLE_JSON,
     GUIDE_FIELDS,
-    _DEFAULT_GUIDE_CATEGORIES,
 )
 from db import db_session
 from models import GuideModel
+from services.default_data import load_seeded_json
 
 
 # ==================== GUIDE HELPERS ====================
@@ -28,6 +29,7 @@ GUIDE_ALLOWED_ATTRS = {
     "span": ["class"],
     "div": ["class"],
     "p": ["class"],
+    "hr": ["class"],
 }
 GUIDE_ALLOWED_PROTOCOLS = ["http", "https"]
 
@@ -136,13 +138,7 @@ def _read_guide_form(form) -> dict:
 
 def _load_guide_categories() -> list:
     """Load guide categories from JSON file, seeding from defaults if needed."""
-    if GUIDE_CATEGORIES_JSON.exists():
-        try:
-            return json.loads(GUIDE_CATEGORIES_JSON.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            pass
-    _save_guide_categories(_DEFAULT_GUIDE_CATEGORIES)
-    return list(_DEFAULT_GUIDE_CATEGORIES)
+    return load_seeded_json(GUIDE_CATEGORIES_JSON, GUIDE_CATEGORIES_SAMPLE_JSON)
 
 
 def _save_guide_categories(cats: list) -> None:

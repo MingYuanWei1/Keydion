@@ -5,6 +5,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import services.resources as resource_service
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))   # import app.py regardless of the runner's cwd
 
@@ -35,14 +37,14 @@ def _reload_app_with_temp_db():
     db._SESSION_LOCAL = None
     import app as app_module
     importlib.reload(app_module)
-    app_module.create_app()
-    return app_module, tmp_db.name
+    return app_module.create_app(), tmp_db.name
 
 
 class ResourcesModelTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.m, cls.db_path = _reload_app_with_temp_db()
+        cls.app, cls.db_path = _reload_app_with_temp_db()
+        cls.m = resource_service
 
     @classmethod
     def tearDownClass(cls):
@@ -68,8 +70,8 @@ class ResourcesModelTest(unittest.TestCase):
 class ResourcesTreeBehaviorTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.m, cls.db_path = _reload_app_with_temp_db()
-        cls.app = cls.m.create_app()   # reuses the engine init_db already set up
+        cls.app, cls.db_path = _reload_app_with_temp_db()
+        cls.m = resource_service
 
     @classmethod
     def tearDownClass(cls):
@@ -194,8 +196,8 @@ class ResourcesTreeBehaviorTest(unittest.TestCase):
 class ResourcesSlugTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.m, cls.db_path = _reload_app_with_temp_db()
-        cls.app = cls.m.create_app()
+        cls.app, cls.db_path = _reload_app_with_temp_db()
+        cls.m = resource_service
 
     @classmethod
     def tearDownClass(cls):

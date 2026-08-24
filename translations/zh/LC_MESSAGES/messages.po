@@ -4446,6 +4446,14 @@ msgstr "读者"
 msgid "Move"
 msgstr "移动"
 
+#: templates/ee_subjects_manage.html templates/ia_subjects_manage.html
+msgid "Move up"
+msgstr "上移"
+
+#: templates/ee_subjects_manage.html templates/ia_subjects_manage.html
+msgid "Move down"
+msgstr "下移"
+
 #: templates/resource_manage.html:57
 msgid "Delete this item?"
 msgstr "确定删除此项？"
@@ -5229,4 +5237,3 @@ msgstr "更新安全设置"
 #~ "list from the endpoint as text "
 #~ "models; adjust their roles after."
 #~ msgstr "每个模型都标注其角色——槽位选择器只会列出角色匹配的模型。“获取模型”从接口拉取的模型默认为文本角色，可再调整。"
-

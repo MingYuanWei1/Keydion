@@ -13,19 +13,20 @@ import pdf_text
 from config import (
     ALLOWED_EXTENSIONS,
     CP_CRITERIA_DEFS,
-    DATA_DIR,
     IB_EE_CRITERIA_DEFS,
+    IA_SUBJECTS_SAMPLE_JSON,
     MAX_PDF_PAGES,
     METADATA_FIELDS,
+    PAPER_CATEGORIES_JSON,
+    PAPER_CATEGORIES_SAMPLE_JSON,
     PAPERS_DIR,
-    _DEFAULT_PAPER_CATEGORIES,
-    _EE_SUBJECTS_DEFAULT,
+    EE_SUBJECTS_SAMPLE_JSON,
     _EE_SUBJECTS_PATH,
-    _IA_SUBJECTS_DEFAULT,
     _IA_SUBJECTS_PATH,
 )
 from db import db_session
 from models import PaperMetadataModel
+from services.default_data import load_seeded_json
 
 
 def _atomic_json_write(path: Path, payload) -> None:
@@ -75,30 +76,16 @@ def gather_paper_records(library) -> List[Dict[str, str]]:
 
 def load_paper_categories() -> list:
     """Load paper subject categories from JSON."""
-    path = DATA_DIR / "paper_categories.json"
-    if path.exists():
-        try:
-            return json.loads(path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            pass
-    save_paper_categories(_DEFAULT_PAPER_CATEGORIES)
-    return list(_DEFAULT_PAPER_CATEGORIES)
+    return load_seeded_json(PAPER_CATEGORIES_JSON, PAPER_CATEGORIES_SAMPLE_JSON)
 
 
 def save_paper_categories(cats: list) -> None:
-    path = DATA_DIR / "paper_categories.json"
-    _atomic_json_write(path, cats)
+    _atomic_json_write(PAPER_CATEGORIES_JSON, cats)
 
 
 def load_ee_subjects() -> dict:
     """Load IB EE subject groups from JSON, seeding defaults if needed."""
-    if _EE_SUBJECTS_PATH.exists():
-        try:
-            return json.loads(_EE_SUBJECTS_PATH.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            pass
-    save_ee_subjects(_EE_SUBJECTS_DEFAULT)
-    return dict(_EE_SUBJECTS_DEFAULT)
+    return load_seeded_json(_EE_SUBJECTS_PATH, EE_SUBJECTS_SAMPLE_JSON)
 
 
 def save_ee_subjects(data: dict) -> None:
@@ -192,13 +179,7 @@ def count_papers_using_ee_subject(name: str) -> int:
 
 def load_ia_subjects() -> dict:
     """Load IB IA subject groups from JSON, seeding defaults if needed."""
-    if _IA_SUBJECTS_PATH.exists():
-        try:
-            return json.loads(_IA_SUBJECTS_PATH.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            pass
-    save_ia_subjects(_IA_SUBJECTS_DEFAULT)
-    return dict(_IA_SUBJECTS_DEFAULT)
+    return load_seeded_json(_IA_SUBJECTS_PATH, IA_SUBJECTS_SAMPLE_JSON)
 
 
 def save_ia_subjects(data: dict) -> None:
