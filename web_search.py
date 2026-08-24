@@ -1,5 +1,5 @@
 # web_search.py
-"""Pluggable web search for Ask-the-Library (Phase 5).
+"""Pluggable web search for Keydion AI (Phase 5).
 
 Default provider is Tavily (purpose-built for LLM grounding). Disabled entirely
 when WEB_SEARCH_API_KEY is unset, so the feature ships off and the UI toggle is
@@ -187,7 +187,11 @@ def _resolve_public_ips(host: str, port: int) -> tuple[str, ...]:
     return tuple(addresses)
 
 
-def _url_is_safe(url: str) -> bool:
+def url_targets_public_host(url: str) -> bool:
+    """True when url is http(s) on a default port whose host resolves only to
+    public, routable addresses. Used by admin actions that contact an
+    operator-supplied LLM endpoint (fetch models / probe) so they cannot be
+    aimed at internal networks."""
     normalized = normalize_fetch_url(url)
     if normalized is None:
         return False

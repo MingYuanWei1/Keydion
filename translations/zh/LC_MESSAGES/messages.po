@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Keydion 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-23 03:37+0800\n"
+"POT-Creation-Date: 2026-08-24 00:15+0800\n"
 "PO-Revision-Date: 2025-10-11 00:00+0000\n"
 "Last-Translator: \n"
 "Language: zh\n"
@@ -14,417 +14,439 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: app.py:307 routes/ai.py:284 routes/ai.py:341 routes/upload.py:86
+#: app.py:309 routes/ai.py:293 routes/ai.py:353 routes/papers.py:287
+#: routes/papers.py:1128 routes/upload.py:91
 msgid "Too many requests — please slow down."
 msgstr "请求过于频繁，请放慢速度。"
 
-#: app.py:376 app.py:392 app.py:507
+#: app.py:413 app.py:430 app.py:544
 msgid "Unable to sign in. Please try again."
 msgstr "无法登录，请重试。"
 
 # ==================== AUTH FLASH MESSAGES ====================
-#: app.py:378 app.py:395
+#: app.py:415 app.py:433
 #, python-format
 msgid "Welcome back, %(username)s!"
 msgstr "欢迎回来，%(username)s！"
 
-#: app.py:400
+#: app.py:437
 msgid "Invalid email or password"
 msgstr "用户名或密码错误"
 
-#: app.py:404 app.py:417 app.py:452
+#: app.py:441 app.py:454 app.py:489
 msgid "Microsoft sign-in is not configured. Please contact the administrator."
 msgstr "Microsoft 登录尚未配置，请联系管理员。"
 
-#: app.py:409
+#: app.py:446
 msgid "Email-based registration is disabled. Please sign in with Microsoft."
 msgstr "已禁用基于邮箱的注册。请使用 Microsoft 账户登录。"
 
-#: app.py:471
+#: app.py:508
 msgid "Login session expired. Please try again."
 msgstr "会话已过期，请重新登录。"
 
-#: app.py:479 app.py:494
+#: app.py:516 app.py:531
 #, python-format
 msgid "Microsoft sign-in failed: %(reason)s"
 msgstr "Microsoft 登录失败：%(reason)s"
 
-#: app.py:484
+#: app.py:521
 msgid "Microsoft sign-in failed. Please try again."
 msgstr "Microsoft 登录失败，请重试。"
 
-#: app.py:499
+#: app.py:536
 msgid "Microsoft sign-in did not return a valid profile."
 msgstr "Microsoft 登录未返回有效的个人资料。"
 
-#: app.py:531
+#: app.py:568
 msgid "Signed out successfully."
 msgstr "已成功退出登录。"
 
-#: app.py:542
+#: app.py:579
 msgid "Unable to load your profile. Please sign in again."
 msgstr "无法加载您的个人资料，请重新登录。"
 
-#: app.py:551
+#: app.py:588
 msgid "Please enter your first and last name."
 msgstr "请输入您的名字和姓氏。"
 
-#: app.py:562
+#: app.py:599
 msgid "Profile saved successfully."
 msgstr "个人资料保存成功。"
 
-#: app.py:601
+#: app.py:635
+#, fuzzy
+#| msgid "Microsoft sign-in is not configured. Please contact the
+#| administrator."
+msgid "Password setup is not available. Please contact the administrator."
+msgstr "Microsoft 登录尚未配置，请联系管理员。"
+
+#: app.py:638
+msgid ""
+"For your security, sign in with Microsoft again before setting your first"
+" password."
+msgstr ""
+
+#: app.py:653
 msgid "Current password is incorrect."
 msgstr "当前密码不正确。"
 
-#: app.py:606
+#: app.py:658
 msgid "Please enter a new password."
 msgstr "请输入新密码。"
 
-#: app.py:609
+#: app.py:661
 msgid "Passwords do not match."
 msgstr "两次密码输入不一致。"
 
-#: app.py:612
+#: app.py:664
 msgid "Password must be at least 6 characters."
 msgstr "密码长度至少为6个字符。"
 
-#: app.py:616
+#: app.py:668
 msgid "Password must contain both letters and numbers."
 msgstr "密码必须包含字母和数字。"
 
-#: app.py:621
+#: app.py:673
 msgid "New password must be different from your current password."
 msgstr "新密码必须与当前密码不同。"
 
-#: app.py:636
+#: app.py:692
 msgid "Password updated. Please sign in again."
 msgstr "密码已更新，请重新登录。"
 
-#: app.py:639
+#: app.py:695
 msgid "Unable to update password."
 msgstr "无法重置密码。"
 
-#: app.py:679
+#: app.py:735
 msgid "Role updates saved."
 msgstr "角色更改已保存。"
 
-#: app.py:691
+#: app.py:747
 msgid "Username and password are required."
 msgstr "用户名和密码为必填项。"
 
-#: app.py:694
+#: app.py:750
 msgid "That username is already taken."
 msgstr "此用户名已被占用。"
 
-#: app.py:697
+#: app.py:753
 msgid "Local user created."
 msgstr "本地用户已创建。"
 
-#: app.py:707 app.py:749
+#: app.py:763 app.py:805
 msgid "Role updated."
 msgstr "角色已更新。"
 
-#: app.py:709 app.py:751
+#: app.py:765 app.py:807
 msgid "Unable to update role."
 msgstr "无法更新角色。"
 
-#: app.py:719 app.py:772
+#: app.py:775 app.py:828
 msgid "Password is required."
 msgstr "密码为必填项。"
 
-#: app.py:722
+#: app.py:778
 msgid "Password reset successfully."
 msgstr "密码重置成功。"
 
-#: app.py:724
+#: app.py:780
 msgid "Unable to reset password."
 msgstr "无法重置密码。"
 
-#: app.py:733
+#: app.py:789
 msgid "Local user deleted."
 msgstr "本地用户已删除。"
 
-#: app.py:735
+#: app.py:791
 msgid "Unable to delete user."
 msgstr "无法删除用户。"
 
-#: app.py:760
+#: app.py:816
 msgid "Microsoft user deleted."
 msgstr "微软用户已删除。"
 
-#: app.py:762
+#: app.py:818
 msgid "Unable to delete Microsoft user."
 msgstr "无法删除微软用户。"
 
-#: app.py:775
+#: app.py:831
 msgid "Password set successfully."
 msgstr "密码设置成功。"
 
-#: app.py:777
+#: app.py:833
 msgid "Unable to set password."
 msgstr "无法设置密码。"
 
-#: app.py:811
+#: app.py:867
 #, python-format
 msgid "oldest %(n)d days ago"
 msgstr "最早 %(n)d 天前"
 
-#: app.py:827
+#: app.py:883
 #, python-format
 msgid "+%(n)d this month"
 msgstr "本月新增 %(n)d 篇"
 
-#: app.py:845
+#: app.py:901
 msgid "Language not supported."
 msgstr "不支持此语言。"
 
-#: config.py:329
+#: config.py:380
 msgid "Please enter the paper title"
 msgstr "请输入论文标题"
 
-#: config.py:330
+#: config.py:381
 msgid "Please select a subject category"
 msgstr "请选择类别..."
 
-#: config.py:331
+#: config.py:382
 msgid "Please select a language"
 msgstr "请选择语言"
 
-#: config.py:332
+#: config.py:383
 msgid "Please enter keywords"
 msgstr "请输入关键词"
 
-#: config.py:333
+#: config.py:384
 msgid "Please enter the abstract"
 msgstr "请输入摘要"
 
-#: config.py:334
+#: config.py:385
 msgid "Please enter the author name"
 msgstr "请输入作者姓名"
 
-#: config.py:335
+#: config.py:386
 msgid "Please enter the contact email"
 msgstr "请输入联系邮箱"
 
-#: config.py:336
+#: config.py:387
 msgid "Please enter the school name"
 msgstr "请输入学校名称"
 
-#: config.py:364
+#: config.py:415
 msgid "Reader - View & Download"
 msgstr ""
 
-#: config.py:365
+#: config.py:416
 msgid "Contributor - Upload Enabled"
 msgstr ""
 
-#: config.py:366
+#: config.py:417
 msgid "Curator - Full Access"
 msgstr ""
 
 # ==================== LANGUAGE ====================
-#: config.py:369 routes/upload.py:173 templates/paper_modify.html:116
+#: config.py:420 routes/upload.py:188 templates/paper_modify.html:116
 #: templates/search.html:115
 msgid "English"
 msgstr "英语"
 
-#: config.py:370 routes/upload.py:174 templates/paper_modify.html:114
+#: config.py:421 routes/upload.py:189 templates/paper_modify.html:114
 #: templates/search.html:114
 msgid "Chinese"
 msgstr "中文"
 
-#: routes/ai.py:63 services/auth.py:614
+#: routes/ai.py:62 services/auth.py:624
 msgid "Please sign in first."
 msgstr "请先登录。"
 
-#: routes/ai.py:83
+#: routes/ai.py:82
 msgid "What does the research say about climate adaptation in plants?"
 msgstr "植物气候适应研究有哪些发现？"
 
-#: routes/ai.py:84
+#: routes/ai.py:83
 msgid "Summarize recent Extended Essays in economics."
 msgstr "总结近年来经济学延伸论文的主要内容。"
 
-#: routes/ai.py:85
+#: routes/ai.py:84
 msgid "Find papers about machine learning in healthcare."
 msgstr "查找医疗保健领域机器学习相关论文。"
 
-#: routes/ai.py:95
+#: routes/ai.py:94
 msgid "Ask a question and I'll answer from the published library, with citations."
 msgstr "提出问题，我会基于已发布的论文库作答并附引用。"
 
 # ==================== ADMIN USER MANAGEMENT ====================
-#: routes/ai.py:96 templates/ai.html:86
+#: routes/ai.py:95 templates/ai.html:86
 msgid "Message Keydion AI…"
 msgstr "向 Keydion AI 提问…"
 
-#: routes/ai.py:97 templates/ai.html:106
+#: routes/ai.py:96 templates/ai.html:106
 msgid "Flash"
 msgstr "快速"
 
-#: routes/ai.py:98 templates/ai.html:107
+#: routes/ai.py:97 templates/ai.html:107
 msgid "Thinking"
 msgstr "深度思考"
 
-#: routes/ai.py:99 templates/ai.html:109
+#: routes/ai.py:98 templates/ai.html:109
 msgid "Send"
 msgstr "发送"
 
-#: routes/ai.py:100
+#: routes/ai.py:99
 msgid "Cited from your library"
 msgstr "引用自资料库"
 
-#: routes/ai.py:101
+#: routes/ai.py:100
 msgid "Copy"
 msgstr "复制"
 
-#: routes/ai.py:102
+#: routes/ai.py:101
 msgid "Regenerate"
 msgstr "重新生成"
 
-#: routes/ai.py:103 templates/news_manage.html:510
+#: routes/ai.py:102 templates/news_manage.html:517
 #: templates/paper_manage.html:824
 msgid "Rename"
 msgstr "重命名"
 
-#: routes/ai.py:104
+#: routes/ai.py:103
 msgid "Today"
 msgstr "正文"
 
-#: routes/ai.py:105
+#: routes/ai.py:104
 msgid "Yesterday"
 msgstr ""
 
-#: routes/ai.py:106
+#: routes/ai.py:105
 msgid "Previous 7 days"
 msgstr "过去 7 天"
 
-#: routes/ai.py:107
+#: routes/ai.py:106
 msgid "Older"
 msgstr "更早"
 
-#: routes/ai.py:108
+#: routes/ai.py:107
 msgid "No conversations match."
 msgstr "对话"
 
-#: routes/ai.py:109
+#: routes/ai.py:108
 msgid "Thinking…"
 msgstr "思考中…"
 
-#: routes/ai.py:110 routes/ai.py:304 routes/ai.py:739
+#: routes/ai.py:109 routes/ai.py:316 routes/ai.py:538
 msgid "Something went wrong. Please try again."
 msgstr "出错了，请重试。"
 
-#: routes/ai.py:111 routes/ai.py:264 routes/ai.py:337 templates/ai.html:48
+#: routes/ai.py:110 routes/ai.py:273 routes/ai.py:349 templates/ai.html:48
 msgid "AI assistant is not configured."
 msgstr "AI 助手尚未配置。"
 
-#: routes/ai.py:112
+#: routes/ai.py:111
 msgid "No matching papers were found in the library."
 msgstr "未在资料库中找到匹配的论文。"
 
-#: routes/ai.py:113
+#: routes/ai.py:112
 msgid "Searched the web"
 msgstr "已检索网络"
 
-#: routes/ai.py:114 templates/ia_subjects_manage.html:155
+#: routes/ai.py:113 templates/ia_subjects_manage.html:155
 #: templates/paper_manage.html:412
 msgid "selected"
 msgstr "已选择"
 
-#: routes/ai.py:115 templates/ai.html:183
+#: routes/ai.py:114 templates/ai.html:183
 msgid "Select papers to attach as citations"
 msgstr "选择要作为引用附加的论文"
 
-#: routes/ai.py:116 routes/upload.py:182 templates/paper_modify.html:127
+#: routes/ai.py:115 routes/upload.py:197 templates/paper_modify.html:127
 #: templates/preview.html:412 templates/review_paper.html:33
 #: templates/submission_detail.html:30
 msgid "Abstract"
 msgstr "摘要"
 
-#: routes/ai.py:117 templates/preview.html:417 templates/search.html:274
+#: routes/ai.py:116 templates/preview.html:417 templates/search.html:274
 msgid "No abstract available."
 msgstr "暂无摘要。"
 
-#: routes/ai.py:118 templates/ai.html:179
+#: routes/ai.py:117 templates/ai.html:179
 msgid "Hover a paper to preview its abstract before citing."
 msgstr "将鼠标悬停在论文上，可在引用前预览其摘要。"
 
-#: routes/ai.py:145 routes/ai.py:150 routes/ai.py:390 templates/ai.html:54
+#: routes/ai.py:150
+msgid "You have too many conversations — delete one before starting a new one."
+msgstr ""
+
+#: routes/ai.py:154 routes/ai.py:159 routes/ai.py:402 templates/ai.html:54
 msgid "New conversation"
 msgstr "新对话"
 
-#: routes/ai.py:169 routes/ai.py:321
+#: routes/ai.py:178 routes/ai.py:333
 msgid "Not found"
 msgstr "未找到"
 
-#: routes/ai.py:273
+#: routes/ai.py:282
 msgid "Conversation not found."
 msgstr "未找到对话。"
 
-#: routes/ai.py:288 routes/upload.py:735 routes/upload.py:761
-#: routes/upload.py:788
+#: routes/ai.py:297 routes/upload.py:776 routes/upload.py:809
+#: routes/upload.py:843
 msgid "No file provided"
 msgstr "未提供文件"
 
-#: routes/ai.py:291
+#: routes/ai.py:300
 msgid "Unsupported file type. Use PDF, DOCX, TXT, or Markdown."
 msgstr "不支持的文件类型。请使用 PDF、DOCX、TXT 或 Markdown。"
 
-#: routes/ai.py:294
+#: routes/ai.py:303
 msgid "File is too large (max 5 MB)."
 msgstr "文件过大（上限 5 MB）。"
 
 # | msgid "Invalid destination."
-#: routes/ai.py:297
+#: routes/ai.py:306
 #, fuzzy
 msgid "Invalid filename."
 msgstr "目标位置无效。"
 
-#: routes/ai.py:301
+#: routes/ai.py:311
+msgid "Attachment limit reached — remove an attachment or try a smaller file."
+msgstr "附件数量已达上限——请删除部分附件或上传更小的文件。"
+
+#: routes/ai.py:313
 msgid "Could not read the file."
 msgstr "无法读取该文件。"
 
 # | msgid "Could not read the file."
-#: routes/ai.py:328
+#: routes/ai.py:340
 #, fuzzy
 msgid "Could not process the attachment."
 msgstr "无法读取该文件。"
 
-#: routes/ai.py:368
+#: routes/ai.py:380
 msgid "Please enter a question."
 msgstr "请输入问题。"
 
-#: routes/ai.py:370
+#: routes/ai.py:382
 msgid "Your question is too long."
 msgstr "你的问题过长。"
 
-#: routes/guides.py:101 routes/guides.py:169
+#: routes/guides.py:105 routes/guides.py:173
 msgid "Guide not found."
 msgstr "未找到该指南。"
 
-#: routes/guides.py:127
+#: routes/guides.py:131
 msgid "Please enter a title in at least one language."
 msgstr "请至少输入一种语言的标题。"
 
-#: routes/guides.py:129
+#: routes/guides.py:133
 msgid "Please enter a slug."
 msgstr "请输入链接标识。"
 
-#: routes/guides.py:131
+#: routes/guides.py:135
 msgid "That slug is already taken. Pick another."
 msgstr "该链接标识已被使用，请换一个。"
 
-#: routes/guides.py:138
+#: routes/guides.py:142
 msgid "Guide updated."
 msgstr "指南已更新。"
 
-#: routes/guides.py:141
+#: routes/guides.py:145
 msgid "Guide published."
 msgstr "指南已发布。"
 
-#: routes/guides.py:167
+#: routes/guides.py:171
 msgid "Guide deleted."
 msgstr "指南已删除。"
 
@@ -449,146 +471,168 @@ msgstr "未找到该期刊。"
 msgid "Journal updated."
 msgstr "期刊已更新。"
 
-#: routes/news.py:100 routes/news.py:188
+#: routes/news.py:66
+#, fuzzy
+#| msgid "File is too large (max 5 MB)."
+msgid "Image is too large (max 5 MB)."
+msgstr "文件过大（上限 5 MB）。"
+
+#: routes/news.py:68
+msgid "News image storage is full — delete unused images first."
+msgstr ""
+
+#: routes/news.py:134 routes/news.py:233
 msgid "Please enter a title."
 msgstr "请输入论文标题"
 
-#: routes/news.py:102 routes/news.py:190
+#: routes/news.py:136 routes/news.py:235
 msgid "Please select a category."
 msgstr "请选择类别..."
 
-#: routes/news.py:104 routes/news.py:192
+#: routes/news.py:138 routes/news.py:237
 msgid "Please enter an abstract."
 msgstr "请输入摘要"
 
-#: routes/news.py:106 routes/news.py:194
+#: routes/news.py:140 routes/news.py:239
 msgid "Please write the article body."
 msgstr "请填写文章正文。"
 
-#: routes/news.py:119 routes/news.py:205
+#: routes/news.py:164 routes/news.py:261
 msgid "Cover image must be PNG, JPG, GIF, or WebP."
 msgstr "封面图片格式必须为 PNG、JPG、GIF 或 WebP。"
 
-#: routes/news.py:140 routes/news.py:218
+#: routes/news.py:185 routes/news.py:274
 msgid "Draft saved."
 msgstr "草稿已保存。"
 
-#: routes/news.py:142
+#: routes/news.py:187
 msgid "Article published successfully."
 msgstr "文章发布成功。"
 
-#: routes/news.py:162 routes/news.py:239 routes/news.py:358 routes/news.py:367
+#: routes/news.py:207 routes/news.py:295 routes/news.py:424 routes/news.py:433
 msgid "Article not found."
 msgstr "未找到文章。"
 
-#: routes/news.py:220
+#: routes/news.py:276
 msgid "Article updated."
 msgstr "文章已更新。"
 
-#: routes/news.py:237
+#: routes/news.py:293
 msgid "Article deleted."
 msgstr "文章已删除。"
 
-#: routes/news.py:258 routes/news.py:307 routes/papers.py:173
-#: routes/papers.py:229
+#: routes/news.py:315 routes/news.py:373 routes/papers.py:180
+#: routes/papers.py:236
 msgid "Category name is required."
 msgstr "请输入分类名称。"
 
-#: routes/news.py:261 routes/papers.py:176
+#: routes/news.py:317 routes/news.py:339
+msgid "Category name must be 50 characters or fewer."
+msgstr "分类名称不能超过 50 个字符。"
+
+#: routes/news.py:319 routes/news.py:341
+msgid "Category name contains unsupported characters."
+msgstr "分类名称包含不支持的字符。"
+
+#: routes/news.py:322 routes/papers.py:183
 msgid "Category already exists."
 msgstr "该分类已存在。"
 
-#: routes/news.py:275 routes/papers.py:190
+#: routes/news.py:336 routes/papers.py:197
 msgid "Both old and new names are required."
 msgstr "旧名称和新名称都为必填项。"
 
-#: routes/news.py:278 routes/news.py:310 routes/papers.py:193
-#: routes/papers.py:232
+#: routes/news.py:344 routes/news.py:376 routes/papers.py:200
+#: routes/papers.py:239
 msgid "Category not found."
 msgstr "未找到分类。"
 
-#: routes/news.py:280 routes/papers.py:195
+#: routes/news.py:346 routes/papers.py:202
 msgid "A category with that name already exists."
 msgstr "已存在同名分类。"
 
 # ==================== SEARCH ====================
-#: routes/papers.py:255
+#: routes/papers.py:262
 msgid "Enter a keyword to search."
 msgstr "请输入搜索关键词。"
 
-#: routes/papers.py:337
+#: routes/papers.py:273
+msgid "Search query is too long."
+msgstr "搜索关键词过长。"
+
+#: routes/papers.py:367
 msgid "No matching papers found."
 msgstr "未找到匹配的论文。"
 
-#: routes/papers.py:839 routes/upload.py:517
+#: routes/papers.py:869 routes/upload.py:536
 msgid ""
 "A paper can only be one of: Extended Essay, Community Project, or "
 "Internal Assessment."
 msgstr "论文只能属于以下类型之一：延伸论文、社区项目或内部评估。"
 
-#: routes/papers.py:844 routes/upload.py:522
+#: routes/papers.py:874 routes/upload.py:541
 msgid "Please select an EE core subject."
 msgstr "请选择核心学科…"
 
-#: routes/papers.py:849 routes/upload.py:527
+#: routes/papers.py:879 routes/upload.py:546
 msgid "Please select a Global Context."
 msgstr "请选择全球背景…"
 
-#: routes/papers.py:854 routes/upload.py:530
+#: routes/papers.py:884 routes/upload.py:549
 msgid "Please select at least one Type of Action."
 msgstr "请至少选择一种行动类型。"
 
-#: routes/papers.py:861 routes/upload.py:535
+#: routes/papers.py:891 routes/upload.py:554
 msgid "Please select an IA subject."
 msgstr "请选择 IA 科目。"
 
-#: routes/papers.py:866 routes/upload.py:538
+#: routes/papers.py:896 routes/upload.py:557
 msgid "The selected IA subject has no assessment criteria configured."
 msgstr "所选 IA 科目尚未配置评分标准。"
 
-#: routes/papers.py:894 templates/paper_modify.html:452
+#: routes/papers.py:924 templates/paper_modify.html:452
 msgid "Save metadata changes separately before uploading a replacement PDF."
 msgstr ""
 
-#: routes/papers.py:959
+#: routes/papers.py:989
 msgid "Paper PDF revised, but RAG indexing failed."
 msgstr ""
 
 # | msgid "Paper Preview"
-#: routes/papers.py:963
+#: routes/papers.py:993
 #, fuzzy
 msgid "Paper PDF revised."
 msgstr "论文预览"
 
-#: routes/papers.py:965
+#: routes/papers.py:995
 msgid "Paper information updated."
 msgstr "论文信息已更新。"
 
 # | msgid "paper selected"
-#: routes/papers.py:1031
+#: routes/papers.py:1061
 #, fuzzy
 msgid "Paper deleted."
 msgstr "篇论文已选中"
 
-#: routes/papers.py:1033
+#: routes/papers.py:1063
 msgid "Paper deletion is in progress."
 msgstr ""
 
-#: routes/papers.py:1109
+#: routes/papers.py:1153
 msgid "Paper revision restored, but RAG indexing failed."
 msgstr ""
 
 # | msgid "Paper rejected."
-#: routes/papers.py:1113
+#: routes/papers.py:1157
 #, fuzzy
 msgid "Paper revision restored."
 msgstr "论文已拒绝。"
 
-#: routes/papers.py:1194 routes/papers.py:1233
+#: routes/papers.py:1238 routes/papers.py:1277
 msgid "Please fix the highlighted fields before saving."
 msgstr "请先修正高亮的字段再保存。"
 
-#: routes/papers.py:1202 routes/papers.py:1241
+#: routes/papers.py:1246 routes/papers.py:1285
 msgid "Some subjects are still used by papers."
 msgstr "部分学科仍被论文使用。"
 
@@ -684,907 +728,930 @@ msgstr "论文已接受并发布。"
 msgid "Paper rejected."
 msgstr "论文已拒绝。"
 
+#: routes/upload.py:102
+msgid ""
+"You have too many drafts and pending submissions. Delete one before "
+"adding another."
+msgstr ""
+
+#: routes/upload.py:104
+msgid ""
+"Your pending submissions use too much storage. Delete one before "
+"uploading more."
+msgstr ""
+
 # ==================== UPLOAD WIZARD (JS) ====================
-#: routes/upload.py:112 routes/upload.py:239 templates/advanced_search.html:14
+#: routes/upload.py:127 routes/upload.py:254 templates/advanced_search.html:14
 #: templates/search.html:51
 msgid "Paper Type"
 msgstr "论文类型"
 
-#: routes/upload.py:113 routes/upload.py:260
+#: routes/upload.py:128 routes/upload.py:275
 msgid "Metadata"
 msgstr "元信息"
 
-#: routes/upload.py:114 routes/upload.py:272 templates/landing.html:671
+#: routes/upload.py:129 routes/upload.py:287 templates/landing.html:671
 msgid "Authors"
 msgstr "作者"
 
-#: routes/upload.py:115 routes/upload.py:274 templates/resource_manage.html:101
+#: routes/upload.py:130 routes/upload.py:289 templates/resource_manage.html:101
 msgid "File"
 msgstr "文件"
 
-#: routes/upload.py:116 templates/_dashboard_shell.html:81
+#: routes/upload.py:131 templates/_dashboard_shell.html:81
 #: templates/review_list.html:84
 msgid "Review"
 msgstr "审核"
 
-#: routes/upload.py:117
+#: routes/upload.py:132
 #, python-format
 msgid "Step %(n)s"
 msgstr "第 %(n)s 步"
 
-#: routes/upload.py:118
+#: routes/upload.py:133
 msgid "Submit Paper"
 msgstr "提交论文"
 
-#: routes/upload.py:119
+#: routes/upload.py:134
 msgid "Continue →"
 msgstr "继续 →"
 
-#: routes/upload.py:120
+#: routes/upload.py:135
 msgid "← Back"
 msgstr "← 返回"
 
-#: routes/upload.py:121 templates/news_publish.html:975
+#: routes/upload.py:136 templates/news_publish.html:975
 msgid "Save Draft"
 msgstr "保存草稿"
 
-#: routes/upload.py:122
+#: routes/upload.py:137
 msgid "Choose paper type"
 msgstr "选择论文类型"
 
-#: routes/upload.py:123
+#: routes/upload.py:138
 msgid "What kind of paper are you submitting?"
 msgstr "您要提交的是哪一类论文？"
 
-#: routes/upload.py:124
+#: routes/upload.py:139
 msgid ""
 "The fields you'll be asked for next depend on this. You can come back and"
 " change it before submitting."
 msgstr "接下来需要填写的字段取决于您的选择。提交前您可以随时回到此步骤修改。"
 
-#: routes/upload.py:125 templates/advanced_search.html:21
+#: routes/upload.py:140 templates/advanced_search.html:21
 #: templates/paper_manage.html:339 templates/search.html:58
 #: templates/search.html:265
 msgid "Independent Research"
 msgstr "独立研究"
 
-#: routes/upload.py:126
+#: routes/upload.py:141
 msgid "Standard Paper"
 msgstr "标准论文"
 
-#: routes/upload.py:127
+#: routes/upload.py:142
 msgid "A self-directed research paper, conference paper, or article."
 msgstr "自主选题的研究论文、会议论文或文章。"
 
-#: routes/upload.py:128
+#: routes/upload.py:143
 msgid "Title · authors · abstract · subject"
 msgstr "标题 · 作者 · 摘要 · 学科"
 
-#: routes/upload.py:129 routes/upload.py:133 routes/upload.py:137
+#: routes/upload.py:144 routes/upload.py:148 routes/upload.py:152
 msgid "IB Diploma"
 msgstr "IB 文凭"
 
-#: routes/upload.py:130
+#: routes/upload.py:145
 msgid "Extended Essay (EE)"
 msgstr "拓展论文（EE）"
 
-#: routes/upload.py:131
+#: routes/upload.py:146
 msgid ""
 "A 4,000-word IB Diploma research essay with structured criterion scores "
 "(A–E) and an EE subject from the six IB subject groups."
 msgstr "约 4,000 字的 IB 文凭研究论文，按 A–E 评分标准评分，从六大 IB 学科组中选定 EE 学科。"
 
-#: routes/upload.py:132
+#: routes/upload.py:147
 msgid "Research Question · EE subject · criterion scores A–E"
 msgstr "研究问题 · EE 学科 · A–E 项评分"
 
-#: routes/upload.py:134
+#: routes/upload.py:149
 msgid "Community Project (CP)"
 msgstr "社区项目（CP）"
 
-#: routes/upload.py:135
+#: routes/upload.py:150
 msgid ""
 "An IB MYP Community Project graded against Criteria A–D, with a Global "
 "Context and a chosen type of action."
 msgstr "IB MYP 社区设计项目，按 A–D 标准评分，并选择全球背景与行动类型。"
 
-#: routes/upload.py:136
+#: routes/upload.py:151
 msgid "Title · Global Context · type of action · criteria A–D"
 msgstr "标题 · 全球背景 · 行动类型 · A–D 项评分"
 
-#: routes/upload.py:138
+#: routes/upload.py:153
 msgid "Internal Assessment (IA)"
 msgstr "内部评估（IA）"
 
-#: routes/upload.py:139
+#: routes/upload.py:154
 msgid ""
 "A subject-specific IB Internal Assessment graded against that subject's "
 "assessment criteria."
 msgstr "以 IB 各学科评分标准评估的内部评估作业。"
 
-#: routes/upload.py:140
+#: routes/upload.py:155
 msgid "Title · IA subject · per-criterion scores"
 msgstr "标题 · IA 科目 · 各项评分"
 
-#: routes/upload.py:141
+#: routes/upload.py:156
 msgid "IB Internal Assessment"
 msgstr "IB 内部评估"
 
-#: routes/upload.py:142
+#: routes/upload.py:157
 msgid "Tell us about your assessment"
 msgstr "请介绍您的评估作业"
 
-#: routes/upload.py:143 templates/advanced_search.html:60
+#: routes/upload.py:158 templates/advanced_search.html:60
 #: templates/paper_modify.html:289 templates/preview.html:340
 #: templates/search.html:81
 msgid "IA Subject"
 msgstr "IA 科目"
 
-#: routes/upload.py:144
+#: routes/upload.py:159
 msgid "Select an IA subject…"
 msgstr "请选择 IA 科目…"
 
-#: routes/upload.py:145 routes/upload.py:207
+#: routes/upload.py:160 routes/upload.py:222
 msgid "Calculated server-side from the criteria above"
 msgstr "由以上各项得分在服务器端自动计算"
 
-#: routes/upload.py:146
+#: routes/upload.py:161
 msgid "IA Details"
 msgstr "IA 详情"
 
-#: routes/upload.py:147
+#: routes/upload.py:162
 #, python-format
 msgid "IA criterion score %(k)s"
 msgstr "IA 评分项 %(k)s 得分"
 
-#: routes/upload.py:148
+#: routes/upload.py:163
 msgid "Enter the overall score directly"
 msgstr "直接输入总分"
 
-#: routes/upload.py:149
+#: routes/upload.py:164
 msgid ""
 "Skip per-criterion scoring and enter just the total mark for the "
 "assessment."
 msgstr "跳过逐项评分，直接填写该评估的总分。"
 
-#: routes/upload.py:150
+#: routes/upload.py:165
 msgid "Enter the overall mark for the assessment"
 msgstr "请填写该评估的总分"
 
-#: routes/upload.py:151
+#: routes/upload.py:166
 msgid "Overall Score"
 msgstr "总分"
 
-#: routes/upload.py:152
+#: routes/upload.py:167
 msgid "IA overall score"
 msgstr "IA 总分"
 
-#: routes/upload.py:153
+#: routes/upload.py:168
 msgid ""
 "This subject has no assessment criteria configured yet. Choose another "
 "subject or ask an administrator to add criteria."
 msgstr "该科目尚未配置评分标准。请选择其他科目，或联系管理员添加评分项。"
 
-#: routes/upload.py:154
+#: routes/upload.py:169
 msgid "IA subject has no criteria"
 msgstr "IA 科目尚无评分标准"
 
-#: routes/upload.py:155
+#: routes/upload.py:170
 msgid "Commentary for this criterion…"
 msgstr "对此评分项的评语…"
 
 # ==================== EE PDF AUTO-FILL ====================
-#: routes/upload.py:156
+#: routes/upload.py:171
 msgid "Auto-fill scores from PDF"
 msgstr "从 PDF 自动提取评语与分数"
 
-#: routes/upload.py:157 routes/upload.py:290
+#: routes/upload.py:172 routes/upload.py:305
 msgid "Extracting…"
 msgstr "正在提取…"
 
-#: routes/upload.py:158
+#: routes/upload.py:173
 msgid "Extracted scores."
 msgstr "已提取 IA 分数。"
 
-#: routes/upload.py:159 routes/upload.py:293
+#: routes/upload.py:174 routes/upload.py:308
 msgid "Auto-fill failed — try again or fill manually."
 msgstr "自动填充失败——请重试或手动填写。"
 
-#: routes/upload.py:160
+#: routes/upload.py:175
 msgid "Choose an IA subject first."
 msgstr "请先选择 IA 科目。"
 
-#: routes/upload.py:161
+#: routes/upload.py:176
 msgid "Research Question"
 msgstr "研究问题"
 
-#: routes/upload.py:162 templates/my_submissions.html:25
+#: routes/upload.py:177 templates/my_submissions.html:25
 #: templates/review_list.html:50
 msgid "Paper Title"
 msgstr "论文标题"
 
-#: routes/upload.py:163
+#: routes/upload.py:178
 msgid ""
 "e.g. To what extent did monetary policy contribute to the 2008 financial "
 "crisis?"
 msgstr "例如：货币政策在多大程度上促成了 2008 年的金融危机？"
 
-#: routes/upload.py:164
+#: routes/upload.py:179
 msgid "Enter the complete paper title"
 msgstr "请输入完整的论文标题"
 
-#: routes/upload.py:165
+#: routes/upload.py:180
 msgid "Tell us about your essay"
 msgstr "请介绍您的论文"
 
-#: routes/upload.py:166
+#: routes/upload.py:181
 msgid "Tell us about your community project"
 msgstr "请介绍您的社区设计项目"
 
-#: routes/upload.py:167
+#: routes/upload.py:182
 msgid "Tell us about your paper"
 msgstr "请介绍您的论文"
 
-#: routes/upload.py:168
+#: routes/upload.py:183
 msgid "IB grading information and bibliographic details for the submission."
 msgstr "本次提交的 IB 评分信息与文献信息。"
 
-#: routes/upload.py:169
+#: routes/upload.py:184
 msgid "Bibliographic information that will appear on the public paper page."
 msgstr "将在论文公开页面上展示的文献信息。"
 
-#: routes/upload.py:170
+#: routes/upload.py:185
 msgid "Paper details"
 msgstr "论文详情"
 
-#: routes/upload.py:171
+#: routes/upload.py:186
 msgid "Bibliographic"
 msgstr "文献信息"
 
-#: routes/upload.py:172 templates/paper_modify.html:110
+#: routes/upload.py:187 templates/paper_modify.html:110
 #: templates/search.html:110
 msgid "Language"
 msgstr "语言"
 
-#: routes/upload.py:175
+#: routes/upload.py:190
 msgid "Subject Category"
 msgstr "学科类别"
 
-#: routes/upload.py:176
+#: routes/upload.py:191
 msgid "Choose a subject category…"
 msgstr "请选择学科类别…"
 
-#: routes/upload.py:177 templates/paper_modify.html:121
+#: routes/upload.py:192 templates/paper_modify.html:121
 #: templates/preview.html:444 templates/review_paper.html:30
 #: templates/submission_detail.html:27
 msgid "Keywords"
 msgstr "关键词"
 
-#: routes/upload.py:178
+#: routes/upload.py:193
 msgid "Add another…"
 msgstr "继续添加…"
 
-#: routes/upload.py:179
+#: routes/upload.py:194
 msgid "Type a keyword and press Enter"
 msgstr "输入关键词后按 Enter 添加"
 
-#: routes/upload.py:180
+#: routes/upload.py:195
 msgid "Press Enter or comma to add. Aim for 3–6 keywords."
 msgstr "按 Enter 或逗号添加，建议 3–6 个关键词。"
 
-#: routes/upload.py:181 templates/ee_subjects_manage.html:102
+#: routes/upload.py:196 templates/ee_subjects_manage.html:102
 #: templates/ia_subjects_manage.html:139
 msgid "added"
 msgstr "已添加"
 
-#: routes/upload.py:183
+#: routes/upload.py:198
 msgid "Briefly describe your research background, methods, and conclusions…"
 msgstr "请简要描述您的研究背景、方法与结论…"
 
-#: routes/upload.py:184
+#: routes/upload.py:199
 msgid "A short summary that appears in search results."
 msgstr "搜索结果中显示的简短摘要。"
 
-#: routes/upload.py:185 templates/paper_modify.html:139
+#: routes/upload.py:200 templates/paper_modify.html:139
 msgid "This is an IB Sample Paper"
 msgstr "这是一篇 IB 范文"
 
-#: routes/upload.py:186
+#: routes/upload.py:201
 msgid "Sample papers are reference essays without an identified author."
 msgstr "范文是无明确作者的参考论文。"
 
-#: routes/upload.py:187
+#: routes/upload.py:202
 msgid "Named authors"
 msgstr "署名作者"
 
-#: routes/upload.py:188
+#: routes/upload.py:203
 msgid "List the authors with their contact details."
 msgstr "填写作者姓名及联系方式。"
 
-#: routes/upload.py:189 templates/paper_modify.html:150
+#: routes/upload.py:204 templates/paper_modify.html:150
 msgid "Upload as anonymous"
 msgstr "匿名上传"
 
-#: routes/upload.py:190 templates/paper_modify.html:152
+#: routes/upload.py:205 templates/paper_modify.html:152
 msgid "The paper is published without any author information."
 msgstr "论文发布时将不显示任何作者信息。"
 
-#: routes/upload.py:191
+#: routes/upload.py:206
 msgid "Framework for the essay"
 msgstr "论文框架"
 
-#: routes/upload.py:192
+#: routes/upload.py:207
 msgid "Knowledge and understanding"
 msgstr "知识与理解"
 
-#: routes/upload.py:193
+#: routes/upload.py:208
 msgid "Analysis and line of argument"
 msgstr "分析与论证"
 
-#: routes/upload.py:194
+#: routes/upload.py:209
 msgid "Discussion and evaluation"
 msgstr "讨论与评估"
 
-#: routes/upload.py:195
+#: routes/upload.py:210
 msgid "Reflection"
 msgstr "反思"
 
-#: routes/upload.py:196 templates/advanced_search.html:48
+#: routes/upload.py:211 templates/advanced_search.html:48
 #: templates/preview.html:151 templates/search.html:66
 msgid "EE Subject"
 msgstr "EE 学科"
 
-#: routes/upload.py:197 templates/paper_modify.html:199
+#: routes/upload.py:212 templates/paper_modify.html:199
 msgid "Core Subject"
 msgstr "核心学科"
 
-#: routes/upload.py:198
+#: routes/upload.py:213
 msgid "Select a core subject…"
 msgstr "请选择核心学科…"
 
-#: routes/upload.py:199 templates/ee_subjects_manage.html:100
+#: routes/upload.py:214 templates/ee_subjects_manage.html:100
 msgid "Interdisciplinary"
 msgstr "跨学科"
 
-#: routes/upload.py:200 templates/resource_manage.html:102
+#: routes/upload.py:215 templates/resource_manage.html:102
 #: templates/review_paper.html:77
 msgid "Optional"
 msgstr "可选"
 
-#: routes/upload.py:201
+#: routes/upload.py:216
 msgid "Optional — select if applicable…"
 msgstr "可选 — 如适用请选择…"
 
-#: routes/upload.py:202
+#: routes/upload.py:217
 msgid "Criterion Scores"
 msgstr "评分标准得分"
 
-#: routes/upload.py:203 templates/paper_modify.html:239
+#: routes/upload.py:218 templates/paper_modify.html:239
 #: templates/paper_modify.html:402 templates/preview.html:292
 msgid "Crit."
 msgstr "标准"
 
-#: routes/upload.py:204
+#: routes/upload.py:219
 msgid "Criterion"
 msgstr "评分标准"
 
-#: routes/upload.py:205 templates/paper_modify.html:241
+#: routes/upload.py:220 templates/paper_modify.html:241
 #: templates/paper_modify.html:316 templates/paper_modify.html:404
 msgid "Score"
 msgstr "得分"
 
-#: routes/upload.py:206
+#: routes/upload.py:221
 msgid "Overall Grade"
 msgstr "总评等级"
 
-#: routes/upload.py:208
+#: routes/upload.py:223
 msgid "Criterion Commentaries"
 msgstr "标准评语"
 
-#: routes/upload.py:209
+#: routes/upload.py:224
 msgid "Include commentaries for all criteria"
 msgstr "为每项评分标准填写评语"
 
-#: routes/upload.py:210
+#: routes/upload.py:225
 msgid ""
 "Provide short remarks on each criterion plus an optional overall holistic"
 " commentary."
 msgstr "请为每项标准提供简短评语，并可选填一份整体性总评。"
 
-#: routes/upload.py:211
+#: routes/upload.py:226
 #, python-format
 msgid "Commentary for Criterion %(k)s…"
 msgstr "对评分标准 %(k)s 的评语…"
 
-#: routes/upload.py:212 templates/paper_modify.html:271
+#: routes/upload.py:227 templates/paper_modify.html:271
 #: templates/paper_modify.html:356 templates/preview.html:218
 #: templates/preview.html:390
 msgid "Holistic Commentary"
 msgstr "整体性总评"
 
-#: routes/upload.py:213
+#: routes/upload.py:228
 msgid "An overall holistic commentary for the essay…"
 msgstr "对整篇论文的整体性总评…"
 
-#: routes/upload.py:214
+#: routes/upload.py:229
 msgid "Investigating"
 msgstr "调研"
 
-#: routes/upload.py:215
+#: routes/upload.py:230
 msgid "Planning"
 msgstr "规划"
 
-#: routes/upload.py:216
+#: routes/upload.py:231
 msgid "Taking Action"
 msgstr "实施行动"
 
-#: routes/upload.py:217
+#: routes/upload.py:232
 msgid "Reflecting"
 msgstr "反思"
 
-#: routes/upload.py:218 templates/advanced_search.html:72
+#: routes/upload.py:233 templates/advanced_search.html:72
 #: templates/paper_modify.html:375 templates/preview.html:265
 #: templates/search.html:96
 msgid "Global Context"
 msgstr "全球背景"
 
-#: routes/upload.py:219
+#: routes/upload.py:234
 msgid "Select a Global Context…"
 msgstr "请选择全球背景…"
 
-#: routes/upload.py:220
+#: routes/upload.py:235
 msgid "Global Contexts"
 msgstr "全球背景"
 
-#: routes/upload.py:221 templates/paper_modify.html:386
+#: routes/upload.py:236 templates/paper_modify.html:386
 #: templates/preview.html:273
 msgid "Type of Action"
 msgstr "行动类型"
 
-#: routes/upload.py:222
+#: routes/upload.py:237
 msgid "Mean of the four criterion scores, rounded"
 msgstr "四项标准得分的平均值（四舍五入）"
 
-#: routes/upload.py:223
+#: routes/upload.py:238
 msgid "Author information"
 msgstr "作者信息"
 
-#: routes/upload.py:224
+#: routes/upload.py:239
 msgid "Who wrote this?"
 msgstr "本论文的作者是谁？"
 
-#: routes/upload.py:225
+#: routes/upload.py:240
 msgid "The first author's contact details are required. Add co-authors as needed."
 msgstr "第一作者的联系信息为必填，可根据需要添加合作者。"
 
-#: routes/upload.py:226 templates/paper_modify.html:166
+#: routes/upload.py:241 templates/admin_models.html:230
+#: templates/paper_modify.html:166
 msgid "Name"
 msgstr "姓名"
 
-#: routes/upload.py:227 templates/admin_users.html:81
+#: routes/upload.py:242 templates/admin_users.html:81
 #: templates/paper_modify.html:170 templates/register.html:15
 #: templates/review_paper.html:40 templates/submission_detail.html:37
 msgid "Email"
 msgstr "邮箱"
 
-#: routes/upload.py:228
+#: routes/upload.py:243
 msgid "School / Institution"
 msgstr "学校 / 机构"
 
-#: routes/upload.py:229
+#: routes/upload.py:244
 msgid "Remove author"
 msgstr "移除作者"
 
-#: routes/upload.py:230
+#: routes/upload.py:245
 msgid "+ Add another author"
 msgstr "+ 添加作者"
 
-#: routes/upload.py:231
+#: routes/upload.py:246
 msgid "File upload"
 msgstr "文件上传"
 
-#: routes/upload.py:232
+#: routes/upload.py:247
 msgid "Upload your PDF"
 msgstr "上传 PDF 文件"
 
-#: routes/upload.py:233
+#: routes/upload.py:248
 msgid "Submit a single PDF, up to 50 MB. You can change this before publishing."
 msgstr "请提交单个 PDF 文件，最大 50 MB。发布前仍可更换。"
 
-#: routes/upload.py:234
+#: routes/upload.py:249
 msgid "No file chosen"
 msgstr "尚未选择文件"
 
-#: routes/upload.py:235
+#: routes/upload.py:250
 msgid "PDF only · single file"
 msgstr "仅支持 PDF · 单个文件"
 
-#: routes/upload.py:236
+#: routes/upload.py:251
 msgid "Replace"
 msgstr "更换"
 
-#: routes/upload.py:237
+#: routes/upload.py:252
 msgid "Choose file"
 msgstr "选择文件"
 
-#: routes/upload.py:238
+#: routes/upload.py:253
 msgid ""
 "If you'd like to come back to this later, click Save Draft below — your "
 "form will be restored next time you visit."
 msgstr "若想稍后继续，请点击下方的「保存草稿」，下次访问时表单将自动恢复。"
 
-#: routes/upload.py:240
+#: routes/upload.py:255
 msgid "First author (name, email, school)"
 msgstr "第一作者（姓名、邮箱、学校）"
 
-#: routes/upload.py:241
+#: routes/upload.py:256
 msgid "EE core subject"
 msgstr "EE 核心学科"
 
-#: routes/upload.py:242
+#: routes/upload.py:257
 #, python-format
 msgid "EE criterion score %(k)s"
 msgstr "EE 评分标准 %(k)s 得分"
 
-#: routes/upload.py:243
+#: routes/upload.py:258
 msgid "Global context"
 msgstr "全球背景"
 
-#: routes/upload.py:244
+#: routes/upload.py:259
 msgid "Type of action"
 msgstr "行动类型"
 
-#: routes/upload.py:245
+#: routes/upload.py:260
 #, python-format
 msgid "CP criterion score %(k)s"
 msgstr "CP 评分标准 %(k)s 得分"
 
-#: routes/upload.py:246
+#: routes/upload.py:261
 msgid "PDF file"
 msgstr "PDF 文件"
 
-#: routes/upload.py:247
+#: routes/upload.py:262
 msgid "Independent Research Paper"
 msgstr "独立研究论文"
 
-#: routes/upload.py:248 templates/preview.html:125
+#: routes/upload.py:263 templates/preview.html:125
 msgid "IB Extended Essay"
 msgstr ""
 
-#: routes/upload.py:249
+#: routes/upload.py:264
 msgid "IB Community Project"
 msgstr ""
 
-#: routes/upload.py:250
+#: routes/upload.py:265
 msgid "Review & submit"
 msgstr "复核并提交"
 
-#: routes/upload.py:251
+#: routes/upload.py:266
 msgid "Almost there — review your submission"
 msgstr "即将完成 — 请复核您的提交内容"
 
-#: routes/upload.py:252
+#: routes/upload.py:267
 msgid ""
 "Make sure everything looks right. You can jump back to any section to "
 "make changes."
 msgstr "请确认所有信息无误，可随时跳回任意步骤进行修改。"
 
-#: routes/upload.py:253
+#: routes/upload.py:268
 msgid "1 field still needs attention"
 msgstr "还有 1 项需要补充"
 
-#: routes/upload.py:254
+#: routes/upload.py:269
 #, python-format
 msgid "%(n)s fields still need attention"
 msgstr "还有 %(n)s 项需要补充"
 
-#: routes/upload.py:255
+#: routes/upload.py:270
 #, python-format
 msgid "go to %(step)s"
 msgstr "前往%(step)s"
 
-#: routes/upload.py:256
+#: routes/upload.py:271
 msgid "Everything required is filled in."
 msgstr "所有必填项已填写完成。"
 
-#: routes/upload.py:257
+#: routes/upload.py:272
 msgid "Click Submit Paper below to send your submission for review."
 msgstr "点击下方「提交论文」按钮发送您的提交以供审核。"
 
-#: routes/upload.py:258 templates/guide_manage.html:175
-#: templates/guide_manage.html:241 templates/guide_publish.html:20
-#: templates/journal_manage.html:61 templates/my_submissions.html:58
-#: templates/news_article.html:584 templates/news_manage.html:202
-#: templates/resource_manage.html:53 templates/resource_manage.html:121
+#: routes/upload.py:273 templates/admin_models.html:74
+#: templates/guide_manage.html:175 templates/guide_manage.html:241
+#: templates/guide_publish.html:20 templates/journal_manage.html:61
+#: templates/my_submissions.html:58 templates/news_article.html:584
+#: templates/news_manage.html:202 templates/resource_manage.html:53
+#: templates/resource_manage.html:121
 msgid "Edit"
 msgstr "编辑"
 
-#: routes/upload.py:259 templates/paper_manage.html:291
+#: routes/upload.py:274 templates/paper_manage.html:291
 msgid "Type"
 msgstr "类型"
 
-#: routes/upload.py:261
+#: routes/upload.py:276
 msgid "Research Q."
 msgstr "研究问题"
 
 # ==================== PAPER METADATA ====================
-#: routes/upload.py:262 templates/guide_publish.html:85
+#: routes/upload.py:277 templates/guide_publish.html:85
 #: templates/guide_publish.html:117 templates/news_publish.html:987
 #: templates/paper_modify.html:81 templates/preview.html:436
 #: templates/review_paper.html:24 templates/submission_detail.html:21
 msgid "Title"
 msgstr "标题"
 
-#: routes/upload.py:263
+#: routes/upload.py:278
 msgid "Not provided"
 msgstr "未填写"
 
-#: routes/upload.py:264
+#: routes/upload.py:279
 msgid "Not chosen"
 msgstr "未选择"
 
-#: routes/upload.py:265 templates/search.html:30
+#: routes/upload.py:280 templates/admin_version.html:93
+#: templates/search.html:30
 msgid "Subject"
 msgstr "学科"
 
-#: routes/upload.py:266 templates/paper_modify.html:214
+#: routes/upload.py:281 templates/paper_modify.html:214
 msgid "None"
 msgstr "无"
 
-#: routes/upload.py:267
+#: routes/upload.py:282
 msgid "Not written"
 msgstr "未填写"
 
-#: routes/upload.py:268
+#: routes/upload.py:283
 msgid "IB Sample"
 msgstr "IB 范文"
 
-#: routes/upload.py:269
+#: routes/upload.py:284
 msgid "Yes — author info skipped"
 msgstr "是 — 已跳过作者信息"
 
-#: routes/upload.py:270
+#: routes/upload.py:285
 msgid "Anonymous — author info skipped"
 msgstr "匿名 — 已跳过作者信息"
 
-#: routes/upload.py:271
+#: routes/upload.py:286
 msgid "No"
 msgstr "否"
 
-#: routes/upload.py:273 templates/news_manage.html:151
-#: templates/news_publish.html:1002 templates/paper_manage.html:293
-#: templates/review_paper.html:36 templates/submission_detail.html:33
+#: routes/upload.py:288 templates/admin_version.html:92
+#: templates/news_manage.html:151 templates/news_publish.html:1002
+#: templates/paper_manage.html:293 templates/review_paper.html:36
+#: templates/submission_detail.html:33
 msgid "Author"
 msgstr "作者"
 
-#: routes/upload.py:275
+#: routes/upload.py:290
 msgid "No file uploaded"
 msgstr "尚未上传文件"
 
-#: routes/upload.py:276
+#: routes/upload.py:291
 msgid "EE Details"
 msgstr "EE 详情"
 
-#: routes/upload.py:277
+#: routes/upload.py:292
 msgid "Total"
 msgstr "总分"
 
-#: routes/upload.py:278
+#: routes/upload.py:293
 msgid "CP Details"
 msgstr "CP 详情"
 
-#: routes/upload.py:279
+#: routes/upload.py:294
 msgid "None selected"
 msgstr "未选择"
 
-#: routes/upload.py:280
+#: routes/upload.py:295
 msgid "Avg. Grade"
 msgstr "平均得分"
 
-#: routes/upload.py:281
+#: routes/upload.py:296
 msgid "Saving…"
 msgstr "保存中…"
 
-#: routes/upload.py:282
+#: routes/upload.py:297
 #, python-format
 msgid "Draft saved · %(time)s"
 msgstr "草稿已保存 · %(time)s"
 
-#: routes/upload.py:283
+#: routes/upload.py:298
 msgid "Unsaved changes from earlier"
 msgstr "存在未保存的修改"
 
-#: routes/upload.py:284
+#: routes/upload.py:299
 msgid ""
 "Your last session in this browser had changes you didn't save. Restore "
 "them?"
 msgstr "您上次在此浏览器中的更改尚未保存，是否恢复？"
 
-#: routes/upload.py:285 templates/ee_subjects_manage.html:79
+#: routes/upload.py:300 templates/ee_subjects_manage.html:79
 #: templates/ia_subjects_manage.html:117
 msgid "Discard"
 msgstr "放弃"
 
-#: routes/upload.py:286 templates/paper_modify.html:48
+#: routes/upload.py:301 templates/paper_modify.html:48
 msgid "Restore"
 msgstr "恢复"
 
-#: routes/upload.py:287
+#: routes/upload.py:302
 msgid "Search…"
 msgstr "搜索…"
 
-#: routes/upload.py:288
+#: routes/upload.py:303
 msgid "No matches"
 msgstr "无匹配结果"
 
 # ==================== EE PDF AUTO-FILL ====================
-#: routes/upload.py:289
+#: routes/upload.py:304
 msgid "Auto-fill from commentary PDF"
 msgstr "从评语 PDF 自动填充"
 
-#: routes/upload.py:291
+#: routes/upload.py:306
 msgid "Extracted all fields."
 msgstr "已提取全部字段。"
 
-#: routes/upload.py:292
+#: routes/upload.py:307
 #, python-format
 msgid "Extracted %(filled)s of %(total)s fields."
 msgstr "已提取 %(filled)s / %(total)s 个字段。"
 
-#: routes/upload.py:294
+#: routes/upload.py:309
 msgid "Replace your existing EE entries with values from the PDF?"
 msgstr "用 PDF 中的值替换现有的 EE 内容吗？"
 
-#: routes/upload.py:295
+#: routes/upload.py:310
 msgid "Generate abstract & keywords from PDF"
 msgstr "从 PDF 生成摘要和关键词"
 
-#: routes/upload.py:296
+#: routes/upload.py:311
 msgid "Generating…"
 msgstr "生成中…"
 
-#: routes/upload.py:297
+#: routes/upload.py:312
 msgid "Generated abstract and keywords."
 msgstr "已生成摘要和关键词。"
 
-#: routes/upload.py:298
+#: routes/upload.py:313
 msgid "Generation failed — try again or fill manually."
 msgstr "生成失败——请重试或手动填写。"
 
-#: routes/upload.py:299
+#: routes/upload.py:314
 msgid "Upload your PDF in the File step first."
 msgstr "请先在“文件”步骤中上传 PDF。"
 
-#: routes/upload.py:300
+#: routes/upload.py:315
 msgid ""
 "Replace your existing title, authors, abstract and keywords with AI-"
 "generated ones?"
 msgstr "用 AI 生成的内容替换现有的标题、作者、摘要和关键词吗？"
 
-#: routes/upload.py:301 templates/advanced_search.html:85
+#: routes/upload.py:316 templates/advanced_search.html:85
 #: templates/paper_manage.html:292 templates/paper_modify.html:88
 #: templates/search.html:123
 msgid "Journal"
 msgstr "期刊"
 
-#: routes/upload.py:302
+#: routes/upload.py:317
 msgid "— None —"
 msgstr "— 无 —"
 
-#: routes/upload.py:303
+#: routes/upload.py:318
 msgid "Optional — assign this paper to a journal."
 msgstr "可选 — 将该论文归入某个期刊。"
 
-#: routes/upload.py:304
+#: routes/upload.py:319
 #, python-format
 msgid "Uploading… %(pct)s%"
 msgstr "上传中… %(pct)s%"
 
-#: routes/upload.py:305
+#: routes/upload.py:320
 msgid "Finishing up…"
 msgstr "即将完成…"
 
-#: routes/upload.py:306
+#: routes/upload.py:321
 msgid "Upload failed. Please check your connection and try again."
 msgstr "上传失败，请检查网络连接后重试。"
 
-#: routes/upload.py:307
+#: routes/upload.py:322
 msgid "Upload successful!"
 msgstr "上传成功！"
 
-#: routes/upload.py:308
+#: routes/upload.py:323
 msgid "Try again"
 msgstr "重试"
 
-#: routes/upload.py:441
+#: routes/upload.py:456
 msgid "Please enter at least a paper title to save a draft."
 msgstr "请至少输入论文标题才能保存草稿。"
 
-#: routes/upload.py:500
+#: routes/upload.py:519
 msgid "Draft saved successfully."
 msgstr "草稿保存成功。"
 
-#: routes/upload.py:549
+#: routes/upload.py:568
 msgid "Please select a file to upload"
 msgstr "请选择要上传的文件"
 
-#: routes/upload.py:557
+#: routes/upload.py:576
 msgid "Only PDF files are supported"
 msgstr "仅支持 PDF 文件"
 
-#: routes/upload.py:559 routes/upload.py:741 routes/upload.py:767
-#: routes/upload.py:794
+#: routes/upload.py:578 routes/upload.py:782 routes/upload.py:815
+#: routes/upload.py:849
 msgid "File is not a valid PDF"
 msgstr "文件不是有效的 PDF"
 
-#: routes/upload.py:611
+#: routes/upload.py:587 routes/upload.py:789 routes/upload.py:822
+#: routes/upload.py:856
+msgid ""
+"This PDF cannot be processed — it is corrupt, encrypted, or exceeds the "
+"page limit."
+msgstr ""
+
+#: routes/upload.py:642
 #, python-format
 msgid "%(paper_name)s uploaded successfully, but RAG indexing failed."
 msgstr "%(paper_name)s 已上传成功，但 RAG 索引失败。"
 
-#: routes/upload.py:617
+#: routes/upload.py:648
 #, python-format
 msgid "Paper %(filename)s uploaded successfully!"
 msgstr "论文 %(filename)s 上传成功！"
 
-#: routes/upload.py:706
+#: routes/upload.py:747
 msgid "Your paper has been submitted and is now pending review."
 msgstr "您的论文已提交，正在等待审核。"
 
-#: routes/upload.py:716
+#: routes/upload.py:757
 msgid "Upload failed. Please try again."
 msgstr "上传失败，请重试。"
 
-#: routes/upload.py:728 routes/upload.py:754 routes/upload.py:781
+#: routes/upload.py:769 routes/upload.py:802 routes/upload.py:836
 msgid "Unauthorized"
 msgstr "未授权"
 
-#: routes/upload.py:737 routes/upload.py:763 routes/upload.py:790
+#: routes/upload.py:778 routes/upload.py:811 routes/upload.py:845
 msgid "File must be a PDF"
 msgstr "文件必须是 PDF"
 
-#: routes/upload.py:800
+#: routes/upload.py:862
 msgid "Unknown or unconfigured IA subject"
 msgstr "未知或未配置的 IA 科目"
 
-#: services/ai.py:575
+#: services/ai.py:593
 msgid "Searching the library…"
 msgstr "正在检索文献库…"
 
-#: services/ai.py:595
+#: services/ai.py:613
 #, python-format
 msgid "Reading “%(title)s”…"
 msgstr "正在阅读《%(title)s》…"
 
-#: services/ai.py:596
+#: services/ai.py:614
 msgid "Reading a paper…"
 msgstr "正在阅读论文…"
 
-#: services/ai.py:598
+#: services/ai.py:616
 msgid "Searching the web…"
 msgstr "正在搜索网络…"
 
-#: services/ai.py:600
+#: services/ai.py:618
 msgid "Reading a web page…"
 msgstr "正在阅读网页…"
 
-#: services/ai.py:602
+#: services/ai.py:620
 msgid "Reading the attachment…"
 msgstr "正在阅读附件…"
 
-#: services/ai.py:603
+#: services/ai.py:621
 msgid "Working…"
 msgstr "处理中…"
 
-#: services/ai.py:811
+#: services/ai.py:835
 msgid "Attached document"
 msgstr "附加文档"
 
-#: services/auth.py:612
+#: services/auth.py:622
 msgid "Session expired. Please sign in again."
 msgstr "会话已过期，请重新登录。"
 
-#: services/auth.py:622
+#: services/auth.py:632
 msgid "You do not have access to that action."
 msgstr "您没有权限执行此操作。"
 
@@ -1751,7 +1818,7 @@ msgstr "撰写文章"
 msgid "Manage news"
 msgstr "管理新闻"
 
-#: templates/_dashboard_shell.html:165
+#: templates/_dashboard_shell.html:165 templates/admin_models.html:18
 msgid "Admin"
 msgstr "管理"
 
@@ -1759,22 +1826,30 @@ msgstr "管理"
 msgid "Manage users"
 msgstr "管理用户"
 
-#: templates/_dashboard_shell.html:177 templates/ai.html:25
+#: templates/_dashboard_shell.html:176 templates/admin_models.html:20
+msgid "AI models"
+msgstr "AI 模型"
+
+#: templates/_dashboard_shell.html:182 templates/admin_version.html:11
+msgid "Version"
+msgstr "版本"
+
+#: templates/_dashboard_shell.html:189 templates/ai.html:25
 #: templates/change_password.html:297
 msgid "Account"
 msgstr "账户"
 
-#: templates/_dashboard/overview.html:111 templates/_dashboard_shell.html:182
+#: templates/_dashboard/overview.html:111 templates/_dashboard_shell.html:194
 #: templates/change_password.html:297 templates/change_password.html:300
 msgid "Change password"
 msgstr "修改密码"
 
-#: templates/_dashboard_shell.html:190 templates/_header.html:164
+#: templates/_dashboard_shell.html:202 templates/_header.html:164
 #: templates/ai.html:32
 msgid "Sign out"
 msgstr "退出登录"
 
-#: templates/_dashboard_shell.html:196
+#: templates/_dashboard_shell.html:208
 msgid "Show sidebar"
 msgstr "显示侧边栏"
 
@@ -1805,39 +1880,39 @@ msgid "Dashboard"
 msgstr "返回控制面板"
 
 #: templates/_header.html:169 templates/_header.html:187
-#: templates/_header.html:207 templates/admin_login.html:23
+#: templates/_header.html:203 templates/admin_login.html:23
 #: templates/ai.html:37 templates/ai.html:128 templates/ai.html:132
-#: templates/ai.html:152 templates/landing.html:697 templates/register.html:50
+#: templates/ai.html:148 templates/landing.html:697 templates/register.html:50
 msgid "Sign in"
 msgstr "登录"
 
-#: templates/_header.html:190 templates/ai.html:135
-msgid "Stay logged in for 7 days"
-msgstr "保持登录状态 7 天"
-
-#: templates/_header.html:193 templates/ai.html:138
+#: templates/_header.html:189 templates/ai.html:134
 msgid "Sign in with Microsoft"
 msgstr "使用微软账号登录"
 
-#: templates/_header.html:194 templates/ai.html:139
+#: templates/_header.html:190 templates/ai.html:135
 msgid "or sign in with email"
 msgstr "或使用邮箱登录"
 
-#: templates/_header.html:200 templates/ai.html:145
+#: templates/_header.html:196 templates/ai.html:141
 msgid "Email / Username"
 msgstr "邮箱 / 用户名"
 
-#: templates/_header.html:204 templates/account_register.html:17
+#: templates/_header.html:200 templates/account_register.html:17
 #: templates/admin_login.html:20 templates/admin_users.html:144
-#: templates/ai.html:149 templates/register.html:36
+#: templates/ai.html:145 templates/register.html:36
 msgid "Password"
 msgstr "密码"
+
+#: templates/_header.html:207 templates/ai.html:152
+msgid "Stay logged in for 7 days"
+msgstr "保持登录状态 7 天"
 
 #: templates/_header.html:209 templates/ai.html:155 templates/ai.html:185
 #: templates/change_password.html:445 templates/guide_publish.html:149
 #: templates/ia_subjects_manage.html:154 templates/my_submissions.html:64
-#: templates/news_manage.html:137 templates/news_manage.html:520
-#: templates/news_manage.html:525 templates/news_publish.html:970
+#: templates/news_manage.html:137 templates/news_manage.html:527
+#: templates/news_manage.html:532 templates/news_publish.html:970
 #: templates/paper_manage.html:278 templates/paper_manage.html:418
 #: templates/paper_modify.html:464 templates/resource_manage.html:89
 #: templates/resource_manage.html:113 templates/resource_manage.html:135
@@ -1896,6 +1971,217 @@ msgstr "例如 admin"
 msgid "← Back to regular login"
 msgstr "← 返回普通登录"
 
+#: templates/admin_models.html:2
+msgid "AI models · Keydion"
+msgstr "AI 模型 · Keydion"
+
+#: templates/admin_models.html:21
+#, python-format
+msgid ""
+"Providers, models and keys for the features Keydion runs on. Keys live in"
+" %(file)s and are never shown again once saved."
+msgstr "Keydion 各功能所用的服务商、模型与密钥。密钥保存在 %(file)s 中，保存后不再显示。"
+
+#: templates/admin_models.html:24
+msgid "Add provider"
+msgstr "添加服务商"
+
+#: templates/admin_models.html:29
+msgid "What is running"
+msgstr "当前运行配置"
+
+#: templates/admin_models.html:32
+msgid "Ask and auto-fill"
+msgstr "问答与自动填充"
+
+#: templates/admin_models.html:37
+msgid "Semantic search"
+msgstr "语义搜索"
+
+#: templates/admin_models.html:42
+msgid "Vision-first extraction"
+msgstr "视觉优先提取"
+
+#: templates/admin_models.html:43
+msgid "off"
+msgstr "关闭"
+
+#: templates/admin_models.html:47 templates/ai.html:102
+msgid "Web access"
+msgstr "联网访问"
+
+#: templates/admin_models.html:48
+msgid "visible"
+msgstr "已开启"
+
+#: templates/admin_models.html:48
+msgid "hidden"
+msgstr "已隐藏"
+
+#: templates/admin_models.html:60 templates/admin_models.html:99
+#: templates/admin_models.html:133 templates/admin_models.html:164
+#: templates/admin_models.html:225
+msgid "Provider"
+msgstr "服务商"
+
+#: templates/admin_models.html:61 templates/admin_version.html:54
+#: templates/my_submissions.html:27 templates/news_manage.html:150
+#: templates/review_list.html:53 templates/review_paper.html:54
+#: templates/submission_detail.html:48
+msgid "Status"
+msgstr "状态"
+
+#: templates/admin_models.html:62 templates/admin_users.html:30
+#: templates/admin_users.html:83 templates/my_submissions.html:28
+#: templates/news_manage.html:153 templates/paper_manage.html:295
+#: templates/resource_manage.html:31
+msgid "Actions"
+msgstr "操作"
+
+#: templates/admin_models.html:70
+msgid "Checking…"
+msgstr "检测中…"
+
+#: templates/admin_models.html:75 templates/admin_users.html:57
+#: templates/admin_users.html:113 templates/guide_manage.html:183
+#: templates/guide_manage.html:246 templates/journal_manage.html:64
+#: templates/my_submissions.html:64 templates/news_article.html:594
+#: templates/news_manage.html:136 templates/news_manage.html:207
+#: templates/news_manage.html:451 templates/news_manage.html:520
+#: templates/news_manage.html:533 templates/paper_manage.html:365
+#: templates/paper_manage.html:726 templates/paper_manage.html:825
+#: templates/resource_manage.html:59
+msgid "Delete"
+msgstr "删除"
+
+#: templates/admin_models.html:79
+msgid "No providers configured — add one to begin."
+msgstr "尚未配置服务商——请先添加一个。"
+
+#: templates/admin_models.html:87
+msgid "Slot assignments"
+msgstr "功能槽位分配"
+
+#: templates/admin_models.html:94 templates/news_publish.html:1078
+#: templates/news_publish.html:1319
+msgid "Text"
+msgstr "下一页"
+
+#: templates/admin_models.html:96 templates/admin_models.html:161
+#: templates/admin_models.html:200
+msgid "Configured"
+msgstr "已配置"
+
+#: templates/admin_models.html:96 templates/admin_models.html:161
+#: templates/admin_models.html:200
+msgid "Not set"
+msgstr "未设置"
+
+#: templates/admin_models.html:106
+msgid "Flash model"
+msgstr "Flash 模型"
+
+#: templates/admin_models.html:109
+msgid "Think model"
+msgstr "Think 模型"
+
+#: templates/admin_models.html:113
+msgid "Follow Flash"
+msgstr "跟随 Flash"
+
+#: templates/admin_models.html:117 templates/admin_models.html:148
+#: templates/admin_models.html:186 templates/admin_models.html:209
+#: templates/ee_subjects_manage.html:82 templates/ia_subjects_manage.html:120
+#: templates/journal_edit.html:75
+msgid "Save changes"
+msgstr "保存更改"
+
+#: templates/admin_models.html:128
+msgid "Embedding"
+msgstr "向量嵌入"
+
+#: templates/admin_models.html:140 templates/admin_models.html:181
+msgid "Model"
+msgstr "模型"
+
+#: templates/admin_models.html:144
+msgid ""
+"A different embedding model degrades semantic search until a re-index "
+"runs (tools/build_embeddings.py); a different vector dimension is refused"
+" at save."
+msgstr "更换嵌入模型后，重新索引（tools/build_embeddings.py）之前语义搜索质量会下降；向量维度不同的模型将被拒绝保存。"
+
+#: templates/admin_models.html:159
+msgid "Vision"
+msgstr "视觉"
+
+#: templates/admin_models.html:161
+msgid "uses the Text key"
+msgstr "使用文本模型密钥"
+
+#: templates/admin_models.html:166
+msgid "Same as the Text provider"
+msgstr "与文本模型相同"
+
+#: templates/admin_models.html:167 templates/admin_models.html:172
+msgid "Dedicated provider"
+msgstr "独立服务商"
+
+#: templates/admin_models.html:168
+msgid "Disabled"
+msgstr "停用"
+
+#: templates/admin_models.html:197
+msgid "Web search"
+msgstr "网页搜索"
+
+#: templates/admin_models.html:199
+msgid "Tavily"
+msgstr "Tavily"
+
+#: templates/admin_models.html:203 templates/admin_models.html:238
+msgid "API key"
+msgstr "API 密钥"
+
+#: templates/admin_models.html:205 templates/admin_models.html:240
+msgid "Configured — enter a new key to replace it"
+msgstr "已配置——输入新密钥可替换"
+
+#: templates/admin_models.html:205
+msgid "Enter an API key"
+msgstr "输入 API 密钥"
+
+#: templates/admin_models.html:208 templates/admin_models.html:249
+msgid "Test"
+msgstr "测试"
+
+#: templates/admin_models.html:226 templates/admin_models.html:254
+#: templates/admin_users.html:134 templates/admin_users.html:157
+#: templates/ai.html:169 templates/news_manage.html:241
+#: templates/paper_manage.html:402 templates/paper_manage.html:439
+msgid "Close"
+msgstr "关闭"
+
+#: templates/admin_models.html:234
+msgid "Base URL"
+msgstr "接口地址"
+
+#: templates/admin_models.html:243
+msgid "Models"
+msgstr "模型"
+
+#: templates/admin_models.html:245
+msgid "Add model"
+msgstr "添加模型"
+
+#: templates/admin_models.html:248
+msgid "Fetch models"
+msgstr "获取模型列表"
+
+#: templates/admin_models.html:255
+msgid "Save provider"
+msgstr "保存服务商"
+
 # ==================== ADMIN USER MANAGEMENT ====================
 #: templates/admin_users.html:2
 msgid "User Management · Keydion"
@@ -1930,12 +2216,6 @@ msgstr "用户名 / 邮箱"
 msgid "Role"
 msgstr "角色"
 
-#: templates/admin_users.html:30 templates/admin_users.html:83
-#: templates/my_submissions.html:28 templates/news_manage.html:153
-#: templates/paper_manage.html:295 templates/resource_manage.html:31
-msgid "Actions"
-msgstr "操作"
-
 #: templates/admin_users.html:50 templates/admin_users.html:104
 #: templates/change_password.html:356
 msgid "New password"
@@ -1944,17 +2224,6 @@ msgstr "新密码"
 #: templates/admin_users.html:52
 msgid "Reset"
 msgstr "重置"
-
-#: templates/admin_users.html:57 templates/admin_users.html:113
-#: templates/guide_manage.html:183 templates/guide_manage.html:246
-#: templates/journal_manage.html:64 templates/my_submissions.html:64
-#: templates/news_article.html:594 templates/news_manage.html:136
-#: templates/news_manage.html:207 templates/news_manage.html:444
-#: templates/news_manage.html:513 templates/news_manage.html:526
-#: templates/paper_manage.html:365 templates/paper_manage.html:726
-#: templates/paper_manage.html:825 templates/resource_manage.html:59
-msgid "Delete"
-msgstr "删除"
 
 #: templates/admin_users.html:64
 msgid "No local users found."
@@ -1968,9 +2237,9 @@ msgstr "微软用户（外部）"
 msgid "Display Name"
 msgstr "显示名称"
 
-#: templates/admin_users.html:89 templates/journal_detail.html:190
-#: templates/journal_detail.html:222 templates/journal_edit.html:59
-#: templates/journal_edit.html:89
+#: templates/admin_users.html:89 templates/admin_version.html:56
+#: templates/journal_detail.html:190 templates/journal_detail.html:222
+#: templates/journal_edit.html:59 templates/journal_edit.html:89
 msgid "Unknown"
 msgstr "未知"
 
@@ -1986,16 +2255,108 @@ msgstr "设置密码"
 msgid "No Microsoft users found."
 msgstr "未找到微软用户。"
 
-#: templates/admin_users.html:134 templates/admin_users.html:157
-#: templates/ai.html:169 templates/news_manage.html:241
-#: templates/paper_manage.html:402 templates/paper_manage.html:439
-msgid "Close"
-msgstr "关闭"
-
 #: templates/admin_users.html:158 templates/news_manage.html:249
 #: templates/paper_manage.html:450
 msgid "Add"
 msgstr "添加"
+
+# ==================== PAPER SUBMISSION ====================
+#: templates/admin_version.html:2
+msgid "Version · Keydion"
+msgstr "版本 · Keydion"
+
+#: templates/admin_version.html:12
+msgid "Check for updates from the repository and apply them."
+msgstr "从代码仓库检查更新并应用。"
+
+#: templates/admin_version.html:18
+msgid "Update check failed:"
+msgstr "更新检查失败："
+
+#: templates/admin_version.html:22
+msgid ""
+"This deployment is not a git checkout, so updates cannot be checked or "
+"applied."
+msgstr "当前部署不是 git 检出，无法检查或应用更新。"
+
+#: templates/admin_version.html:28
+msgid ""
+"The working tree has uncommitted changes — updates are disabled until it "
+"is clean:"
+msgstr "工作区存在未提交的更改——清理完成前已禁用更新："
+
+#: templates/admin_version.html:37
+msgid "Current version"
+msgstr "当前版本"
+
+#: templates/admin_version.html:39
+msgid "branch"
+msgstr "分支"
+
+#: templates/admin_version.html:46
+msgid "Latest on origin/main"
+msgstr "origin/main 最新版本"
+
+#: templates/admin_version.html:58
+#, python-format
+msgid "%(count)s commit(s) behind"
+msgstr "落后 %(count)s 个提交"
+
+#: templates/admin_version.html:60
+msgid "Up to date"
+msgstr "已是最新"
+
+#: templates/admin_version.html:68
+msgid "Check again"
+msgstr "重新检查"
+
+#: templates/admin_version.html:70
+msgid "Update"
+msgstr "更新"
+
+#: templates/admin_version.html:74
+msgid "An update is already running."
+msgstr "已有更新正在运行。"
+
+#: templates/admin_version.html:75
+msgid "Clean the working tree to enable updates."
+msgstr "请清理工作区以启用更新。"
+
+#: templates/admin_version.html:76
+msgid "Already up to date."
+msgstr "已是最新版本。"
+
+#: templates/admin_version.html:85
+msgid "Incoming commits"
+msgstr "待更新的提交"
+
+#: templates/admin_version.html:90
+msgid "Commit"
+msgstr "提交"
+
+#: templates/admin_version.html:91 templates/search.html:43
+msgid "Date"
+msgstr "日期"
+
+#: templates/admin_version.html:116
+msgid "Starting…"
+msgstr "正在启动…"
+
+#: templates/admin_version.html:124
+msgid "Last update:"
+msgstr "上次更新："
+
+#: templates/admin_version.html:126
+msgid "applied"
+msgstr "已应用"
+
+#: templates/admin_version.html:130
+msgid "failed"
+msgstr "失败"
+
+#: templates/admin_version.html:132
+msgid "in progress"
+msgstr "进行中"
 
 #: templates/advanced_search.html:2
 msgid "Advanced Search · Keydion"
@@ -2158,10 +2519,6 @@ msgstr "引用你收藏中的论文"
 msgid "Toggle web access"
 msgstr "切换联网访问"
 
-#: templates/ai.html:102
-msgid "Web access"
-msgstr "联网访问"
-
 #: templates/ai.html:105
 msgid "Agent"
 msgstr "智能体"
@@ -2321,11 +2678,6 @@ msgstr "添加学科组"
 msgid "Unsaved changes"
 msgstr "未保存的更改"
 
-#: templates/ee_subjects_manage.html:82 templates/ia_subjects_manage.html:120
-#: templates/journal_edit.html:75
-msgid "Save changes"
-msgstr "保存更改"
-
 #: templates/ee_subjects_manage.html:91 templates/ia_subjects_manage.html:129
 msgid "New group"
 msgstr "新建学科组"
@@ -2457,7 +2809,7 @@ msgstr "按状态筛选"
 
 #: templates/guide_manage.html:86 templates/guide_publish.html:52
 #: templates/news_manage.html:99 templates/news_manage.html:152
-#: templates/news_manage.html:192 templates/news_manage.html:350
+#: templates/news_manage.html:192 templates/news_manage.html:357
 #: templates/paper_manage.html:294 templates/paper_manage.html:557
 #: templates/paper_modify.html:443
 msgid "Published"
@@ -2475,7 +2827,7 @@ msgid "Filter by category"
 msgstr "按分类筛选"
 
 #: templates/guide_manage.html:93 templates/news_manage.html:109
-#: templates/news_manage.html:549
+#: templates/news_manage.html:556
 msgid "Category: All"
 msgstr "分类：全部"
 
@@ -2643,7 +2995,7 @@ msgstr "已保存所有更改"
 msgid "Preview"
 msgstr "预览"
 
-#: templates/guide_publish.html:152 templates/news_manage.html:519
+#: templates/guide_publish.html:152 templates/news_manage.html:526
 #: templates/resource_manage.html:134
 msgid "Save"
 msgstr "保存"
@@ -2662,17 +3014,13 @@ msgstr "帮助。"
 
 #: templates/guides.html:15
 msgid ""
-"Discover and read research, ask questions about it, and submit your own work "
-"for review."
+"Discover and read research, ask questions about it, and submit your own "
+"work for review."
 msgstr "发现并阅读研究成果，针对研究内容提出问题，也可以提交自己的研究作品供审核。"
 
 #: templates/guides.html:20
 msgid "No guides published yet. Check back soon."
 msgstr "暂无指南，请稍后查看。"
-
-#: templates/guides.html:27
-msgid "Articles"
-msgstr "篇"
 
 #: templates/ia_subjects_manage.html:2
 msgid "Manage IA Subjects · Keydion"
@@ -3037,12 +3385,6 @@ msgstr "提交新论文"
 msgid "Submitted"
 msgstr "提交时间"
 
-#: templates/my_submissions.html:27 templates/news_manage.html:150
-#: templates/review_list.html:53 templates/review_paper.html:54
-#: templates/submission_detail.html:48
-msgid "Status"
-msgstr "状态"
-
 #: templates/my_submissions.html:47 templates/review_paper.html:57
 #: templates/submission_detail.html:51
 msgid "Pending Review"
@@ -3224,7 +3566,7 @@ msgstr "标题 A → Z"
 msgid "Title Z → A"
 msgstr "标题 Z → A"
 
-#: templates/news_manage.html:132 templates/news_manage.html:365
+#: templates/news_manage.html:132 templates/news_manage.html:372
 msgid "articles selected"
 msgstr "已选择文章"
 
@@ -3256,18 +3598,18 @@ msgstr "选择文章"
 msgid "Archived"
 msgstr "已归档"
 
-#: templates/news_manage.html:220 templates/news_manage.html:312
+#: templates/news_manage.html:220 templates/news_manage.html:319
 #: templates/paper_manage.html:380 templates/paper_manage.html:520
 msgid "Showing"
 msgstr "显示"
 
-#: templates/news_manage.html:220 templates/news_manage.html:312
+#: templates/news_manage.html:220 templates/news_manage.html:319
 #: templates/paper_manage.html:380 templates/paper_manage.html:520
 msgid "of"
 msgstr "共"
 
-#: templates/news_manage.html:220 templates/news_manage.html:312
-#: templates/news_manage.html:508
+#: templates/news_manage.html:220 templates/news_manage.html:319
+#: templates/news_manage.html:515
 msgid "articles"
 msgstr "篇文章"
 
@@ -3287,37 +3629,37 @@ msgstr "试试不同的状态、分类或日期范围 — 或清空搜索框。"
 msgid "New category name…"
 msgstr "新分类名称…"
 
-#: templates/news_manage.html:365
+#: templates/news_manage.html:372
 msgid "article selected"
 msgstr "已选择文章"
 
-#: templates/news_manage.html:444
+#: templates/news_manage.html:451
 msgid "articles? This cannot be undone."
 msgstr "篇文章？此操作无法撤销。"
 
-#: templates/news_manage.html:453
+#: templates/news_manage.html:460
 msgid "Bulk action failed."
 msgstr "批量操作失败。"
 
-#: templates/news_manage.html:497
+#: templates/news_manage.html:504
 msgid "No categories yet. Add one above."
 msgstr "还没有分类，请在上方添加。"
 
-#: templates/news_manage.html:523
+#: templates/news_manage.html:530
 msgid ""
 "Delete this category? Articles using it will keep their current category "
 "label."
 msgstr "删除此分类？使用该分类的文章将保留当前分类标签。"
 
-#: templates/news_manage.html:573
+#: templates/news_manage.html:580
 msgid "Category added"
 msgstr "分类已添加"
 
-#: templates/news_manage.html:612
+#: templates/news_manage.html:619
 msgid "Category renamed"
 msgstr "分类已重命名"
 
-#: templates/news_manage.html:627
+#: templates/news_manage.html:634
 msgid "Category deleted"
 msgstr "分类已删除"
 
@@ -3437,10 +3779,6 @@ msgstr "下一个块"
 #: templates/news_publish.html:1068
 msgid "Article Content"
 msgstr "文章内容"
-
-#: templates/news_publish.html:1078 templates/news_publish.html:1319
-msgid "Text"
-msgstr "下一页"
 
 #: templates/news_publish.html:1086 templates/news_publish.html:1320
 msgid "Image"
@@ -4108,6 +4446,14 @@ msgstr "读者"
 msgid "Move"
 msgstr "移动"
 
+#: templates/ee_subjects_manage.html templates/ia_subjects_manage.html
+msgid "Move up"
+msgstr "上移"
+
+#: templates/ee_subjects_manage.html templates/ia_subjects_manage.html
+msgid "Move down"
+msgstr "下移"
+
 #: templates/resource_manage.html:57
 msgid "Delete this item?"
 msgstr "确定删除此项？"
@@ -4234,10 +4580,6 @@ msgstr "筛选结果"
 #: templates/search.html:14
 msgid "Search Within Results"
 msgstr "在结果中搜索"
-
-#: templates/search.html:43
-msgid "Date"
-msgstr "日期"
 
 #: templates/search.html:113
 msgid "Any Language"
@@ -4824,3 +5166,74 @@ msgstr "更新安全设置"
 # | msgid "A category with that name already exists."
 #~ msgid "A paper with that public filename already exists."
 #~ msgstr "已存在同名分类。"
+
+#~ msgid "Articles"
+#~ msgstr "篇"
+
+#~ msgid "leave empty to use the Text key"
+#~ msgstr "留空则使用文本模型密钥"
+
+#~ msgid "No provider for this role yet"
+#~ msgstr "该槽位暂无可用服务商"
+
+#~ msgid "follows Flash"
+#~ msgstr "跟随 Flash"
+
+#~ msgid "Roles"
+#~ msgstr "适用槽位"
+
+#~ msgid "Which slots this provider can serve — it only appears in those pickers."
+#~ msgstr "该服务商可用于哪些槽位——它只会出现在对应的选择器中。"
+
+#~ msgid ""
+#~ "One model id per line — the "
+#~ "pickers below offer this list. Fetch "
+#~ "fills it from the endpoint."
+#~ msgstr "每行一个模型 ID——下方选择器将引用此列表；“获取模型”会从接口填充。"
+
+# | msgid "Keydion"
+#~ msgid "Key"
+#~ msgstr "Keydion"
+
+#~ msgid "Used by"
+#~ msgstr "使用槽位"
+
+#~ msgid ""
+#~ "The server cannot write %(file)s — "
+#~ "grants its user write access before "
+#~ "changing anything here."
+#~ msgstr "服务器无法写入 %(file)s —— 请先为服务用户授予写权限，再在此处更改配置。"
+
+#~ msgid ""
+#~ "Flash drafts abstracts and keywords; "
+#~ "Think handles EE and IA extraction."
+#~ msgstr "Flash 负责摘要与关键词起草；Think 负责 EE 与 IA 提取。"
+
+#~ msgid ""
+#~ "Chunks and queries embed through this"
+#~ " slot. Existing chunks stay comparable "
+#~ "only after a re-index."
+#~ msgstr "文档分块与查询经此槽位生成向量。重新索引前，已入库分块与新模型不可比。"
+
+#~ msgid ""
+#~ "Reads rendered PDF pages for metadata"
+#~ " auto-fill. Disabled falls back to"
+#~ " the OCR + text path."
+#~ msgstr "读取渲染后的 PDF 页面以自动填充元数据。停用后回退到 OCR + 文本路径。"
+
+#~ msgid ""
+#~ "Grounds Ask-the-Library answers in "
+#~ "web results. Tavily is the only "
+#~ "provider implemented."
+#~ msgstr "为图书馆问答的回答提供网页结果依据。目前仅支持 Tavily。"
+
+#~ msgid "Leave empty and save to disable web access."
+#~ msgstr "留空并保存即可停用联网访问。"
+
+#~ msgid ""
+#~ "Each model carries its role — the"
+#~ " slot pickers only offer models with"
+#~ " a matching role. Fetch fills the "
+#~ "list from the endpoint as text "
+#~ "models; adjust their roles after."
+#~ msgstr "每个模型都标注其角色——槽位选择器只会列出角色匹配的模型。“获取模型”从接口拉取的模型默认为文本角色，可再调整。"

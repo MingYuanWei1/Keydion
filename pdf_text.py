@@ -16,12 +16,16 @@ import io
 import logging
 import os
 import re
-import time
 from concurrent.futures import ThreadPoolExecutor
 
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
-from services.publishing_contracts import IndexDeadlineExceeded
+from config import MAX_PDF_PAGES
+from services.publishing_contracts import (
+    IndexDeadlineExceeded,
+    raise_deadline_if_expired as _raise_deadline_if_expired,
+    remaining_timeout as _remaining_timeout,
+)
 
 MIN_TEXT_CHARS = 50
 DEFAULT_OCR_LANGS = "eng+chi_sim"   # chi_tra dropped: fewer langs = faster Tesseract
@@ -50,26 +54,47 @@ class PdfTextError(Exception):
         self.reason = reason
 
 
+class PdfStructureError(Exception):
+    """Untrusted PDF fails a structural budget (corrupt, encrypted, oversized)."""
+
+
+def check_pdf_bytes(raw: bytes) -> int:
+    """Structural admission check for one untrusted PDF before synchronous
+    parsing (security finding: untrusted parser without isolation).
+
+    Rejects non-PDF bytes, corrupt page trees, encrypted files, empty files,
+    and documents over MAX_PDF_PAGES BEFORE rewrite/extraction work begins.
+    This cannot preempt one blocking native call, but it bounds the page
+    iteration that surrounds it and refuses pathological documents at the
+    door. Returns the page count.
+    """
+    if not isinstance(raw, (bytes, bytearray)) or not raw.startswith(b"%PDF-"):
+        raise PdfStructureError("not a PDF")
+    try:
+        reader = PdfReader(io.BytesIO(bytes(raw)), strict=True)
+    except Exception as exc:
+        raise PdfStructureError("corrupt PDF") from exc
+    try:
+        if reader.is_encrypted:
+            raise PdfStructureError("encrypted PDF")
+        page_count = len(reader.pages)
+    except PdfStructureError:
+        raise
+    except Exception as exc:
+        raise PdfStructureError("corrupt PDF page tree") from exc
+    if page_count < 1:
+        raise PdfStructureError("PDF has no pages")
+    if page_count > MAX_PDF_PAGES:
+        raise PdfStructureError(f"PDF has too many pages (limit {MAX_PDF_PAGES})")
+    return page_count
+
+
 def _meaningful_len(text: str) -> int:
     return len(re.sub(r"\s+", "", text or ""))
 
 
-def _remaining_timeout(deadline: float | None) -> float | None:
-    if deadline is None:
-        return None
-    remaining = max(float(deadline) - time.monotonic(), 0.0)
-    if remaining == 0.0:
-        raise IndexDeadlineExceeded()
-    return remaining
-
-
 def _check_deadline(deadline: float | None) -> None:
     _remaining_timeout(deadline)
-
-
-def _raise_deadline_if_expired(deadline: float | None, error: Exception) -> None:
-    if deadline is not None and time.monotonic() >= float(deadline):
-        raise IndexDeadlineExceeded() from error
 
 
 def _pypdf_text(
@@ -77,6 +102,7 @@ def _pypdf_text(
     *,
     deadline: float | None = None,
     strict: bool = False,
+    max_pages: int | None = MAX_PDF_PAGES,
 ) -> str:
     _check_deadline(deadline)
     try:
@@ -108,6 +134,7 @@ def _pypdf_text(
     _check_deadline(deadline)
 
     parts = []
+    pages_read = 0
     while True:
         try:
             page = next(pages)
@@ -119,6 +146,13 @@ def _pypdf_text(
         except Exception as exc:
             _raise_deadline_if_expired(deadline, exc)
             raise
+        # Structural budget: stop extracting beyond the page cap so a
+        # pathological document cannot expand unbounded work (security
+        # finding: untrusted parser without isolation).
+        if max_pages is not None and pages_read >= max_pages:
+            _log.warning("text extraction truncated at %d pages", max_pages)
+            break
+        pages_read += 1
         _check_deadline(deadline)
         try:
             parts.append(page.extract_text() or "")
@@ -384,7 +418,8 @@ def extract_pdf_text(file_bytes: bytes, *, ocr_langs: str = DEFAULT_OCR_LANGS,
                      max_ocr_pages: int = DEFAULT_MAX_OCR_PAGES,
                      vision_fallback=None,
                      deadline: float | None = None,
-                     strict: bool = False) -> str:
+                     strict: bool = False,
+                     max_pages: int | None = MAX_PDF_PAGES) -> str:
     """PDF bytes -> text. pypdf first; scanned-doc fallback for thin text layers.
 
     For a scanned/image-only PDF (pypdf yields < MIN_TEXT_CHARS), the fallback is:
@@ -396,7 +431,8 @@ def extract_pdf_text(file_bytes: bytes, *, ocr_langs: str = DEFAULT_OCR_LANGS,
     encrypted PDF.
     """
     _check_deadline(deadline)
-    text = _pypdf_text(file_bytes, deadline=deadline, strict=strict)
+    text = _pypdf_text(file_bytes, deadline=deadline, strict=strict,
+                       max_pages=max_pages)
     _check_deadline(deadline)
     if _meaningful_len(text) >= MIN_TEXT_CHARS:
         return text

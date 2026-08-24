@@ -469,6 +469,125 @@ class WebResultsSeedingTest(unittest.TestCase):
         self.assertEqual(web_events[0]["items"][0]["url"], "https://example.com/x")
 
 
+class DispatchAllowlistAndBudgetTest(unittest.TestCase):
+    """Turn-wide dispatch budgets (security finding: no owner/conversation/
+    turn-wide tool or output budgets, and consent gated schema exposure only)."""
+
+    def _round_with(self, name, arguments="{}", answer="Answer."):
+        return _FakeCreate([
+            [_Chunk(_Delta(tool_calls=[
+                _ToolCall(0, id="c", name=name, arguments=arguments),
+            ]))],
+            [_Chunk(_Delta(content=answer))],
+        ])
+
+    def test_web_tool_without_consent_is_never_dispatched(self):
+        # include_web=False means web schemas were never offered; a
+        # non-conforming model still emits web_search. The dispatcher must
+        # refuse it without touching the outbound dependency.
+        create = self._round_with("web_search", '{"query":"q"}')
+        client = _FakeClient(create)
+        deps = mock.Mock()
+        deps.web_search.side_effect = AssertionError("web tool executed")
+        inp = _build_input(client, deps, mock.Mock(),
+                           hits=[_hit(PAPER_A_ID, "Paper A", "content")],
+                           citations=[{"n": 1, "paper_id": PAPER_A_ID,
+                                       "revision_number": 1, "filename": "a.pdf",
+                                       "title": "Paper A", "authors": "A",
+                                       "url": f"/paper/{PAPER_A_ID}"}],
+                           include_web=False)
+
+        events = _events(inp)
+
+        deps.web_search.assert_not_called()
+        self.assertEqual(_types(events).count("status"), 0)
+        self.assertIn("done", _types(events))
+
+    def test_unadvertised_tool_name_is_refused(self):
+        create = self._round_with("sudo_hack", "{}")
+        client = _FakeClient(create)
+        deps = mock.Mock()
+        inp = _build_input(client, deps, mock.Mock(),
+                           hits=[_hit(PAPER_A_ID, "Paper A", "content")],
+                           citations=[{"n": 1, "paper_id": PAPER_A_ID,
+                                       "revision_number": 1, "filename": "a.pdf",
+                                       "title": "Paper A", "authors": "A",
+                                       "url": f"/paper/{PAPER_A_ID}"}])
+
+        with mock.patch("services.ask_turn.library_tools.run_tool",
+                        side_effect=AssertionError("must not dispatch")) as spy:
+            events = _events(inp)
+
+        spy.assert_not_called()
+        self.assertIn("done", _types(events))
+
+    def test_oversized_tool_result_is_truncated_before_next_round(self):
+        from services.ai import MAX_TOOL_RESULT_CHARS
+        huge = "x" * (MAX_TOOL_RESULT_CHARS + 5000)
+        create = self._round_with(
+            "read_paper", f'{{"paper_id":"{PAPER_A_ID}"}}')
+        client = _FakeClient(create)
+        deps = mock.Mock()
+        deps.full_text.return_value = huge
+        deps.paper_meta.return_value = {
+            "paper_id": PAPER_A_ID, "revision_number": 1, "filename": "a.pdf",
+            "title": "Paper A", "authors": "A",
+        }
+        deps.paper_url.return_value = f"/paper/{PAPER_A_ID}"
+        deps.web_search.return_value = []
+        inp = _build_input(client, deps, mock.Mock(),
+                           hits=[_hit(PAPER_A_ID, "Paper A", "content")],
+                           citations=[{"n": 1, "paper_id": PAPER_A_ID,
+                                       "revision_number": 1, "filename": "a.pdf",
+                                       "title": "Paper A", "authors": "A",
+                                       "url": f"/paper/{PAPER_A_ID}"}])
+
+        _events(inp)
+
+        # The second create call carries the tool result back to the model —
+        # it must be budgeted, not the raw enormous string.
+        tool_messages = [
+            message
+            for message in create.calls[1]["messages"]
+            if message.get("role") == "tool"
+        ]
+        self.assertTrue(tool_messages)
+        content = tool_messages[0]["content"]
+        self.assertLessEqual(len(content), MAX_TOOL_RESULT_CHARS + 20)
+        self.assertIn("[truncated]", content)
+
+    def test_more_tool_calls_than_round_budget_are_refused(self):
+        from services.ai import MAX_TOOL_CALLS_PER_ROUND
+        calls = [
+            _ToolCall(i, id=f"c{i}", name="read_paper",
+                      arguments=f'{{"paper_id":"{PAPER_A_ID}"}}')
+            for i in range(MAX_TOOL_CALLS_PER_ROUND + 2)
+        ]
+        create = _FakeCreate([
+            [_Chunk(_Delta(tool_calls=calls))],
+            [_Chunk(_Delta(content="Answer."))],
+        ])
+        client = _FakeClient(create)
+        deps = _deps_for(PAPER_A_ID)
+        inp = _build_input(client, deps, mock.Mock(),
+                           hits=[_hit(PAPER_A_ID, "Paper A", "content")],
+                           citations=[{"n": 1, "paper_id": PAPER_A_ID,
+                                       "revision_number": 1, "filename": "a.pdf",
+                                       "title": "Paper A", "authors": "A",
+                                       "url": f"/paper/{PAPER_A_ID}"}])
+
+        with mock.patch("services.ask_turn.library_tools.run_tool",
+                        wraps=library_tools.run_tool) as spy:
+            events = _events(inp)
+
+        dispatched = [
+            call for call in spy.call_args_list
+            if call.args and call.args[0] == "read_paper"
+        ]
+        self.assertEqual(len(dispatched), MAX_TOOL_CALLS_PER_ROUND)
+        self.assertIn("done", _types(events))
+
+
 class AttachmentToolGateTest(unittest.TestCase):
     def test_attachment_names_non_empty_offers_read_attachment_tool(self):
         # When attachment_names is non-empty, build_tool_schemas is called with

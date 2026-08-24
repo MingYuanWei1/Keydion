@@ -9,15 +9,16 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
+from flask import Flask
+
 os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
 
-import app as app_module
 import services.ai as ask_module
 
 
 class IndexOcrLangsHelper(unittest.TestCase):
     def _langs(self, lang):
-        return app_module._index_ocr_langs(lang)
+        return ask_module._index_ocr_langs(lang)
 
     def test_en_returns_eng(self):
         self.assertEqual(self._langs("en"), "eng")
@@ -47,15 +48,15 @@ class RagPaperTextBehavior(unittest.TestCase):
             paper=SimpleNamespace(language=language),
             path=Path("/safe/2.pdf"),
         )
-        with app_module.app.app_context(), mock.patch.dict(
-            app_module.app.extensions, {"paper_library": library}
-        ), mock.patch.object(
+        app = Flask(__name__)
+        app.extensions["paper_library"] = library
+        with app.app_context(), mock.patch.object(
             ask_module.pdf_text, "extract_pdf_text",
             return_value="extracted text",
         ) as mock_extract, mock.patch(
             "pathlib.Path.read_bytes", return_value=fake_bytes
         ):
-            result = app_module._rag_paper_text(paper_id)
+            result = ask_module._rag_paper_text(paper_id)
         library.current_pdf.assert_called_once_with(paper_id)
         return mock_extract, result
 

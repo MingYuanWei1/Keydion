@@ -8,22 +8,14 @@ corresponding fix. They guard:
   4. _read_guide_form treats an HTML-default checkbox value ("on") as published
   5. the public /guides index includes published guides that have no category
 """
-import importlib
-import os
 import sys
 import unittest
 from pathlib import Path
 
+import services.guides as guide_service
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import support
-
-
-def _load_app():
-    os.environ["PAPERQUERY_SECRET"] = "test-secret"
-    os.environ.setdefault("PAPERQUERY_DATABASE_URL", "sqlite:///:memory:")
-    import app as app_module
-    importlib.reload(app_module)
-    return app_module
 
 
 class _SourceTest(unittest.TestCase):
@@ -52,7 +44,7 @@ class PaperInfoNotFoundTest(_SourceTest):
 class GuidePublishedCheckboxTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.m = _load_app()
+        cls.m = guide_service
 
     def test_published_accepts_html_default_on(self):
         self.assertTrue(self.m._read_guide_form({"published": "on"})["published"])
@@ -67,7 +59,7 @@ class GuidePublishedCheckboxTest(unittest.TestCase):
 class GuidesIndexGroupingTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.m = _load_app()
+        cls.m = guide_service
 
     def test_uncategorized_published_guide_is_listed(self):
         guides = [{"slug": "no-cat", "category": "", "title_en": "X", "published": True}]

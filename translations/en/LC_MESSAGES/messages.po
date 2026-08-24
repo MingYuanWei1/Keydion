@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Keydion 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-23 03:37+0800\n"
+"POT-Creation-Date: 2026-08-24 00:15+0800\n"
 "PO-Revision-Date: 2025-10-11 00:00+0000\n"
 "Last-Translator: \n"
 "Language: en\n"
@@ -14,429 +14,451 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: app.py:307 routes/ai.py:284 routes/ai.py:341 routes/upload.py:86
+#: app.py:309 routes/ai.py:293 routes/ai.py:353 routes/papers.py:287
+#: routes/papers.py:1128 routes/upload.py:91
 msgid "Too many requests — please slow down."
 msgstr ""
 
-#: app.py:376 app.py:392 app.py:507
+#: app.py:413 app.py:430 app.py:544
 msgid "Unable to sign in. Please try again."
 msgstr "Unable to sign in. Please try again."
 
 # ==================== AUTH FLASH MESSAGES ====================
-#: app.py:378 app.py:395
+#: app.py:415 app.py:433
 #, python-format
 msgid "Welcome back, %(username)s!"
 msgstr "Welcome back, %(username)s!"
 
-#: app.py:400
+#: app.py:437
 #, fuzzy
 msgid "Invalid email or password"
 msgstr "Invalid username or password"
 
-#: app.py:404 app.py:417 app.py:452
+#: app.py:441 app.py:454 app.py:489
 msgid "Microsoft sign-in is not configured. Please contact the administrator."
 msgstr "Microsoft sign-in is not configured. Please contact the administrator."
 
-#: app.py:409
+#: app.py:446
 msgid "Email-based registration is disabled. Please sign in with Microsoft."
 msgstr ""
 
-#: app.py:471
+#: app.py:508
 #, fuzzy
 msgid "Login session expired. Please try again."
 msgstr "Session expired. Please sign in again."
 
-#: app.py:479 app.py:494
+#: app.py:516 app.py:531
 #, python-format
 msgid "Microsoft sign-in failed: %(reason)s"
 msgstr ""
 
-#: app.py:484
+#: app.py:521
 msgid "Microsoft sign-in failed. Please try again."
 msgstr "Microsoft sign-in failed. Please try again."
 
-#: app.py:499
+#: app.py:536
 msgid "Microsoft sign-in did not return a valid profile."
 msgstr "Microsoft sign-in did not return a valid profile."
 
-#: app.py:531
+#: app.py:568
 msgid "Signed out successfully."
 msgstr "Signed out successfully."
 
-#: app.py:542
+#: app.py:579
 msgid "Unable to load your profile. Please sign in again."
 msgstr "Unable to load your profile. Please sign in again."
 
-#: app.py:551
+#: app.py:588
 msgid "Please enter your first and last name."
 msgstr "Please enter your first and last name."
 
-#: app.py:562
+#: app.py:599
 msgid "Profile saved successfully."
 msgstr "Profile saved successfully."
 
-#: app.py:601
+#: app.py:635
+#, fuzzy
+#| msgid "Microsoft sign-in is not configured. Please contact the
+#| administrator."
+msgid "Password setup is not available. Please contact the administrator."
+msgstr "Microsoft sign-in is not configured. Please contact the administrator."
+
+#: app.py:638
+msgid ""
+"For your security, sign in with Microsoft again before setting your first"
+" password."
+msgstr ""
+
+#: app.py:653
 msgid "Current password is incorrect."
 msgstr "Current password is incorrect."
 
-#: app.py:606
+#: app.py:658
 msgid "Please enter a new password."
 msgstr "Please enter a new password."
 
-#: app.py:609
+#: app.py:661
 msgid "Passwords do not match."
 msgstr "Passwords do not match."
 
-#: app.py:612
+#: app.py:664
 #, fuzzy
 msgid "Password must be at least 6 characters."
 msgstr "At least 6 characters"
 
-#: app.py:616
+#: app.py:668
 msgid "Password must contain both letters and numbers."
 msgstr "Password must contain both letters and numbers."
 
-#: app.py:621
+#: app.py:673
 msgid "New password must be different from your current password."
 msgstr "New password must be different from your current password."
 
-#: app.py:636
+#: app.py:692
 msgid "Password updated. Please sign in again."
 msgstr "Password updated. Please sign in again."
 
-#: app.py:639
+#: app.py:695
 #, fuzzy
 msgid "Unable to update password."
 msgstr "Unable to reset password."
 
-#: app.py:679
+#: app.py:735
 msgid "Role updates saved."
 msgstr "Role updates saved."
 
-#: app.py:691
+#: app.py:747
 msgid "Username and password are required."
 msgstr "Username and password are required."
 
-#: app.py:694
+#: app.py:750
 msgid "That username is already taken."
 msgstr "That username is already taken."
 
-#: app.py:697
+#: app.py:753
 msgid "Local user created."
 msgstr "Local user created."
 
-#: app.py:707 app.py:749
+#: app.py:763 app.py:805
 msgid "Role updated."
 msgstr "Role updated."
 
-#: app.py:709 app.py:751
+#: app.py:765 app.py:807
 msgid "Unable to update role."
 msgstr "Unable to update role."
 
-#: app.py:719 app.py:772
+#: app.py:775 app.py:828
 msgid "Password is required."
 msgstr "Password is required."
 
-#: app.py:722
+#: app.py:778
 msgid "Password reset successfully."
 msgstr "Password reset successfully."
 
-#: app.py:724
+#: app.py:780
 msgid "Unable to reset password."
 msgstr "Unable to reset password."
 
-#: app.py:733
+#: app.py:789
 msgid "Local user deleted."
 msgstr "Local user deleted."
 
-#: app.py:735
+#: app.py:791
 msgid "Unable to delete user."
 msgstr "Unable to delete user."
 
-#: app.py:760
+#: app.py:816
 msgid "Microsoft user deleted."
 msgstr "Microsoft user deleted."
 
-#: app.py:762
+#: app.py:818
 msgid "Unable to delete Microsoft user."
 msgstr "Unable to delete Microsoft user."
 
-#: app.py:775
+#: app.py:831
 #, fuzzy
 msgid "Password set successfully."
 msgstr "Password reset successfully."
 
-#: app.py:777
+#: app.py:833
 #, fuzzy
 msgid "Unable to set password."
 msgstr "Unable to reset password."
 
-#: app.py:811
+#: app.py:867
 #, python-format
 msgid "oldest %(n)d days ago"
 msgstr "oldest %(n)d days ago"
 
-#: app.py:827
+#: app.py:883
 #, python-format
 msgid "+%(n)d this month"
 msgstr "+%(n)d this month"
 
-#: app.py:845
+#: app.py:901
 msgid "Language not supported."
 msgstr "Language not supported."
 
-#: config.py:329
+#: config.py:380
 #, fuzzy
 msgid "Please enter the paper title"
 msgstr "Please enter the paper title"
 
-#: config.py:330
+#: config.py:381
 #, fuzzy
 msgid "Please select a subject category"
 msgstr "Please select a category..."
 
-#: config.py:331
+#: config.py:382
 #, fuzzy
 msgid "Please select a language"
 msgstr "Please select a language"
 
-#: config.py:332
+#: config.py:383
 msgid "Please enter keywords"
 msgstr "Please enter keywords"
 
-#: config.py:333
+#: config.py:384
 #, fuzzy
 msgid "Please enter the abstract"
 msgstr "Please enter the abstract"
 
-#: config.py:334
+#: config.py:385
 msgid "Please enter the author name"
 msgstr "Please enter the author name"
 
-#: config.py:335
+#: config.py:386
 msgid "Please enter the contact email"
 msgstr "Please enter the contact email"
 
-#: config.py:336
+#: config.py:387
 msgid "Please enter the school name"
 msgstr "Please enter the school name"
 
-#: config.py:364
+#: config.py:415
 msgid "Reader - View & Download"
 msgstr ""
 
-#: config.py:365
+#: config.py:416
 msgid "Contributor - Upload Enabled"
 msgstr ""
 
-#: config.py:366
+#: config.py:417
 msgid "Curator - Full Access"
 msgstr ""
 
 # ==================== LANGUAGE ====================
-#: config.py:369 routes/upload.py:173 templates/paper_modify.html:116
+#: config.py:420 routes/upload.py:188 templates/paper_modify.html:116
 #: templates/search.html:115
 msgid "English"
 msgstr "English"
 
-#: config.py:370 routes/upload.py:174 templates/paper_modify.html:114
+#: config.py:421 routes/upload.py:189 templates/paper_modify.html:114
 #: templates/search.html:114
 msgid "Chinese"
 msgstr "Chinese"
 
-#: routes/ai.py:63 services/auth.py:614
+#: routes/ai.py:62 services/auth.py:624
 msgid "Please sign in first."
 msgstr "Please sign in first."
 
-#: routes/ai.py:83
+#: routes/ai.py:82
 msgid "What does the research say about climate adaptation in plants?"
 msgstr ""
 
-#: routes/ai.py:84
+#: routes/ai.py:83
 msgid "Summarize recent Extended Essays in economics."
 msgstr ""
 
-#: routes/ai.py:85
+#: routes/ai.py:84
 msgid "Find papers about machine learning in healthcare."
 msgstr ""
 
-#: routes/ai.py:95
+#: routes/ai.py:94
 msgid "Ask a question and I'll answer from the published library, with citations."
 msgstr ""
 
 # ==================== ADMIN USER MANAGEMENT ====================
-#: routes/ai.py:96 templates/ai.html:86
+#: routes/ai.py:95 templates/ai.html:86
 msgid "Message Keydion AI…"
 msgstr "Message Keydion AI…"
 
-#: routes/ai.py:97 templates/ai.html:106
+#: routes/ai.py:96 templates/ai.html:106
 msgid "Flash"
 msgstr ""
 
-#: routes/ai.py:98 templates/ai.html:107
+#: routes/ai.py:97 templates/ai.html:107
 msgid "Thinking"
 msgstr ""
 
-#: routes/ai.py:99 templates/ai.html:109
+#: routes/ai.py:98 templates/ai.html:109
 msgid "Send"
 msgstr ""
 
-#: routes/ai.py:100
+#: routes/ai.py:99
 msgid "Cited from your library"
 msgstr ""
 
-#: routes/ai.py:101
+#: routes/ai.py:100
 msgid "Copy"
 msgstr ""
 
-#: routes/ai.py:102
+#: routes/ai.py:101
 msgid "Regenerate"
 msgstr "Regenerate"
 
-#: routes/ai.py:103 templates/news_manage.html:510
+#: routes/ai.py:102 templates/news_manage.html:517
 #: templates/paper_manage.html:824
 msgid "Rename"
 msgstr "Rename"
 
-#: routes/ai.py:104
+#: routes/ai.py:103
 msgid "Today"
 msgstr "Today"
 
-#: routes/ai.py:105
+#: routes/ai.py:104
 msgid "Yesterday"
 msgstr ""
 
-#: routes/ai.py:106
+#: routes/ai.py:105
 msgid "Previous 7 days"
 msgstr "Previous 7 days"
 
-#: routes/ai.py:107
+#: routes/ai.py:106
 msgid "Older"
 msgstr "Older"
 
-#: routes/ai.py:108
+#: routes/ai.py:107
 msgid "No conversations match."
 msgstr "No conversations match."
 
-#: routes/ai.py:109
+#: routes/ai.py:108
 msgid "Thinking…"
 msgstr ""
 
-#: routes/ai.py:110 routes/ai.py:304 routes/ai.py:739
+#: routes/ai.py:109 routes/ai.py:316 routes/ai.py:538
 msgid "Something went wrong. Please try again."
 msgstr "Something went wrong. Please try again."
 
-#: routes/ai.py:111 routes/ai.py:264 routes/ai.py:337 templates/ai.html:48
+#: routes/ai.py:110 routes/ai.py:273 routes/ai.py:349 templates/ai.html:48
 msgid "AI assistant is not configured."
 msgstr "AI assistant is not configured."
 
-#: routes/ai.py:112
+#: routes/ai.py:111
 #, fuzzy
 msgid "No matching papers were found in the library."
 msgstr "No matching papers found."
 
-#: routes/ai.py:113
+#: routes/ai.py:112
 msgid "Searched the web"
 msgstr "Searched the web"
 
-#: routes/ai.py:114 templates/ia_subjects_manage.html:155
+#: routes/ai.py:113 templates/ia_subjects_manage.html:155
 #: templates/paper_manage.html:412
 #, fuzzy
 msgid "selected"
 msgstr "None selected"
 
-#: routes/ai.py:115 templates/ai.html:183
+#: routes/ai.py:114 templates/ai.html:183
 msgid "Select papers to attach as citations"
 msgstr ""
 
-#: routes/ai.py:116 routes/upload.py:182 templates/paper_modify.html:127
+#: routes/ai.py:115 routes/upload.py:197 templates/paper_modify.html:127
 #: templates/preview.html:412 templates/review_paper.html:33
 #: templates/submission_detail.html:30
 msgid "Abstract"
 msgstr "Abstract"
 
-#: routes/ai.py:117 templates/preview.html:417 templates/search.html:274
+#: routes/ai.py:116 templates/preview.html:417 templates/search.html:274
 msgid "No abstract available."
 msgstr "No abstract available."
 
-#: routes/ai.py:118 templates/ai.html:179
+#: routes/ai.py:117 templates/ai.html:179
 msgid "Hover a paper to preview its abstract before citing."
 msgstr ""
 
-#: routes/ai.py:145 routes/ai.py:150 routes/ai.py:390 templates/ai.html:54
+#: routes/ai.py:150
+msgid "You have too many conversations — delete one before starting a new one."
+msgstr ""
+
+#: routes/ai.py:154 routes/ai.py:159 routes/ai.py:402 templates/ai.html:54
 msgid "New conversation"
 msgstr "New conversation"
 
-#: routes/ai.py:169 routes/ai.py:321
+#: routes/ai.py:178 routes/ai.py:333
 msgid "Not found"
 msgstr "Not found"
 
-#: routes/ai.py:273
+#: routes/ai.py:282
 msgid "Conversation not found."
 msgstr "Conversation not found."
 
-#: routes/ai.py:288 routes/upload.py:735 routes/upload.py:761
-#: routes/upload.py:788
+#: routes/ai.py:297 routes/upload.py:776 routes/upload.py:809
+#: routes/upload.py:843
 msgid "No file provided"
 msgstr "No file provided"
 
-#: routes/ai.py:291
+#: routes/ai.py:300
 msgid "Unsupported file type. Use PDF, DOCX, TXT, or Markdown."
 msgstr "Unsupported file type. Use PDF, DOCX, TXT, or Markdown."
 
-#: routes/ai.py:294
+#: routes/ai.py:303
 msgid "File is too large (max 5 MB)."
 msgstr "File is too large (max 5 MB)."
 
 # | msgid "Invalid destination."
-#: routes/ai.py:297
+#: routes/ai.py:306
 #, fuzzy
 msgid "Invalid filename."
 msgstr "Invalid destination."
 
-#: routes/ai.py:301
+#: routes/ai.py:311
+msgid "Attachment limit reached — remove an attachment or try a smaller file."
+msgstr "Attachment limit reached — remove an attachment or try a smaller file."
+
+#: routes/ai.py:313
 msgid "Could not read the file."
 msgstr "Could not read the file."
 
 # | msgid "Could not read the file."
-#: routes/ai.py:328
+#: routes/ai.py:340
 #, fuzzy
 msgid "Could not process the attachment."
 msgstr "Could not read the file."
 
-#: routes/ai.py:368
+#: routes/ai.py:380
 msgid "Please enter a question."
 msgstr "Please enter a question."
 
-#: routes/ai.py:370
+#: routes/ai.py:382
 msgid "Your question is too long."
 msgstr ""
 
-#: routes/guides.py:101 routes/guides.py:169
+#: routes/guides.py:105 routes/guides.py:173
 msgid "Guide not found."
 msgstr "Guide not found."
 
-#: routes/guides.py:127
+#: routes/guides.py:131
 msgid "Please enter a title in at least one language."
 msgstr "Please enter a title in at least one language."
 
-#: routes/guides.py:129
+#: routes/guides.py:133
 msgid "Please enter a slug."
 msgstr "Please enter a slug."
 
-#: routes/guides.py:131
+#: routes/guides.py:135
 msgid "That slug is already taken. Pick another."
 msgstr "That slug is already taken. Pick another."
 
-#: routes/guides.py:138
+#: routes/guides.py:142
 msgid "Guide updated."
 msgstr "Guide updated."
 
-#: routes/guides.py:141
+#: routes/guides.py:145
 msgid "Guide published."
 msgstr "Guide published."
 
-#: routes/guides.py:167
+#: routes/guides.py:171
 msgid "Guide deleted."
 msgstr "Guide deleted."
 
@@ -461,151 +483,173 @@ msgstr "Journal not found."
 msgid "Journal updated."
 msgstr "Journal updated."
 
-#: routes/news.py:100 routes/news.py:188
+#: routes/news.py:66
+#, fuzzy
+#| msgid "File is too large (max 5 MB)."
+msgid "Image is too large (max 5 MB)."
+msgstr "File is too large (max 5 MB)."
+
+#: routes/news.py:68
+msgid "News image storage is full — delete unused images first."
+msgstr ""
+
+#: routes/news.py:134 routes/news.py:233
 #, fuzzy
 msgid "Please enter a title."
 msgstr "Please enter the paper title"
 
-#: routes/news.py:102 routes/news.py:190
+#: routes/news.py:136 routes/news.py:235
 #, fuzzy
 msgid "Please select a category."
 msgstr "Please select a category..."
 
-#: routes/news.py:104 routes/news.py:192
+#: routes/news.py:138 routes/news.py:237
 #, fuzzy
 msgid "Please enter an abstract."
 msgstr "Please enter the abstract"
 
-#: routes/news.py:106 routes/news.py:194
+#: routes/news.py:140 routes/news.py:239
 msgid "Please write the article body."
 msgstr "Please write the article body."
 
-#: routes/news.py:119 routes/news.py:205
+#: routes/news.py:164 routes/news.py:261
 msgid "Cover image must be PNG, JPG, GIF, or WebP."
 msgstr ""
 
-#: routes/news.py:140 routes/news.py:218
+#: routes/news.py:185 routes/news.py:274
 msgid "Draft saved."
 msgstr "Draft saved."
 
-#: routes/news.py:142
+#: routes/news.py:187
 msgid "Article published successfully."
 msgstr "Article published successfully."
 
-#: routes/news.py:162 routes/news.py:239 routes/news.py:358 routes/news.py:367
+#: routes/news.py:207 routes/news.py:295 routes/news.py:424 routes/news.py:433
 msgid "Article not found."
 msgstr "Article not found."
 
-#: routes/news.py:220
+#: routes/news.py:276
 msgid "Article updated."
 msgstr "Article updated."
 
-#: routes/news.py:237
+#: routes/news.py:293
 msgid "Article deleted."
 msgstr "Article deleted."
 
-#: routes/news.py:258 routes/news.py:307 routes/papers.py:173
-#: routes/papers.py:229
+#: routes/news.py:315 routes/news.py:373 routes/papers.py:180
+#: routes/papers.py:236
 msgid "Category name is required."
 msgstr "Category name is required."
 
-#: routes/news.py:261 routes/papers.py:176
+#: routes/news.py:317 routes/news.py:339
+msgid "Category name must be 50 characters or fewer."
+msgstr "Category name must be 50 characters or fewer."
+
+#: routes/news.py:319 routes/news.py:341
+msgid "Category name contains unsupported characters."
+msgstr "Category name contains unsupported characters."
+
+#: routes/news.py:322 routes/papers.py:183
 msgid "Category already exists."
 msgstr "Category already exists."
 
-#: routes/news.py:275 routes/papers.py:190
+#: routes/news.py:336 routes/papers.py:197
 msgid "Both old and new names are required."
 msgstr ""
 
-#: routes/news.py:278 routes/news.py:310 routes/papers.py:193
-#: routes/papers.py:232
+#: routes/news.py:344 routes/news.py:376 routes/papers.py:200
+#: routes/papers.py:239
 msgid "Category not found."
 msgstr "Category not found."
 
-#: routes/news.py:280 routes/papers.py:195
+#: routes/news.py:346 routes/papers.py:202
 msgid "A category with that name already exists."
 msgstr "A category with that name already exists."
 
 # ==================== SEARCH ====================
-#: routes/papers.py:255
+#: routes/papers.py:262
 msgid "Enter a keyword to search."
 msgstr "Enter a keyword to search."
 
-#: routes/papers.py:337
+#: routes/papers.py:273
+msgid "Search query is too long."
+msgstr "Search query is too long."
+
+#: routes/papers.py:367
 msgid "No matching papers found."
 msgstr "No matching papers found."
 
-#: routes/papers.py:839 routes/upload.py:517
+#: routes/papers.py:869 routes/upload.py:536
 msgid ""
 "A paper can only be one of: Extended Essay, Community Project, or "
 "Internal Assessment."
 msgstr ""
 
-#: routes/papers.py:844 routes/upload.py:522
+#: routes/papers.py:874 routes/upload.py:541
 #, fuzzy
 msgid "Please select an EE core subject."
 msgstr "Select a core subject…"
 
-#: routes/papers.py:849 routes/upload.py:527
+#: routes/papers.py:879 routes/upload.py:546
 #, fuzzy
 msgid "Please select a Global Context."
 msgstr "Select a Global Context…"
 
-#: routes/papers.py:854 routes/upload.py:530
+#: routes/papers.py:884 routes/upload.py:549
 msgid "Please select at least one Type of Action."
 msgstr "Please select at least one Type of Action."
 
-#: routes/papers.py:861 routes/upload.py:535
+#: routes/papers.py:891 routes/upload.py:554
 msgid "Please select an IA subject."
 msgstr "Please select an IA subject."
 
-#: routes/papers.py:866 routes/upload.py:538
+#: routes/papers.py:896 routes/upload.py:557
 msgid "The selected IA subject has no assessment criteria configured."
 msgstr "The selected IA subject has no assessment criteria configured."
 
-#: routes/papers.py:894 templates/paper_modify.html:452
+#: routes/papers.py:924 templates/paper_modify.html:452
 msgid "Save metadata changes separately before uploading a replacement PDF."
 msgstr ""
 
-#: routes/papers.py:959
+#: routes/papers.py:989
 msgid "Paper PDF revised, but RAG indexing failed."
 msgstr ""
 
 # | msgid "Paper Preview"
-#: routes/papers.py:963
+#: routes/papers.py:993
 #, fuzzy
 msgid "Paper PDF revised."
 msgstr "Paper Preview"
 
-#: routes/papers.py:965
+#: routes/papers.py:995
 msgid "Paper information updated."
 msgstr "Paper information updated."
 
 # | msgid "Paper rejected."
-#: routes/papers.py:1031
+#: routes/papers.py:1061
 #, fuzzy
 msgid "Paper deleted."
 msgstr "Paper rejected."
 
-#: routes/papers.py:1033
+#: routes/papers.py:1063
 msgid "Paper deletion is in progress."
 msgstr ""
 
-#: routes/papers.py:1109
+#: routes/papers.py:1153
 msgid "Paper revision restored, but RAG indexing failed."
 msgstr ""
 
 # | msgid "Paper rejected."
-#: routes/papers.py:1113
+#: routes/papers.py:1157
 #, fuzzy
 msgid "Paper revision restored."
 msgstr "Paper rejected."
 
-#: routes/papers.py:1194 routes/papers.py:1233
+#: routes/papers.py:1238 routes/papers.py:1277
 msgid "Please fix the highlighted fields before saving."
 msgstr ""
 
-#: routes/papers.py:1202 routes/papers.py:1241
+#: routes/papers.py:1246 routes/papers.py:1285
 msgid "Some subjects are still used by papers."
 msgstr ""
 
@@ -701,59 +745,71 @@ msgstr "Paper accepted and published."
 msgid "Paper rejected."
 msgstr "Paper rejected."
 
+#: routes/upload.py:102
+msgid ""
+"You have too many drafts and pending submissions. Delete one before "
+"adding another."
+msgstr ""
+
+#: routes/upload.py:104
+msgid ""
+"Your pending submissions use too much storage. Delete one before "
+"uploading more."
+msgstr ""
+
 # ==================== UPLOAD WIZARD (JS) ====================
-#: routes/upload.py:112 routes/upload.py:239 templates/advanced_search.html:14
+#: routes/upload.py:127 routes/upload.py:254 templates/advanced_search.html:14
 #: templates/search.html:51
 msgid "Paper Type"
 msgstr "Paper Type"
 
-#: routes/upload.py:113 routes/upload.py:260
+#: routes/upload.py:128 routes/upload.py:275
 msgid "Metadata"
 msgstr "Metadata"
 
-#: routes/upload.py:114 routes/upload.py:272 templates/landing.html:671
+#: routes/upload.py:129 routes/upload.py:287 templates/landing.html:671
 msgid "Authors"
 msgstr "Authors"
 
-#: routes/upload.py:115 routes/upload.py:274 templates/resource_manage.html:101
+#: routes/upload.py:130 routes/upload.py:289 templates/resource_manage.html:101
 msgid "File"
 msgstr "File"
 
-#: routes/upload.py:116 templates/_dashboard_shell.html:81
+#: routes/upload.py:131 templates/_dashboard_shell.html:81
 #: templates/review_list.html:84
 msgid "Review"
 msgstr "Review"
 
-#: routes/upload.py:117
+#: routes/upload.py:132
 #, python-format
 msgid "Step %(n)s"
 msgstr "Step %(n)s"
 
-#: routes/upload.py:118
+#: routes/upload.py:133
 msgid "Submit Paper"
 msgstr "Submit Paper"
 
-#: routes/upload.py:119
+#: routes/upload.py:134
 msgid "Continue →"
 msgstr "Continue →"
 
-#: routes/upload.py:120
+#: routes/upload.py:135
 msgid "← Back"
 msgstr "← Back"
 
-#: routes/upload.py:121 templates/news_publish.html:975
+#: routes/upload.py:136 templates/news_publish.html:975
 msgid "Save Draft"
 msgstr "Save Draft"
 
-#: routes/upload.py:122
+#: routes/upload.py:137
 msgid "Choose paper type"
 msgstr "Choose paper type"
 
-#: routes/upload.py:123
+#: routes/upload.py:138
 msgid "What kind of paper are you submitting?"
 msgstr "What kind of paper are you submitting?"
 
-#: routes/upload.py:124
+#: routes/upload.py:139
 msgid ""
 "The fields you'll be asked for next depend on this. You can come back and"
 " change it before submitting."
@@ -761,33 +817,33 @@ msgstr ""
 "The fields you'll be asked for next depend on this. You can come back and"
 " change it before submitting."
 
-#: routes/upload.py:125 templates/advanced_search.html:21
+#: routes/upload.py:140 templates/advanced_search.html:21
 #: templates/paper_manage.html:339 templates/search.html:58
 #: templates/search.html:265
 msgid "Independent Research"
 msgstr "Independent Research"
 
-#: routes/upload.py:126
+#: routes/upload.py:141
 msgid "Standard Paper"
 msgstr "Standard Paper"
 
-#: routes/upload.py:127
+#: routes/upload.py:142
 msgid "A self-directed research paper, conference paper, or article."
 msgstr ""
 
-#: routes/upload.py:128
+#: routes/upload.py:143
 msgid "Title · authors · abstract · subject"
 msgstr "Title · authors · abstract · subject"
 
-#: routes/upload.py:129 routes/upload.py:133 routes/upload.py:137
+#: routes/upload.py:144 routes/upload.py:148 routes/upload.py:152
 msgid "IB Diploma"
 msgstr "IB Diploma"
 
-#: routes/upload.py:130
+#: routes/upload.py:145
 msgid "Extended Essay (EE)"
 msgstr "Extended Essay (EE)"
 
-#: routes/upload.py:131
+#: routes/upload.py:146
 msgid ""
 "A 4,000-word IB Diploma research essay with structured criterion scores "
 "(A–E) and an EE subject from the six IB subject groups."
@@ -795,15 +851,15 @@ msgstr ""
 "A 4,000-word IB Diploma research essay with structured criterion scores "
 "(A–E) and an EE subject from the six IB subject groups."
 
-#: routes/upload.py:132
+#: routes/upload.py:147
 msgid "Research Question · EE subject · criterion scores A–E"
 msgstr "Research Question · EE subject · criterion scores A–E"
 
-#: routes/upload.py:134
+#: routes/upload.py:149
 msgid "Community Project (CP)"
 msgstr "Community Project (CP)"
 
-#: routes/upload.py:135
+#: routes/upload.py:150
 msgid ""
 "An IB MYP Community Project graded against Criteria A–D, with a Global "
 "Context and a chosen type of action."
@@ -811,15 +867,15 @@ msgstr ""
 "An IB MYP Community Project graded against Criteria A–D, with a Global "
 "Context and a chosen type of action."
 
-#: routes/upload.py:136
+#: routes/upload.py:151
 msgid "Title · Global Context · type of action · criteria A–D"
 msgstr "Title · Global Context · type of action · criteria A–D"
 
-#: routes/upload.py:138
+#: routes/upload.py:153
 msgid "Internal Assessment (IA)"
 msgstr "Internal Assessment (IA)"
 
-#: routes/upload.py:139
+#: routes/upload.py:154
 msgid ""
 "A subject-specific IB Internal Assessment graded against that subject's "
 "assessment criteria."
@@ -827,46 +883,46 @@ msgstr ""
 "A subject-specific IB Internal Assessment graded against that subject's "
 "assessment criteria."
 
-#: routes/upload.py:140
+#: routes/upload.py:155
 msgid "Title · IA subject · per-criterion scores"
 msgstr "Title · IA subject · per-criterion scores"
 
-#: routes/upload.py:141
+#: routes/upload.py:156
 msgid "IB Internal Assessment"
 msgstr "IB Internal Assessment"
 
-#: routes/upload.py:142
+#: routes/upload.py:157
 msgid "Tell us about your assessment"
 msgstr "Tell us about your assessment"
 
-#: routes/upload.py:143 templates/advanced_search.html:60
+#: routes/upload.py:158 templates/advanced_search.html:60
 #: templates/paper_modify.html:289 templates/preview.html:340
 #: templates/search.html:81
 msgid "IA Subject"
 msgstr "IA Subject"
 
-#: routes/upload.py:144
+#: routes/upload.py:159
 msgid "Select an IA subject…"
 msgstr "Select an IA subject…"
 
-#: routes/upload.py:145 routes/upload.py:207
+#: routes/upload.py:160 routes/upload.py:222
 msgid "Calculated server-side from the criteria above"
 msgstr "Calculated server-side from the criteria above"
 
-#: routes/upload.py:146
+#: routes/upload.py:161
 msgid "IA Details"
 msgstr "IA Details"
 
-#: routes/upload.py:147
+#: routes/upload.py:162
 #, python-format
 msgid "IA criterion score %(k)s"
 msgstr "IA criterion score %(k)s"
 
-#: routes/upload.py:148
+#: routes/upload.py:163
 msgid "Enter the overall score directly"
 msgstr "Enter the overall score directly"
 
-#: routes/upload.py:149
+#: routes/upload.py:164
 msgid ""
 "Skip per-criterion scoring and enter just the total mark for the "
 "assessment."
@@ -874,19 +930,19 @@ msgstr ""
 "Skip per-criterion scoring and enter just the total mark for the "
 "assessment."
 
-#: routes/upload.py:150
+#: routes/upload.py:165
 msgid "Enter the overall mark for the assessment"
 msgstr "Enter the overall mark for the assessment"
 
-#: routes/upload.py:151
+#: routes/upload.py:166
 msgid "Overall Score"
 msgstr "Overall Score"
 
-#: routes/upload.py:152
+#: routes/upload.py:167
 msgid "IA overall score"
 msgstr "IA overall score"
 
-#: routes/upload.py:153
+#: routes/upload.py:168
 msgid ""
 "This subject has no assessment criteria configured yet. Choose another "
 "subject or ask an administrator to add criteria."
@@ -894,45 +950,45 @@ msgstr ""
 "This subject has no assessment criteria configured yet. Choose another "
 "subject or ask an administrator to add criteria."
 
-#: routes/upload.py:154
+#: routes/upload.py:169
 msgid "IA subject has no criteria"
 msgstr "IA subject has no criteria"
 
-#: routes/upload.py:155
+#: routes/upload.py:170
 msgid "Commentary for this criterion…"
 msgstr "Commentary for this criterion…"
 
 # ==================== EE PDF AUTO-FILL ====================
-#: routes/upload.py:156
+#: routes/upload.py:171
 msgid "Auto-fill scores from PDF"
 msgstr "Auto-fill scores from PDF"
 
-#: routes/upload.py:157 routes/upload.py:290
+#: routes/upload.py:172 routes/upload.py:305
 msgid "Extracting…"
 msgstr "Extracting…"
 
-#: routes/upload.py:158
+#: routes/upload.py:173
 msgid "Extracted scores."
 msgstr "Extracted scores."
 
-#: routes/upload.py:159 routes/upload.py:293
+#: routes/upload.py:174 routes/upload.py:308
 msgid "Auto-fill failed — try again or fill manually."
 msgstr "Auto-fill failed — try again or fill manually."
 
-#: routes/upload.py:160
+#: routes/upload.py:175
 msgid "Choose an IA subject first."
 msgstr "Choose an IA subject first."
 
-#: routes/upload.py:161
+#: routes/upload.py:176
 msgid "Research Question"
 msgstr "Research Question"
 
-#: routes/upload.py:162 templates/my_submissions.html:25
+#: routes/upload.py:177 templates/my_submissions.html:25
 #: templates/review_list.html:50
 msgid "Paper Title"
 msgstr "Paper Title"
 
-#: routes/upload.py:163
+#: routes/upload.py:178
 msgid ""
 "e.g. To what extent did monetary policy contribute to the 2008 financial "
 "crisis?"
@@ -940,183 +996,183 @@ msgstr ""
 "e.g. To what extent did monetary policy contribute to the 2008 financial "
 "crisis?"
 
-#: routes/upload.py:164
+#: routes/upload.py:179
 msgid "Enter the complete paper title"
 msgstr "Enter the complete paper title"
 
-#: routes/upload.py:165
+#: routes/upload.py:180
 msgid "Tell us about your essay"
 msgstr "Tell us about your essay"
 
-#: routes/upload.py:166
+#: routes/upload.py:181
 msgid "Tell us about your community project"
 msgstr "Tell us about your community project"
 
-#: routes/upload.py:167
+#: routes/upload.py:182
 msgid "Tell us about your paper"
 msgstr "Tell us about your paper"
 
-#: routes/upload.py:168
+#: routes/upload.py:183
 msgid "IB grading information and bibliographic details for the submission."
 msgstr "IB grading information and bibliographic details for the submission."
 
-#: routes/upload.py:169
+#: routes/upload.py:184
 msgid "Bibliographic information that will appear on the public paper page."
 msgstr "Bibliographic information that will appear on the public paper page."
 
-#: routes/upload.py:170
+#: routes/upload.py:185
 msgid "Paper details"
 msgstr "Paper details"
 
-#: routes/upload.py:171
+#: routes/upload.py:186
 msgid "Bibliographic"
 msgstr "Bibliographic"
 
-#: routes/upload.py:172 templates/paper_modify.html:110
+#: routes/upload.py:187 templates/paper_modify.html:110
 #: templates/search.html:110
 msgid "Language"
 msgstr "Language"
 
-#: routes/upload.py:175
+#: routes/upload.py:190
 msgid "Subject Category"
 msgstr "Subject Category"
 
-#: routes/upload.py:176
+#: routes/upload.py:191
 msgid "Choose a subject category…"
 msgstr "Choose a subject category…"
 
-#: routes/upload.py:177 templates/paper_modify.html:121
+#: routes/upload.py:192 templates/paper_modify.html:121
 #: templates/preview.html:444 templates/review_paper.html:30
 #: templates/submission_detail.html:27
 msgid "Keywords"
 msgstr "Keywords"
 
-#: routes/upload.py:178
+#: routes/upload.py:193
 msgid "Add another…"
 msgstr "Add another…"
 
-#: routes/upload.py:179
+#: routes/upload.py:194
 msgid "Type a keyword and press Enter"
 msgstr "Type a keyword and press Enter"
 
-#: routes/upload.py:180
+#: routes/upload.py:195
 msgid "Press Enter or comma to add. Aim for 3–6 keywords."
 msgstr "Press Enter or comma to add. Aim for 3–6 keywords."
 
-#: routes/upload.py:181 templates/ee_subjects_manage.html:102
+#: routes/upload.py:196 templates/ee_subjects_manage.html:102
 #: templates/ia_subjects_manage.html:139
 msgid "added"
 msgstr "added"
 
-#: routes/upload.py:183
+#: routes/upload.py:198
 msgid "Briefly describe your research background, methods, and conclusions…"
 msgstr "Briefly describe your research background, methods, and conclusions…"
 
-#: routes/upload.py:184
+#: routes/upload.py:199
 msgid "A short summary that appears in search results."
 msgstr "A short summary that appears in search results."
 
-#: routes/upload.py:185 templates/paper_modify.html:139
+#: routes/upload.py:200 templates/paper_modify.html:139
 msgid "This is an IB Sample Paper"
 msgstr "This is an IB Sample Paper"
 
-#: routes/upload.py:186
+#: routes/upload.py:201
 msgid "Sample papers are reference essays without an identified author."
 msgstr "Sample papers are reference essays without an identified author."
 
-#: routes/upload.py:187
+#: routes/upload.py:202
 msgid "Named authors"
 msgstr "Named authors"
 
-#: routes/upload.py:188
+#: routes/upload.py:203
 msgid "List the authors with their contact details."
 msgstr "List the authors with their contact details."
 
-#: routes/upload.py:189 templates/paper_modify.html:150
+#: routes/upload.py:204 templates/paper_modify.html:150
 msgid "Upload as anonymous"
 msgstr "Upload as anonymous"
 
-#: routes/upload.py:190 templates/paper_modify.html:152
+#: routes/upload.py:205 templates/paper_modify.html:152
 msgid "The paper is published without any author information."
 msgstr "The paper is published without any author information."
 
-#: routes/upload.py:191
+#: routes/upload.py:206
 msgid "Framework for the essay"
 msgstr "Framework for the essay"
 
-#: routes/upload.py:192
+#: routes/upload.py:207
 msgid "Knowledge and understanding"
 msgstr "Knowledge and understanding"
 
-#: routes/upload.py:193
+#: routes/upload.py:208
 msgid "Analysis and line of argument"
 msgstr "Analysis and line of argument"
 
-#: routes/upload.py:194
+#: routes/upload.py:209
 msgid "Discussion and evaluation"
 msgstr "Discussion and evaluation"
 
-#: routes/upload.py:195
+#: routes/upload.py:210
 msgid "Reflection"
 msgstr "Reflection"
 
-#: routes/upload.py:196 templates/advanced_search.html:48
+#: routes/upload.py:211 templates/advanced_search.html:48
 #: templates/preview.html:151 templates/search.html:66
 msgid "EE Subject"
 msgstr "EE Subject"
 
-#: routes/upload.py:197 templates/paper_modify.html:199
+#: routes/upload.py:212 templates/paper_modify.html:199
 msgid "Core Subject"
 msgstr "Core Subject"
 
-#: routes/upload.py:198
+#: routes/upload.py:213
 msgid "Select a core subject…"
 msgstr "Select a core subject…"
 
-#: routes/upload.py:199 templates/ee_subjects_manage.html:100
+#: routes/upload.py:214 templates/ee_subjects_manage.html:100
 msgid "Interdisciplinary"
 msgstr "Interdisciplinary"
 
-#: routes/upload.py:200 templates/resource_manage.html:102
+#: routes/upload.py:215 templates/resource_manage.html:102
 #: templates/review_paper.html:77
 msgid "Optional"
 msgstr "Optional"
 
-#: routes/upload.py:201
+#: routes/upload.py:216
 msgid "Optional — select if applicable…"
 msgstr "Optional — select if applicable…"
 
-#: routes/upload.py:202
+#: routes/upload.py:217
 msgid "Criterion Scores"
 msgstr "Criterion Scores"
 
-#: routes/upload.py:203 templates/paper_modify.html:239
+#: routes/upload.py:218 templates/paper_modify.html:239
 #: templates/paper_modify.html:402 templates/preview.html:292
 msgid "Crit."
 msgstr "Crit."
 
-#: routes/upload.py:204
+#: routes/upload.py:219
 msgid "Criterion"
 msgstr "Criterion"
 
-#: routes/upload.py:205 templates/paper_modify.html:241
+#: routes/upload.py:220 templates/paper_modify.html:241
 #: templates/paper_modify.html:316 templates/paper_modify.html:404
 msgid "Score"
 msgstr "Score"
 
-#: routes/upload.py:206
+#: routes/upload.py:221
 msgid "Overall Grade"
 msgstr "Overall Grade"
 
-#: routes/upload.py:208
+#: routes/upload.py:223
 msgid "Criterion Commentaries"
 msgstr "Criterion Commentaries"
 
-#: routes/upload.py:209
+#: routes/upload.py:224
 msgid "Include commentaries for all criteria"
 msgstr "Include commentaries for all criteria"
 
-#: routes/upload.py:210
+#: routes/upload.py:225
 msgid ""
 "Provide short remarks on each criterion plus an optional overall holistic"
 " commentary."
@@ -1124,123 +1180,124 @@ msgstr ""
 "Provide short remarks on each criterion plus an optional overall holistic"
 " commentary."
 
-#: routes/upload.py:211
+#: routes/upload.py:226
 #, python-format
 msgid "Commentary for Criterion %(k)s…"
 msgstr "Commentary for Criterion %(k)s…"
 
-#: routes/upload.py:212 templates/paper_modify.html:271
+#: routes/upload.py:227 templates/paper_modify.html:271
 #: templates/paper_modify.html:356 templates/preview.html:218
 #: templates/preview.html:390
 msgid "Holistic Commentary"
 msgstr "Holistic Commentary"
 
-#: routes/upload.py:213
+#: routes/upload.py:228
 msgid "An overall holistic commentary for the essay…"
 msgstr "An overall holistic commentary for the essay…"
 
-#: routes/upload.py:214
+#: routes/upload.py:229
 msgid "Investigating"
 msgstr "Investigating"
 
-#: routes/upload.py:215
+#: routes/upload.py:230
 msgid "Planning"
 msgstr "Planning"
 
-#: routes/upload.py:216
+#: routes/upload.py:231
 msgid "Taking Action"
 msgstr "Taking Action"
 
-#: routes/upload.py:217
+#: routes/upload.py:232
 msgid "Reflecting"
 msgstr "Reflecting"
 
-#: routes/upload.py:218 templates/advanced_search.html:72
+#: routes/upload.py:233 templates/advanced_search.html:72
 #: templates/paper_modify.html:375 templates/preview.html:265
 #: templates/search.html:96
 msgid "Global Context"
 msgstr "Global Context"
 
-#: routes/upload.py:219
+#: routes/upload.py:234
 msgid "Select a Global Context…"
 msgstr "Select a Global Context…"
 
-#: routes/upload.py:220
+#: routes/upload.py:235
 msgid "Global Contexts"
 msgstr "Global Contexts"
 
-#: routes/upload.py:221 templates/paper_modify.html:386
+#: routes/upload.py:236 templates/paper_modify.html:386
 #: templates/preview.html:273
 msgid "Type of Action"
 msgstr "Type of Action"
 
-#: routes/upload.py:222
+#: routes/upload.py:237
 msgid "Mean of the four criterion scores, rounded"
 msgstr "Mean of the four criterion scores, rounded"
 
-#: routes/upload.py:223
+#: routes/upload.py:238
 msgid "Author information"
 msgstr "Author information"
 
-#: routes/upload.py:224
+#: routes/upload.py:239
 msgid "Who wrote this?"
 msgstr "Who wrote this?"
 
-#: routes/upload.py:225
+#: routes/upload.py:240
 msgid "The first author's contact details are required. Add co-authors as needed."
 msgstr "The first author's contact details are required. Add co-authors as needed."
 
-#: routes/upload.py:226 templates/paper_modify.html:166
+#: routes/upload.py:241 templates/admin_models.html:230
+#: templates/paper_modify.html:166
 msgid "Name"
 msgstr "Name"
 
-#: routes/upload.py:227 templates/admin_users.html:81
+#: routes/upload.py:242 templates/admin_users.html:81
 #: templates/paper_modify.html:170 templates/register.html:15
 #: templates/review_paper.html:40 templates/submission_detail.html:37
 msgid "Email"
 msgstr "Email"
 
-#: routes/upload.py:228
+#: routes/upload.py:243
 msgid "School / Institution"
 msgstr "School / Institution"
 
-#: routes/upload.py:229
+#: routes/upload.py:244
 msgid "Remove author"
 msgstr "Remove author"
 
-#: routes/upload.py:230
+#: routes/upload.py:245
 msgid "+ Add another author"
 msgstr "+ Add another author"
 
-#: routes/upload.py:231
+#: routes/upload.py:246
 msgid "File upload"
 msgstr "File upload"
 
-#: routes/upload.py:232
+#: routes/upload.py:247
 msgid "Upload your PDF"
 msgstr "Upload your PDF"
 
-#: routes/upload.py:233
+#: routes/upload.py:248
 msgid "Submit a single PDF, up to 50 MB. You can change this before publishing."
 msgstr "Submit a single PDF, up to 50 MB. You can change this before publishing."
 
-#: routes/upload.py:234
+#: routes/upload.py:249
 msgid "No file chosen"
 msgstr "No file chosen"
 
-#: routes/upload.py:235
+#: routes/upload.py:250
 msgid "PDF only · single file"
 msgstr "PDF only · single file"
 
-#: routes/upload.py:236
+#: routes/upload.py:251
 msgid "Replace"
 msgstr "Replace"
 
-#: routes/upload.py:237
+#: routes/upload.py:252
 msgid "Choose file"
 msgstr "Choose file"
 
-#: routes/upload.py:238
+#: routes/upload.py:253
 msgid ""
 "If you'd like to come back to this later, click Save Draft below — your "
 "form will be restored next time you visit."
@@ -1248,57 +1305,57 @@ msgstr ""
 "If you'd like to come back to this later, click Save Draft below — your "
 "form will be restored next time you visit."
 
-#: routes/upload.py:240
+#: routes/upload.py:255
 msgid "First author (name, email, school)"
 msgstr "First author (name, email, school)"
 
-#: routes/upload.py:241
+#: routes/upload.py:256
 msgid "EE core subject"
 msgstr "EE core subject"
 
-#: routes/upload.py:242
+#: routes/upload.py:257
 #, python-format
 msgid "EE criterion score %(k)s"
 msgstr "EE criterion score %(k)s"
 
-#: routes/upload.py:243
+#: routes/upload.py:258
 msgid "Global context"
 msgstr "Global context"
 
-#: routes/upload.py:244
+#: routes/upload.py:259
 msgid "Type of action"
 msgstr "Type of action"
 
-#: routes/upload.py:245
+#: routes/upload.py:260
 #, python-format
 msgid "CP criterion score %(k)s"
 msgstr "CP criterion score %(k)s"
 
-#: routes/upload.py:246
+#: routes/upload.py:261
 msgid "PDF file"
 msgstr "PDF file"
 
-#: routes/upload.py:247
+#: routes/upload.py:262
 msgid "Independent Research Paper"
 msgstr "Independent Research Paper"
 
-#: routes/upload.py:248 templates/preview.html:125
+#: routes/upload.py:263 templates/preview.html:125
 msgid "IB Extended Essay"
 msgstr "IB Extended Essay"
 
-#: routes/upload.py:249
+#: routes/upload.py:264
 msgid "IB Community Project"
 msgstr "IB Community Project"
 
-#: routes/upload.py:250
+#: routes/upload.py:265
 msgid "Review & submit"
 msgstr "Review & submit"
 
-#: routes/upload.py:251
+#: routes/upload.py:266
 msgid "Almost there — review your submission"
 msgstr "Almost there — review your submission"
 
-#: routes/upload.py:252
+#: routes/upload.py:267
 msgid ""
 "Make sure everything looks right. You can jump back to any section to "
 "make changes."
@@ -1306,133 +1363,136 @@ msgstr ""
 "Make sure everything looks right. You can jump back to any section to "
 "make changes."
 
-#: routes/upload.py:253
+#: routes/upload.py:268
 msgid "1 field still needs attention"
 msgstr "1 field still needs attention"
 
-#: routes/upload.py:254
+#: routes/upload.py:269
 #, python-format
 msgid "%(n)s fields still need attention"
 msgstr "%(n)s fields still need attention"
 
-#: routes/upload.py:255
+#: routes/upload.py:270
 #, python-format
 msgid "go to %(step)s"
 msgstr "go to %(step)s"
 
-#: routes/upload.py:256
+#: routes/upload.py:271
 msgid "Everything required is filled in."
 msgstr "Everything required is filled in."
 
-#: routes/upload.py:257
+#: routes/upload.py:272
 msgid "Click Submit Paper below to send your submission for review."
 msgstr "Click Submit Paper below to send your submission for review."
 
-#: routes/upload.py:258 templates/guide_manage.html:175
-#: templates/guide_manage.html:241 templates/guide_publish.html:20
-#: templates/journal_manage.html:61 templates/my_submissions.html:58
-#: templates/news_article.html:584 templates/news_manage.html:202
-#: templates/resource_manage.html:53 templates/resource_manage.html:121
+#: routes/upload.py:273 templates/admin_models.html:74
+#: templates/guide_manage.html:175 templates/guide_manage.html:241
+#: templates/guide_publish.html:20 templates/journal_manage.html:61
+#: templates/my_submissions.html:58 templates/news_article.html:584
+#: templates/news_manage.html:202 templates/resource_manage.html:53
+#: templates/resource_manage.html:121
 msgid "Edit"
 msgstr ""
 
-#: routes/upload.py:259 templates/paper_manage.html:291
+#: routes/upload.py:274 templates/paper_manage.html:291
 msgid "Type"
 msgstr "Type"
 
-#: routes/upload.py:261
+#: routes/upload.py:276
 msgid "Research Q."
 msgstr "Research Q."
 
 # ==================== PAPER METADATA ====================
-#: routes/upload.py:262 templates/guide_publish.html:85
+#: routes/upload.py:277 templates/guide_publish.html:85
 #: templates/guide_publish.html:117 templates/news_publish.html:987
 #: templates/paper_modify.html:81 templates/preview.html:436
 #: templates/review_paper.html:24 templates/submission_detail.html:21
 msgid "Title"
 msgstr "Title"
 
-#: routes/upload.py:263
+#: routes/upload.py:278
 msgid "Not provided"
 msgstr "Not provided"
 
-#: routes/upload.py:264
+#: routes/upload.py:279
 msgid "Not chosen"
 msgstr "Not chosen"
 
-#: routes/upload.py:265 templates/search.html:30
+#: routes/upload.py:280 templates/admin_version.html:93
+#: templates/search.html:30
 msgid "Subject"
 msgstr "Subject"
 
-#: routes/upload.py:266 templates/paper_modify.html:214
+#: routes/upload.py:281 templates/paper_modify.html:214
 msgid "None"
 msgstr "None"
 
-#: routes/upload.py:267
+#: routes/upload.py:282
 msgid "Not written"
 msgstr "Not written"
 
-#: routes/upload.py:268
+#: routes/upload.py:283
 msgid "IB Sample"
 msgstr "IB Sample"
 
-#: routes/upload.py:269
+#: routes/upload.py:284
 msgid "Yes — author info skipped"
 msgstr "Yes — author info skipped"
 
-#: routes/upload.py:270
+#: routes/upload.py:285
 msgid "Anonymous — author info skipped"
 msgstr "Anonymous — author info skipped"
 
-#: routes/upload.py:271
+#: routes/upload.py:286
 msgid "No"
 msgstr "No"
 
-#: routes/upload.py:273 templates/news_manage.html:151
-#: templates/news_publish.html:1002 templates/paper_manage.html:293
-#: templates/review_paper.html:36 templates/submission_detail.html:33
+#: routes/upload.py:288 templates/admin_version.html:92
+#: templates/news_manage.html:151 templates/news_publish.html:1002
+#: templates/paper_manage.html:293 templates/review_paper.html:36
+#: templates/submission_detail.html:33
 #, fuzzy
 msgid "Author"
 msgstr "Authors"
 
-#: routes/upload.py:275
+#: routes/upload.py:290
 msgid "No file uploaded"
 msgstr "No file uploaded"
 
-#: routes/upload.py:276
+#: routes/upload.py:291
 msgid "EE Details"
 msgstr "EE Details"
 
-#: routes/upload.py:277
+#: routes/upload.py:292
 msgid "Total"
 msgstr "Total"
 
-#: routes/upload.py:278
+#: routes/upload.py:293
 msgid "CP Details"
 msgstr "CP Details"
 
-#: routes/upload.py:279
+#: routes/upload.py:294
 msgid "None selected"
 msgstr "None selected"
 
-#: routes/upload.py:280
+#: routes/upload.py:295
 msgid "Avg. Grade"
 msgstr "Avg. Grade"
 
-#: routes/upload.py:281
+#: routes/upload.py:296
 msgid "Saving…"
 msgstr "Saving…"
 
-#: routes/upload.py:282
+#: routes/upload.py:297
 #, python-format
 msgid "Draft saved · %(time)s"
 msgstr "Draft saved · %(time)s"
 
-#: routes/upload.py:283
+#: routes/upload.py:298
 msgid "Unsaved changes from earlier"
 msgstr "Unsaved changes from earlier"
 
-#: routes/upload.py:284
+#: routes/upload.py:299
 msgid ""
 "Your last session in this browser had changes you didn't save. Restore "
 "them?"
@@ -1440,193 +1500,200 @@ msgstr ""
 "Your last session in this browser had changes you didn't save. Restore "
 "them?"
 
-#: routes/upload.py:285 templates/ee_subjects_manage.html:79
+#: routes/upload.py:300 templates/ee_subjects_manage.html:79
 #: templates/ia_subjects_manage.html:117
 msgid "Discard"
 msgstr "Discard"
 
-#: routes/upload.py:286 templates/paper_modify.html:48
+#: routes/upload.py:301 templates/paper_modify.html:48
 msgid "Restore"
 msgstr "Restore"
 
-#: routes/upload.py:287
+#: routes/upload.py:302
 msgid "Search…"
 msgstr "Search…"
 
-#: routes/upload.py:288
+#: routes/upload.py:303
 msgid "No matches"
 msgstr "No matches"
 
 # ==================== EE PDF AUTO-FILL ====================
-#: routes/upload.py:289
+#: routes/upload.py:304
 msgid "Auto-fill from commentary PDF"
 msgstr "Auto-fill from commentary PDF"
 
-#: routes/upload.py:291
+#: routes/upload.py:306
 msgid "Extracted all fields."
 msgstr "Extracted all fields."
 
-#: routes/upload.py:292
+#: routes/upload.py:307
 #, python-format
 msgid "Extracted %(filled)s of %(total)s fields."
 msgstr "Extracted %(filled)s of %(total)s fields."
 
-#: routes/upload.py:294
+#: routes/upload.py:309
 msgid "Replace your existing EE entries with values from the PDF?"
 msgstr "Replace your existing EE entries with values from the PDF?"
 
-#: routes/upload.py:295
+#: routes/upload.py:310
 msgid "Generate abstract & keywords from PDF"
 msgstr ""
 
-#: routes/upload.py:296
+#: routes/upload.py:311
 msgid "Generating…"
 msgstr "Generating…"
 
-#: routes/upload.py:297
+#: routes/upload.py:312
 msgid "Generated abstract and keywords."
 msgstr ""
 
-#: routes/upload.py:298
+#: routes/upload.py:313
 #, fuzzy
 msgid "Generation failed — try again or fill manually."
 msgstr "Auto-fill failed — try again or fill manually."
 
-#: routes/upload.py:299
+#: routes/upload.py:314
 msgid "Upload your PDF in the File step first."
 msgstr ""
 
-#: routes/upload.py:300
+#: routes/upload.py:315
 msgid ""
 "Replace your existing title, authors, abstract and keywords with AI-"
 "generated ones?"
 msgstr ""
 
-#: routes/upload.py:301 templates/advanced_search.html:85
+#: routes/upload.py:316 templates/advanced_search.html:85
 #: templates/paper_manage.html:292 templates/paper_modify.html:88
 #: templates/search.html:123
 msgid "Journal"
 msgstr "Journal"
 
-#: routes/upload.py:302
+#: routes/upload.py:317
 msgid "— None —"
 msgstr "— None —"
 
-#: routes/upload.py:303
+#: routes/upload.py:318
 msgid "Optional — assign this paper to a journal."
 msgstr "Optional — assign this paper to a journal."
 
-#: routes/upload.py:304
+#: routes/upload.py:319
 #, python-format
 msgid "Uploading… %(pct)s%"
 msgstr "Uploading… %(pct)s%"
 
-#: routes/upload.py:305
+#: routes/upload.py:320
 msgid "Finishing up…"
 msgstr ""
 
-#: routes/upload.py:306
+#: routes/upload.py:321
 msgid "Upload failed. Please check your connection and try again."
 msgstr "Upload failed. Please check your connection and try again."
 
-#: routes/upload.py:307
+#: routes/upload.py:322
 #, fuzzy
 msgid "Upload successful!"
 msgstr "Upload Success"
 
-#: routes/upload.py:308
+#: routes/upload.py:323
 msgid "Try again"
 msgstr ""
 
-#: routes/upload.py:441
+#: routes/upload.py:456
 msgid "Please enter at least a paper title to save a draft."
 msgstr "Please enter at least a paper title to save a draft."
 
-#: routes/upload.py:500
+#: routes/upload.py:519
 msgid "Draft saved successfully."
 msgstr "Draft saved successfully."
 
-#: routes/upload.py:549
+#: routes/upload.py:568
 msgid "Please select a file to upload"
 msgstr "Please select a file to upload"
 
-#: routes/upload.py:557
+#: routes/upload.py:576
 msgid "Only PDF files are supported"
 msgstr "Only PDF files are supported"
 
-#: routes/upload.py:559 routes/upload.py:741 routes/upload.py:767
-#: routes/upload.py:794
+#: routes/upload.py:578 routes/upload.py:782 routes/upload.py:815
+#: routes/upload.py:849
 msgid "File is not a valid PDF"
 msgstr "File is not a valid PDF"
 
-#: routes/upload.py:611
+#: routes/upload.py:587 routes/upload.py:789 routes/upload.py:822
+#: routes/upload.py:856
+msgid ""
+"This PDF cannot be processed — it is corrupt, encrypted, or exceeds the "
+"page limit."
+msgstr ""
+
+#: routes/upload.py:642
 #, python-format
 msgid "%(paper_name)s uploaded successfully, but RAG indexing failed."
 msgstr "%(paper_name)s uploaded successfully, but RAG indexing failed."
 
-#: routes/upload.py:617
+#: routes/upload.py:648
 #, python-format
 msgid "Paper %(filename)s uploaded successfully!"
 msgstr "Paper %(filename)s uploaded successfully!"
 
-#: routes/upload.py:706
+#: routes/upload.py:747
 msgid "Your paper has been submitted and is now pending review."
 msgstr ""
 
-#: routes/upload.py:716
+#: routes/upload.py:757
 msgid "Upload failed. Please try again."
 msgstr "Upload failed. Please try again."
 
-#: routes/upload.py:728 routes/upload.py:754 routes/upload.py:781
+#: routes/upload.py:769 routes/upload.py:802 routes/upload.py:836
 msgid "Unauthorized"
 msgstr "Unauthorized"
 
-#: routes/upload.py:737 routes/upload.py:763 routes/upload.py:790
+#: routes/upload.py:778 routes/upload.py:811 routes/upload.py:845
 msgid "File must be a PDF"
 msgstr "File must be a PDF"
 
-#: routes/upload.py:800
+#: routes/upload.py:862
 msgid "Unknown or unconfigured IA subject"
 msgstr "Unknown or unconfigured IA subject"
 
-#: services/ai.py:575
+#: services/ai.py:593
 msgid "Searching the library…"
 msgstr "Searching the library…"
 
-#: services/ai.py:595
+#: services/ai.py:613
 #, python-format
 msgid "Reading “%(title)s”…"
 msgstr "Reading “%(title)s”…"
 
-#: services/ai.py:596
+#: services/ai.py:614
 msgid "Reading a paper…"
 msgstr "Reading a paper…"
 
-#: services/ai.py:598
+#: services/ai.py:616
 msgid "Searching the web…"
 msgstr "Searching the web…"
 
-#: services/ai.py:600
+#: services/ai.py:618
 msgid "Reading a web page…"
 msgstr "Reading a web page…"
 
-#: services/ai.py:602
+#: services/ai.py:620
 msgid "Reading the attachment…"
 msgstr "Reading the attachment…"
 
-#: services/ai.py:603
+#: services/ai.py:621
 msgid "Working…"
 msgstr "Working…"
 
-#: services/ai.py:811
+#: services/ai.py:835
 msgid "Attached document"
 msgstr "Attached document"
 
-#: services/auth.py:612
+#: services/auth.py:622
 msgid "Session expired. Please sign in again."
 msgstr "Session expired. Please sign in again."
 
-#: services/auth.py:622
+#: services/auth.py:632
 msgid "You do not have access to that action."
 msgstr "You do not have access to that action."
 
@@ -1806,7 +1873,7 @@ msgstr "Write an article"
 msgid "Manage news"
 msgstr "Manage news"
 
-#: templates/_dashboard_shell.html:165
+#: templates/_dashboard_shell.html:165 templates/admin_models.html:18
 msgid "Admin"
 msgstr "Admin"
 
@@ -1814,22 +1881,32 @@ msgstr "Admin"
 msgid "Manage users"
 msgstr "Manage users"
 
-#: templates/_dashboard_shell.html:177 templates/ai.html:25
+# | msgid "IA Details"
+#: templates/_dashboard_shell.html:176 templates/admin_models.html:20
+#, fuzzy
+msgid "AI models"
+msgstr "IA Details"
+
+#: templates/_dashboard_shell.html:182 templates/admin_version.html:11
+msgid "Version"
+msgstr "Version"
+
+#: templates/_dashboard_shell.html:189 templates/ai.html:25
 #: templates/change_password.html:297
 msgid "Account"
 msgstr "Account"
 
-#: templates/_dashboard/overview.html:111 templates/_dashboard_shell.html:182
+#: templates/_dashboard/overview.html:111 templates/_dashboard_shell.html:194
 #: templates/change_password.html:297 templates/change_password.html:300
 msgid "Change password"
 msgstr "Change password"
 
-#: templates/_dashboard_shell.html:190 templates/_header.html:164
+#: templates/_dashboard_shell.html:202 templates/_header.html:164
 #: templates/ai.html:32
 msgid "Sign out"
 msgstr "Sign out"
 
-#: templates/_dashboard_shell.html:196
+#: templates/_dashboard_shell.html:208
 msgid "Show sidebar"
 msgstr "Show sidebar"
 
@@ -1861,40 +1938,40 @@ msgid "Dashboard"
 msgstr "Back to Dashboard"
 
 #: templates/_header.html:169 templates/_header.html:187
-#: templates/_header.html:207 templates/admin_login.html:23
+#: templates/_header.html:203 templates/admin_login.html:23
 #: templates/ai.html:37 templates/ai.html:128 templates/ai.html:132
-#: templates/ai.html:152 templates/landing.html:697 templates/register.html:50
+#: templates/ai.html:148 templates/landing.html:697 templates/register.html:50
 msgid "Sign in"
 msgstr "Sign in"
 
-#: templates/_header.html:190 templates/ai.html:135
-msgid "Stay logged in for 7 days"
-msgstr "Stay logged in for 7 days"
-
-#: templates/_header.html:193 templates/ai.html:138
+#: templates/_header.html:189 templates/ai.html:134
 msgid "Sign in with Microsoft"
 msgstr "Sign in with Microsoft"
 
-#: templates/_header.html:194 templates/ai.html:139
+#: templates/_header.html:190 templates/ai.html:135
 msgid "or sign in with email"
 msgstr "or sign in with email"
 
-#: templates/_header.html:200 templates/ai.html:145
+#: templates/_header.html:196 templates/ai.html:141
 #, fuzzy
 msgid "Email / Username"
 msgstr "Username"
 
-#: templates/_header.html:204 templates/account_register.html:17
+#: templates/_header.html:200 templates/account_register.html:17
 #: templates/admin_login.html:20 templates/admin_users.html:144
-#: templates/ai.html:149 templates/register.html:36
+#: templates/ai.html:145 templates/register.html:36
 msgid "Password"
 msgstr "Password"
+
+#: templates/_header.html:207 templates/ai.html:152
+msgid "Stay logged in for 7 days"
+msgstr "Stay logged in for 7 days"
 
 #: templates/_header.html:209 templates/ai.html:155 templates/ai.html:185
 #: templates/change_password.html:445 templates/guide_publish.html:149
 #: templates/ia_subjects_manage.html:154 templates/my_submissions.html:64
-#: templates/news_manage.html:137 templates/news_manage.html:520
-#: templates/news_manage.html:525 templates/news_publish.html:970
+#: templates/news_manage.html:137 templates/news_manage.html:527
+#: templates/news_manage.html:532 templates/news_publish.html:970
 #: templates/paper_manage.html:278 templates/paper_manage.html:418
 #: templates/paper_modify.html:464 templates/resource_manage.html:89
 #: templates/resource_manage.html:113 templates/resource_manage.html:135
@@ -1957,6 +2034,260 @@ msgid "← Back to regular login"
 msgstr "← Back to regular login"
 
 # ==================== ADMIN USER MANAGEMENT ====================
+# | msgid "Journals · Keydion"
+#: templates/admin_models.html:2
+#, fuzzy
+msgid "AI models · Keydion"
+msgstr "Journals · Keydion"
+
+#: templates/admin_models.html:21
+#, python-format
+msgid ""
+"Providers, models and keys for the features Keydion runs on. Keys live in"
+" %(file)s and are never shown again once saved."
+msgstr ""
+
+# | msgid "Not provided"
+# | msgid "Provider"
+#: templates/admin_models.html:24
+#, fuzzy
+msgid "Add provider"
+msgstr "Not provided"
+
+#: templates/admin_models.html:29
+msgid "What is running"
+msgstr ""
+
+#: templates/admin_models.html:32
+msgid "Ask and auto-fill"
+msgstr ""
+
+# | msgid "Advanced Search"
+#: templates/admin_models.html:37
+#, fuzzy
+msgid "Semantic search"
+msgstr "Advanced Search"
+
+#: templates/admin_models.html:42
+msgid "Vision-first extraction"
+msgstr ""
+
+#: templates/admin_models.html:43
+msgid "off"
+msgstr ""
+
+#: templates/admin_models.html:47 templates/ai.html:102
+msgid "Web access"
+msgstr ""
+
+# | msgid "Visible to"
+#: templates/admin_models.html:48
+#, fuzzy
+msgid "visible"
+msgstr "Visible to"
+
+#: templates/admin_models.html:48
+msgid "hidden"
+msgstr ""
+
+# | msgid "Not provided"
+#: templates/admin_models.html:60 templates/admin_models.html:99
+#: templates/admin_models.html:133 templates/admin_models.html:164
+#: templates/admin_models.html:225
+#, fuzzy
+msgid "Provider"
+msgstr "Not provided"
+
+#: templates/admin_models.html:61 templates/admin_version.html:54
+#: templates/my_submissions.html:27 templates/news_manage.html:150
+#: templates/review_list.html:53 templates/review_paper.html:54
+#: templates/submission_detail.html:48
+msgid "Status"
+msgstr "Status"
+
+#: templates/admin_models.html:62 templates/admin_users.html:30
+#: templates/admin_users.html:83 templates/my_submissions.html:28
+#: templates/news_manage.html:153 templates/paper_manage.html:295
+#: templates/resource_manage.html:31
+msgid "Actions"
+msgstr "Actions"
+
+# | msgid "Check again"
+#: templates/admin_models.html:70
+#, fuzzy
+msgid "Checking…"
+msgstr "Check again"
+
+#: templates/admin_models.html:75 templates/admin_users.html:57
+#: templates/admin_users.html:113 templates/guide_manage.html:183
+#: templates/guide_manage.html:246 templates/journal_manage.html:64
+#: templates/my_submissions.html:64 templates/news_article.html:594
+#: templates/news_manage.html:136 templates/news_manage.html:207
+#: templates/news_manage.html:451 templates/news_manage.html:520
+#: templates/news_manage.html:533 templates/paper_manage.html:365
+#: templates/paper_manage.html:726 templates/paper_manage.html:825
+#: templates/resource_manage.html:59
+msgid "Delete"
+msgstr "Delete"
+
+#: templates/admin_models.html:79
+msgid "No providers configured — add one to begin."
+msgstr ""
+
+#: templates/admin_models.html:87
+msgid "Slot assignments"
+msgstr ""
+
+#: templates/admin_models.html:94 templates/news_publish.html:1078
+#: templates/news_publish.html:1319
+msgid "Text"
+msgstr ""
+
+# | msgid "Continue →"
+#: templates/admin_models.html:96 templates/admin_models.html:161
+#: templates/admin_models.html:200
+#, fuzzy
+msgid "Configured"
+msgstr "Continue →"
+
+# | msgid "Not chosen"
+#: templates/admin_models.html:96 templates/admin_models.html:161
+#: templates/admin_models.html:200
+#, fuzzy
+msgid "Not set"
+msgstr "Not chosen"
+
+# | msgid "Last name"
+#: templates/admin_models.html:106
+#, fuzzy
+msgid "Flash model"
+msgstr "Last name"
+
+#: templates/admin_models.html:109
+msgid "Think model"
+msgstr ""
+
+#: templates/admin_models.html:113
+msgid "Follow Flash"
+msgstr ""
+
+#: templates/admin_models.html:117 templates/admin_models.html:148
+#: templates/admin_models.html:186 templates/admin_models.html:209
+#: templates/ee_subjects_manage.html:82 templates/ia_subjects_manage.html:120
+#: templates/journal_edit.html:75
+msgid "Save changes"
+msgstr "Save changes"
+
+# | msgid "Pending"
+#: templates/admin_models.html:128
+#, fuzzy
+msgid "Embedding"
+msgstr "Pending"
+
+# | msgid "Move"
+#: templates/admin_models.html:140 templates/admin_models.html:181
+#, fuzzy
+msgid "Model"
+msgstr "Move"
+
+#: templates/admin_models.html:144
+msgid ""
+"A different embedding model degrades semantic search until a re-index "
+"runs (tools/build_embeddings.py); a different vector dimension is refused"
+" at save."
+msgstr ""
+
+# | msgid "Our Mission"
+# | msgid "Revision"
+#: templates/admin_models.html:159
+#, fuzzy
+msgid "Vision"
+msgstr "Our Mission"
+
+#: templates/admin_models.html:161
+msgid "uses the Text key"
+msgstr ""
+
+#: templates/admin_models.html:166
+msgid "Same as the Text provider"
+msgstr ""
+
+# | msgid "Not provided"
+#: templates/admin_models.html:167 templates/admin_models.html:172
+#, fuzzy
+msgid "Dedicated provider"
+msgstr "Not provided"
+
+# | msgid "Discard"
+#: templates/admin_models.html:168
+#, fuzzy
+msgid "Disabled"
+msgstr "Discard"
+
+# | msgid "Search"
+#: templates/admin_models.html:197
+#, fuzzy
+msgid "Web search"
+msgstr "Search"
+
+#: templates/admin_models.html:199
+msgid "Tavily"
+msgstr ""
+
+#: templates/admin_models.html:203 templates/admin_models.html:238
+msgid "API key"
+msgstr ""
+
+#: templates/admin_models.html:205 templates/admin_models.html:240
+msgid "Configured — enter a new key to replace it"
+msgstr ""
+
+#: templates/admin_models.html:205
+msgid "Enter an API key"
+msgstr ""
+
+# | msgid "Reset"
+#: templates/admin_models.html:208 templates/admin_models.html:249
+#, fuzzy
+msgid "Test"
+msgstr "Reset"
+
+#: templates/admin_models.html:226 templates/admin_models.html:254
+#: templates/admin_users.html:134 templates/admin_users.html:157
+#: templates/ai.html:169 templates/news_manage.html:241
+#: templates/paper_manage.html:402 templates/paper_manage.html:439
+msgid "Close"
+msgstr "Close"
+
+#: templates/admin_models.html:234
+msgid "Base URL"
+msgstr ""
+
+# | msgid "Move"
+# | msgid "Model"
+#: templates/admin_models.html:243
+#, fuzzy
+msgid "Models"
+msgstr "Move"
+
+# | msgid "IA Details"
+# | msgid "AI models"
+#: templates/admin_models.html:245
+#, fuzzy
+msgid "Add model"
+msgstr "IA Details"
+
+#: templates/admin_models.html:248
+msgid "Fetch models"
+msgstr ""
+
+# | msgid "Save profile"
+#: templates/admin_models.html:255
+#, fuzzy
+msgid "Save provider"
+msgstr "Save profile"
+
+# ==================== ADMIN USER MANAGEMENT ====================
 #: templates/admin_users.html:2
 msgid "User Management · Keydion"
 msgstr "User Management · Keydion"
@@ -1990,12 +2321,6 @@ msgstr "Username / Email"
 msgid "Role"
 msgstr "Role"
 
-#: templates/admin_users.html:30 templates/admin_users.html:83
-#: templates/my_submissions.html:28 templates/news_manage.html:153
-#: templates/paper_manage.html:295 templates/resource_manage.html:31
-msgid "Actions"
-msgstr "Actions"
-
 #: templates/admin_users.html:50 templates/admin_users.html:104
 #: templates/change_password.html:356
 msgid "New password"
@@ -2004,17 +2329,6 @@ msgstr "New password"
 #: templates/admin_users.html:52
 msgid "Reset"
 msgstr "Reset"
-
-#: templates/admin_users.html:57 templates/admin_users.html:113
-#: templates/guide_manage.html:183 templates/guide_manage.html:246
-#: templates/journal_manage.html:64 templates/my_submissions.html:64
-#: templates/news_article.html:594 templates/news_manage.html:136
-#: templates/news_manage.html:207 templates/news_manage.html:444
-#: templates/news_manage.html:513 templates/news_manage.html:526
-#: templates/paper_manage.html:365 templates/paper_manage.html:726
-#: templates/paper_manage.html:825 templates/resource_manage.html:59
-msgid "Delete"
-msgstr "Delete"
 
 #: templates/admin_users.html:64
 msgid "No local users found."
@@ -2028,9 +2342,9 @@ msgstr "Microsoft Users (External)"
 msgid "Display Name"
 msgstr "Display Name"
 
-#: templates/admin_users.html:89 templates/journal_detail.html:190
-#: templates/journal_detail.html:222 templates/journal_edit.html:59
-#: templates/journal_edit.html:89
+#: templates/admin_users.html:89 templates/admin_version.html:56
+#: templates/journal_detail.html:190 templates/journal_detail.html:222
+#: templates/journal_edit.html:59 templates/journal_edit.html:89
 msgid "Unknown"
 msgstr "Unknown"
 
@@ -2047,16 +2361,112 @@ msgstr "Set password"
 msgid "No Microsoft users found."
 msgstr "No Microsoft users found."
 
-#: templates/admin_users.html:134 templates/admin_users.html:157
-#: templates/ai.html:169 templates/news_manage.html:241
-#: templates/paper_manage.html:402 templates/paper_manage.html:439
-msgid "Close"
-msgstr "Close"
-
 #: templates/admin_users.html:158 templates/news_manage.html:249
 #: templates/paper_manage.html:450
 msgid "Add"
 msgstr "Add"
+
+# ==================== PAPER SUBMISSION ====================
+#: templates/admin_version.html:2
+msgid "Version · Keydion"
+msgstr "Version · Keydion"
+
+#: templates/admin_version.html:12
+msgid "Check for updates from the repository and apply them."
+msgstr "Check for updates from the repository and apply them."
+
+#: templates/admin_version.html:18
+msgid "Update check failed:"
+msgstr "Update check failed:"
+
+#: templates/admin_version.html:22
+msgid ""
+"This deployment is not a git checkout, so updates cannot be checked or "
+"applied."
+msgstr ""
+"This deployment is not a git checkout, so updates cannot be checked or "
+"applied."
+
+#: templates/admin_version.html:28
+msgid ""
+"The working tree has uncommitted changes — updates are disabled until it "
+"is clean:"
+msgstr ""
+"The working tree has uncommitted changes — updates are disabled until it "
+"is clean:"
+
+#: templates/admin_version.html:37
+msgid "Current version"
+msgstr "Current version"
+
+#: templates/admin_version.html:39
+msgid "branch"
+msgstr "branch"
+
+#: templates/admin_version.html:46
+msgid "Latest on origin/main"
+msgstr "Latest on origin/main"
+
+#: templates/admin_version.html:58
+#, python-format
+msgid "%(count)s commit(s) behind"
+msgstr "%(count)s commit(s) behind"
+
+#: templates/admin_version.html:60
+msgid "Up to date"
+msgstr "Up to date"
+
+#: templates/admin_version.html:68
+msgid "Check again"
+msgstr "Check again"
+
+#: templates/admin_version.html:70
+msgid "Update"
+msgstr "Update"
+
+#: templates/admin_version.html:74
+msgid "An update is already running."
+msgstr "An update is already running."
+
+#: templates/admin_version.html:75
+msgid "Clean the working tree to enable updates."
+msgstr "Clean the working tree to enable updates."
+
+#: templates/admin_version.html:76
+msgid "Already up to date."
+msgstr "Already up to date."
+
+#: templates/admin_version.html:85
+msgid "Incoming commits"
+msgstr "Incoming commits"
+
+#: templates/admin_version.html:90
+msgid "Commit"
+msgstr "Commit"
+
+#: templates/admin_version.html:91 templates/search.html:43
+msgid "Date"
+msgstr "Date"
+
+#: templates/admin_version.html:116
+msgid "Starting…"
+msgstr "Starting…"
+
+#: templates/admin_version.html:124
+msgid "Last update:"
+msgstr "Last update:"
+
+#: templates/admin_version.html:126
+msgid "applied"
+msgstr "applied"
+
+#: templates/admin_version.html:130
+msgid "failed"
+msgstr "failed"
+
+#: templates/admin_version.html:132
+msgid "in progress"
+msgstr "in progress"
 
 #: templates/advanced_search.html:2
 msgid "Advanced Search · Keydion"
@@ -2229,10 +2639,6 @@ msgstr ""
 msgid "Toggle web access"
 msgstr ""
 
-#: templates/ai.html:102
-msgid "Web access"
-msgstr ""
-
 #: templates/ai.html:105
 msgid "Agent"
 msgstr "Agent"
@@ -2397,11 +2803,6 @@ msgstr "Add group"
 msgid "Unsaved changes"
 msgstr "Unsaved changes"
 
-#: templates/ee_subjects_manage.html:82 templates/ia_subjects_manage.html:120
-#: templates/journal_edit.html:75
-msgid "Save changes"
-msgstr "Save changes"
-
 #: templates/ee_subjects_manage.html:91 templates/ia_subjects_manage.html:129
 msgid "New group"
 msgstr "New group"
@@ -2537,7 +2938,7 @@ msgstr ""
 
 #: templates/guide_manage.html:86 templates/guide_publish.html:52
 #: templates/news_manage.html:99 templates/news_manage.html:152
-#: templates/news_manage.html:192 templates/news_manage.html:350
+#: templates/news_manage.html:192 templates/news_manage.html:357
 #: templates/paper_manage.html:294 templates/paper_manage.html:557
 #: templates/paper_modify.html:443
 #, fuzzy
@@ -2556,7 +2957,7 @@ msgid "Filter by category"
 msgstr "Filter by category"
 
 #: templates/guide_manage.html:93 templates/news_manage.html:109
-#: templates/news_manage.html:549
+#: templates/news_manage.html:556
 msgid "Category: All"
 msgstr "Category: All"
 
@@ -2724,7 +3125,7 @@ msgstr "All changes saved"
 msgid "Preview"
 msgstr "Preview"
 
-#: templates/guide_publish.html:152 templates/news_manage.html:519
+#: templates/guide_publish.html:152 templates/news_manage.html:526
 #: templates/resource_manage.html:134
 msgid "Save"
 msgstr "Save"
@@ -2743,19 +3144,15 @@ msgstr "help."
 
 #: templates/guides.html:15
 msgid ""
-"Discover and read research, ask questions about it, and submit your own work "
-"for review."
+"Discover and read research, ask questions about it, and submit your own "
+"work for review."
 msgstr ""
-"Discover and read research, ask questions about it, and submit your own work "
-"for review."
+"Discover and read research, ask questions about it, and submit your own "
+"work for review."
 
 #: templates/guides.html:20
 msgid "No guides published yet. Check back soon."
 msgstr "No guides published yet. Check back soon."
-
-#: templates/guides.html:27
-msgid "Articles"
-msgstr "Articles"
 
 # ==================== PAPER MANAGEMENT ====================
 #: templates/ia_subjects_manage.html:2
@@ -3131,12 +3528,6 @@ msgstr "Submit a New Paper"
 msgid "Submitted"
 msgstr "Submitted"
 
-#: templates/my_submissions.html:27 templates/news_manage.html:150
-#: templates/review_list.html:53 templates/review_paper.html:54
-#: templates/submission_detail.html:48
-msgid "Status"
-msgstr ""
-
 #: templates/my_submissions.html:47 templates/review_paper.html:57
 #: templates/submission_detail.html:51
 msgid "Pending Review"
@@ -3322,7 +3713,7 @@ msgstr "Title A → Z"
 msgid "Title Z → A"
 msgstr "Title Z → A"
 
-#: templates/news_manage.html:132 templates/news_manage.html:365
+#: templates/news_manage.html:132 templates/news_manage.html:372
 msgid "articles selected"
 msgstr "articles selected"
 
@@ -3355,18 +3746,18 @@ msgstr "Select article"
 msgid "Archived"
 msgstr ""
 
-#: templates/news_manage.html:220 templates/news_manage.html:312
+#: templates/news_manage.html:220 templates/news_manage.html:319
 #: templates/paper_manage.html:380 templates/paper_manage.html:520
 msgid "Showing"
 msgstr "Showing"
 
-#: templates/news_manage.html:220 templates/news_manage.html:312
+#: templates/news_manage.html:220 templates/news_manage.html:319
 #: templates/paper_manage.html:380 templates/paper_manage.html:520
 msgid "of"
 msgstr ""
 
-#: templates/news_manage.html:220 templates/news_manage.html:312
-#: templates/news_manage.html:508
+#: templates/news_manage.html:220 templates/news_manage.html:319
+#: templates/news_manage.html:515
 msgid "articles"
 msgstr "articles"
 
@@ -3387,38 +3778,38 @@ msgstr ""
 msgid "New category name…"
 msgstr "New category name..."
 
-#: templates/news_manage.html:365
+#: templates/news_manage.html:372
 msgid "article selected"
 msgstr "article selected"
 
-#: templates/news_manage.html:444
+#: templates/news_manage.html:451
 msgid "articles? This cannot be undone."
 msgstr "articles? This cannot be undone."
 
-#: templates/news_manage.html:453
+#: templates/news_manage.html:460
 msgid "Bulk action failed."
 msgstr ""
 
-#: templates/news_manage.html:497
+#: templates/news_manage.html:504
 #, fuzzy
 msgid "No categories yet. Add one above."
 msgstr "No categories yet. Add one below."
 
-#: templates/news_manage.html:523
+#: templates/news_manage.html:530
 msgid ""
 "Delete this category? Articles using it will keep their current category "
 "label."
 msgstr ""
 
-#: templates/news_manage.html:573
+#: templates/news_manage.html:580
 msgid "Category added"
 msgstr "Category added"
 
-#: templates/news_manage.html:612
+#: templates/news_manage.html:619
 msgid "Category renamed"
 msgstr "Category renamed"
 
-#: templates/news_manage.html:627
+#: templates/news_manage.html:634
 msgid "Category deleted"
 msgstr "Category deleted"
 
@@ -3539,10 +3930,6 @@ msgstr ""
 #: templates/news_publish.html:1068
 msgid "Article Content"
 msgstr "Article Content"
-
-#: templates/news_publish.html:1078 templates/news_publish.html:1319
-msgid "Text"
-msgstr ""
 
 #: templates/news_publish.html:1086 templates/news_publish.html:1320
 msgid "Image"
@@ -4222,6 +4609,14 @@ msgstr "Reader"
 msgid "Move"
 msgstr "Move"
 
+#: templates/ee_subjects_manage.html templates/ia_subjects_manage.html
+msgid "Move up"
+msgstr "Move up"
+
+#: templates/ee_subjects_manage.html templates/ia_subjects_manage.html
+msgid "Move down"
+msgstr "Move down"
+
 #: templates/resource_manage.html:57
 msgid "Delete this item?"
 msgstr "Delete this item?"
@@ -4348,10 +4743,6 @@ msgstr "Refine Results"
 #: templates/search.html:14
 msgid "Search Within Results"
 msgstr "Search Within Results"
-
-#: templates/search.html:43
-msgid "Date"
-msgstr "Date"
 
 #: templates/search.html:113
 msgid "Any Language"
@@ -4949,3 +5340,92 @@ msgstr ""
 # | msgid "A category with that name already exists."
 #~ msgid "A paper with that public filename already exists."
 #~ msgstr "A category with that name already exists."
+
+#~ msgid "Articles"
+#~ msgstr "Articles"
+
+#~ msgid ""
+#~ "Chunks and queries embed through this"
+#~ " slot; the column stores VECTOR(%(dim)d)-d"
+#~ " vectors."
+#~ msgstr ""
+
+#~ msgid "leave empty to use the Text key"
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Existing chunks were embedded with the"
+#~ " saved model — semantic search "
+#~ "degrades until a re-index runs "
+#~ "(tools/build_embeddings.py). A model with a"
+#~ " different vector dimension is refused "
+#~ "at save."
+#~ msgstr ""
+
+# | msgid "No papers in this journal yet."
+#~ msgid "No provider for this role yet"
+#~ msgstr "No papers in this journal yet."
+
+#~ msgid "follows Flash"
+#~ msgstr ""
+
+# | msgid "Role"
+#~ msgid "Roles"
+#~ msgstr "Role"
+
+#~ msgid "Which slots this provider can serve — it only appears in those pickers."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "One model id per line — the "
+#~ "pickers below offer this list. Fetch "
+#~ "fills it from the endpoint."
+#~ msgstr ""
+
+# | msgid "Keydion"
+#~ msgid "Key"
+#~ msgstr "Keydion"
+
+# | msgid "Submitted By"
+#~ msgid "Used by"
+#~ msgstr "Submitted By"
+
+#~ msgid ""
+#~ "The server cannot write %(file)s — "
+#~ "grants its user write access before "
+#~ "changing anything here."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Flash drafts abstracts and keywords; "
+#~ "Think handles EE and IA extraction."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Chunks and queries embed through this"
+#~ " slot. Existing chunks stay comparable "
+#~ "only after a re-index."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Reads rendered PDF pages for metadata"
+#~ " auto-fill. Disabled falls back to"
+#~ " the OCR + text path."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Grounds Ask-the-Library answers in "
+#~ "web results. Tavily is the only "
+#~ "provider implemented."
+#~ msgstr ""
+
+#~ msgid "Leave empty and save to disable web access."
+#~ msgstr ""
+
+#~ msgid ""
+#~ "Each model carries its role — the"
+#~ " slot pickers only offer models with"
+#~ " a matching role. Fetch fills the "
+#~ "list from the endpoint as text "
+#~ "models; adjust their roles after."
+#~ msgstr ""

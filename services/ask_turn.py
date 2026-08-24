@@ -1,20 +1,25 @@
 """The Ask conversation turn.
 
 One deep module behind a small interface: `run_ask_turn(input)` runs a single
-Ask-the-Library turn — the streaming tool loop, the legacy single-shot
+Keydion AI turn — the streaming tool loop, the legacy single-shot
 fallback, the round-cap forced answer, the citation split, and assistant-message
 persistence — and yields typed event dicts. The HTTP route serializes those
 dicts to SSE.
 
 No Flask, no ORM models, no `db_session`: HTTP entry, retrieval, web search,
 user-message persistence, and assistant-message persistence are the caller's
-job. The turn owns only what a turn *is*. See CONTEXT.md § Ask-the-Library.
+job. The turn owns only what a turn *is*. See CONTEXT.md § Keydion AI.
 """
 import json
+from dataclasses import dataclass
+from typing import Any
 
 import library_tools
 from services.ai import (
     FETCH_URL_CALL_CAP,
+    LIBRARY_TOOL_CALL_CAP,
+    MAX_TOOL_CALLS_PER_ROUND,
+    MAX_TOOL_RESULT_CHARS,
     MAX_TOOL_ROUNDS,
     WEB_SEARCH_CALL_CAP,
     _build_agentic_ask_prompt,
@@ -24,6 +29,7 @@ from services.ai import (
 )
 
 
+@dataclass(slots=True, eq=False)
 class AskTurnInput:
     """Plain carrier for the inputs `run_ask_turn` needs.
 
@@ -32,30 +38,21 @@ class AskTurnInput:
     can drive the turn with a fake OpenAI client and a recording persist callable.
     """
 
-    __slots__ = (
-        "question", "llm_messages", "mode", "model", "forced", "hits",
-        "citations", "web_results", "locale_code", "include_web",
-        "attachment_names", "client", "deps", "persist_assistant", "logger",
-    )
-
-    def __init__(self, *, question, llm_messages, mode, model, forced, hits,
-                 citations, web_results, locale_code, include_web,
-                 attachment_names, client, deps, persist_assistant, logger):
-        self.question = question
-        self.llm_messages = llm_messages
-        self.mode = mode
-        self.model = model
-        self.forced = forced
-        self.hits = hits
-        self.citations = citations
-        self.web_results = web_results
-        self.locale_code = locale_code
-        self.include_web = include_web
-        self.attachment_names = attachment_names
-        self.client = client
-        self.deps = deps
-        self.persist_assistant = persist_assistant
-        self.logger = logger
+    question: str
+    llm_messages: list[dict]
+    mode: str
+    model: str
+    forced: list
+    hits: list[dict]
+    citations: list[dict]
+    web_results: list[dict]
+    locale_code: str
+    include_web: bool
+    attachment_names: list[str]
+    client: Any
+    deps: Any
+    persist_assistant: Any
+    logger: Any
 
 
 def run_ask_turn(inp):
@@ -100,8 +97,16 @@ def run_ask_turn(inp):
         include_web = inp.include_web
         tool_schemas = library_tools.build_tool_schemas(
             include_web=include_web, include_attachment=include_attachment)
+        # The advertised schema set is the ONLY executable capability set for
+        # this turn: a model can emit tool names it was never offered (web
+        # tools included), and the dispatcher must not honor them. This also
+        # makes withheld web consent a server-side fact, not model guidance.
+        allowed_tools = {
+            schema["function"]["name"] for schema in tool_schemas
+        }
         web_call_count = 0
         fetch_call_count = 0
+        library_call_count = 0
         registry = library_tools.SourceRegistry()
 
         # Seed the registry from the retrieved hits (library + attachment
@@ -260,25 +265,53 @@ def run_ask_turn(inp):
                         for idx, c in enumerate(calls)
                     ],
                 })
+                round_calls = 0
                 for idx, c in enumerate(calls):
                     cid = c["id"] or f"call_{idx}"
-                    if c["name"] == "web_search":
+                    name = c["name"]
+                    if round_calls >= MAX_TOOL_CALLS_PER_ROUND:
+                        messages.append({"role": "tool", "tool_call_id": cid,
+                            "content": "Error: too many tool calls in one round; "
+                                       "answer with what you have."})
+                        continue
+                    if name not in allowed_tools:
+                        # Never execute a tool the model was not offered this
+                        # turn (web tools without consent included); a
+                        # prompt-influenced or non-conforming model cannot
+                        # reach unadvertised capabilities.
+                        messages.append({"role": "tool", "tool_call_id": cid,
+                            "content": "Error: unknown tool; use only the tools "
+                                       "listed in the instructions."})
+                        continue
+                    if name == "web_search":
                         if web_call_count >= WEB_SEARCH_CALL_CAP:
                             messages.append({"role": "tool", "tool_call_id": cid,
                                 "content": "Error: web_search limit reached for "
                                            "this turn; answer with what you have."})
                             continue
                         web_call_count += 1
-                    if c["name"] == "fetch_url":
+                    elif name == "fetch_url":
                         if fetch_call_count >= FETCH_URL_CALL_CAP:
                             messages.append({"role": "tool", "tool_call_id": cid,
                                 "content": "Error: fetch_url limit reached for "
                                            "this turn; answer with what you have."})
                             continue
                         fetch_call_count += 1
+                    else:
+                        if library_call_count >= LIBRARY_TOOL_CALL_CAP:
+                            messages.append({"role": "tool", "tool_call_id": cid,
+                                "content": "Error: library tool limit reached for "
+                                           "this turn; answer with what you have."})
+                            continue
+                        library_call_count += 1
+                    round_calls += 1
                     yield {"type": "status",
-                           "text": _tool_status_text(c["name"], c["arguments"], registry, deps)}
-                    result = library_tools.run_tool(c["name"], c["arguments"], registry, deps)
+                           "text": _tool_status_text(name, c["arguments"], registry, deps)}
+                    result = library_tools.run_tool(name, c["arguments"], registry, deps)
+                    # Budget each tool result appended to the next provider
+                    # request (security finding: unbounded tool-output growth).
+                    if len(result) > MAX_TOOL_RESULT_CHARS:
+                        result = result[:MAX_TOOL_RESULT_CHARS] + "\n[truncated]"
                     messages.append({"role": "tool", "tool_call_id": cid,
                                      "content": result})
                 continue

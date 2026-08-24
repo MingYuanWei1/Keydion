@@ -11,7 +11,7 @@ import unittest
 
 os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
 
-import app as app_module
+import models as app_module
 from config import RAG_EMBED_DIM
 from sqlalchemy import select
 from sqlalchemy.dialects import mysql, sqlite

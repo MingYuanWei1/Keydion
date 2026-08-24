@@ -31,6 +31,16 @@ class IaSubjectsDomContractTest(unittest.TestCase):
             '{% extends "_bare.html" if partial else "_dashboard_shell.html" %}')
         self.assertIn("js/ia-subjects.js", self.tpl)
 
+    def test_reordering_uses_accessible_native_controls(self):
+        for action in ("move-group-up", "move-group-down", "move-subj-up", "move-subj-down"):
+            self.assertIn('data-act="%s"' % action, self.js)
+        self.assertIn("aria-label", self.js)
+        self.assertIn("aria-disabled", self.js)
+        self.assertIn("groupLabel", self.js)
+        self.assertIn("subjectLabel", self.js)
+        self.assertIn("focus.focus()", self.js)
+        self.assertNotIn("Sortable", self.tpl + self.js)
+
 
 if __name__ == "__main__":
     unittest.main()

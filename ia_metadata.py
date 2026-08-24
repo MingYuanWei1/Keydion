@@ -16,18 +16,12 @@ come from the subject config, never from the model.
 
 from __future__ import annotations
 
-import json
-import logging
-import re
-
 from pdf_text import extract_pdf_text, PdfTextError
 
 import llm_client
 from vision_extractor import VisionFirstExtractor
 
 MAX_PDF_CHARS = 12_000          # bound the prompt size / token cost
-
-_log = logging.getLogger(__name__)
 
 
 class IAMetadataError(Exception):
@@ -53,33 +47,6 @@ def _pdf_text_from_bytes(file_bytes: bytes, language: str = "en") -> str:
     if not text:
         raise IAMetadataError("No readable text — is this a scanned image?")
     return text[:MAX_PDF_CHARS]
-
-
-def _build_client():
-    """Construct the chat client; raise the module error if AI is unconfigured."""
-    if not llm_client.llm_enabled():
-        raise IAMetadataError("AI assist is not configured.")
-    try:
-        return llm_client.build_client()
-    except ImportError as exc:  # openai not installed
-        raise IAMetadataError("openai package is not installed.") from exc
-
-
-def _parse_json(content: str):
-    """Parse JSON, tolerating a model that wraps it in prose. Returns dict or None."""
-    if not content:
-        return None
-    try:
-        return json.loads(content)
-    except (ValueError, TypeError):
-        pass
-    match = re.search(r"\{.*\}", content, re.DOTALL)
-    if not match:
-        return None
-    try:
-        return json.loads(match.group(0))
-    except ValueError:
-        return None
 
 
 def _normalise_criteria(returned, criteria: list) -> tuple[list, list]:
@@ -128,9 +95,8 @@ def _normalise_criteria(returned, criteria: list) -> tuple[list, list]:
     return out, warnings
 
 
-def _complete(client, text: str, subject: str, criteria: list, language: str) -> dict:
+def _complete(text: str, subject: str, criteria: list, language: str) -> dict:
     """Call the chat endpoint and return {criteria, holistic_comment, warnings}."""
-    model = llm_client.think_model()
     crit_lines = "\n".join(
         f'- "{c.get("name", "")}" (max score {int(c.get("max", 0))})' for c in criteria
     )
@@ -160,27 +126,20 @@ def _complete(client, text: str, subject: str, criteria: list, language: str) ->
         "no prose."
     )
     try:
-        resp = client.chat.completions.create(
-            model=model,
-            temperature=0,
-            response_format={"type": "json_object"},
-            messages=[
+        data = llm_client.chat_json(
+            [
                 {"role": "system", "content": system},
                 {"role": "user", "content": text},
             ],
+            tier="think",
+            temperature=0,
         )
-    except Exception as exc:  # network/auth/rate-limit from any provider
-        _log.exception("LLM request failed")
+    except llm_client.LLMChatUnavailable as exc:
+        raise IAMetadataError(str(exc)) from exc
+    except llm_client.LLMChatRequestError as exc:
         raise IAMetadataError("AI request failed — please try again later.") from exc
-
-    try:
-        content = (resp.choices[0].message.content or "").strip()
-    except (AttributeError, IndexError, TypeError) as exc:
+    except llm_client.LLMChatParseError as exc:
         raise IAMetadataError("The AI response could not be parsed.") from exc
-
-    data = _parse_json(content)
-    if not isinstance(data, dict):  # valid JSON can still be a list / str / number
-        raise IAMetadataError("The AI response could not be parsed.")
 
     out_criteria, warnings = _normalise_criteria(data.get("criteria"), criteria)
     raw_holistic = data.get("holistic_comment")
@@ -202,8 +161,7 @@ def _legacy_generate_ia_scores(file_bytes: bytes, subject: str, criteria: list,
     config; returned scores are clamped to those maxes server-side.
     """
     text = _pdf_text_from_bytes(file_bytes, language)
-    client = _build_client()
-    return _complete(client, text, subject, criteria, language)
+    return _complete(text, subject, criteria, language)
 
 
 def _vision_prompt(subject: str, criteria: list) -> str:

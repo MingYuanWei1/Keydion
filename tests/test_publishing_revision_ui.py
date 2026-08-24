@@ -6,6 +6,7 @@ import io
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 from flask import Flask, abort
@@ -174,6 +175,11 @@ class PaperMutationRouteTest(unittest.TestCase):
             "routes.papers",
             require_login=mock.DEFAULT,
             _current_paper_pdf=mock.DEFAULT,
+            # Restore is throttled against the shared rate-limit store; these
+            # command-mapping tests have no database, so allow every request.
+            consume_rate_limit=mock.Mock(
+                return_value=SimpleNamespace(allowed=True, retry_after=0, count=1)
+            ),
         )
 
     def test_uuid_metadata_post_maps_edit_metadata(self):

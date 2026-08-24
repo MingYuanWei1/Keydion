@@ -9,8 +9,11 @@ from flask import Flask
 
 os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
 
-import app as app_module
+from app import create_app
+from models import AttachmentChunkModel, ChatMessageModel
+from services import auth
 import services.ai as ask_module
+from services.papers import extract_pdf_text, extract_text_from_upload
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import support
@@ -18,21 +21,21 @@ import support
 
 class ExtractTextFromUpload(unittest.TestCase):
     def test_txt_decodes_utf8(self):
-        out = app_module.extract_text_from_upload("notes.txt", "héllo world".encode("utf-8"))
+        out = extract_text_from_upload("notes.txt", "héllo world".encode("utf-8"))
         self.assertIn("héllo world", out)
 
     def test_md_decodes_utf8(self):
-        out = app_module.extract_text_from_upload("README.md", b"# Title\n\nBody text")
+        out = extract_text_from_upload("README.md", b"# Title\n\nBody text")
         self.assertIn("Body text", out)
 
     def test_unsupported_extension_raises(self):
         with self.assertRaises(ValueError):
-            app_module.extract_text_from_upload("image.png", b"\x89PNG")
+            extract_text_from_upload("image.png", b"\x89PNG")
 
     def test_pdf_branch_delegates_to_pdf_text(self):
         from unittest import mock
         with mock.patch("pdf_text.extract_pdf_text", return_value="ocr or pypdf text") as ex:
-            out = app_module.extract_text_from_upload("scan.pdf", b"%PDF-1.4 fake")
+            out = extract_text_from_upload("scan.pdf", b"%PDF-1.4 fake")
         # No vision_fallback kwarg: attachments must stay on bounded local OCR
         # (pypdf + Tesseract) — never opt user uploads into paid vision calls.
         ex.assert_called_once_with(b"%PDF-1.4 fake")
@@ -71,14 +74,14 @@ class AttachmentNoVisionContract(unittest.TestCase):
 
 class AttachmentModelContract(unittest.TestCase):
     def test_model_exists_with_columns(self):
-        model = getattr(app_module, "AttachmentChunkModel")
+        model = AttachmentChunkModel
         self.assertEqual(model.__tablename__, "attachment_chunks")
         cols = set(model.__table__.columns.keys())
         for c in ("id", "conversation_id", "filename", "chunk_index", "content", "embedding"):
             self.assertIn(c, cols)
 
     def test_grounding_helper_exists(self):
-        self.assertTrue(callable(getattr(app_module, "_attachment_grounding")))
+        self.assertTrue(callable(ask_module._attachment_grounding))
 
 
 from io import BytesIO
@@ -87,7 +90,7 @@ from unittest import mock
 
 def _make_client():
     try:
-        app = app_module.create_app()
+        app = create_app()
     except Exception as exc:  # pragma: no cover - environment dependent
         msg = str(exc).lower()
         if "connect" in msg or "refused" in msg or "mysql" in msg or "2003" in msg:
@@ -99,10 +102,10 @@ def _make_client():
 
 
 def _authenticate(client, username):
-    if app_module.get_local_user(username) is None:
-        app_module.create_local_user(username, "test-password1", role="1")
-    token, _ = app_module.register_active_session(
-        app_module.ACCOUNT_LOCAL,
+    if auth.get_local_user(username) is None:
+        auth.create_local_user(username, "test-password1", role="1")
+    token, _ = auth.register_active_session(
+        auth.ACCOUNT_LOCAL,
         username,
     )
     with client.session_transaction() as session:
@@ -159,7 +162,7 @@ class RagPaperTextOcr(unittest.TestCase):
         with test_app.app_context(), \
              mock.patch("pathlib.Path.read_bytes", return_value=b"%PDF-1.4 fake"), \
              mock.patch("pdf_text.extract_pdf_text", return_value="scanned paper text") as ex:
-            out = app_module._rag_paper_text(paper_id)
+            out = ask_module._rag_paper_text(paper_id)
         library.current_pdf.assert_called_once_with(paper_id)
         ex.assert_called_once()
         self.assertEqual(out, "scanned paper text")
@@ -167,7 +170,7 @@ class RagPaperTextOcr(unittest.TestCase):
     def test_search_papers_stays_pypdf_only(self):
         # The live /search full-text fallback must NOT gain OCR (timeout risk).
         import inspect
-        src = inspect.getsource(app_module.extract_pdf_text)  # the Path-based one
+        src = inspect.getsource(extract_pdf_text)  # the Path-based one
         self.assertIn("PdfReader", src)
         self.assertNotIn("pdf_text.", src)  # must not delegate to pdf_text module
 
@@ -242,7 +245,7 @@ class AskPersistsMessageAttachments(unittest.TestCase):
 
 class MessageAttachmentsColumn(unittest.TestCase):
     def test_column_exists(self):
-        cols = set(app_module.ChatMessageModel.__table__.columns.keys())
+        cols = set(ChatMessageModel.__table__.columns.keys())
         self.assertIn("attachments", cols)
 
     def test_schema_verifier_exists(self):

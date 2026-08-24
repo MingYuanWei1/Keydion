@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime, timedelta
+import unicodedata
+from datetime import datetime, timedelta, timezone
 from typing import Dict
 from uuid import uuid4
 from urllib.parse import unquote, urljoin, urlsplit, urlunsplit
@@ -11,7 +12,6 @@ from flask import (
     Flask,
     flash,
     g,
-    jsonify,
     make_response,
     redirect,
     render_template,
@@ -22,100 +22,38 @@ from flask import (
 from flask_babel import Babel, gettext as _, get_locale
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.middleware.proxy_fix import ProxyFix
-from werkzeug.local import LocalProxy
 import llm_client
-import rag_index  # noqa: F401  -- gunicorn post_fork pre-warms app_module.rag_index
-import web_search  # noqa: F401  -- tests patch app_module.web_search.web_search
-
-# ---- Back-compat re-exports (split refactor) -------------------------------
-# Names moved out of app.py during the split. Kept importable as app.<name>
-# for the contract tests, tools/, and not-yet-moved code in this file.
-from config import (  # noqa: F401
-    BASE_DIR, DATA_DIR, PAPERS_DIR, LOCAL_USER_FIELDS, NEWS_FIELDS, GUIDE_FIELDS,
-    GUIDE_CATEGORIES_JSON, _DEFAULT_GUIDE_CATEGORIES, _DEFAULT_NEWS_CATEGORIES,
-    CATEGORIES_JSON, JOURNALS_JSON, _DEFAULT_PAPER_CATEGORIES,
-    _EE_SUBJECTS_PATH, _EE_SUBJECTS_DEFAULT, JOURNAL_COVERS_DIR, ALLOWED_EXTENSIONS,
-    ALLOWED_IMAGE_EXTENSIONS, NEWS_IMAGES_DIR, GUIDE_IMAGES_DIR, GUIDE_IMAGE_MAX_BYTES,
-    RESOURCES_DIR, RESOURCE_ALLOWED_EXTENSIONS, PREVIEWABLE_MIMES, RESOURCE_MAX_BYTES,
-    MAX_SEARCH_RESULTS, MIN_SEMANTIC_QUERY_LEN, PASSWORD_SCHEME, SUPPORTED_LOCALES,
-    SESSION_TIMEOUT_SECONDS, OPEN_ACCESS, SESSION_TIMEOUT, METADATA_FIELDS,
-    MS_USER_FIELDS, MS_CLIENT_ID, MS_CLIENT_SECRET, MS_REDIRECT_URI, MS_AUTHORITY,
-    MS_SCOPES, MS_GRAPH_ME_URL, ROLE_OPTIONS, _MISSING_FIELD_MESSAGES,
-    IB_EE_CRITERIA_DEFS, CP_GLOBAL_CONTEXTS, CP_ACTION_TYPES, CP_CRITERIA_DEFS,
-    ROLE_LABELS, LANGUAGE_NAMES,
+from config import (
+    DATA_DIR, PAPERS_DIR, RESOURCES_DIR, SUPPORTED_LOCALES,
+    SESSION_TIMEOUT_SECONDS, OPEN_ACCESS, MS_REDIRECT_URI, MS_SCOPES,
+    ROLE_OPTIONS, ROLE_LABELS, LANGUAGE_NAMES, MS_STEP_UP_WINDOW_SECONDS,
 )
-import db
-from db import BASE, DB_URL, db_session, get_engine  # noqa: F401
-from models import (  # noqa: F401
-    LocalUser, MsUser, JournalModel, PaperMetadataModel, PaperChunkModel,
-    ConversationModel, ChatMessageModel, AttachmentChunkModel, AttachmentJobModel,
-    NewsArticleModel,
-    GuideModel, ResourceNode, SubmissionModel, SessionModel, init_db,
+from db import db_session
+from models import (
+    PaperMetadataModel, NewsArticleModel, SubmissionModel, init_db,
 )
-from routes.shared import is_partial_request  # noqa: F401
-from services.auth import (  # noqa: F401
-    load_users, get_local_user, get_local_user_by_email, hash_password,
+from routes.shared import is_partial_request
+from services.auth import (
+    load_users, get_local_user, get_local_user_by_email,
     create_local_user, update_local_user_role, update_local_user_password,
-    delete_local_user, authenticate, load_active_local_user, start_local_session,
+    delete_local_user, authenticate, start_local_session,
     start_ms_session, is_ms_configured, build_msal_app, fetch_ms_profile,
-    build_session_user, load_ms_users, get_ms_user, get_ms_user_by_email,
+    load_ms_users, get_ms_user, get_ms_user_by_email,
     update_ms_user_password, upsert_ms_user, update_ms_user, update_ms_user_role,
     delete_ms_user, is_profile_complete, get_active_user, require_login,
-    verify_password, password_validation_error,
-    create_oauth_login_attempt, consume_oauth_login_attempt,
-    ACCOUNT_LOCAL, ACCOUNT_MICROSOFT, session_identity,
-    register_active_session, release_active_session, refresh_session,
-    _clear_browser_session,
+    verify_password, password_validation_error, create_oauth_login_attempt,
+    consume_oauth_login_attempt, release_active_session,
+    MS_RECENT_AUTH_SESSION_KEY,
 )
 from services.session_cookie import AuthExpirySessionInterface
 from services.rate_limit import clear as clear_rate_limit
 from services.rate_limit import consume as consume_rate_limit
-from services.resources import (  # noqa: F401
-    _can_view_node, _resource_viewer_role,
-    get_resource_node, effective_min_role, resource_breadcrumbs,
-    load_resource_children, load_resource_folder_tree,
-    create_resource_folder, save_resource_file, update_resource_node,
-    move_resource_node, delete_resource_node, slugify_resource_name,
-    resource_name_is_valid, resource_slug_conflict, resolve_resource_path,
-    resource_breadcrumb_paths,
-)
-from services.guides import (  # noqa: F401
-    _sanitize_guide_html, _read_guide_form, _group_guides_for_index,
-    _order_guides_for_index,
-)
-from services.news import (  # noqa: F401
+from services.news import (
     load_news_articles,
+    news_body_html,
 )
-from services.journals import (  # noqa: F401
-    load_journals,
-    get_journal_names, get_journal_id_map,
-    get_recent_journals,
-)
-from services.papers import (  # noqa: F401
-    load_paper_metadata,
-    load_paper_categories,
-    _get_ee_subjects_list, _build_safe_paper_filename,
-    build_ib_ee_data_from_form, build_cp_data_from_form,
-    parse_ib_ee_data_for_form, parse_cp_data_for_form,
-    _is_ee_paper, _is_cp_paper, _matches_ee_subject, _matches_cp_context,
-    allowed_file, extract_pdf_text, extract_text_from_upload,
-    build_preview_pdf,
-)
-from services.search import (  # noqa: F401
-    _query_in_metadata, _fulltext_index, search_papers,
-    _order_hybrid_filenames, _hybrid_search_records,
-)
-from services.submissions import (  # noqa: F401
-    _load_submissions, _save_submission,
-    _get_submission, _update_submission,
-)
-from services.ai import (  # noqa: F401
-    configure_rag, _index_ocr_langs, _rag_paper_text,
-    _lib_full_text, _lib_search, _lib_paper_meta, _lib_paper_url,
-    _build_library_deps, _build_agentic_ask_prompt, _tool_status_text,
-    _build_ask_prompt, _dedupe_hits_by_paper, _cited_numbers, _filter_cited,
-    _attachment_grounding, _attachment_filenames, MAX_TOOL_ROUNDS,
-)
+from services.journals import get_recent_journals
+from services.ai import configure_rag
 
 
 babel = Babel()
@@ -277,25 +215,7 @@ def create_app() -> Flask:
             "current_user": get_active_user(),
         }
 
-    # ---- Template filter: parse block-based article body ----
-    @app.template_filter("parse_body_blocks")
-    def parse_body_blocks(body_text: str):
-        """Parse article body into content blocks.
-
-        Accepts a JSON array of blocks or plain text (backward compat).
-        Each block: {"type": "text", "content": "..."}
-                 or {"type": "image", "url": "...", "caption": "..."}
-        """
-        if not body_text or not body_text.strip():
-            return []
-        try:
-            parsed = json.loads(body_text)
-            if isinstance(parsed, list):
-                return parsed
-        except (json.JSONDecodeError, TypeError):
-            pass
-        # Fallback: treat plain text as paragraphs
-        return [{"type": "text", "content": p.strip()} for p in body_text.split("\n") if p.strip()]
+    app.add_template_filter(news_body_html)
 
     @app.template_filter("from_json")
     def from_json_filter(value):
@@ -312,6 +232,20 @@ def create_app() -> Flask:
     def _consume_request_limit(scope: str, key: str, **policy):
         decision = consume_rate_limit(scope, key, **policy)
         return None if decision.allowed else _too_many_requests(decision.retry_after)
+
+    def _ms_recent_login_marker_valid(ms_id: str) -> bool:
+        """Fresh-Microsoft-login proof for step-up actions (age-bounded; the
+        caller consumes the marker when the sensitive change is applied)."""
+        raw = str(session.get(MS_RECENT_AUTH_SESSION_KEY, ""))
+        marker_ms_id, _sep, stamp_raw = raw.rpartition(":")
+        if not marker_ms_id or marker_ms_id != ms_id:
+            return False
+        try:
+            stamp = int(stamp_raw)
+        except (TypeError, ValueError):
+            return False
+        age = int(datetime.now(timezone.utc).timestamp()) - stamp
+        return 0 <= age <= MS_STEP_UP_WINDOW_SECONDS
 
     @app.route("/")
     def index():
@@ -338,27 +272,48 @@ def create_app() -> Flask:
             password = request.form.get("password", "").strip()
             remember = request.form.get("remember_me") == "1"
             login_ip_key = request.remote_addr or "unknown"
-            login_account_key = email.casefold() or "empty"
-            for scope, key, limit in (
-                ("login.ip", login_ip_key, 20),
-                ("login.account", login_account_key, 8),
-            ):
-                limited = _consume_request_limit(
-                    scope,
-                    key,
-                    limit=limit,
-                    window_seconds=300,
-                    base_block_seconds=2,
-                    max_block_seconds=900,
-                )
-                if limited is not None:
-                    return limited
+            limited = _consume_request_limit(
+                "login.ip",
+                login_ip_key,
+                limit=20,
+                window_seconds=300,
+                base_block_seconds=2,
+                max_block_seconds=900,
+            )
+            if limited is not None:
+                return limited
 
             # 1. Try local user by email
             user_record = get_local_user_by_email(email)
             if not user_record:
                 # 2. Try local user by username (for admin accounts like "admin")
                 user_record = get_local_user(email)
+            ms_record = None if user_record else get_ms_user_by_email(email)
+
+            # Throttle per RESOLVED account identity, not per submitted text:
+            # the documented production collation (utf8mb4_unicode_ci) matches
+            # case/accent variants, so identifiers that resolve to the same
+            # account must share one bucket (security finding: collation-
+            # equivalent identifiers bypassed the per-account throttle).
+            # Unknown identifiers fall back to the NFKC-casefolded text.
+            if user_record:
+                login_account_key = f"local:{user_record.get('username', '')}"
+            elif ms_record:
+                login_account_key = f"ms:{ms_record.get('ms_id', '')}"
+            else:
+                login_account_key = (
+                    unicodedata.normalize("NFKC", email).casefold() or "empty"
+                )
+            limited = _consume_request_limit(
+                "login.account",
+                login_account_key,
+                limit=8,
+                window_seconds=300,
+                base_block_seconds=2,
+                max_block_seconds=900,
+            )
+            if limited is not None:
+                return limited
 
             if user_record:
                 user = authenticate(user_record.get("username", ""), password)
@@ -377,26 +332,26 @@ def create_app() -> Flask:
                         flash(_("Unable to sign in. Please try again."), "danger")
                         return redirect(url_for("index", login=1))
                     flash(_("Welcome back, %(username)s!", username=display), "success")
-                    clear_rate_limit("login.ip", login_ip_key)
+                    # Only the account bucket is cleared on success: a login
+                    # with any one valid credential must not reset the shared
+                    # IP failure state, or a low-role attacker could launder
+                    # guesses against other accounts (security finding).
                     clear_rate_limit("login.account", login_account_key)
                     return redirect(_safe_redirect_path(saved_next) or url_for("index"))
-            else:
-                # 3. Try MS user by email (if they have set a password)
-                ms_record = get_ms_user_by_email(email)
-                if ms_record and ms_record.get("password"):
-                    if verify_password(password, ms_record["password"]):
-                        saved_next = session.get("next") or request.form.get("next", "")
-                        try:
-                            start_ms_session(ms_record, remember=remember)
-                        except SQLAlchemyError:
-                            app.logger.exception("Unable to create Microsoft password login session")
-                            flash(_("Unable to sign in. Please try again."), "danger")
-                            return redirect(url_for("index", login=1))
-                        display = ms_record.get("display_name", "") or ms_record.get("email", "")
-                        flash(_("Welcome back, %(username)s!", username=display), "success")
-                        clear_rate_limit("login.ip", login_ip_key)
-                        clear_rate_limit("login.account", login_account_key)
-                        return redirect(_safe_redirect_path(saved_next) or url_for("index"))
+            elif ms_record and ms_record.get("password"):
+                # 3. MS user with a password set
+                if verify_password(password, ms_record["password"]):
+                    saved_next = session.get("next") or request.form.get("next", "")
+                    try:
+                        start_ms_session(ms_record, remember=remember)
+                    except SQLAlchemyError:
+                        app.logger.exception("Unable to create Microsoft password login session")
+                        flash(_("Unable to sign in. Please try again."), "danger")
+                        return redirect(url_for("index", login=1))
+                    display = ms_record.get("display_name", "") or ms_record.get("email", "")
+                    flash(_("Welcome back, %(username)s!", username=display), "success")
+                    clear_rate_limit("login.account", login_account_key)
+                    return redirect(_safe_redirect_path(saved_next) or url_for("index"))
 
             flash(_("Invalid email or password"), "danger")
             return redirect(url_for("index", login=1))
@@ -588,6 +543,21 @@ def create_app() -> Flask:
             has_password = bool(ms_record and ms_record.get("password"))
 
         if request.method == "POST":
+            # Enrolling a FIRST local password on a Microsoft-only account is a
+            # step-up action: it converts a session into a durable credential.
+            # Require proof of a recent Microsoft login so a stolen or
+            # script-controlled session cannot enroll its own password
+            # (security finding: password enrollment without reauthentication).
+            needs_ms_step_up = is_ms_user and not has_password
+            if needs_ms_step_up:
+                if not is_ms_configured():
+                    flash(_("Password setup is not available. Please contact the administrator."), "danger")
+                    return redirect(url_for("index"))
+                if not _ms_recent_login_marker_valid(ms_id):
+                    flash(_("For your security, sign in with Microsoft again before setting your first password."), "warning")
+                    session["next"] = url_for("change_password")
+                    return redirect(url_for("ms_login"))
+
             current_password = request.form.get("current_password", "")
             new_password = request.form.get("new_password", "").strip()
             confirm_password = request.form.get("confirm_password", "").strip()
@@ -624,6 +594,10 @@ def create_app() -> Flask:
                 )
                 return redirect(url_for("change_password"))
 
+            if needs_ms_step_up:
+                # Consume the single-use marker at the moment the durable
+                # credential is actually installed.
+                session.pop(MS_RECENT_AUTH_SESSION_KEY, None)
             if is_ms_user:
                 success = update_ms_user_password(ms_id, new_password)
             else:
@@ -859,22 +833,6 @@ def create_app() -> Flask:
     register_all(app)
 
     return app
-
-
-_compatibility_app = None
-
-
-def _get_compatibility_app():
-    """Lazy legacy access for callers that still import ``app.app``."""
-    global _compatibility_app
-    if _compatibility_app is None:
-        _compatibility_app = create_app()
-    return _compatibility_app
-
-
-# Importing app.py is now side-effect free. Production serves wsgi.app; this
-# proxy keeps the historical test/tool surface lazy during the transition.
-app = LocalProxy(_get_compatibility_app)
 
 
 if __name__ == "__main__":

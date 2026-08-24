@@ -1,4 +1,4 @@
-"""Pure tool-calling core for Ask-the-Library agentic mode.
+"""Pure tool-calling core for Keydion AI agentic mode.
 
 Public surface
 --------------

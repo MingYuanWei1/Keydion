@@ -1,0 +1,146 @@
+/* =============================================================
+   Keydion · Admin AI-models page — extensions to the kp-* system
+   in manage.css (kp-head / kp-btn / kp-card / kp-table / kp-pill).
+   Only page-specific pieces live here: the capability strip, the
+   assignment-card interior, and status dots.
+   ============================================================= */
+
+/* ── Capability strip: the feature each slot powers ─────────────────── */
+.models-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 18px;
+  background: var(--paper-warm, #fffdf9);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.cap-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 12px;
+  background: var(--paper-sand-soft, #faf3e2);
+  border: 1px solid var(--border-soft, #ede5d6);
+  border-radius: 999px;
+  font-family: Georgia, serif;
+  font-size: 12.5px;
+}
+
+.cap-dot {
+  align-self: center;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #c9c2b4;
+  flex: 0 0 auto;
+}
+.cap-dot--on { background: var(--accent); }
+
+.cap-name {
+  color: var(--ink-soft);
+  letter-spacing: 0.02em;
+}
+
+.cap-model {
+  color: var(--muted);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Assignment cards (kp-card shells; this styles the interior) ────── */
+.model-card__body { padding: 18px; }
+
+.model-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.model-card__title {
+  font-family: Georgia, serif;
+  font-weight: 600;
+  font-size: 17px;
+  color: var(--ink);
+  margin: 0;
+}
+
+.model-card__meta {
+  font-size: 12px;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #c9c2b4;
+}
+.dot--on { background: var(--status-moss, #4f6b3a); }
+
+.mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+.model-card__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.model-card__result {
+  margin-top: 10px;
+  min-height: 1.2em;
+  color: var(--muted);
+}
+.model-card__result--ok { color: var(--status-moss, #4f6b3a); }
+.model-card__result--err { color: var(--accent); }
+
+/* ── Providers table tweaks on top of kp-table ──────────────────────── */
+.models-providers .td-actions { justify-content: flex-end; }
+
+.models-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: Georgia, serif;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.models-status__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  background: var(--muted-soft, #8c8474);
+}
+.models-status--online .models-status__dot { background: var(--status-moss, #4f6b3a); }
+.models-status--offline .models-status__dot { background: #c9c2b4; }
+.models-status--error .models-status__dot { background: var(--accent); }
+.models-status--checking .models-status__dot {
+  background: var(--status-gold, #b08542);
+  animation: models-status-pulse 1.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .models-status--checking .models-status__dot { animation: none; }
+}
+@keyframes models-status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+
+/* Keep the strip readable when the dashboard sidebar collapses to icons. */
+@media (max-width: 575.98px) {
+  .cap-model { max-width: 140px; }
+}

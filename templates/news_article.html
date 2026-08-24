@@ -246,30 +246,38 @@
             margin-bottom: 0;
         }
 
-        .article-body .body-figure {
+        .article-body .body-figure,
+        .article-body .news-figure {
             margin: 32px 0;
             text-align: center;
         }
 
-        .article-body .body-figure img {
+        .article-body .body-figure img,
+        .article-body .news-figure img {
             max-width: 100%;
             height: auto;
             border-radius: 10px;
             box-shadow: 0 4px 16px rgba(0, 0, 0, .08);
         }
 
-        .article-body .body-figure figcaption {
+        .article-body .body-figure figcaption,
+        .article-body .news-figure-caption {
             margin-top: 10px;
             font-size: 14px;
             color: #6b7280;
             font-style: italic;
         }
 
-        .article-body .body-divider {
+        .article-body .body-divider,
+        .article-body .news-divider {
             margin: 36px 0;
             border: none;
             border-top: 2px dashed #d1d5db;
         }
+
+        .article-body .ql-align-center { text-align: center; }
+        .article-body .ql-align-right { text-align: right; }
+        .article-body .ql-align-justify { text-align: justify; }
 
         /* --- Admin Actions --- */
         .admin-actions {
@@ -598,23 +606,7 @@
         {% endif %}
 
         <!-- Article Body -->
-        <div class="article-body">
-            {% set body_blocks = article.body | parse_body_blocks %}
-            {% for block in body_blocks %}
-            {% if block.type == 'text' and block.content|trim %}
-            <div class="body-paragraph">{{ block.content|safe }}</div>
-            {% elif block.type == 'image' and block.url %}
-            <figure class="body-figure">
-                <img src="{{ block.url }}" alt="{{ block.caption or article.title }}">
-                {% if block.caption %}
-                <figcaption>{{ block.caption }}</figcaption>
-                {% endif %}
-            </figure>
-            {% elif block.type == 'divider' %}
-            <hr class="body-divider">
-            {% endif %}
-            {% endfor %}
-        </div>
+        <div class="article-body">{{ article.body | news_body_html(article.title) | safe }}</div>
 
         <!-- Divider -->
         <div class="section-divider">

@@ -12,7 +12,7 @@ import unittest
 
 os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
 
-import app as app_module
+import services.ai as app_module
 
 
 PAPER_A_ID = "00000000-0000-4000-8000-000000000a01"

@@ -7,6 +7,7 @@ from flask import (
     current_app,
     flash,
     jsonify,
+    make_response,
     redirect,
     render_template,
     request,
@@ -25,10 +26,16 @@ from config import (
     CP_CRITERIA_DEFS,
     CP_GLOBAL_CONTEXTS,
     IB_EE_CRITERIA_DEFS,
+    MAX_SEARCH_QUERY_CHARS,
     OPEN_ACCESS,
+    RESTORE_RATE_LIMIT,
+    RESTORE_RATE_WINDOW,
+    SEARCH_RATE_LIMIT,
+    SEARCH_RATE_WINDOW,
 )
 from routes.shared import paginate_records
 from services.auth import get_active_user, require_login
+from services.rate_limit import consume as consume_rate_limit
 from services.journals import get_journal_id_map, get_journal_names, get_journal_slug_map, load_journals
 from services.papers import (
     _build_safe_paper_filename,
@@ -257,6 +264,29 @@ def register_routes(app):
             return redirect(url_for("search", q=query_value))
 
         query = request.args.get("q", "").strip()
+        if query:
+            # Admission control for public search (security finding: anonymous
+            # queries drove corpus-wide work and paid embeddings without any
+            # budget). Reject over-long queries and throttle query work BEFORE
+            # touching the corpus, database, or embedding provider.
+            if len(query) > MAX_SEARCH_QUERY_CHARS:
+                flash(_("Search query is too long."), "warning")
+                return redirect(url_for("search"))
+            throttle_key = (user.get("username") if user else "") \
+                or request.remote_addr or "anonymous"
+            decision = consume_rate_limit(
+                "search.query",
+                throttle_key,
+                limit=SEARCH_RATE_LIMIT,
+                window_seconds=SEARCH_RATE_WINDOW,
+                base_block_seconds=2,
+                max_block_seconds=300,
+            )
+            if not decision.allowed:
+                response = make_response(
+                    str(_("Too many requests — please slow down.")), 429)
+                response.headers["Retry-After"] = str(max(decision.retry_after, 1))
+                return response
         category_filter = request.args.get("category", "").strip()
         language_filter = request.args.get("language", "").strip()
         date_filter = request.args.get("date", "").strip()
@@ -1083,6 +1113,20 @@ def register_routes(app):
         if not user:
             return redirect(url_for("login"))
         return_endpoint = change_return_endpoint(user)
+        # Restore duplicates an entire immutable PDF server-side per call; a
+        # tiny repeated request must not be able to churn storage and indexing
+        # without bound (security finding: uncontrolled resource consumption).
+        decision = consume_rate_limit(
+            "paper.restore",
+            user.get("username") or request.remote_addr or "?",
+            limit=RESTORE_RATE_LIMIT,
+            window_seconds=RESTORE_RATE_WINDOW,
+            base_block_seconds=10,
+            max_block_seconds=3600,
+        )
+        if not decision.allowed:
+            flash(_("Too many requests — please slow down."), "warning")
+            return redirect(url_for(return_endpoint))
         try:
             expected_version = int(request.form.get("row_version", ""))
         except (TypeError, ValueError):

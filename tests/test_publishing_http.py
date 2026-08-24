@@ -701,7 +701,6 @@ from services import publishing_wiring
 from sqlalchemy import create_engine
 import models
 
-assert app_module._compatibility_app is None
 bootstrap = create_engine(os.environ["PAPERQUERY_DATABASE_URL"])
 models.bootstrap_empty_database(bootstrap)
 bootstrap.dispose()

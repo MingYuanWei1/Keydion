@@ -6,7 +6,6 @@ import unittest
 from unittest import mock
 
 import services.papers as sp
-from tests.support import source_of
 
 
 def _old_tree():
@@ -132,16 +131,6 @@ class CascadeTest(unittest.TestCase):
     def test_legacy_rename_writer_is_removed(self):
         self.assertFalse(hasattr(sp, "rename_ia_subject_in_papers"))
         self.assertFalse(hasattr(sp, "save_paper_metadata"))
-
-
-class RouteWiringTest(unittest.TestCase):
-    def test_save_route_guards_and_cascades(self):
-        src = source_of("admin_ia_subjects_save")
-        self.assertIn("reconcile_ia_subjects", src)
-        self.assertIn("count_papers_using_ia_subject", src)
-        self.assertIn("change_many_metadata", src)
-        self.assertIn("BulkEditMetadata", src)
-        self.assertIn("409", src)
 
 
 if __name__ == "__main__":

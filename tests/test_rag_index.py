@@ -363,7 +363,7 @@ class EmbedBatchTest(unittest.TestCase):
             embed_model=lambda: "m",
             embed_batch_size=lambda: 2,
         )
-        with mock.patch.object(rag_index.time, "monotonic", return_value=4.0):
+        with mock.patch("time.monotonic", return_value=4.0):
             out = rag_index.embed_texts(["a", "b", "c"], deadline=10.0)
 
         self.assertEqual(len(out), 3)
@@ -376,7 +376,7 @@ class EmbedBatchTest(unittest.TestCase):
             build_embed_client=build_client,
             embed_model=lambda: "m",
         )
-        with mock.patch.object(rag_index.time, "monotonic", return_value=10.0):
+        with mock.patch("time.monotonic", return_value=10.0):
             with self.assertRaises(IndexDeadlineExceeded):
                 rag_index.embed_texts(["a"], deadline=10.0)
         build_client.assert_not_called()
@@ -398,7 +398,7 @@ class EmbedBatchTest(unittest.TestCase):
             embed_model=lambda: "m",
             embed_batch_size=lambda: 10,
         )
-        with mock.patch.object(rag_index.time, "monotonic", side_effect=lambda: now[0]):
+        with mock.patch("time.monotonic", side_effect=lambda: now[0]):
             with self.assertRaises(IndexDeadlineExceeded) as raised:
                 rag_index.embed_texts(["a"], deadline=10.0)
         self.assertIs(raised.exception.__cause__, failure)
@@ -417,7 +417,7 @@ class EmbedBatchTest(unittest.TestCase):
             build_embed_client=lambda *, deadline=None: _FailingClient(),
             embed_model=lambda: "m",
         )
-        with mock.patch.object(rag_index.time, "monotonic", return_value=1.0):
+        with mock.patch("time.monotonic", return_value=1.0):
             with self.assertRaises(RuntimeError) as raised:
                 rag_index.embed_texts(["a"], deadline=10.0)
         self.assertIs(raised.exception, failure)

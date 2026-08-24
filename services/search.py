@@ -8,13 +8,9 @@ from config import (
     MAX_SEARCH_RESULTS,
     METADATA_FIELDS,
     MIN_SEMANTIC_QUERY_LEN,
-    PAPERS_DIR,
-    PENDING_PAPERS_DIR,
 )
 from db import db_session
 from models import PaperChunkModel, PaperMetadataModel
-from services.paper_storage import PaperStorage
-from services.papers import extract_pdf_text
 
 
 def _query_in_metadata(record: Dict[str, str], normalized: str) -> bool:
@@ -72,15 +68,6 @@ def _visible_paper_records() -> List[Dict[str, str]]:
         return records
 
 
-def _revision_path(paper_id: str, revision: int):
-    """Resolve only canonical UUID/revision storage, never a flat filename."""
-    storage = PaperStorage(PAPERS_DIR, PENDING_PAPERS_DIR)
-    try:
-        return storage.revision_path(paper_id, revision)
-    finally:
-        storage.close()
-
-
 def _fulltext_index() -> Dict[str, tuple[int, str]]:
     """{paper_uuid: (revision, lowercased text)} for current-visible chunks.
 
@@ -90,8 +77,8 @@ def _fulltext_index() -> Dict[str, tuple[int, str]]:
 
     Lets the /search lexical fallback match paper body text without re-reading
     every PDF from disk on each request. Papers with no stored chunks (not yet
-    indexed) are simply absent from the dict; search_papers OCR-extracts those
-    on demand, preserving the old behaviour for the unindexed case.
+    indexed) are simply absent from the dict; search_papers then matches them
+    on metadata only until the async indexer catches up.
     """
     groups: Dict[str, List[str]] = {}
     with db_session() as db:
@@ -130,21 +117,16 @@ def search_papers(keyword: str) -> List[Dict[str, str]]:
             matches.append(record)
             continue
 
-        # Full-text fallback: prefer indexed chunks; OCR-extract only papers
-        # that have no stored chunks yet.
+        # Full-text fallback: only papers whose CURRENT revision has stored
+        # chunks are body-searchable. Parsing PDFs on a public search request
+        # is an unbounded-work sink (anonymous DoS + OCR cost), so unindexed
+        # or stale papers match on metadata alone until the async indexer
+        # catches up.
         paper_id = record["paper_id"]
         indexed = fulltext.get(paper_id)
         if indexed is None or indexed[0] != record["current_revision"]:
-            try:
-                text = extract_pdf_text(
-                    _revision_path(paper_id, record["current_revision"])
-                ).lower()
-            except Exception as exc:  # pragma: no cover - logging placeholder
-                print(f"Failed to read {record['filename']}: {exc}")
-                continue
-        else:
-            text = indexed[1]
-        if normalized in text:
+            continue
+        if normalized in indexed[1]:
             matches.append(record)
 
     matches.sort(key=lambda row: row.get("published_at") or "", reverse=True)

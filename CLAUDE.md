@@ -112,7 +112,7 @@ Environment variables: see `.env.example` for the full annotated list. **Gotcha:
 - `LLM_DEFAULT_FLASH` / `LLM_DEFAULT_THINK` — model tiers (cheap/fast vs. reasoning)
 - `LLM_EMBED_API_KEY` / `LLM_EMBED_BASE_URL` / `LLM_EMBED_MODEL` — separate embedding provider (defaults to Gemini's OpenAI-compatible endpoint; falls back to chat credentials when unset)
 - `LLM_VISION` / `LLM_VISION_API_KEY` / `LLM_VISION_BASE_URL` — separate **vision** (multimodal) provider for reading rendered PDF pages; falls back to chat credentials when the `*_VISION_*` values are unset. Empty `LLM_VISION` ⇒ `vision_enabled()` is false and everything uses the legacy OCR/text path
-- `WEB_SEARCH_PROVIDER` / `WEB_SEARCH_API_KEY` — Ask-the-Library web access (Tavily default); empty key hides the web toggle
+- `WEB_SEARCH_PROVIDER` / `WEB_SEARCH_API_KEY` — Keydion AI web access (Tavily default); empty key hides the web toggle
 - `PAPERQUERY_DATA_DIR` / `PAPERQUERY_UPLOAD_DIR` / `PAPERQUERY_RESOURCES_DIR` — path overrides
 
 ## Architecture
@@ -126,16 +126,16 @@ Environment variables: see `.env.example` for the full annotated list. **Gotcha:
 - Hard rule: `routes/` and `services/` modules never import `app` (enforced by `tests/test_split_imports_contract.py`)
 
 Self-contained concerns remain factored into satellite modules:
-- `ee_pdf_extractor.py` — PDF parser for IB EE metadata auto-fill (vision-first when `vision_enabled()`, else the local regex/pdfplumber path)
+- `ee_pdf_extractor.py` — IB EE metadata auto-fill extractor (vision-first when `vision_enabled()`; OCR+text-LLM fallback like `ia_metadata.py`)
 - `pdf_text.py` — shared PDF→text extraction (pypdf first, Tesseract OCR fallback for scanned PDFs). Stays a **leaf module** (never imports `llm_client`); for scanned pages it calls an optional caller-**injected** `vision_fallback(file_bytes, max_pages)` callable when one is passed, else Tesseract. Also exposes `render_pdf_pages()` (PyMuPDF rasterizer → PNG bytes per page)
-- `llm_client.py` — central LLM client + model resolution: **three providers** — chat (flash/think tiers, `LLM_*`), embeddings (`LLM_EMBED_*`), and vision (`LLM_VISION_*`); `vision_enabled()` gates the vision path independently of `llm_enabled()`
+- `llm_client.py` — central LLM client + model resolution: **three providers** — chat (flash/think tiers, `LLM_*`), embeddings (`LLM_EMBED_*`), and vision (`LLM_VISION_*`); `vision_enabled()` gates the vision path independently of `llm_enabled()`. The `chat()`/`chat_json()` conversation interface is the single seam for one-shot LLM calls — tier-resolved model/client/gate, the provider wire shape, response unwrap, JSON salvage, and deadline authority all live behind it (streaming Ask turns build their own client)
 - `llm_metadata.py` — abstract + keyword drafting from a paper PDF (vision-first when `vision_enabled()`; OCR+text-LLM fallback)
 - `vision_read.py` — vision-model PDF reading: `transcribe_pdf()` (vision-as-OCR, `""` on failure) and `extract_with_vision()` (structured `json_object` extraction over page images, raises `VisionError`). Used by the extractors and the scanned-page RAG ingestion fallback
 - `rag_index.py` — RAG index: chunking, embeddings stored in MySQL 9 binary `VECTOR` columns (`papers_chunks.embedding_vec`), numpy cosine (normalized mat-vec) over a per-process snapshot that auto-refreshes when the `rag_index_meta.chunks_version` stamp moves (any process's write invalidates all gunicorn workers within one request)
-- `library_tools.py` — tool-calling core for Ask-the-Library agentic mode (tool schemas + dispatch)
-- `web_search.py` — pluggable web search for Ask-the-Library (disabled when unconfigured)
+- `library_tools.py` — tool-calling core for Keydion AI agentic mode (tool schemas + dispatch)
+- `web_search.py` — pluggable web search for Keydion AI (disabled when unconfigured)
 
-**LLM features** (all degrade gracefully when `LLM_API_KEY` is unset): Ask-the-Library RAG chat at `/ask` + `/api/ask` (conversations, citations, PDF attachments, optional agentic web/document tools), semantic search + semantic "related papers", abstract/keyword auto-fill (`/api/upload/generate-abstract-keywords`), EE metadata extraction (`/api/upload/extract-ee-metadata`), and IA score/comment extraction (`/api/upload/extract-ia-metadata`). The three PDF-reading extractors are **vision-first**: when `vision_enabled()` they read rendered page images via the vision model, otherwise they fall back to the legacy path (abstract/IA → OCR+text-LLM; EE → local regex/pdfplumber). The abstract/IA auto-extract buttons show when `(vision_enabled() or llm_enabled())` for a contributor (the EE button is always on); RAG ingestion transcribes **scanned** pages with the vision model when configured, else Tesseract. The idea backlog and implementation status live in `LLM_DEPLOYMENT_IDEAS.md`.
+**LLM features** (all degrade gracefully when `LLM_API_KEY` is unset): Keydion AI RAG chat at `/ask` + `/api/ask` (conversations, citations, PDF attachments, optional agentic web/document tools), semantic search + semantic "related papers", abstract/keyword auto-fill (`/api/upload/generate-abstract-keywords`), EE metadata extraction (`/api/upload/extract-ee-metadata`), and IA score/comment extraction (`/api/upload/extract-ia-metadata`). The three PDF-reading extractors are **vision-first**: when `vision_enabled()` they read rendered page images via the vision model, otherwise they fall back to the OCR+text-LLM path. The abstract/IA/EE auto-extract buttons show when `(vision_enabled() or llm_enabled())` for a contributor; RAG ingestion transcribes **scanned** pages with the vision model when configured, else Tesseract. The idea backlog and implementation status live in `local/LLM_DEPLOYMENT_IDEAS.md` (machine-local, not tracked).
 
 **Dashboard URL nesting** — authenticated admin routes live under `/dashboard/...` (e.g. `/dashboard/admin/users`, `/dashboard/admin/guides`). Bare `/admin/*` paths exist only as 301-redirect legacy endpoints. Enforced by `test_dashboard_url_nesting_contract.py`.
 
@@ -145,7 +145,7 @@ Self-contained concerns remain factored into satellite modules:
 - `LocalUser` / `MsUser` — local password auth and Microsoft Graph OAuth users
 - `PaperMetadataModel` — published papers (JSON fields stored as text: `ib_ee_data`, `cp_data`, `ia_data`)
 - `PaperChunkModel` — RAG chunk embeddings per published paper (vectors stored as JSON text)
-- `ConversationModel` / `ChatMessageModel` — Ask-the-Library chat history
+- `ConversationModel` / `ChatMessageModel` — Keydion AI chat history
 - `AttachmentChunkModel` — embeddings for per-conversation uploaded attachments
 - `SubmissionModel` — user-submitted papers pending review
 - `NewsArticleModel` — news/articles with block-based body (JSON array of text/image blocks)
@@ -186,7 +186,7 @@ Self-contained concerns remain factored into satellite modules:
 | `tools/` | CLI scripts: user management, translation compilation, embedding backfill |
 | `tests/` | Contract tests using `unittest` — parse app.py with AST + render Jinja2 templates |
 | `deploy/keydion.nginx.conf` | Production nginx config (host-managed, not docker) |
-| `docs/superpowers/` | Local spec/plan docs — use this gitignored area for planning artifacts; never stage or commit any plan/spec |
+| `docs/plans/`, `docs/specs/` | Local plan/spec docs — use these gitignored areas for planning artifacts; never stage or commit any plan/spec |
 
 ## Testing approach
 
@@ -200,6 +200,7 @@ Importing `app`, `routes/*`, or `services/*` is side-effect free with respect to
 **CSRF test gotcha:** global `CSRFProtect` breaks naive tests — Flask test-client tests that POST must set `app.config["WTF_CSRF_ENABLED"] = False`, and standalone Jinja-render tests must stub `env.globals["csrf_token"] = lambda: ""` (else templates calling `{{ csrf_token() }}` raise). Existing test files already do this; follow the pattern when adding tests.
 
 Conventional commits (`feat:`, `fix:`, with optional scope like `fix(i18n):`) are used.
+The commit message should be brief and targeted, avoid long paragraph-like description messages;
 
 ## Noteworthy patterns
 

@@ -16,16 +16,21 @@ from werkzeug.utils import secure_filename
 
 from config import (
     ALLOWED_IMAGE_EXTENSIONS,
+    NEWS_IMAGE_MAX_BYTES,
     NEWS_IMAGES_DIR,
+    NEWS_IMAGES_MAX_FILES,
+    NEWS_IMAGES_MAX_TOTAL_BYTES,
 )
 from db import db_session
 from models import NewsArticleModel
 from services.auth import get_active_user, require_login
 from services.news import (
+    category_name_validation_error,
     delete_news_article,
     get_news_article,
     load_categories,
     load_news_articles,
+    news_body_html,
     sanitize_news_body,
     save_categories,
     save_news_article,
@@ -37,6 +42,32 @@ from routes.shared import paginate_records
 def register_routes(app):
 
     # ==================== NEWS ROUTES ====================
+
+    def _news_image_budget_exhausted(incoming_bytes: int) -> bool:
+        """Directory-wide admission for news image storage (security finding:
+        unowned assets without quota or deletion lifecycle)."""
+        total_bytes = 0
+        file_count = 0
+        if NEWS_IMAGES_DIR.exists():
+            for entry in NEWS_IMAGES_DIR.iterdir():
+                try:
+                    if entry.is_file():
+                        file_count += 1
+                        total_bytes += entry.stat().st_size
+                except OSError:
+                    continue
+        return (
+            file_count >= NEWS_IMAGES_MAX_FILES
+            or total_bytes + incoming_bytes > NEWS_IMAGES_MAX_TOTAL_BYTES
+        )
+
+    def _news_image_rejection(raw_bytes: bytes):
+        """Why one more news image must be refused, or None when it fits."""
+        if len(raw_bytes) > NEWS_IMAGE_MAX_BYTES:
+            return _("Image is too large (max 5 MB).")
+        if _news_image_budget_exhausted(len(raw_bytes)):
+            return _("News image storage is full — delete unused images first.")
+        return None
 
     @app.route("/news")
     def news_list():
@@ -57,7 +88,7 @@ def register_routes(app):
 
     @app.route("/dashboard/news/upload-inline-image", methods=["POST"])
     def news_upload_inline_image():
-        """AJAX endpoint: upload an image for the block editor and return its URL."""
+        """Upload an image for the news editor and return its URL."""
         user = require_login(level=2)
         if not user:
             return jsonify({"error": "Unauthorized"}), 401
@@ -67,9 +98,13 @@ def register_routes(app):
         img_ext = img_file.filename.rsplit(".", 1)[-1].lower() if "." in img_file.filename else ""
         if img_ext not in ALLOWED_IMAGE_EXTENSIONS:
             return jsonify({"error": "Invalid image format"}), 400
+        raw = img_file.read()
+        rejection = _news_image_rejection(raw)
+        if rejection is not None:
+            return jsonify({"error": str(rejection)}), 429
         NEWS_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
         unique_name = f"{uuid4().hex[:12]}_{secure_filename(img_file.filename)}"
-        img_file.save(NEWS_IMAGES_DIR / unique_name)
+        (NEWS_IMAGES_DIR / unique_name).write_bytes(raw)
         img_url = url_for("static", filename=f"uploads/news/{unique_name}")
         return jsonify({"url": img_url})
 
@@ -111,9 +146,20 @@ def register_routes(app):
                 if cover_file and cover_file.filename:
                     img_ext = cover_file.filename.rsplit(".", 1)[-1].lower() if "." in cover_file.filename else ""
                     if img_ext in ALLOWED_IMAGE_EXTENSIONS:
+                        cover_raw = cover_file.read()
+                        rejection = _news_image_rejection(cover_raw)
+                        if rejection is not None:
+                            flash(rejection, "warning")
+                            return render_template(
+                                "news_publish.html",
+                                form_data=form_data,
+                                categories=load_categories(),
+                                editing=False,
+                                user=user,
+                            )
                         NEWS_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
                         safe_name = f"{article_id}_{secure_filename(cover_file.filename)}"
-                        cover_file.save(NEWS_IMAGES_DIR / safe_name)
+                        (NEWS_IMAGES_DIR / safe_name).write_bytes(cover_raw)
                         image_url = url_for("static", filename=f"uploads/news/{safe_name}")
                     else:
                         flash(_("Cover image must be PNG, JPG, GIF, or WebP."), "warning")
@@ -166,7 +212,7 @@ def register_routes(app):
             "title": article["title"],
             "category": article["category"],
             "abstract": article["abstract"],
-            "body": article["body"],
+            "body": news_body_html(article["body"]),
             "author": article["author"],
             "image_url": article["image_url"],
             "status": article.get("status", "published"),
@@ -197,9 +243,21 @@ def register_routes(app):
                 if cover_file and cover_file.filename:
                     img_ext = cover_file.filename.rsplit(".", 1)[-1].lower() if "." in cover_file.filename else ""
                     if img_ext in ALLOWED_IMAGE_EXTENSIONS:
+                        cover_raw = cover_file.read()
+                        rejection = _news_image_rejection(cover_raw)
+                        if rejection is not None:
+                            flash(rejection, "warning")
+                            return render_template(
+                                "news_publish.html",
+                                form_data=form_data,
+                                categories=load_categories(),
+                                editing=True,
+                                user=user,
+                            )
                         NEWS_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
-                        safe_name = f"{news_id}_{secure_filename(cover_file.filename)}"
-                        cover_file.save(NEWS_IMAGES_DIR / safe_name)
+                        safe_news_id = secure_filename(news_id) or str(uuid4())
+                        safe_name = f"{safe_news_id}_{secure_filename(cover_file.filename)}"
+                        (NEWS_IMAGES_DIR / safe_name).write_bytes(cover_raw)
                         form_data["image_url"] = url_for("static", filename=f"uploads/news/{safe_name}")
                     else:
                         flash(_("Cover image must be PNG, JPG, GIF, or WebP."), "warning")
@@ -254,8 +312,13 @@ def register_routes(app):
         if not user:
             return jsonify(error="Unauthorized"), 401
         name = (request.json or {}).get("name", "").strip()
-        if not name:
+        error = category_name_validation_error(name)
+        if error == "required":
             return jsonify(error=str(_("Category name is required."))), 400
+        if error == "too_long":
+            return jsonify(error=str(_("Category name must be 50 characters or fewer."))), 400
+        if error:
+            return jsonify(error=str(_("Category name contains unsupported characters."))), 400
         cats = load_categories()
         if name in cats:
             return jsonify(error=str(_("Category already exists."))), 409
@@ -273,6 +336,11 @@ def register_routes(app):
         new_name = data.get("new_name", "").strip()
         if not old_name or not new_name:
             return jsonify(error=str(_("Both old and new names are required."))), 400
+        error = category_name_validation_error(new_name)
+        if error == "too_long":
+            return jsonify(error=str(_("Category name must be 50 characters or fewer."))), 400
+        if error:
+            return jsonify(error=str(_("Category name contains unsupported characters."))), 400
         cats = load_categories()
         if old_name not in cats:
             return jsonify(error=str(_("Category not found."))), 404

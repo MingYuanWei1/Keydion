@@ -54,7 +54,7 @@ class ApiAskReadsWebFlag(unittest.TestCase):
         self.assertIn("web_search.web_search(", text)
 
     def test_prompt_accepts_web_results(self):
-        import app as app_module
+        import services.ai as app_module
         import inspect
         sig = inspect.signature(app_module._build_ask_prompt)
         self.assertIn("web_results", sig.parameters)

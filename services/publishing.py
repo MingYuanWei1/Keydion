@@ -74,6 +74,10 @@ from services.publishing_contracts import (
 
 _RESERVATION_TTL = timedelta(hours=1)
 _REQUEST_LEASE_TTL = timedelta(seconds=1800)
+# Immutable revisions are retained forever, so each Paper gets a hard revision
+# ceiling: tiny restore/revise requests must not be able to duplicate large
+# PDFs without bound (security finding: uncontrolled resource consumption).
+MAX_REVISIONS_PER_PAPER = 25
 _METADATA_STRING_LIMITS = {
     "filename": 255,
     "title": 255,
@@ -88,6 +92,11 @@ _METADATA_STRING_LIMITS = {
     "is_anonymous": 10,
 }
 _PAPER_METADATA_FIELDS = tuple(asdict(NormalizedPaperMetadata()).keys())
+
+
+def _flag_truthy(value) -> bool:
+    """Accept the application's stored truthy forms for flag columns."""
+    return str(value or "").strip().casefold() in {"1", "true", "yes", "on"}
 
 
 def _submission_trash_operation_id(submission_id: str) -> str:
@@ -2462,13 +2471,27 @@ class PublishingLifecycle:
                         )
                 for key, value in intent.patch.changes:
                     setattr(paper, key, value)
+                scrubbed = False
+                if _flag_truthy(paper.is_anonymous):
+                    # The anonymity promise covers every representation: retire
+                    # author-bearing aliases and scrub the served PDF (security
+                    # finding: metadata-only transition leaked the author).
+                    scrubbed = self._anonymize_representations(
+                        session, paper, intent.actor
+                    )
                 paper.row_version += 1
                 result = PaperChanged(
                     paper_id=paper.id,
                     filename=paper.filename,
                     revision=paper.current_revision,
                     row_version=paper.row_version,
-                    indexing=IndexingOutcome(IndexingState.NOT_REQUIRED),
+                    # A plain metadata edit changes nothing indexable; only a
+                    # scrubbed-revision append reopens the index pipeline.
+                    indexing=(
+                        self._indexing_outcome(session, paper)
+                        if scrubbed
+                        else IndexingOutcome(IndexingState.NOT_REQUIRED)
+                    ),
                 )
                 session.commit()
                 return result
@@ -2480,6 +2503,112 @@ class PublishingLifecycle:
             raise PersistenceFailed("could not update Paper metadata") from exc
         except Exception as exc:
             raise PersistenceFailed("could not update Paper metadata") from exc
+
+    def _revision_file_leaks_author(self, paper_id: str, revision: int) -> bool:
+        """True when the stored revision PDF still embeds a non-empty /Author."""
+        try:
+            from pypdf import PdfReader
+
+            with open(self._storage.open_revision(paper_id, revision), "rb") as handle:
+                metadata = PdfReader(handle, strict=True).metadata
+        except Exception:
+            # Unreadable bytes belong to the integrity scanner; do not block
+            # the metadata edit on them.
+            return False
+        return bool(str(getattr(metadata, "author", "") or "").strip())
+
+    def _anonymize_representations(self, session, paper, actor) -> bool:
+        """Retire every author-bearing representation of an anonymous Paper
+        (security finding: anonymity was a metadata-only transition while the
+        author lived on in the stored PDF and permanent filename aliases).
+
+        Aliases: every alias for this Paper except its current filename is
+        deleted, so author-bearing legacy URLs stop resolving.
+        PDF: the current revision is reissued with an empty /Author by
+        appending one scrubbed immutable revision through the existing storage
+        primitives — revision immutability is preserved and future
+        revise/restore flows re-scrub from the cleared author metadata.
+
+        Returns True when a scrubbed revision was appended and an async index
+        job enqueued. The caller commits.
+        """
+        session.query(PaperFilenameAliasModel).filter(
+            PaperFilenameAliasModel.paper_id == paper.id,
+            PaperFilenameAliasModel.filename != paper.filename,
+        ).delete(synchronize_session=False)
+
+        if not self._revision_file_leaks_author(paper.id, paper.current_revision):
+            return False
+        revision_row = session.get(
+            PaperRevisionModel, (paper.id, paper.current_revision)
+        )
+        if revision_row is None:
+            return False
+        new_revision = paper.current_revision + 1
+        if new_revision > MAX_REVISIONS_PER_PAPER:
+            raise InvalidInput(
+                {"is_anonymous": "anonymization needs one more revision slot"}
+            )
+        operation_id = self._uuid_factory()
+        staged = None
+        stored = None
+        try:
+            staged = self._storage.stage_revision(
+                paper.id,
+                paper.current_revision,
+                operation_id,
+                sha256=revision_row.sha256,
+                size_bytes=revision_row.size_bytes,
+            )
+            scrubbed = self._storage.apply_metadata(
+                staged, title=paper.title or "", author=""
+            )
+            staged = scrubbed
+            self._reconcile_unowned_next_locked(session, paper, new_revision)
+            stored = self._storage.promote(scrubbed, paper.id, new_revision)
+            session.add(PaperRevisionModel(
+                paper_id=paper.id,
+                revision_number=new_revision,
+                sha256=stored.sha256,
+                size_bytes=stored.size_bytes,
+                created_at=self._clock(),
+                created_by=actor.user_id,
+            ))
+            paper.current_revision = new_revision
+            paper.index_status = "pending"
+            paper.indexed_revision = None
+            paper.index_error = None
+            paper.integrity_status = "verified"
+            paper.integrity_checked_at = self._clock()
+            paper.integrity_checked_revision = new_revision
+            try:
+                indexing_enabled = bool(self._indexer.enabled())
+            except Exception:
+                indexing_enabled = True
+            if indexing_enabled:
+                self._enqueue_index_job(
+                    session, paper.id, new_revision, self._uuid_factory()
+                )
+            self._bump_rag_version(session)
+            return True
+        except Exception:
+            if stored is not None:
+                try:
+                    self._discard_unreferenced_append(
+                        paper.id,
+                        new_revision,
+                        sha256=stored.sha256,
+                        size_bytes=stored.size_bytes,
+                    )
+                except Exception:
+                    pass
+            raise
+        finally:
+            if staged is not None:
+                try:
+                    self._storage.discard_stage(staged)
+                except StorageError:
+                    pass
 
     def _revision_preflight(
         self,
@@ -2511,6 +2640,18 @@ class PublishingLifecycle:
                 )
                 if source is None:
                     raise NotFound("Paper revision not found")
+                current = session.get(
+                    PaperRevisionModel, (paper.id, paper.current_revision)
+                )
+                if (
+                    current is not None
+                    and source.sha256 == current.sha256
+                ):
+                    # Restoring bytes identical to the current revision would
+                    # only duplicate an immutable PDF for zero benefit.
+                    raise InvalidInput(
+                        {"revision": "that revision is already the current content"}
+                    )
                 source_sha256 = source.sha256
                 source_size_bytes = source.size_bytes
             else:
@@ -2636,6 +2777,10 @@ class PublishingLifecycle:
                     expected_row_version,
                 )
                 attempted_revision = paper.current_revision + 1
+                if attempted_revision > MAX_REVISIONS_PER_PAPER:
+                    raise InvalidInput(
+                        {"revision": f"papers keep at most {MAX_REVISIONS_PER_PAPER} revisions"}
+                    )
                 self._reconcile_unowned_next_locked(
                     session,
                     paper,
@@ -2859,6 +3004,13 @@ class PublishingLifecycle:
                     paper = by_id[paper_id]
                     for key, value in patches[paper_id].changes:
                         setattr(paper, key, value)
+                    scrubbed = False
+                    if _flag_truthy(paper.is_anonymous):
+                        # Bulk edits must honor the same anonymity promise as
+                        # single edits (security finding: aliases/PDF author).
+                        scrubbed = self._anonymize_representations(
+                            session, paper, intent.actor
+                        )
                     paper.row_version += 1
                     results.append(
                         PaperChanged(
@@ -2866,7 +3018,11 @@ class PublishingLifecycle:
                             filename=paper.filename,
                             revision=paper.current_revision,
                             row_version=paper.row_version,
-                            indexing=IndexingOutcome(IndexingState.NOT_REQUIRED),
+                            indexing=(
+                                self._indexing_outcome(session, paper)
+                                if scrubbed
+                                else IndexingOutcome(IndexingState.NOT_REQUIRED)
+                            ),
                         )
                     )
                 session.commit()

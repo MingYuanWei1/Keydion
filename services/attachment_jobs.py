@@ -1,4 +1,4 @@
-"""Durable extraction and embedding jobs for Ask-the-Library attachments."""
+"""Durable extraction and embedding jobs for Keydion AI attachments."""
 
 from __future__ import annotations
 
@@ -7,6 +7,8 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from uuid import uuid4
+
+from sqlalchemy import func
 
 import rag_index
 from db import db_session
@@ -18,12 +20,77 @@ _LOG = logging.getLogger(__name__)
 MAX_ATTEMPTS = 3
 LEASE_SECONDS = 180
 
+# Aggregate admission budgets for attachment work (security finding: one small
+# upload could fan out into thousands of chunks and paid embedding calls, and
+# unbounded distinct uploads filled durable queue storage). Each upload is
+# still bounded per-file by MAX_ATTACH_BYTES; these cap the accumulation.
+MAX_ACTIVE_JOBS_PER_CONVERSATION = 8            # queued + running jobs
+MAX_QUEUED_BYTES_PER_CONVERSATION = 20 * 1024 * 1024
+MAX_QUEUED_BYTES_PER_OWNER = 50 * 1024 * 1024
+MAX_CHUNKS_PER_ATTACHMENT = 1500                # caps chunk/embedding fan-out
+
+
+class AttachmentQuotaExceeded(Exception):
+    """An attachment budget is exhausted; the upload was refused."""
+
 
 @dataclass(frozen=True)
 class AttachmentJobStatus:
     id: str
     filename: str
     state: str
+
+
+def _queued_payload_bytes(query) -> int:
+    """Total payload bytes held by the given job query (NULL payloads ignored)."""
+    total = query.with_entities(
+        func.coalesce(func.sum(func.length(AttachmentJobModel.payload)), 0)
+    ).scalar()
+    return int(total or 0)
+
+
+def _enforce_attachment_quota(database, conversation_id: int, incoming_bytes: int) -> None:
+    """Refuse work past per-conversation and per-owner attachment budgets."""
+    active_states = ("queued", "running")
+    active_jobs = (
+        database.query(AttachmentJobModel)
+        .filter(
+            AttachmentJobModel.conversation_id == conversation_id,
+            AttachmentJobModel.state.in_(active_states),
+        )
+        .count()
+    )
+    if active_jobs >= MAX_ACTIVE_JOBS_PER_CONVERSATION:
+        raise AttachmentQuotaExceeded("too many attachments pending in this conversation")
+
+    conversation_bytes = _queued_payload_bytes(
+        database.query(AttachmentJobModel).filter(
+            AttachmentJobModel.conversation_id == conversation_id,
+            AttachmentJobModel.state.in_(active_states),
+        )
+    )
+    if conversation_bytes + incoming_bytes > MAX_QUEUED_BYTES_PER_CONVERSATION:
+        raise AttachmentQuotaExceeded("attachment storage limit reached for this conversation")
+
+    owner_key = (
+        database.query(ConversationModel.owner_key)
+        .filter(ConversationModel.id == conversation_id)
+        .scalar()
+    )
+    if owner_key:
+        owner_bytes = _queued_payload_bytes(
+            database.query(AttachmentJobModel)
+            .join(
+                ConversationModel,
+                ConversationModel.id == AttachmentJobModel.conversation_id,
+            )
+            .filter(
+                ConversationModel.owner_key == owner_key,
+                AttachmentJobModel.state.in_(active_states),
+            )
+        )
+        if owner_bytes + incoming_bytes > MAX_QUEUED_BYTES_PER_OWNER:
+            raise AttachmentQuotaExceeded("attachment storage limit reached for this account")
 
 
 def queue_attachment(conversation_id: int, filename: str, raw: bytes) -> str:
@@ -42,6 +109,9 @@ def queue_attachment(conversation_id: int, filename: str, raw: bytes) -> str:
             old.state = "canceled"
             old.payload = None
             old.updated_at = now
+        # Admission budgets run after supersede (so re-uploading the same name
+        # never counts the job it replaces) and before the payload is stored.
+        _enforce_attachment_quota(database, conversation_id, len(raw))
         database.add(
             AttachmentJobModel(
                 id=job_id,
@@ -227,7 +297,9 @@ def run_one() -> bool:
         return False
     try:
         text = extract_in_subprocess(claim[3], claim[4])
-        chunks = rag_index.chunk_text(text)
+        # Cap the chunk fan-out so one upload cannot expand into unbounded
+        # embedding calls and persisted vector rows.
+        chunks = rag_index.chunk_text(text)[:MAX_CHUNKS_PER_ATTACHMENT]
         if not chunks:
             raise ValueError("no readable attachment text")
         vectors = rag_index.embed_texts(chunks)

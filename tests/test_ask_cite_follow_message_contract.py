@@ -12,7 +12,7 @@ from pathlib import Path
 
 os.environ.setdefault("PAPERQUERY_SECRET", "test-secret")
 
-import app as app_module
+from models import ChatMessageModel
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import support
@@ -56,7 +56,7 @@ class AskCiteFollowMessageJs(unittest.TestCase):
 
 class CitedPapersColumn(unittest.TestCase):
     def test_column_exists(self):
-        cols = set(app_module.ChatMessageModel.__table__.columns.keys())
+        cols = set(ChatMessageModel.__table__.columns.keys())
         self.assertIn("cited_papers", cols)
 
     def test_schema_verifier_exists(self):

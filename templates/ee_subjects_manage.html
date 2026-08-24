@@ -21,10 +21,11 @@
   .ee-subj { display:flex; align-items:center; gap:11px; padding:8px 14px; border-bottom:.5px solid var(--border-soft); }
   .ee-name { flex:1; border:none; background:transparent; font-family:'Source Serif 4', Georgia, serif; font-size:14.5px; color: var(--ink); padding:4px 6px; border-radius:6px; }
   .ee-name:hover, .ee-name:focus { background: var(--cream); outline:1px solid var(--border-soft); }
-  .ee-grip { color:#c4baa6; cursor:grab; display:flex; }
-  .ee-grip svg, .ee-ic { width:17px; height:17px; }
+  .ee-moves { display:inline-flex; gap:2px; }
+  .ee-ic { width:17px; height:17px; }
   .ee-iconbtn { border:none; background:transparent; color: var(--muted); cursor:pointer; padding:4px; border-radius:6px; display:flex; }
   .ee-iconbtn:hover { background:#f1ebde; color: var(--accent); }
+  .ee-iconbtn:disabled { opacity:.3; cursor:not-allowed; }
   .ee-tag { display:inline-flex; align-items:center; gap:5px; border:1px solid var(--border-soft); background:transparent; color: var(--muted-soft);
     border-radius:999px; padding:3px 10px; font-family:'JetBrains Mono', monospace; font-size:10px; letter-spacing:.04em; text-transform:uppercase; cursor:pointer; }
   .ee-tag.is-on { background:#efe7d2; border-color:#d8c9a3; color: var(--status-gold); }
@@ -34,15 +35,9 @@
   .ee-addinput { flex:1; border:.5px solid var(--border); background:#fff; border-radius:8px; padding:7px 11px; font-family:'Source Serif 4', serif; font-size:13.5px; color: var(--ink); }
   .ee-conflicts { background: var(--accent-quiet); border:1px solid var(--accent-wash); border-radius:10px; padding:12px 16px; margin-bottom:16px; color: var(--accent); font-size:13px; }
   .ee-conflicts ul { margin:6px 0 0; padding-left:18px; }
-  /* Drag-reorder (SortableJS): ghost = landing slot, drag = lifted item */
-  .ee-ghost { opacity:.4; background: var(--accent-quiet); }
-  .ee-chosen { background: var(--accent-quiet); }
-  .ee-drag { box-shadow: 0 10px 28px rgba(40, 30, 14, .25); border-radius:10px; }
-  .ee-card.sortable-fallback, .ee-subj.sortable-fallback { box-shadow: 0 10px 28px rgba(40, 30, 14, .25); }
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <symbol id="ee-grip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></symbol>
   <symbol id="ee-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
   <symbol id="ee-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="ee-chev-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></symbol>
@@ -96,7 +91,9 @@
   "deleteSubject": {{ _('Delete subject') | tojson }},
   "deleteGroup": {{ _('Delete group') | tojson }},
   "collapse": {{ _('Collapse / expand') | tojson }},
-  "drag": {{ _('Drag to reorder') | tojson }},
+  "moveUp": {{ _('Move up') | tojson }},
+  "moveDown": {{ _('Move down') | tojson }},
+  "subject": {{ _('Subject') | tojson }},
   "interdisciplinary": {{ _('Interdisciplinary') | tojson }},
   "renamed": {{ _('renamed') | tojson }},
   "added": {{ _('added') | tojson }},
@@ -108,6 +105,5 @@
 
 <div class="kp-toast" id="eeToast"></div>
 
-<script src="{{ url_for('static', filename='vendor/sortable.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/ee-subjects.js') }}"></script>
 {% endblock %}

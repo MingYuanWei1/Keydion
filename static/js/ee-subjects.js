@@ -28,6 +28,20 @@
   function ic(name) { return '<svg class="ee-ic" aria-hidden="true"><use href="#ee-' + name + '"></use></svg>'; }
   function find(arr, u) { for (var i = 0; i < arr.length; i++) if (arr[i].uid === u) return arr[i]; return null; }
   function groupByUid(u) { return find(model.groups, u); }
+  function move(items, item, offset, kind, action) {
+    var from = items.indexOf(item);
+    var to = from + offset;
+    if (from < 0 || to < 0 || to >= items.length) return;
+    items.splice(to, 0, items.splice(from, 1)[0]);
+    markDirty(); render();
+    var selector = kind === 'group'
+      ? '.ee-card[data-guid="' + item.uid + '"]'
+      : '.ee-subj[data-suid="' + item.uid + '"]';
+    var host = groupsEl.querySelector(selector);
+    var focus = host && (host.querySelector('[data-act="' + action + '"]:not(:disabled)') ||
+      host.querySelector('.ee-moves button:not(:disabled)'));
+    if (focus) focus.focus();
+  }
 
   function buildModel(data) {
     var inter = data.interdisciplinary_subjects || [];
@@ -66,7 +80,6 @@
     groupsEl.innerHTML = '';
     model.groups.forEach(function (g) { groupsEl.appendChild(renderGroup(g)); });
     refreshSaveBar();
-    initSortables();
   }
 
   function renderGroup(g) {
@@ -75,8 +88,13 @@
     card.dataset.guid = g.uid;
     var head = document.createElement('div');
     head.className = 'ee-ghead';
+    var groupIndex = model.groups.indexOf(g);
+    var groupLabel = g.name || t('groupName', 'Group name');
     head.innerHTML =
-      '<span class="ee-grip" data-grip="group" title="' + escHtml(t('drag', 'Drag to reorder')) + '">' + ic('grip') + '</span>' +
+      '<span class="ee-moves">' +
+        '<button type="button" class="ee-iconbtn" data-act="move-group-up" aria-label="' + escHtml(t('moveUp', 'Move up') + ': ' + groupLabel) + '"' + (groupIndex === 0 ? ' disabled aria-disabled="true"' : '') + '>' + ic('chev-up') + '</button>' +
+        '<button type="button" class="ee-iconbtn" data-act="move-group-down" aria-label="' + escHtml(t('moveDown', 'Move down') + ': ' + groupLabel) + '"' + (groupIndex === model.groups.length - 1 ? ' disabled aria-disabled="true"' : '') + '>' + ic('chev-down') + '</button>' +
+      '</span>' +
       '<input class="ee-gname" value="' + escHtml(g.name).replace(/"/g, '&quot;') + '" placeholder="' + escHtml(t('groupName', 'Group name')) + '">' +
       '<span class="ee-count">' + g.subjects.length + '</span>' +
       '<button class="ee-iconbtn" data-act="del-group" title="' + escHtml(t('deleteGroup', 'Delete group')) + '">' + ic('trash') + '</button>' +
@@ -85,7 +103,7 @@
     if (!g.collapsed) {
       var list = document.createElement('div');
       list.className = 'ee-subjects';
-      g.subjects.forEach(function (s) { list.appendChild(renderSubject(s)); });
+      g.subjects.forEach(function (s) { list.appendChild(renderSubject(g, s)); });
       var addRow = document.createElement('div');
       addRow.className = 'ee-addrow';
       addRow.innerHTML = ic('plus') + '<input class="ee-addinput" placeholder="' + escHtml(t('addSubject', 'Add a subject to this group…')) + '">';
@@ -95,12 +113,17 @@
     return card;
   }
 
-  function renderSubject(s) {
+  function renderSubject(g, s) {
     var row = document.createElement('div');
     row.className = 'ee-subj';
     row.dataset.suid = s.uid;
+    var subjectIndex = g.subjects.indexOf(s);
+    var subjectLabel = s.name || t('subject', 'Subject');
     row.innerHTML =
-      '<span class="ee-grip" data-grip="subject" title="' + escHtml(t('drag', 'Drag to reorder')) + '">' + ic('grip') + '</span>' +
+      '<span class="ee-moves">' +
+        '<button type="button" class="ee-iconbtn" data-act="move-subj-up" aria-label="' + escHtml(t('moveUp', 'Move up') + ': ' + subjectLabel) + '"' + (subjectIndex === 0 ? ' disabled aria-disabled="true"' : '') + '>' + ic('chev-up') + '</button>' +
+        '<button type="button" class="ee-iconbtn" data-act="move-subj-down" aria-label="' + escHtml(t('moveDown', 'Move down') + ': ' + subjectLabel) + '"' + (subjectIndex === g.subjects.length - 1 ? ' disabled aria-disabled="true"' : '') + '>' + ic('chev-down') + '</button>' +
+      '</span>' +
       '<input class="ee-name" value="' + escHtml(s.name).replace(/"/g, '&quot;') + '">' +
       '<button class="ee-tag' + (s.interdisciplinary ? ' is-on' : '') + '" data-act="toggle-inter">' + ic(s.interdisciplinary ? 'check' : 'circle') + escHtml(t('interdisciplinary', 'Interdisciplinary')) + '</button>' +
       '<button class="ee-iconbtn" data-act="del-subj" title="' + escHtml(t('deleteSubject', 'Delete subject')) + '">' + ic('trash') + '</button>';
@@ -137,7 +160,12 @@
     var card = btn.closest('.ee-card');
     var g = card && groupByUid(+card.dataset.guid); if (!g) return;
     var act = btn.dataset.act;
-    if (act === 'del-group') {
+    if (act === 'move-group-up' || act === 'move-group-down') {
+      move(model.groups, g, act === 'move-group-up' ? -1 : 1, 'group', act);
+    } else if (act === 'move-subj-up' || act === 'move-subj-down') {
+      var moved = find(g.subjects, +btn.closest('.ee-subj').dataset.suid);
+      if (moved) move(g.subjects, moved, act === 'move-subj-up' ? -1 : 1, 'subject', act);
+    } else if (act === 'del-group') {
       if (g.subjects.length && !confirm(t('confirmDeleteGroup', 'Delete this group and all its subjects?'))) return;
       model.groups = model.groups.filter(function (x) { return x.uid !== g.uid; });
       markDirty(); render();
@@ -156,47 +184,6 @@
   function focusAdd(guid) {
     var c = groupsEl.querySelector('.ee-card[data-guid="' + guid + '"]');
     if (c) { var inp = c.querySelector('.ee-addinput'); if (inp) inp.focus(); }
-  }
-
-  /* ── Drag-reorder via SortableJS — live animation, same-group only ── */
-  var sortables = [];
-  function initSortables() {
-    sortables.forEach(function (s) { try { s.destroy(); } catch (e) {} });
-    sortables = [];
-    if (!window.Sortable) return;
-    var opts = {
-      animation: 160, easing: 'cubic-bezier(.2,.7,.3,1)',
-      ghostClass: 'ee-ghost', chosenClass: 'ee-chosen', dragClass: 'ee-drag',
-      onEnd: commitOrder
-    };
-    // Outer list: reorder group cards (group grip only).
-    sortables.push(Sortable.create(groupsEl, Object.assign({
-      handle: '.ee-grip[data-grip="group"]', draggable: '.ee-card'
-    }, opts)));
-    // Inner lists: reorder subjects within each group (subject grip only).
-    // Separate instances ⇒ no cross-group drag; the add-row stays put.
-    groupsEl.querySelectorAll('.ee-subjects').forEach(function (list) {
-      sortables.push(Sortable.create(list, Object.assign({
-        handle: '.ee-grip[data-grip="subject"]', draggable: '.ee-subj', filter: '.ee-addrow'
-      }, opts)));
-    });
-  }
-
-  /* After a drop, read the DOM order back into the model (reorder only —
-     counts and group membership are unchanged by a same-list sort). */
-  function commitOrder() {
-    var newGroups = [];
-    groupsEl.querySelectorAll('.ee-card').forEach(function (card) {
-      var g = groupByUid(+card.dataset.guid); if (!g) return;
-      var subs = [];
-      card.querySelectorAll('.ee-subj').forEach(function (row) {
-        var s = find(g.subjects, +row.dataset.suid); if (s) subs.push(s);
-      });
-      if (subs.length === g.subjects.length) g.subjects = subs;
-      newGroups.push(g);
-    });
-    if (newGroups.length === model.groups.length) model.groups = newGroups;
-    markDirty();
   }
 
   if (addGroupBtn) addGroupBtn.addEventListener('click', function () {

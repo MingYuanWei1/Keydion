@@ -18,30 +18,6 @@ LEGACY_WEB_UNIT = (
 WORKER_UNIT = ROOT / "deploy" / "keydion-publishing-worker.service"
 RUNBOOK = ROOT / "docs" / "deployment" / "paper-publishing-migration.md"
 
-FOCUSED_PUBLISHING_TESTS = (
-    "tests/test_publishing_contracts.py",
-    "tests/test_publishing_models.py",
-    "tests/test_alembic_runtime.py",
-    "tests/test_publishing_migration.py",
-    "tests/test_paper_storage.py",
-    "tests/test_publishing_publish.py",
-    "tests/test_publishing_submissions.py",
-    "tests/test_publishing_revisions.py",
-    "tests/test_publishing_delete.py",
-    "tests/test_publishing_jobs.py",
-    "tests/test_publishing_worker.py",
-    "tests/test_rag_revision_identity.py",
-    "tests/test_publishing_http.py",
-    "tests/test_paper_library.py",
-    "tests/test_paper_identity_routes.py",
-    "tests/test_publishing_mutation_routes.py",
-    "tests/test_publishing_revision_ui.py",
-    "tests/test_publishing_legacy_writers.py",
-    "tests/test_paper_id_consumers.py",
-    "tests/test_publishing_i18n.py",
-    "tests/test_publishing_deployment_contract.py",
-)
-
 WORKER_DEFAULTS = (
     "PAPERQUERY_PUBLISHING_WORKER_POLL_SECONDS=5",
     "PAPERQUERY_PUBLISHING_JOB_LEASE_SECONDS=1800",
@@ -94,9 +70,9 @@ class PublishingDeploymentContract(unittest.TestCase):
 
     def test_workflow_pins_mysql_and_keeps_generated_urls_child_only(self):
         workflow = self._required_text(WORKFLOW)
-        self.assertGreaterEqual(
-            len(re.findall(r"python-version:\s*['\"]?3\.11['\"]?", workflow)),
-            2,
+        self.assertEqual(
+            len(re.findall(r"python-version:\s*['\"]?3\.14['\"]?", workflow)),
+            1,
         )
         self.assertIn("image: mysql:9.7.1", workflow)
         for health_option in (
@@ -111,16 +87,14 @@ class PublishingDeploymentContract(unittest.TestCase):
         self.assertNotIn("PAPERQUERY_DATABASE_URL", workflow)
         self.assertNotIn("PAPERQUERY_TEST_MYSQL_URL", workflow)
         self.assertNotIn("MYSQL_DATABASE", workflow)
-        self.assertIn("python3 -m unittest", workflow)
-        self.assertGreaterEqual(workflow.count("tools/run_isolated_tests.py"), 3)
+        self.assertEqual(workflow.count("tools/run_isolated_tests.py"), 1)
         for target in (
-            "tests/test_alembic_runtime.py",
-            "tests/test_publishing_migration.py",
             "tests/test_publishing_migration_mysql.py",
             "tests/test_publishing_mysql_concurrency.py",
-            *FOCUSED_PUBLISHING_TESTS,
         ):
-            self.assertIn(target, workflow)
+            self.assertTrue((ROOT / target).is_file())
+        self.assertNotIn("tests/test_alembic_runtime.py", workflow)
+        self.assertNotIn("tests/test_publishing_migration.py", workflow)
         self.assertRegex(
             workflow,
             r'tools/run_isolated_tests\.py\s+discover\s+-s\s+tests\s+-p\s+["\']test_\*\.py["\']\s+-v',
@@ -200,6 +174,9 @@ WantedBy=multi-user.target
         compose = (ROOT / "docker-compose.prod.yml").read_text(encoding="utf-8")
         self.assertIn("attachment-worker:", compose)
         self.assertIn('command: ["python", "-m", "tools.attachment_worker"]', compose)
+        self.assertIn("publishing-worker:", compose)
+        self.assertIn('command: ["python", "-m", "tools.publishing_worker"]', compose)
+        self.assertIn("tools.verify_paper_integrity", compose)
 
     def test_environment_documents_the_approved_worker_defaults(self):
         env_example = (ROOT / ".env.example").read_text(encoding="utf-8")
@@ -269,8 +246,9 @@ WantedBy=multi-user.target
         self.assertIn("start again at section 1 in a new root bash", lower)
         self.assertRegex(lower, r"new\s+`?keydion_backup_id")
         self.assertIn('-m pip install', lower)
+        self.assertIn('--require-hashes', lower)
         self.assertIn(
-            '--requirement "$keydion_root/requirements.txt"',
+            '--requirement "$keydion_root/requirements.lock"',
             lower,
         )
         self.assertIn('-m pip check', lower)

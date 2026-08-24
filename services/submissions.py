@@ -1,4 +1,5 @@
 """Submissions: pending-paper CRUD on the submissions table."""
+from config import PENDING_PAPERS_DIR
 from db import db_session
 from models import SubmissionModel
 from services.submission_fence import lock_submission_creation_fence
@@ -91,10 +92,44 @@ def _save_submission(sub, *, pending_write=None, pending_cleanup_on_failure=None
         raise
 
 
-def _store_pending_submission_pdf(upload, pending_path, *, title, author):
+def _store_pending_submission_pdf(raw: bytes, pending_path, *, title, author):
     """Persist Reader intake bytes in the private Submission namespace."""
-    upload.save(pending_path)
+    pending_path.write_bytes(raw)
     set_pdf_metadata(pending_path, title, author)
+
+
+def active_submission_usage(submitter: str) -> tuple[int, int]:
+    """(draft+pending row count, pending PDF bytes) held by one submitter.
+
+    Admission input for the per-account storage budgets (security finding:
+    uploads allocated unbounded persistent storage). Bytes are measured from
+    the private pending namespace; rows without a pending file count 0 bytes.
+    """
+    if not submitter:
+        return 0, 0
+    with db_session() as db:
+        rows = (
+            db.query(SubmissionModel.pending_filename)
+            .filter(
+                SubmissionModel.submitted_by == submitter,
+                SubmissionModel.status.in_(("draft", "pending")),
+            )
+            .all()
+        )
+    count = len(rows)
+    total_bytes = 0
+    root = PENDING_PAPERS_DIR.resolve()
+    for (pending_filename,) in rows:
+        if not pending_filename:
+            continue
+        try:
+            candidate = (PENDING_PAPERS_DIR / pending_filename).resolve()
+            if not candidate.is_relative_to(root) or not candidate.is_file():
+                continue
+            total_bytes += candidate.stat().st_size
+        except OSError:
+            continue
+    return count, total_bytes
 
 
 def _delete_submission(

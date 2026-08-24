@@ -1,4 +1,5 @@
 """Upload wizard + upload-related API routes."""
+import io
 import json
 from uuid import uuid4
 
@@ -19,12 +20,15 @@ import llm_client
 from config import (
     CP_ACTION_TYPES,
     CP_GLOBAL_CONTEXTS,
+    MAX_ACTIVE_SUBMISSIONS_PER_USER,
+    MAX_PENDING_BYTES_PER_USER,
     PENDING_PAPERS_DIR,
     _MISSING_FIELD_MESSAGES,
 )
 from ee_pdf_extractor import EePdfExtractionError, extract_ee_metadata
 from ia_metadata import IAMetadataError, generate_ia_scores
 from llm_metadata import LLMMetadataError, generate_abstract_keywords
+from pdf_text import PdfStructureError, check_pdf_bytes
 from services.auth import get_active_user, require_login
 from services.journals import get_journal_names
 from services.publishing_contracts import (
@@ -54,6 +58,7 @@ from services.submissions import (
     _save_submission,
     _store_pending_submission_pdf,
     _update_submission,
+    active_submission_usage,
 )
 from services.publishing_time import utc_now_db
 from services.rate_limit import consume as consume_rate_limit
@@ -87,6 +92,16 @@ def register_routes(app):
                 response.status_code = 429
                 response.headers["Retry-After"] = str(decision.retry_after)
                 return response
+        return None
+
+    def _submission_quota_error(user, *, extra_rows: int = 0, extra_bytes: int = 0):
+        """Refuse new draft/pending storage past per-account budgets
+        (security finding: uploads allocated unbounded persistent storage)."""
+        count, used_bytes = active_submission_usage(user.get("username", ""))
+        if count + extra_rows > MAX_ACTIVE_SUBMISSIONS_PER_USER:
+            return _("You have too many drafts and pending submissions. Delete one before adding another.")
+        if used_bytes + extra_bytes > MAX_PENDING_BYTES_PER_USER:
+            return _("Your pending submissions use too much storage. Delete one before uploading more.")
         return None
 
     def _render_upload(user, form_data, draft_id, publishing_error=None):
@@ -469,6 +484,10 @@ def register_routes(app):
                         abort(404)
                 else:
                     # Create new draft
+                    quota_error = _submission_quota_error(user, extra_rows=1)
+                    if quota_error:
+                        flash(quota_error, "danger")
+                        return _render_upload(user, form_data, draft_id)
                     sub_id = uuid4().hex[:12]
                     submission = {
                         "id": sub_id,
@@ -558,6 +577,18 @@ def register_routes(app):
                 elif not magic.startswith(b"%PDF-"):
                     flash(_("File is not a valid PDF"), "danger")
                 else:
+                    raw_pdf = file.stream.read()
+                    try:
+                        # Structural budgets run BEFORE any synchronous parse,
+                        # rewrite, or storage work (security finding: untrusted
+                        # parser without isolation).
+                        check_pdf_bytes(raw_pdf)
+                    except PdfStructureError:
+                        message = _("This PDF cannot be processed — it is corrupt, encrypted, or exceeds the page limit.")
+                        flash(message, "danger")
+                        if is_ajax:
+                            return jsonify(ok=False, error=message), 400
+                        return _render_upload(user, form_data, draft_id)
                     # Build a safe filename: try title+author first, fall back to UUID
                     filename = _build_safe_paper_filename(
                         form_data["title"], form_data["author_name"]
@@ -588,7 +619,7 @@ def register_routes(app):
                             ),
                             pdf=PdfUpload(
                                 filename=original_filename,
-                                stream=file.stream,
+                                stream=io.BytesIO(raw_pdf),
                             ),
                         )
                         try:
@@ -624,6 +655,16 @@ def register_routes(app):
                         return redirect(url_for("upload"))
                     else:
                         # Reader: save to pending review queue
+                        quota_error = _submission_quota_error(
+                            user,
+                            extra_rows=0 if draft_id else 1,
+                            extra_bytes=len(raw_pdf),
+                        )
+                        if quota_error:
+                            flash(quota_error, "danger")
+                            if is_ajax:
+                                return jsonify(ok=False, error=quota_error), 400
+                            return _render_upload(user, form_data, draft_id)
                         if draft_id:
                             existing = _get_submission(draft_id)
                             if not existing or existing.get("submitter") != user.get("username", ""):
@@ -637,7 +678,7 @@ def register_routes(app):
                             abort(400)  # unreachable for server-minted names; defense-in-depth
                         def write_pending_pdf():
                             _store_pending_submission_pdf(
-                                file,
+                                raw_pdf,
                                 pending_path,
                                 title=form_data["title"],
                                 author=form_data["author_name"],
@@ -739,6 +780,13 @@ def register_routes(app):
         raw = upload.read()
         if not raw.startswith(b"%PDF-"):
             return jsonify({"error": str(_("File is not a valid PDF"))}), 400
+        try:
+            # Structural budgets before any extraction work (security finding:
+            # untrusted parser without isolation).
+            check_pdf_bytes(raw)
+        except PdfStructureError:
+            return jsonify({"error": str(_(
+                "This PDF cannot be processed — it is corrupt, encrypted, or exceeds the page limit."))}), 400
 
         try:
             result = extract_ee_metadata(raw)
@@ -765,6 +813,13 @@ def register_routes(app):
         raw = upload.read()
         if not raw.startswith(b"%PDF-"):
             return jsonify({"error": str(_("File is not a valid PDF"))}), 400
+        try:
+            # Structural budgets before any extraction work (security finding:
+            # untrusted parser without isolation).
+            check_pdf_bytes(raw)
+        except PdfStructureError:
+            return jsonify({"error": str(_(
+                "This PDF cannot be processed — it is corrupt, encrypted, or exceeds the page limit."))}), 400
 
         language = request.form.get("language", "en")
         try:
@@ -792,6 +847,13 @@ def register_routes(app):
         raw = upload.read()
         if not raw.startswith(b"%PDF-"):
             return jsonify({"error": str(_("File is not a valid PDF"))}), 400
+        try:
+            # Structural budgets before any extraction work (security finding:
+            # untrusted parser without isolation).
+            check_pdf_bytes(raw)
+        except PdfStructureError:
+            return jsonify({"error": str(_(
+                "This PDF cannot be processed — it is corrupt, encrypted, or exceeds the page limit."))}), 400
 
         language = request.form.get("language", "en")
         subject = request.form.get("subject", "").strip()
