@@ -255,7 +255,8 @@ def register_routes(app):
                                 user=user,
                             )
                         NEWS_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
-                        safe_name = f"{news_id}_{secure_filename(cover_file.filename)}"
+                        safe_news_id = secure_filename(news_id) or str(uuid4())
+                        safe_name = f"{safe_news_id}_{secure_filename(cover_file.filename)}"
                         (NEWS_IMAGES_DIR / safe_name).write_bytes(cover_raw)
                         form_data["image_url"] = url_for("static", filename=f"uploads/news/{safe_name}")
                     else:
