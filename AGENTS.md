@@ -4,6 +4,16 @@ Keydion is a bilingual Flask/MySQL academic-paper library for publishing, search
 
 Runtime: Python 3.14+; dependencies use pip/pip-tools. There is no frontend build or typecheck step.
 
+## Language and writing style
+
+Use clear, human-understandable language in all natural-language replies to the user.
+
+- Use a warm, direct tone.
+- Be conversational when it improves understanding, and more pragmatic when explaining technical topics.
+- Avoid jargon.
+
+Apply these language and tone rules to prose written directly to the user, not to code, quoted text, or file content.
+
 ## Task-specific guidance
 
 Read only the guides whose trigger matches the task:
