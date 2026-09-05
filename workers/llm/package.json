@@ -1,0 +1,21 @@
+{
+  "name": "keydion-llm-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "types": "wrangler types",
+    "check": "tsc --noEmit",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "dry-run": "wrangler deploy --dry-run"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260905.1",
+    "@types/node": "^24.13.3",
+    "esbuild": "0.28.1",
+    "miniflare": "5.20260903.0-alpha",
+    "typescript": "~5.9.3",
+    "wrangler": "4.129.0"
+  }
+}

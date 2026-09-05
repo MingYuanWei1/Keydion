@@ -1,0 +1,45 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin-models.css') }}">
+<div class="kp-head">
+  <div class="kp-head__left">
+    <h1 class="kp-title">{{ _('AI models') }}</h1>
+    <p class="kp-sub">{{ _('Model configuration is managed in Cloudflare.') }}</p>
+    <p>{{ _('Status reflects configuration, not a live model test. Refresh this page to check again.') }}</p>
+  </div>
+</div>
+{% if not snap.available %}
+<div class="alert alert-warning" role="status">{{ _('Worker status is unavailable. Check the server connection settings.') }}</div>
+{% endif %}
+<div class="kp-card mb-4 table-responsive">
+  <table class="kp-table">
+    <thead><tr><th>{{ _('Purpose') }}</th><th>{{ _('Model') }}</th><th>{{ _('Status') }}</th></tr></thead>
+    <tbody>
+      {% for purpose, label in [('flash', _('Fast responses')), ('think', _('Reasoning')), ('vision', _('Vision-first extraction')), ('embed', _('Semantic search'))] %}
+      {% set capability = snap.purposes.get(purpose, {}) %}
+      <tr>
+        <td>{{ label }}</td><td>{{ capability.get('model') or '—' }}</td>
+        <td>{{ _('Configured') if capability.get('enabled') else _('Not set') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% if snap.purposes.get('embed', {}).get('enabled') %}
+<div class="kp-card mb-4 p-3">
+  <p>{{ _('Embedding identity') }}: <code class="text-break">{{ snap.purposes.embed.embedding_id }}</code></p>
+  <p>{{ _('Dimensions') }}: {{ snap.purposes.embed.dimensions }}</p>
+  <p>{{ _('The embedding identity and dimensions match this server.') if snap.embedding_ready else _('Embeddings are blocked until the server identity and dimensions match. Coordinate any model change with a full index update.') }}</p>
+</div>
+{% endif %}
+<form class="kp-card p-3" id="workerSearchForm" method="post" action="{{ url_for('admin_models_save') }}"
+      data-saved="{{ _('Saved.') }}" data-failed="{{ _('Save failed. Please try again.') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="env_mtime" value="{{ snap.env_mtime }}">
+  <h2 class="h5">{{ _('Web search') }} · {{ _('Tavily') }}</h2>
+  <p>{{ _('Configured') if snap.search_configured else _('Not set') }}</p>
+  <label class="form-label" for="workerSearchKey">{{ _('API key') }}</label>
+  <input type="password" class="form-control mb-2" id="workerSearchKey" name="api_key" autocomplete="new-password">
+  <p class="small">{{ _('Saving an empty key disables web search.') }}</p>
+  <button class="kp-btn kp-btn--primary" type="submit">{{ _('Save changes') }}</button>
+  <p class="mt-2" id="workerSearchResult" role="status"></p>
+</form>
+<script src="{{ url_for('static', filename='js/admin-models-worker.js') }}"></script>

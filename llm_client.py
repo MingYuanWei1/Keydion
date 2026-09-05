@@ -1,8 +1,7 @@
 """Central LLM client + model resolution for the Keydion app.
 
-Chat models use LLM_API_KEY / LLM_BASE_URL. Embeddings can use a SEPARATE
-provider (e.g. Gemini's OpenAI-compatible endpoint) via LLM_EMBED_API_KEY /
-LLM_EMBED_BASE_URL, falling back to the chat credentials when unset.
+Worker mode sends purpose aliases to Cloudflare using one server credential.
+Direct provider configuration remains available for staged rollout/rollback.
 
 The conversation interface — chat() / chat_json() — is the seam every
 non-streaming caller crosses: model tier, client construction, the provider
@@ -18,6 +17,9 @@ import logging
 import os
 import re
 
+import config
+import llm_worker
+
 from services.publishing_contracts import (
     IndexDeadlineExceeded,
     raise_deadline_if_expired as _raise_deadline_if_expired,
@@ -28,18 +30,26 @@ _log = logging.getLogger(__name__)
 
 
 def flash_model() -> str:
+    if llm_worker.enabled():
+        return "flash"
     return os.environ.get("LLM_DEFAULT_FLASH") or "gpt-4o-mini"
 
 
 def think_model() -> str:
+    if llm_worker.enabled():
+        return "think"
     return os.environ.get("LLM_DEFAULT_THINK") or flash_model()
 
 
 def embed_model() -> str:
+    if llm_worker.enabled():
+        return "embed:" + llm_worker.embedding_id()
     return os.environ.get("LLM_EMBED_MODEL") or "gemini-embedding-001"
 
 
 def vision_model() -> str:
+    if llm_worker.enabled():
+        return "vision" if llm_worker.purpose_enabled("vision") else ""
     return os.environ.get("LLM_VISION") or ""
 
 
@@ -53,16 +63,22 @@ def embed_batch_size() -> int:
 
 
 def llm_enabled() -> bool:
+    if llm_worker.enabled():
+        return llm_worker.purpose_enabled("flash") or llm_worker.purpose_enabled("think")
     return bool(os.environ.get("LLM_API_KEY"))
 
 
 def embedding_enabled() -> bool:
     """Whether either the dedicated or fallback chat key can embed text."""
+    if llm_worker.enabled():
+        return llm_worker.purpose_enabled("embed")
     return bool(_embed_credentials()[0])
 
 
 def _embed_credentials() -> tuple[str, str | None]:
     """(api_key, base_url) for the embedding provider, falling back to chat vars."""
+    if llm_worker.enabled():
+        return llm_worker.credentials()
     api_key = os.environ.get("LLM_EMBED_API_KEY") or os.environ.get("LLM_API_KEY") or ""
     base_url = os.environ.get("LLM_EMBED_BASE_URL") or os.environ.get("LLM_BASE_URL") or None
     return api_key, base_url
@@ -70,6 +86,8 @@ def _embed_credentials() -> tuple[str, str | None]:
 
 def _vision_credentials() -> tuple[str, str | None]:
     """(api_key, base_url) for the vision provider, falling back to chat vars."""
+    if llm_worker.enabled():
+        return llm_worker.credentials()
     api_key = os.environ.get("LLM_VISION_API_KEY") or os.environ.get("LLM_API_KEY") or ""
     base_url = os.environ.get("LLM_VISION_BASE_URL") or os.environ.get("LLM_BASE_URL") or None
     return api_key, base_url
@@ -77,7 +95,7 @@ def _vision_credentials() -> tuple[str, str | None]:
 
 def _new_client(api_key: str, base_url, *, deadline: float | None = None,
                 fallback_timeout: float | None = None,
-                fallback_max_retries: int | None = None):
+                fallback_max_retries: int | None = None, default_headers=None):
     _remaining_timeout(deadline)
     try:
         from openai import OpenAI  # imported lazily so import errors surface at call time
@@ -85,6 +103,14 @@ def _new_client(api_key: str, base_url, *, deadline: float | None = None,
         _raise_deadline_if_expired(deadline, exc)
         raise
     kwargs = {"api_key": api_key, "base_url": base_url}
+    if default_headers is not None:
+        kwargs["default_headers"] = default_headers
+    if llm_worker.enabled():
+        # Disable SDK redirects too: the shared token belongs only to the Worker.
+        from openai import DefaultHttpxClient
+        kwargs.update(http_client=DefaultHttpxClient(follow_redirects=False),
+                      timeout=90.0, max_retries=0,
+                      default_headers={"User-Agent": "Keydion/llm-worker", **(default_headers or {})})
     if deadline is not None:
         kwargs.update(timeout=_remaining_timeout(deadline), max_retries=0)
     else:
@@ -105,6 +131,8 @@ def _new_client(api_key: str, base_url, *, deadline: float | None = None,
 
 def build_client(*, deadline: float | None = None):
     """OpenAI-compatible CHAT client from LLM_API_KEY / LLM_BASE_URL."""
+    if llm_worker.enabled():
+        return _new_client(*llm_worker.credentials(), deadline=deadline)
     api_key = os.environ.get("LLM_API_KEY") or ""
     base_url = os.environ.get("LLM_BASE_URL") or None
     return _new_client(api_key, base_url, deadline=deadline)
@@ -113,6 +141,10 @@ def build_client(*, deadline: float | None = None):
 def build_embed_client(*, deadline: float | None = None):
     """Embedding client from LLM_EMBED_* (fallback to chat vars)."""
     api_key, base_url = _embed_credentials()
+    if llm_worker.enabled():
+        return _new_client(api_key, base_url, deadline=deadline, default_headers={
+            "X-Keydion-Embed-Dim": str(config.RAG_EMBED_DIM),
+        })
     return _new_client(api_key, base_url, deadline=deadline)
 
 
@@ -132,6 +164,8 @@ def build_vision_client(*, deadline: float | None = None):
 
 
 def vision_enabled() -> bool:
+    if llm_worker.enabled():
+        return llm_worker.purpose_enabled("vision")
     return bool(vision_model()) and bool(_vision_credentials()[0])
 
 

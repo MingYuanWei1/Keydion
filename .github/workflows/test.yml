@@ -37,3 +37,22 @@ jobs:
       - name: Run the full unittest suite in isolation
         run: >-
           python3 tools/run_isolated_tests.py discover -s tests -p "test_*.py" -v
+
+  llm-worker:
+    name: LLM Worker (Node 24)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: workers/llm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: workers/llm/package-lock.json
+      - run: npm ci
+      - run: npm run types
+      - run: npm run check
+      - run: npm test
+      - run: npm run dry-run

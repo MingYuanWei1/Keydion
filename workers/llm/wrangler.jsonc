@@ -1,0 +1,63 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "keydion-llm",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-05",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+    "logs": {
+      "enabled": true,
+      "invocation_logs": false
+    }
+  },
+  "vars": {
+    "MODEL_ROUTES": {
+      "flash": {
+        "model": "gemini-3.8-flash",
+        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+        "key_secret": "CHAT_API_KEY",
+        "enabled": true
+      },
+      "think": {
+        "model": "gemini-3.8-flash",
+        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+        "key_secret": "CHAT_API_KEY",
+        "enabled": true,
+        "reasoning_effort": "high"
+      },
+      "vision": {
+        "model": "gemini-3.8-flash",
+        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+        "key_secret": "VISION_API_KEY",
+        "enabled": true
+      },
+      "embed": {
+        "model": "gemini-embedding-001",
+        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+        "key_secret": "EMBED_API_KEY",
+        "enabled": true,
+        "dimensions": 3072
+      }
+    }
+  },
+  "secrets": {
+    "required": [
+      "KEYDION_TOKEN",
+      "CHAT_API_KEY",
+      "VISION_API_KEY",
+      "EMBED_API_KEY"
+    ]
+  },
+  "routes": [
+    {
+      "pattern": "api.keydion.com",
+      "custom_domain": true
+    }
+  ],
+  "workers_dev": false,
+  "preview_urls": false
+}

@@ -246,6 +246,11 @@ def run_ask_turn(inp):
                     slot = acc.setdefault(idx, {"id": "", "name": "", "arguments": ""})
                     if getattr(tc, "id", None):
                         slot["id"] = tc.id
+                    # Gemini returns opaque thought signatures here; echo them
+                    # with the tool call so the provider can resume the turn.
+                    extra_content = getattr(tc, "extra_content", None)
+                    if isinstance(extra_content, dict) and extra_content:
+                        slot["extra_content"] = extra_content
                     fn = getattr(tc, "function", None)
                     if fn is not None:
                         if getattr(fn, "name", None):
@@ -261,7 +266,8 @@ def run_ask_turn(inp):
                     "tool_calls": [
                         # Synthetic id if the provider omitted it; must match the tool message below.
                         {"id": c["id"] or f"call_{idx}", "type": "function",
-                         "function": {"name": c["name"], "arguments": c["arguments"]}}
+                         "function": {"name": c["name"], "arguments": c["arguments"]},
+                         **({"extra_content": c["extra_content"]} if "extra_content" in c else {})}
                         for idx, c in enumerate(calls)
                     ],
                 })

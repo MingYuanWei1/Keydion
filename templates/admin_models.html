@@ -1,6 +1,9 @@
 {% extends "_bare.html" if partial else "_dashboard_shell.html" %}
 {% block title %}{{ _('AI models · Keydion') }}{% endblock %}
 {% block panel %}
+{% if snap.worker %}
+{% include '_dashboard/admin_models_worker.html' %}
+{% else %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-models.css') }}">
 <div id="modelsPanel"
      data-probe-url="{{ url_for('admin_models_probe') }}"
@@ -259,4 +262,5 @@
 </div>
 
 <script src="{{ url_for('static', filename='js/admin-models.js') }}"></script>
+{% endif %}
 {% endblock %}

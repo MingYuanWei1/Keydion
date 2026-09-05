@@ -4677,3 +4677,54 @@ msgstr ""
 msgid "Update security"
 msgstr ""
 
+#: services/llm_admin.py:955 templates/_dashboard/admin_models_worker.html:5
+msgid "Model configuration is managed in Cloudflare."
+msgstr ""
+
+#: templates/_dashboard/admin_models_worker.html:6
+msgid ""
+"Status reflects configuration, not a live model test. Refresh this page to "
+"check again."
+msgstr ""
+
+#: templates/_dashboard/admin_models_worker.html:10
+msgid "Worker status is unavailable. Check the server connection settings."
+msgstr ""
+
+#: templates/_dashboard/admin_models_worker.html:14
+msgid "Purpose"
+msgstr ""
+
+#: templates/_dashboard/admin_models_worker.html:16
+msgid "Fast responses"
+msgstr ""
+
+#: templates/_dashboard/admin_models_worker.html:16
+msgid "Reasoning"
+msgstr ""
+
+#: templates/_dashboard/admin_models_worker.html:28
+msgid "Embedding identity"
+msgstr ""
+
+#: templates/_dashboard/admin_models_worker.html:29
+msgid "Dimensions"
+msgstr ""
+
+#: templates/_dashboard/admin_models_worker.html:30
+msgid "The embedding identity and dimensions match this server."
+msgstr ""
+
+#: templates/_dashboard/admin_models_worker.html:30
+msgid ""
+"Embeddings are blocked until the server identity and dimensions match. "
+"Coordinate any model change with a full index update."
+msgstr ""
+
+#: templates/_dashboard/admin_models_worker.html:34
+msgid "Save failed. Please try again."
+msgstr ""
+
+#: templates/_dashboard/admin_models_worker.html:41
+msgid "Saving an empty key disables web search."
+msgstr ""

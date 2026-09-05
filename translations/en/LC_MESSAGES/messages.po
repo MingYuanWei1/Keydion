@@ -1881,11 +1881,9 @@ msgstr "Admin"
 msgid "Manage users"
 msgstr "Manage users"
 
-# | msgid "IA Details"
 #: templates/_dashboard_shell.html:176 templates/admin_models.html:20
-#, fuzzy
 msgid "AI models"
-msgstr "IA Details"
+msgstr "AI models"
 
 #: templates/_dashboard_shell.html:182 templates/admin_version.html:11
 msgid "Version"
@@ -2062,15 +2060,13 @@ msgstr ""
 msgid "Ask and auto-fill"
 msgstr ""
 
-# | msgid "Advanced Search"
 #: templates/admin_models.html:37
-#, fuzzy
 msgid "Semantic search"
-msgstr "Advanced Search"
+msgstr "Semantic search"
 
 #: templates/admin_models.html:42
 msgid "Vision-first extraction"
-msgstr ""
+msgstr "Vision-first extraction"
 
 #: templates/admin_models.html:43
 msgid "off"
@@ -2143,19 +2139,15 @@ msgstr ""
 msgid "Text"
 msgstr ""
 
-# | msgid "Continue →"
 #: templates/admin_models.html:96 templates/admin_models.html:161
 #: templates/admin_models.html:200
-#, fuzzy
 msgid "Configured"
-msgstr "Continue →"
+msgstr "Configured"
 
-# | msgid "Not chosen"
 #: templates/admin_models.html:96 templates/admin_models.html:161
 #: templates/admin_models.html:200
-#, fuzzy
 msgid "Not set"
-msgstr "Not chosen"
+msgstr "Not set"
 
 # | msgid "Last name"
 #: templates/admin_models.html:106
@@ -2184,11 +2176,9 @@ msgstr "Save changes"
 msgid "Embedding"
 msgstr "Pending"
 
-# | msgid "Move"
 #: templates/admin_models.html:140 templates/admin_models.html:181
-#, fuzzy
 msgid "Model"
-msgstr "Move"
+msgstr "Model"
 
 #: templates/admin_models.html:144
 msgid ""
@@ -2224,19 +2214,17 @@ msgstr "Not provided"
 msgid "Disabled"
 msgstr "Discard"
 
-# | msgid "Search"
 #: templates/admin_models.html:197
-#, fuzzy
 msgid "Web search"
-msgstr "Search"
+msgstr "Web search"
 
 #: templates/admin_models.html:199
 msgid "Tavily"
-msgstr ""
+msgstr "Tavily"
 
 #: templates/admin_models.html:203 templates/admin_models.html:238
 msgid "API key"
-msgstr ""
+msgstr "API key"
 
 #: templates/admin_models.html:205 templates/admin_models.html:240
 msgid "Configured — enter a new key to replace it"
@@ -5429,3 +5417,59 @@ msgstr ""
 #~ "list from the endpoint as text "
 #~ "models; adjust their roles after."
 #~ msgstr ""
+
+#: services/llm_admin.py:955 templates/_dashboard/admin_models_worker.html:5
+msgid "Model configuration is managed in Cloudflare."
+msgstr "Model configuration is managed in Cloudflare."
+
+#: templates/_dashboard/admin_models_worker.html:6
+msgid ""
+"Status reflects configuration, not a live model test. Refresh this page to "
+"check again."
+msgstr ""
+"Status reflects configuration, not a live model test. Refresh this page to "
+"check again."
+
+#: templates/_dashboard/admin_models_worker.html:10
+msgid "Worker status is unavailable. Check the server connection settings."
+msgstr "Worker status is unavailable. Check the server connection settings."
+
+#: templates/_dashboard/admin_models_worker.html:14
+msgid "Purpose"
+msgstr "Purpose"
+
+#: templates/_dashboard/admin_models_worker.html:16
+msgid "Fast responses"
+msgstr "Fast responses"
+
+#: templates/_dashboard/admin_models_worker.html:16
+msgid "Reasoning"
+msgstr "Reasoning"
+
+#: templates/_dashboard/admin_models_worker.html:28
+msgid "Embedding identity"
+msgstr "Embedding identity"
+
+#: templates/_dashboard/admin_models_worker.html:29
+msgid "Dimensions"
+msgstr "Dimensions"
+
+#: templates/_dashboard/admin_models_worker.html:30
+msgid "The embedding identity and dimensions match this server."
+msgstr "The embedding identity and dimensions match this server."
+
+#: templates/_dashboard/admin_models_worker.html:30
+msgid ""
+"Embeddings are blocked until the server identity and dimensions match. "
+"Coordinate any model change with a full index update."
+msgstr ""
+"Embeddings are blocked until the server identity and dimensions match. "
+"Coordinate any model change with a full index update."
+
+#: templates/_dashboard/admin_models_worker.html:34
+msgid "Save failed. Please try again."
+msgstr "Save failed. Please try again."
+
+#: templates/_dashboard/admin_models_worker.html:41
+msgid "Saving an empty key disables web search."
+msgstr "Saving an empty key disables web search."

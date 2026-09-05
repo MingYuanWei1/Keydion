@@ -36,6 +36,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 import config
+import llm_worker
 import web_search
 from services import version as version_service
 
@@ -457,6 +458,7 @@ def save_provider(payload: dict, expected_env_mtime: float | None = None,
                   expected_json_mtime: float | None = None) -> dict:
     """Create or update one provider. `id` in the payload means update (the id
     itself is immutable); absence means create, deriving the id from the name."""
+    _require_direct_models()
     reg, _ = load_registry()
     name = (payload.get("name") or "").strip()
     if not name or len(name) > 64 or any(ord(c) < 32 for c in name):
@@ -520,6 +522,7 @@ def _refuse_assigned_models(reg: dict, removed_model_ids: set[str]) -> None:
 
 def delete_provider(payload: dict, expected_env_mtime: float | None = None,
                     expected_json_mtime: float | None = None) -> dict:
+    _require_direct_models()
     reg, _ = load_registry()
     pid = (payload.get("id") or "").strip()
     provider = _provider_by_id(reg, pid)
@@ -558,6 +561,16 @@ def _provider_public(reg: dict, provider: dict) -> dict:
 
 def snapshot() -> dict:
     """Everything the AI-models page needs; keys appear only as booleans."""
+    if llm_worker.enabled():
+        status = llm_worker.capabilities()
+        path = active_env_path()
+        return {
+            "worker": True, **status,
+            "embedding_ready": llm_worker.purpose_enabled("embed"),
+            "embed_dim": config.RAG_EMBED_DIM,
+            "search_configured": web_search.web_search_enabled(),
+            "env_mtime": path.stat().st_mtime if path.exists() else 0,
+        }
     path = active_env_path()
     raw_file = _saved_values()
     reg, json_mtime = load_registry()
@@ -755,6 +768,8 @@ def probe(payload: dict) -> dict:
     """
     try:
         slot = (payload.get("slot") or "").strip()
+        if slot != "search":
+            _require_direct_models()
         if slot not in _SLOTS and slot != "provider":
             return _probe_fail("Unknown slot.")
         if slot == "provider":
@@ -898,6 +913,16 @@ def apply_slot(payload: dict, expected_env_mtime: float | None = None,
     """Persist one slot's assignment. The registry records the provider link;
     the env file receives the resolved flat variables llm_client reads."""
     slot = (payload.get("slot") or "").strip()
+    if llm_worker.enabled():
+        if slot != "search":
+            _require_direct_models()
+        api_key = (payload.get("api_key") or "").strip()
+        _validate_value("api_key", api_key)
+        updates = {"WEB_SEARCH_API_KEY": api_key}
+        _write_env(updates, expected_mtime=expected_env_mtime)
+        os.environ.update(updates)
+        restarted = version_service.request_graceful_restart()
+        return {"ok": True, "restarted": restarted, "snap": snapshot()}
     if slot not in _SLOTS:
         raise LLMAdminError("Unknown slot.")
     reg, _ = load_registry()
@@ -922,6 +947,12 @@ def apply_slot(payload: dict, expected_env_mtime: float | None = None,
         "json_mtime": json_mtime,
         "snap": snapshot(),
     }
+
+
+def _require_direct_models():
+    if llm_worker.enabled():
+        from flask_babel import gettext as _
+        raise LLMAdminError(_("Model configuration is managed in Cloudflare."))
 
 
 def _build_updates(slot: str, payload: dict, reg: dict, saved: dict) -> tuple[dict, dict]:

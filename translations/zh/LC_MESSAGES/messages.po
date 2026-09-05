@@ -5237,3 +5237,55 @@ msgstr "更新安全设置"
 #~ "list from the endpoint as text "
 #~ "models; adjust their roles after."
 #~ msgstr "每个模型都标注其角色——槽位选择器只会列出角色匹配的模型。“获取模型”从接口拉取的模型默认为文本角色，可再调整。"
+
+#: services/llm_admin.py:955 templates/_dashboard/admin_models_worker.html:5
+msgid "Model configuration is managed in Cloudflare."
+msgstr "模型配置由 Cloudflare 管理。"
+
+#: templates/_dashboard/admin_models_worker.html:6
+msgid ""
+"Status reflects configuration, not a live model test. Refresh this page to "
+"check again."
+msgstr "状态仅反映配置情况，不代表模型调用测试结果。刷新页面可再次查看。"
+
+#: templates/_dashboard/admin_models_worker.html:10
+msgid "Worker status is unavailable. Check the server connection settings."
+msgstr "无法获取 Worker 状态，请检查服务器连接设置。"
+
+#: templates/_dashboard/admin_models_worker.html:14
+msgid "Purpose"
+msgstr "用途"
+
+#: templates/_dashboard/admin_models_worker.html:16
+msgid "Fast responses"
+msgstr "快速回答"
+
+#: templates/_dashboard/admin_models_worker.html:16
+msgid "Reasoning"
+msgstr "深度思考"
+
+#: templates/_dashboard/admin_models_worker.html:28
+msgid "Embedding identity"
+msgstr "嵌入模型标识"
+
+#: templates/_dashboard/admin_models_worker.html:29
+msgid "Dimensions"
+msgstr "向量维度"
+
+#: templates/_dashboard/admin_models_worker.html:30
+msgid "The embedding identity and dimensions match this server."
+msgstr "嵌入模型标识和向量维度与本服务器一致。"
+
+#: templates/_dashboard/admin_models_worker.html:30
+msgid ""
+"Embeddings are blocked until the server identity and dimensions match. "
+"Coordinate any model change with a full index update."
+msgstr "嵌入模型标识和向量维度与服务器一致后才能使用向量功能。更换模型时须同步完整更新索引。"
+
+#: templates/_dashboard/admin_models_worker.html:34
+msgid "Save failed. Please try again."
+msgstr "保存失败，请重试。"
+
+#: templates/_dashboard/admin_models_worker.html:41
+msgid "Saving an empty key disables web search."
+msgstr "保存空密钥将停用网页搜索。"

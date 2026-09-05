@@ -144,6 +144,24 @@ def _deps_for(paper_id, title="A Fine Paper"):
 
 
 class HappyPathTest(unittest.TestCase):
+    def test_tool_signature_survives_stream_fragments_and_is_not_sent_to_ui(self):
+        signature = {"google": {"thought_signature": "opaque-provider-signature"}}
+        metadata_chunk = _ToolCall(0)
+        metadata_chunk.extra_content = signature
+        create = _FakeCreate([
+            [_Chunk(_Delta(tool_calls=[_ToolCall(0, id="call_1", name="read_paper",
+                arguments=json.dumps({"paper_id": PAPER_A_ID}))])),
+             _Chunk(_Delta(tool_calls=[metadata_chunk]))],
+            [_Chunk(_Delta(content="Verified [1]."))],
+        ])
+        inp = _build_input(_FakeClient(create), _deps_for(PAPER_A_ID), mock.Mock(),
+                           hits=[_hit(PAPER_A_ID, "A Fine Paper", "Paper text.")])
+        events = _events(inp)
+        assistant = next(m for m in create.calls[1]["messages"] if m.get("tool_calls"))
+        self.assertEqual(assistant["tool_calls"][0]["extra_content"], signature)
+        self.assertNotIn("opaque-provider-signature", json.dumps(events))
+        self.assertIn("done", _types(events))
+
     def test_round1_tool_call_then_round2_answer_citing_1(self):
         # Round 1: read_paper tool call, arguments split across chunks.
         # Round 2: final answer citing [1].
