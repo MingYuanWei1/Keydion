@@ -187,10 +187,6 @@ def run_ask_turn(inp):
                 messages.append({"role": "system",
                                  "content": intro + "\n\n" + "\n\n".join(results)})
 
-        create_kwargs = {}
-        if inp.mode == "think":
-            create_kwargs["extra_body"] = {"thinking": {"type": "enabled"}}
-
         client = inp.client
         model = inp.model
         answered = False
@@ -199,7 +195,6 @@ def run_ask_turn(inp):
                 stream = client.chat.completions.create(
                     model=model, temperature=0.2, stream=True,
                     messages=messages, tools=tool_schemas,
-                    **create_kwargs,
                 )
             except Exception:
                 if round_i == 0:
@@ -212,8 +207,7 @@ def run_ask_turn(inp):
                     legacy_stream = client.chat.completions.create(
                         model=model, temperature=0.2, stream=True,
                         messages=[{"role": "system", "content": system}] + inp.llm_messages,
-                        **create_kwargs,
-                    )
+                        )
                     for chunk in legacy_stream:
                         try:
                             delta = chunk.choices[0].delta.content or ""
@@ -332,7 +326,7 @@ def run_ask_turn(inp):
             final_stream = client.chat.completions.create(
                 model=model, temperature=0.2, stream=True,
                 messages=messages, tools=tool_schemas,
-                tool_choice="none", **create_kwargs,
+                tool_choice="none",
             )
             for chunk in final_stream:
                 try:

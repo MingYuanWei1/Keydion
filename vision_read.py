@@ -9,7 +9,7 @@ multimodal LLM. Two entry points:
         on hard failure (no client / empty render / provider error / unparseable).
 
 Provider/model resolved via llm_client.build_vision_client() + vision_model()
-(LLM_VISION / LLM_VISION_API_KEY / LLM_VISION_BASE_URL). Page images go out as
+through the Worker. Page images go out as
 OpenAI-style data:image/png;base64 content parts; the completion itself crosses
 llm_client's conversation interface (chat / chat_json).
 """

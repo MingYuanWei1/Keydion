@@ -27,7 +27,7 @@ in how they read a PDF.
 
 ## Consequences
 
-EE auto-fill now requires a configured model (`LLM_VISION` or `LLM_API_KEY`),
+EE auto-fill now requires a configured model (Worker vision or text capability),
 exactly like the abstract/keywords and IA targets: with neither configured the
 endpoint returns "AI assist is not configured." and the upload wizard hides the
 EE auto-fill button behind the same extract-assist gate as the other two.

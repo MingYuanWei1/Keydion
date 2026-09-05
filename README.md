@@ -345,14 +345,13 @@ python3 tools/manage_passwords.py list
 
 ## Building the Search Index
 
-Model requests can run through the Cloudflare Worker in `workers/llm/`. Follow
+Model requests run through the Cloudflare Worker in `workers/llm/`. Follow
 the [Worker deployment and rollout guide](docs/deployment/llm-worker.md) to
 configure routing, credentials, and the embedding identity. The administration
-page shows capabilities in Worker mode; Tavily web search remains on Keydion.
+page shows Worker capabilities; Tavily web search remains on Keydion.
 
 Papers uploaded before embeddings were configured are not automatically embedded.
-Once the embedding capability is ready (or direct `LLM_EMBED_*` configuration is
-enabled for rollback), index any missing papers:
+Once the Worker embedding capability matches the stored index, index any missing papers:
 
 ```bash
 python3 tools/build_embeddings.py

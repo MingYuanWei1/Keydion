@@ -270,7 +270,7 @@ python3 tools/manage_passwords.py list
 
 ## 构建搜索索引
 
-在配置 LLM 之前上传的论文不会自动生成 embedding。设置 `LLM_API_KEY`（以及可选的 `LLM_EMBED_*`）后运行一次以下命令，为缺失的论文补建索引：
+在配置 LLM 之前上传的论文不会自动生成 embedding。按照 [Worker 部署指南](docs/deployment/llm-worker.md) 配置连接，并确认 embedding 身份与已有索引一致后，运行以下命令补建缺失索引。更换 embedding 模型需要完整重建：
 
 ```bash
 python3 tools/build_embeddings.py

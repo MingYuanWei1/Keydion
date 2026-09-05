@@ -5,9 +5,8 @@ Public surface:
     generate_ia_scores(file_bytes, subject, criteria, language="en") -> dict
     IAMetadataError
 
-Provider-agnostic: the chat client base URL, API key, and model are resolved via
-``llm_client`` (LLM_BASE_URL / LLM_API_KEY / LLM_DEFAULT_THINK), so the same code
-works against OpenAI, a local model (Ollama/vLLM), or any OpenAI-style API.
+Model calls use the Worker through ``llm_client``; routing and credentials
+are managed in Cloudflare.
 
 The scoring is advisory only: every returned score is clamped server-side to the
 criterion's configured max, and the criterion maxes / totals shown on the paper

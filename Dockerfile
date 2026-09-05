@@ -38,7 +38,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # Copy an explicit production allowlist.  Never replace this with COPY .: the
 # build directory commonly contains .env.prod, private Papers, and databases.
 COPY app.py wsgi.py config.py db.py models.py gunicorn.conf.py alembic.ini /app/
-COPY ee_pdf_extractor.py ia_metadata.py library_tools.py llm_client.py /app/
+COPY ee_pdf_extractor.py ia_metadata.py library_tools.py llm_client.py llm_worker.py /app/
 COPY llm_metadata.py pdf_text.py rag_index.py vision_extractor.py vision_read.py web_search.py /app/
 COPY routes /app/routes
 COPY services /app/services

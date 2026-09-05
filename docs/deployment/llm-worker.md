@@ -21,34 +21,40 @@ The checked-in Wrangler configuration mirrors this deployment:
 
 The shared token and connection settings are saved locally in the gitignored
 `local/llm-worker.env` with owner-only permissions. Provider credentials are
-Cloudflare secret bindings. The application's active environment and database
-were not changed during deployment.
+Cloudflare secret bindings. Keydion uses the Worker exclusively; direct-provider settings and the provider
+editor have been removed.
 
 Live tests verified TLS, authenticated capability discovery, rejection of
 unauthenticated requests, both chat models, JSON output, completed SSE streaming,
-automatic tool selection, image input, and embeddings. All model credentials
-were loaded from `GOOGLE_API_KEY` in the local `.env` file. Embeddings were
-subsequently switched to `gemini-embedding-001` through the Cloudflare MCP.
+automatic tool selection, image input, and embeddings. All model credentials are Cloudflare secret bindings. The local provider keys
+were removed after verification.
 
 Keydion identifies Worker requests with `User-Agent: Keydion/llm-worker`; the
 zone blocked the OpenAI SDK's default user-agent before requests reached the
 Worker. Cloudflare's zone-wide security settings were not weakened. The Worker
-converts the legacy Thinking flag to its configured `reasoning_effort`, and Ask
+sets its configured `reasoning_effort` for Thinking, and Ask
 preserves Gemini's opaque tool-call signatures when continuing a tool round.
 The live Thinking Ask test completed two model requests, executed its synthetic
-Paper tool, and produced a final answer without errors. Local verification also
-passed 81 focused Python tests, 14 Worker tests, and Worker type checking.
+Paper tool, and produced a final answer without errors. Worker verification
+passed 14 tests and type checking. After removing direct transport, 169 focused
+Python tests passed. The rebuilt Docker environment passed 53 client/Ask tests
+with its locked OpenAI 3 and httpx2 dependencies, served the homepage with HTTP
+200, and completed a live 3072-dimension embedding request.
+
+The full isolated MySQL run executed 1547 tests: 1542 passed, one filesystem test
+was skipped, and four tests encountered runner environment errors (Node was not
+installed in the app image, and resource storage was mounted read-only). Both
+JavaScript test modules subsequently passed on the host, and all 12 resource
+tests passed in a separate isolated run with temporary writable storage.
 The Google embedding test used both English and Chinese inputs through the real
 Keydion client. The Worker restores Google's omitted first `index=0` field while
 retaining the remaining vector count, order, and dimension checks.
 
-**Rebuild existing embeddings before app cutover.** Google returns 3072 values,
-matching Keydion's current `RAG_EMBED_DIM`. The previous embedding model was
-DashScope `text-embedding-v4`; its vectors are not compatible with Google's
-vectors. Rebuild existing Paper and attachment embeddings as described below
-before serving semantic queries with the new model. The Worker rejects the old
-model identity, and `local/llm-worker.env` holds the verified new identity.
-Deployment does not change the active application environment or rebuild data.
+The local `.env` and `.env.prod` contain the Worker URL, token, and verified
+Google embedding identity from `local/llm-worker.env`. These files belong to
+the local workspace, not the production server. The local database and index
+rebuild are outside this deployment's scope; no temporary embedding disablement
+is applied for them. No production environment or database was changed.
 
 ## Configure and validate the Worker
 
@@ -105,52 +111,35 @@ For local testing, copy `.dev.vars.example` to the gitignored `.dev.vars`, suppl
 test credentials, and run `npm run dev`. Only local development may use an HTTP
 Worker origin. Keep the shared token server-side.
 
-## Stage the Keydion cutover
+## Configure Keydion
 
-1. Deploy the Keydion code while keeping `LLM_TRANSPORT=direct`. If omitted, this
-   setting defaults to direct for existing installations. Retain the current
-   direct environment configuration privately for rollback.
-2. Configure and deploy the Worker as above. Verify authenticated
-   `GET /v1/capabilities` succeeds and unauthenticated access returns 401. This is
-   a configuration check, not a paid model probe.
-3. In the active Keydion environment (`.env.prod` if present, otherwise `.env`), set:
+In the active environment (`.env.prod` when present, otherwise `.env`), set:
 
-   ```dotenv
-   LLM_TRANSPORT=worker
-   LLM_WORKER_URL=https://api.keydion.com
-   LLM_WORKER_TOKEN=THE_SAME_VALUE_AS_KEYDION_TOKEN
-   LLM_WORKER_EMBED_ID=THE_EMBEDDING_ID_FROM_CAPABILITIES
-   ```
+```dotenv
+LLM_WORKER_URL=https://api.keydion.com
+LLM_WORKER_TOKEN=THE_SAME_VALUE_AS_KEYDION_TOKEN
+LLM_WORKER_EMBED_ID=
+```
 
-   The URL is an origin without `/v1`. The embedding ID is the SHA-256 digest
-   reported under `purposes.embed.embedding_id`; set it only after verifying
-   that the Worker configuration matches the existing index. An empty/mismatched
-   ID or a dimension mismatch disables embeddings independently of chat/vision.
-4. Restart all Keydion web and publishing-worker processes so they share the
-   transport and embedding identity. The initial environment change requires a
-   restart; later Worker-only chat/vision model changes do not.
-5. Check `/dashboard/admin/models`. It shows Worker capability configuration and
-   embedding compatibility, and retains Tavily settings. In Worker mode the
-   old provider save/delete/probe endpoints reject model edits, including requests
-   from an already-open browser tab. Capability discovery is cached per process
-   for 15 seconds; missing/unreachable/invalid status fails closed after expiry.
-6. Verify a Flash and Thinking Ask turn, a streamed tool call followed by its
-   answer, image-based metadata auto-fill and its JSON response, semantic search,
-   attachment retrieval, and publishing-worker indexing. Confirm a disabled
-   purpose fails while other purposes continue working. Check failure paths and
-   existing application fallbacks with a deliberately failing staging provider.
-7. Once staging is satisfactory, repeat the explicit switch on production.
-   Remove provider secrets from Keydion after the rollback window closes. Removal
-   of the temporary direct transport and editor is a follow-up after validation.
+The URL is an origin without `/v1`. Keep the embedding pin empty until the index
+matches the Worker model. After a verified rebuild, set it to
+`purposes.embed.embedding_id` from authenticated `GET /v1/capabilities`.
+An empty or mismatched identity disables embeddings independently of chat and
+vision. The capability endpoint reports configuration, not inference health.
 
-Worker deployment and Keydion's application cutover are separate operations.
+Restart the web, publishing, and attachment processes after changing their
+connection settings or embedding pin. Later Worker-only chat or vision model
+changes need no app restart. `/dashboard/admin/models` shows Worker status and
+embedding compatibility, and retains Tavily settings. Provider editing and
+probe routes are removed. Capability discovery is cached for 15 seconds and
+fails closed when discovery is unavailable. There is no direct transport or
+local model-provider credential configuration.
 
-## Rollback and embedding changes
+Verify Flash and Thinking Ask turns, streamed tool use, image extraction and
+JSON responses. After the index cutover, verify semantic search, attachment
+retrieval, and publishing-worker indexing before resuming traffic.
 
-For transport-only rollback, set `LLM_TRANSPORT=direct` and restart every Keydion
-process with the retained direct configuration. There is no automatic provider
-switching. Rollback is safe only while the direct embedding configuration matches
-the index currently being served.
+## Embedding changes
 
 The Worker computes embedding identity from normalized endpoint, model, and
 output dimensions. Every embedding request carries the pinned identity in its

@@ -8,19 +8,11 @@ import threading
 import time
 from urllib.parse import urlsplit
 
-import httpx
+import httpx2 as httpx
 
 _cache = {}
 _lock = threading.Lock()
 CAPABILITY_TTL = 15.0
-
-
-def enabled() -> bool:
-    """Existing installations stay direct until explicitly switched."""
-    mode = os.environ.get("LLM_TRANSPORT", "direct").strip()
-    if mode not in {"direct", "worker"}:
-        raise ValueError("LLM_TRANSPORT must be direct or worker")
-    return mode == "worker"
 
 
 def credentials() -> tuple[str, str]:

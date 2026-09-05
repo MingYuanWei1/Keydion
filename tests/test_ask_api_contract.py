@@ -39,20 +39,19 @@ class ApiAskValidation(unittest.TestCase):
         self.client = _make_client()
         _authenticate(self.client, "ask-api-contract-reader")
 
-    def test_disabled_when_no_api_key(self):
-        with mock.patch.dict(os.environ, {}, clear=False):
-            os.environ.pop("LLM_API_KEY", None)
+    def test_disabled_when_worker_unavailable(self):
+        with mock.patch("llm_worker.purpose_enabled", return_value=False):
             resp = self.client.post("/api/ai", json={"question": "hi", "mode": "flash"})
             self.assertEqual(resp.status_code, 503)
             self.assertIn("error", resp.get_json())
 
     def test_rejects_empty_question(self):
-        with mock.patch.dict(os.environ, {"LLM_API_KEY": "k"}, clear=False):
+        with mock.patch("llm_worker.purpose_enabled", return_value=True):
             resp = self.client.post("/api/ai", json={"question": "   ", "mode": "flash"})
             self.assertEqual(resp.status_code, 400)
 
     def test_rejects_overlong_question(self):
-        with mock.patch.dict(os.environ, {"LLM_API_KEY": "k"}, clear=False):
+        with mock.patch("llm_worker.purpose_enabled", return_value=True):
             resp = self.client.post("/api/ai", json={"question": "x" * 2001, "mode": "flash"})
             self.assertEqual(resp.status_code, 400)
 

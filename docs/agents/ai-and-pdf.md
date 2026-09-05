@@ -4,7 +4,7 @@ Before changing metadata auto-fill, read [ADR-0001](../adr/0001-vision-first-ext
 
 ## Capability gates
 
-Use `llm_enabled()` for Ask/chat and the text-model metadata fallback, `embedding_enabled()` for embeddings and semantic search, and `vision_enabled()` for vision-first PDF reading. Ask web access additionally requires `web_search_enabled()` and per-turn opt-in. Never treat `llm_enabled()` as a global AI gate: an empty `LLM_API_KEY` does not disable independently configured embeddings or vision. `.env.example` owns the credential and fallback mapping.
+Use `llm_enabled()` for Ask/chat and the text-model metadata fallback, `embedding_enabled()` for embeddings and semantic search, and `vision_enabled()` for vision-first PDF reading. Ask web access additionally requires `web_search_enabled()` and per-turn opt-in. Never treat `llm_enabled()` as a global AI gate: Worker purposes are independently enabled. `.env.example` owns the Worker connection settings; Cloudflare owns provider credentials and models. Embeddings also require a matching `LLM_WORKER_EMBED_ID` and dimensions.
 
 ## Model and PDF boundaries
 

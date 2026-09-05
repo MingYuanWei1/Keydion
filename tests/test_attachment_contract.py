@@ -117,9 +117,8 @@ class AttachEndpoint(unittest.TestCase):
         self.client = _make_client()
         _authenticate(self.client, "attachment-contract-reader")
 
-    def test_disabled_when_no_api_key(self):
-        with mock.patch.dict(os.environ, {}, clear=False):
-            os.environ.pop("LLM_API_KEY", None)
+    def test_disabled_when_worker_unavailable(self):
+        with mock.patch("llm_worker.purpose_enabled", return_value=False):
             resp = self.client.post(
                 "/api/ai/attach",
                 data={"conversation_id": "zzzzzz",
@@ -128,7 +127,7 @@ class AttachEndpoint(unittest.TestCase):
             self.assertEqual(resp.status_code, 503)
 
     def test_unknown_conversation_404(self):
-        with mock.patch.dict(os.environ, {"LLM_API_KEY": "k"}, clear=False):
+        with mock.patch("llm_worker.purpose_enabled", return_value=True):
             resp = self.client.post(
                 "/api/ai/attach",
                 data={"conversation_id": "nope00",

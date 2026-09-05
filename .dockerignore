@@ -61,6 +61,7 @@ AI_Prompts/
 
 # Repository-only material is never needed by the production image.
 tests/
+workers/
 docs/
 deploy/
 README.md

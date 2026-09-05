@@ -5,13 +5,13 @@ import time
 import unittest
 from unittest.mock import patch
 
-import httpx
+import httpx2 as httpx
 import llm_client
 import llm_worker
 from services.publishing_contracts import IndexDeadlineExceeded
 
 ENV = {
-    "LLM_TRANSPORT": "worker", "LLM_WORKER_URL": "https://worker.example",
+    "LLM_WORKER_URL": "https://worker.example",
     "LLM_WORKER_TOKEN": "worker-secret", "LLM_WORKER_EMBED_ID": "a" * 64,
     "LLM_API_KEY": "direct-secret", "LLM_BASE_URL": "https://direct.example",
     "LLM_EMBED_API_KEY": "direct-embed-secret", "LLM_VISION_API_KEY": "direct-vision-secret",
@@ -111,12 +111,12 @@ class WorkerClientTest(unittest.TestCase):
             self.assertLessEqual(client.timeout, 3)
             self.assertEqual(client.max_retries, 0)
 
-    def test_explicit_direct_mode_preserves_manual_rollback(self):
+    def test_legacy_transport_switch_cannot_restore_direct_access(self):
         os.environ["LLM_TRANSPORT"] = "direct"
         with llm_client.build_client() as client:
-            self.assertEqual(client.api_key, "direct-secret")
-            self.assertEqual(client.base_url.host, "direct.example")
-        self.assertEqual(llm_client.flash_model(), "gpt-4o-mini")
+            self.assertEqual(client.api_key, "worker-secret")
+            self.assertEqual(client.base_url.host, "worker.example")
+        self.assertEqual(llm_client.flash_model(), "flash")
 
     def test_capabilities_cache_expiry_and_fail_closed_without_cross_capability_gates(self):
         data = capability_data()
@@ -149,18 +149,17 @@ class WorkerClientTest(unittest.TestCase):
 
 
 class WorkerAdminTest(unittest.TestCase):
-    def test_all_provider_writes_and_probes_are_blocked_before_accessing_registry(self):
+    def test_model_slot_writes_are_rejected(self):
         from flask import Flask
         from flask_babel import Babel
         from services import llm_admin
         app = Flask(__name__)
         Babel(app)
-        with app.app_context(), patch.dict(os.environ, ENV), patch.object(llm_admin, "load_registry") as registry:
-            for mutate, payload in ((llm_admin.save_provider, {}), (llm_admin.delete_provider, {}), (llm_admin.apply_slot, {"slot":"text"}), (llm_admin.apply_slot, {"slot":"embed"})):
+        with app.app_context(), patch.object(llm_admin, "_write_env") as write:
+            for slot in ("text", "embed", "vision", "provider"):
                 with self.assertRaises(llm_admin.LLMAdminError):
-                    mutate(payload)
-            self.assertFalse(llm_admin.probe({"slot":"provider"})["ok"])
-            registry.assert_not_called()
+                    llm_admin.apply_slot({"slot": slot})
+            write.assert_not_called()
 
     def test_worker_template_has_status_no_model_editor_and_retains_tavily(self):
         from tests.test_admin_models_contract import _render
@@ -177,13 +176,11 @@ class WorkerAdminTest(unittest.TestCase):
     def test_tavily_save_does_not_rewrite_provider_configuration(self):
         from services import llm_admin
         with patch.dict(os.environ, ENV), patch.object(llm_admin, "_write_env") as write, \
-             patch.object(llm_admin, "load_registry") as registry, \
              patch.object(llm_admin, "snapshot", return_value={}), \
              patch.object(llm_admin.version_service, "request_graceful_restart", return_value=False):
             result = llm_admin.apply_slot({"slot":"search", "api_key":"new-search-key"}, expected_env_mtime=1)
             self.assertTrue(result["ok"])
             write.assert_called_once_with({"WEB_SEARCH_API_KEY":"new-search-key"}, expected_mtime=1)
-            registry.assert_not_called()
 
 
 if __name__ == "__main__":
