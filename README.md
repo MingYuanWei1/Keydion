@@ -345,9 +345,9 @@ python3 tools/manage_passwords.py list
 
 ## Building the Search Index
 
-Model requests run through the Cloudflare Worker in `workers/llm/`. Follow
-the [Worker deployment and rollout guide](docs/deployment/llm-worker.md) to
-configure routing, credentials, and the embedding identity. The administration
+Model requests run through the Cloudflare Worker in the separate `keydion-api`
+repository. Follow the [Worker rollout guide](docs/deployment/llm-worker.md) to
+configure the connection and the embedding identity. The administration
 page shows Worker capabilities; Tavily web search remains on Keydion.
 
 Papers uploaded before embeddings were configured are not automatically embedded.
